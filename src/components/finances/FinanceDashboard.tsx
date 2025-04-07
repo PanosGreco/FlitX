@@ -18,7 +18,11 @@ import { BarChart, LineChart, PieChart } from "@/components/finances/charts";
 import { TrendingUp, TrendingDown, Plus, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function FinanceDashboard() {
+interface FinanceDashboardProps {
+  onAddRecord?: () => void;
+}
+
+export function FinanceDashboard({ onAddRecord }: FinanceDashboardProps) {
   const [timeframe, setTimeframe] = useState("month");
   
   // Summary data
@@ -55,6 +59,7 @@ export function FinanceDashboard() {
           
           <Button 
             className="bg-flitx-blue hover:bg-flitx-blue-600"
+            onClick={onAddRecord}
           >
             <Plus className="w-4 h-4 mr-2" />
             Add Record

@@ -20,6 +20,23 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 interface VehicleDetailsProps {
   vehicleId?: string;
@@ -29,6 +46,10 @@ interface VehicleDetailsProps {
 export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("details");
+  const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
+  const [currentStatus, setCurrentStatus] = useState("");
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const { toast } = useToast();
   
   // Find the vehicle by ID, or use a default if not found
   const vehicle = vehicles.find(v => v.id === vehicleId) || {
@@ -70,6 +91,52 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
     rented: "Rented",
     maintenance: "Maintenance",
     repair: "Needs Repair"
+  };
+
+  const handleEditStatus = () => {
+    setCurrentStatus(vehicle.status);
+    setIsEditStatusOpen(true);
+  };
+
+  const handleStatusChange = (newStatus: string) => {
+    setCurrentStatus(newStatus);
+  };
+
+  const handleSaveStatus = () => {
+    // Here you would update the vehicle status in the backend
+    // For now we'll just show a toast
+    toast({
+      title: "Status Updated",
+      description: `Vehicle status changed to ${statusLabels[currentStatus as keyof typeof statusLabels] || currentStatus}`,
+    });
+    setIsEditStatusOpen(false);
+  };
+
+  const handleDateSelect = (date: Date) => {
+    setSelectedDates(prev => {
+      // Check if date is already selected
+      const isDateSelected = prev.some(
+        d => d.toDateString() === date.toDateString()
+      );
+      
+      if (isDateSelected) {
+        // Remove the date if it's already selected
+        return prev.filter(d => d.toDateString() !== date.toDateString());
+      } else {
+        // Add the date if it's not already selected
+        return [...prev, date];
+      }
+    });
+
+    // Here you would update the backend with the new availability
+    // and calculate any rental income if needed
+    if (vehicle.dailyRate) {
+      // Simulate backend calculation and update
+      toast({
+        title: "Rental Income Added",
+        description: `Added $${vehicle.dailyRate} to income for ${date.toLocaleDateString()}`,
+      });
+    }
   };
 
   return (
@@ -116,20 +183,21 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
             </div>
             
             <div className="flex-shrink-0 flex gap-2">
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleEditStatus}>
                 <Settings className="h-4 w-4 mr-2" />
-                Edit
+                Edit Status
               </Button>
             </div>
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-5 w-full max-w-lg">
+            <TabsList className="grid grid-cols-6 w-full max-w-lg">
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="damage">Damage</TabsTrigger>
               <TabsTrigger value="documents">Docs</TabsTrigger>
               <TabsTrigger value="availability">Calendar</TabsTrigger>
               <TabsTrigger value="fuel">Fuel</TabsTrigger>
+              <TabsTrigger value="finance">Finance</TabsTrigger>
             </TabsList>
           
             <div className="container py-6">
@@ -258,16 +326,53 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
               
               <TabsContent value="availability">
                 <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center py-8 text-flitx-gray-500">
-                      <Calendar className="mx-auto h-12 w-12 text-flitx-gray-300 mb-3" />
-                      <h3 className="text-lg font-medium mb-1">Calendar View</h3>
-                      <p className="text-sm">
-                        Manage vehicle availability and reservations in the calendar view.
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg flex items-center">
+                      <Calendar className="h-5 w-5 mr-2 text-flitx-blue" />
+                      Vehicle Availability
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <p className="text-flitx-gray-500 text-sm">
+                        Select days when the vehicle is booked/unavailable. This will automatically calculate revenue based on the daily rate.
                       </p>
-                      <Button className="mt-4 bg-flitx-blue hover:bg-flitx-blue-600">
-                        Set Availability
-                      </Button>
+                      
+                      <div className="flex flex-col items-center">
+                        <CalendarComponent
+                          mode="multiple"
+                          selected={selectedDates}
+                          onSelect={(date) => date && handleDateSelect(date)}
+                          className="rounded-md border p-3 pointer-events-auto"
+                          modifiersStyles={{
+                            selected: {
+                              backgroundColor: "#1EAEDB",
+                              color: "white",
+                            }
+                          }}
+                        />
+                      </div>
+                      
+                      <div className="mt-4 p-4 bg-blue-50 rounded-md">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <div className="text-sm font-medium">Daily Rate</div>
+                            <div className="text-2xl font-bold">${vehicle.dailyRate || 0}</div>
+                          </div>
+                          
+                          <div>
+                            <div className="text-sm font-medium">Selected Days</div>
+                            <div className="text-2xl font-bold">{selectedDates.length}</div>
+                          </div>
+                          
+                          <div>
+                            <div className="text-sm font-medium">Estimated Revenue</div>
+                            <div className="text-2xl font-bold">
+                              ${safeNumber(vehicle.dailyRate * selectedDates.length).toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -310,10 +415,84 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                   </CardContent>
                 </Card>
               </TabsContent>
+              
+              <TabsContent value="finance">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg flex items-center">
+                      <BarChart3 className="h-5 w-5 mr-2 text-flitx-blue" />
+                      Financial Summary
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="bg-green-50 p-4 rounded-md">
+                          <div className="text-sm text-flitx-gray-500">Total Revenue</div>
+                          <div className="text-2xl font-bold">${safeNumber(vehicle.dailyRate * 15).toLocaleString()}</div>
+                          <div className="text-xs text-green-600">From {selectedDates.length} booked days</div>
+                        </div>
+                        
+                        <div className="bg-red-50 p-4 rounded-md">
+                          <div className="text-sm text-flitx-gray-500">Total Expenses</div>
+                          <div className="text-2xl font-bold">${safeNumber(vehicle.fuelCosts + vehicle.totalServiceCost).toLocaleString()}</div>
+                          <div className="text-xs text-flitx-gray-500">Fuel, maintenance, repairs</div>
+                        </div>
+                        
+                        <div className="bg-blue-50 p-4 rounded-md">
+                          <div className="text-sm text-flitx-gray-500">Net Profit</div>
+                          <div className="text-2xl font-bold">
+                            ${safeNumber((vehicle.dailyRate * 15) - (vehicle.fuelCosts + vehicle.totalServiceCost)).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <Button className="w-full mt-4 bg-flitx-blue hover:bg-flitx-blue-600">
+                        View Detailed Financial Report
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </div>
           </Tabs>
         </div>
       </div>
+
+      {/* Edit Status Dialog */}
+      <Dialog open={isEditStatusOpen} onOpenChange={setIsEditStatusOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Vehicle Status</DialogTitle>
+            <DialogDescription>
+              Change the current status of this vehicle.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <Select value={currentStatus} onValueChange={handleStatusChange}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="available">Available</SelectItem>
+                <SelectItem value="rented">Rented</SelectItem>
+                <SelectItem value="maintenance">Under Maintenance</SelectItem>
+                <SelectItem value="repair">Needs Repair</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditStatusOpen(false)}>
+              Cancel
+            </Button>
+            <Button className="bg-flitx-blue hover:bg-flitx-blue-600" onClick={handleSaveStatus}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
