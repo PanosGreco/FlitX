@@ -82,6 +82,15 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
     };
   }, [isOpen, isMobile]);
 
+  // Helper function to safely get translation text
+  const getTranslation = (key: string): string => {
+    const value = t[key as keyof typeof t];
+    if (typeof value === 'string') {
+      return value;
+    }
+    return key; // Fallback to the key if translation is not a string
+  };
+
   return (
     <>
       {/* Backdrop */}
@@ -128,12 +137,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                   }
                 >
                   <item.icon className="mr-3 h-5 w-5" />
-                  <span>
-                    {/* Make sure we're getting a string from the translation object */}
-                    {typeof t[item.titleKey as keyof typeof t] === 'string' 
-                      ? t[item.titleKey as keyof typeof t] 
-                      : item.titleKey}
-                  </span>
+                  <span>{getTranslation(item.titleKey)}</span>
                 </NavLink>
               </li>
             ))}
