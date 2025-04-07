@@ -123,7 +123,7 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
             </div>
           </div>
           
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid grid-cols-5 w-full max-w-lg">
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="damage">Damage</TabsTrigger>
@@ -131,188 +131,188 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
               <TabsTrigger value="availability">Calendar</TabsTrigger>
               <TabsTrigger value="fuel">Fuel</TabsTrigger>
             </TabsList>
+          
+            <div className="container py-6">
+              <TabsContent value="details" className="mt-0">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg flex items-center">
+                        <Gauge className="h-5 w-5 mr-2 text-flitx-blue" />
+                        Performance Metrics
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-2 gap-y-4 mt-2">
+                        <div>
+                          <div className="text-sm text-flitx-gray-500">MPG</div>
+                          <div className="font-semibold text-2xl">{vehicle.mpg || 0}</div>
+                        </div>
+                        
+                        <div>
+                          <div className="text-sm text-flitx-gray-500">Cost/Mi</div>
+                          <div className="font-semibold text-2xl">${vehicle.costPerMile || 0}</div>
+                        </div>
+                        
+                        <div>
+                          <div className="text-sm text-flitx-gray-500">Fuel Costs</div>
+                          <div className="font-semibold text-2xl">${safeNumber(vehicle.fuelCosts).toLocaleString()}</div>
+                        </div>
+                        
+                        <div>
+                          <div className="text-sm text-flitx-gray-500">Service Costs</div>
+                          <div className="font-semibold text-2xl">${safeNumber(vehicle.totalServiceCost).toLocaleString()}</div>
+                        </div>
+                        
+                        <div>
+                          <div className="text-sm text-flitx-gray-500">Miles/Day</div>
+                          <div className="font-semibold text-2xl">{vehicle.milesPerDay || 0}</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg flex items-center">
+                        <Wrench className="h-5 w-5 mr-2 text-flitx-blue" />
+                        Service Info
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex justify-between items-center mb-4">
+                        <div className="flex items-center">
+                          <div className="bg-flitx-blue text-white p-2 rounded-lg">
+                            <RefreshCcw className="h-5 w-5" />
+                          </div>
+                          <div className="ml-3">
+                            <div className="text-sm text-flitx-gray-500">Next Service</div>
+                            <div className="font-semibold">In 2,500 mi</div>
+                          </div>
+                        </div>
+                        
+                        <div className="text-right">
+                          <div className="text-sm text-flitx-gray-500">Last Service</div>
+                          <div>{vehicle.lastServiceDate ? new Date(vehicle.lastServiceDate).toLocaleDateString() : 'N/A'}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span>Service Reminders</span>
+                          <div>
+                            <span className="text-red-500 font-bold">{vehicle.serviceReminders || 0}</span>
+                            <span className="text-flitx-gray-400"> active</span>
+                          </div>
+                        </div>
+                        
+                        <div className="flex justify-between text-sm">
+                          <span>Total Services</span>
+                          <span>{vehicle.totalServices || 0}</span>
+                        </div>
+                        
+                        <Separator className="my-3" />
+                        
+                        <div className="text-sm text-flitx-gray-500">Oil Change Status</div>
+                        <Progress value={65} className="h-2" />
+                        <div className="text-xs text-right text-flitx-gray-400">2,500 mi remaining</div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="damage">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-8 text-flitx-gray-500">
+                      <AlertTriangle className="mx-auto h-12 w-12 text-flitx-gray-300 mb-3" />
+                      <h3 className="text-lg font-medium mb-1">No damage reports</h3>
+                      <p className="text-sm">
+                        This vehicle has no damage reports. You can add one by clicking the button below.
+                      </p>
+                      <Button className="mt-4 bg-flitx-blue hover:bg-flitx-blue-600">
+                        Report Damage
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="documents">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-8 text-flitx-gray-500">
+                      <FileText className="mx-auto h-12 w-12 text-flitx-gray-300 mb-3" />
+                      <h3 className="text-lg font-medium mb-1">No documents uploaded</h3>
+                      <p className="text-sm">
+                        Upload important documents like registration, insurance, and service records.
+                      </p>
+                      <Button className="mt-4 bg-flitx-blue hover:bg-flitx-blue-600">
+                        Upload Documents
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="availability">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center py-8 text-flitx-gray-500">
+                      <Calendar className="mx-auto h-12 w-12 text-flitx-gray-300 mb-3" />
+                      <h3 className="text-lg font-medium mb-1">Calendar View</h3>
+                      <p className="text-sm">
+                        Manage vehicle availability and reservations in the calendar view.
+                      </p>
+                      <Button className="mt-4 bg-flitx-blue hover:bg-flitx-blue-600">
+                        Set Availability
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="fuel">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <div className="text-sm font-medium">Current Fuel Level</div>
+                          <div className="text-sm text-flitx-gray-500">{vehicle.fuelLevel || 0}%</div>
+                        </div>
+                        <Progress value={vehicle.fuelLevel || 0} className="h-3" />
+                      </div>
+                      
+                      <div className="flex flex-col md:flex-row gap-4 mt-6">
+                        <div className="flex-1">
+                          <div className="text-sm text-flitx-gray-500 mb-1">Fuel Type</div>
+                          <div className="font-medium">{vehicle.fuelType || 'N/A'}</div>
+                        </div>
+                        
+                        <div className="flex-1">
+                          <div className="text-sm text-flitx-gray-500 mb-1">Estimated Range</div>
+                          <div className="font-medium">415 miles</div>
+                        </div>
+                        
+                        <div className="flex-1">
+                          <div className="text-sm text-flitx-gray-500 mb-1">Last Refuel</div>
+                          <div className="font-medium">Apr 2, 2023</div>
+                        </div>
+                      </div>
+                      
+                      <Button className="mt-4 bg-flitx-blue hover:bg-flitx-blue-600">
+                        <Droplet className="h-4 w-4 mr-2" />
+                        Update Fuel Level
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </div>
           </Tabs>
         </div>
-      </div>
-      
-      <div className="container py-6">
-        <TabsContent value="details" className="mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center">
-                  <Gauge className="h-5 w-5 mr-2 text-flitx-blue" />
-                  Performance Metrics
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 gap-y-4 mt-2">
-                  <div>
-                    <div className="text-sm text-flitx-gray-500">MPG</div>
-                    <div className="font-semibold text-2xl">{vehicle.mpg || 0}</div>
-                  </div>
-                  
-                  <div>
-                    <div className="text-sm text-flitx-gray-500">Cost/Mi</div>
-                    <div className="font-semibold text-2xl">${vehicle.costPerMile || 0}</div>
-                  </div>
-                  
-                  <div>
-                    <div className="text-sm text-flitx-gray-500">Fuel Costs</div>
-                    <div className="font-semibold text-2xl">${safeNumber(vehicle.fuelCosts).toLocaleString()}</div>
-                  </div>
-                  
-                  <div>
-                    <div className="text-sm text-flitx-gray-500">Service Costs</div>
-                    <div className="font-semibold text-2xl">${safeNumber(vehicle.totalServiceCost).toLocaleString()}</div>
-                  </div>
-                  
-                  <div>
-                    <div className="text-sm text-flitx-gray-500">Miles/Day</div>
-                    <div className="font-semibold text-2xl">{vehicle.milesPerDay || 0}</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center">
-                  <Wrench className="h-5 w-5 mr-2 text-flitx-blue" />
-                  Service Info
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-between items-center mb-4">
-                  <div className="flex items-center">
-                    <div className="bg-flitx-blue text-white p-2 rounded-lg">
-                      <RefreshCcw className="h-5 w-5" />
-                    </div>
-                    <div className="ml-3">
-                      <div className="text-sm text-flitx-gray-500">Next Service</div>
-                      <div className="font-semibold">In 2,500 mi</div>
-                    </div>
-                  </div>
-                  
-                  <div className="text-right">
-                    <div className="text-sm text-flitx-gray-500">Last Service</div>
-                    <div>{vehicle.lastServiceDate ? new Date(vehicle.lastServiceDate).toLocaleDateString() : 'N/A'}</div>
-                  </div>
-                </div>
-                
-                <div className="space-y-1">
-                  <div className="flex justify-between text-sm">
-                    <span>Service Reminders</span>
-                    <div>
-                      <span className="text-red-500 font-bold">{vehicle.serviceReminders || 0}</span>
-                      <span className="text-flitx-gray-400"> active</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between text-sm">
-                    <span>Total Services</span>
-                    <span>{vehicle.totalServices || 0}</span>
-                  </div>
-                  
-                  <Separator className="my-3" />
-                  
-                  <div className="text-sm text-flitx-gray-500">Oil Change Status</div>
-                  <Progress value={65} className="h-2" />
-                  <div className="text-xs text-right text-flitx-gray-400">2,500 mi remaining</div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="damage">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8 text-flitx-gray-500">
-                <AlertTriangle className="mx-auto h-12 w-12 text-flitx-gray-300 mb-3" />
-                <h3 className="text-lg font-medium mb-1">No damage reports</h3>
-                <p className="text-sm">
-                  This vehicle has no damage reports. You can add one by clicking the button below.
-                </p>
-                <Button className="mt-4 bg-flitx-blue hover:bg-flitx-blue-600">
-                  Report Damage
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="documents">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8 text-flitx-gray-500">
-                <FileText className="mx-auto h-12 w-12 text-flitx-gray-300 mb-3" />
-                <h3 className="text-lg font-medium mb-1">No documents uploaded</h3>
-                <p className="text-sm">
-                  Upload important documents like registration, insurance, and service records.
-                </p>
-                <Button className="mt-4 bg-flitx-blue hover:bg-flitx-blue-600">
-                  Upload Documents
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="availability">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8 text-flitx-gray-500">
-                <Calendar className="mx-auto h-12 w-12 text-flitx-gray-300 mb-3" />
-                <h3 className="text-lg font-medium mb-1">Calendar View</h3>
-                <p className="text-sm">
-                  Manage vehicle availability and reservations in the calendar view.
-                </p>
-                <Button className="mt-4 bg-flitx-blue hover:bg-flitx-blue-600">
-                  Set Availability
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="fuel">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="text-sm font-medium">Current Fuel Level</div>
-                    <div className="text-sm text-flitx-gray-500">{vehicle.fuelLevel || 0}%</div>
-                  </div>
-                  <Progress value={vehicle.fuelLevel || 0} className="h-3" />
-                </div>
-                
-                <div className="flex flex-col md:flex-row gap-4 mt-6">
-                  <div className="flex-1">
-                    <div className="text-sm text-flitx-gray-500 mb-1">Fuel Type</div>
-                    <div className="font-medium">{vehicle.fuelType || 'N/A'}</div>
-                  </div>
-                  
-                  <div className="flex-1">
-                    <div className="text-sm text-flitx-gray-500 mb-1">Estimated Range</div>
-                    <div className="font-medium">415 miles</div>
-                  </div>
-                  
-                  <div className="flex-1">
-                    <div className="text-sm text-flitx-gray-500 mb-1">Last Refuel</div>
-                    <div className="font-medium">Apr 2, 2023</div>
-                  </div>
-                </div>
-                
-                <Button className="mt-4 bg-flitx-blue hover:bg-flitx-blue-600">
-                  <Droplet className="h-4 w-4 mr-2" />
-                  Update Fuel Level
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </div>
     </div>
   );
