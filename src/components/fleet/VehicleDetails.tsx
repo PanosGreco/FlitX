@@ -11,7 +11,10 @@ import {
   Gauge,
   Settings,
   RefreshCcw,
-  Wrench
+  Wrench,
+  Upload,
+  PenLine,
+  Edit
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,6 +39,8 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
 interface VehicleDetailsProps {
@@ -47,8 +52,13 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("details");
   const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
+  const [isEditFinanceOpen, setIsEditFinanceOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState("");
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [documentName, setDocumentName] = useState("");
+  const [documents, setDocuments] = useState<{name: string; date: string}[]>([]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [totalExpenses, setTotalExpenses] = useState(0);
   const { toast } = useToast();
   
   // Find the vehicle by ID, or use a default if not found
@@ -111,8 +121,43 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
     });
     setIsEditStatusOpen(false);
   };
+  
+  const handleEditFinance = () => {
+    setTotalRevenue(safeNumber(vehicle.dailyRate * 15));
+    setTotalExpenses(safeNumber(vehicle.fuelCosts + vehicle.totalServiceCost));
+    setIsEditFinanceOpen(true);
+  };
+  
+  const handleSaveFinance = () => {
+    toast({
+      title: "Financial Data Updated",
+      description: "Vehicle financial information has been updated.",
+    });
+    setIsEditFinanceOpen(false);
+  };
+  
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      setDocumentName(file.name);
+      
+      const newDoc = {
+        name: file.name,
+        date: new Date().toLocaleDateString()
+      };
+      
+      setDocuments(prev => [...prev, newDoc]);
+      
+      toast({
+        title: "Document Uploaded",
+        description: `${file.name} has been uploaded successfully.`,
+      });
+    }
+  };
 
-  const handleDateSelect = (date: Date) => {
+  const handleDateSelect = (date: Date | undefined) => {
+    if (!date) return;
+    
     setSelectedDates(prev => {
       // Check if date is already selected
       const isDateSelected = prev.some(
@@ -191,12 +236,11 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-6 w-full max-w-lg">
+            <TabsList className="grid grid-cols-5 w-full max-w-lg">
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="damage">Damage</TabsTrigger>
               <TabsTrigger value="documents">Docs</TabsTrigger>
               <TabsTrigger value="availability">Calendar</TabsTrigger>
-              <TabsTrigger value="fuel">Fuel</TabsTrigger>
               <TabsTrigger value="finance">Finance</TabsTrigger>
             </TabsList>
           
@@ -235,6 +279,30 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                         <div>
                           <div className="text-sm text-flitx-gray-500">Miles/Day</div>
                           <div className="font-semibold text-2xl">{vehicle.milesPerDay || 0}</div>
+                        </div>
+                      </div>
+
+                      <Separator className="my-4" />
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <div className="flex justify-between items-center mb-2">
+                            <div className="text-sm font-medium">Current Fuel Level</div>
+                            <div className="text-sm text-flitx-gray-500">{vehicle.fuelLevel || 0}%</div>
+                          </div>
+                          <Progress value={vehicle.fuelLevel || 0} className="h-3" />
+                        </div>
+                        
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          <div className="flex-1">
+                            <div className="text-sm text-flitx-gray-500 mb-1">Fuel Type</div>
+                            <div className="font-medium">{vehicle.fuelType || 'N/A'}</div>
+                          </div>
+                          
+                          <div className="flex-1">
+                            <div className="text-sm text-flitx-gray-500 mb-1">Estimated Range</div>
+                            <div className="font-medium">415 miles</div>
+                          </div>
                         </div>
                       </div>
                     </CardContent>
@@ -310,15 +378,52 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
               <TabsContent value="documents">
                 <Card>
                   <CardContent className="pt-6">
-                    <div className="text-center py-8 text-flitx-gray-500">
-                      <FileText className="mx-auto h-12 w-12 text-flitx-gray-300 mb-3" />
-                      <h3 className="text-lg font-medium mb-1">No documents uploaded</h3>
-                      <p className="text-sm">
-                        Upload important documents like registration, insurance, and service records.
-                      </p>
-                      <Button className="mt-4 bg-flitx-blue hover:bg-flitx-blue-600">
-                        Upload Documents
-                      </Button>
+                    {documents.length === 0 ? (
+                      <div className="text-center py-8 text-flitx-gray-500">
+                        <FileText className="mx-auto h-12 w-12 text-flitx-gray-300 mb-3" />
+                        <h3 className="text-lg font-medium mb-1">No documents uploaded</h3>
+                        <p className="text-sm">
+                          Upload important documents like registration, insurance, and service records.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4 mb-6">
+                        <h3 className="text-lg font-medium">Uploaded Documents</h3>
+                        <div className="space-y-3">
+                          {documents.map((doc, index) => (
+                            <div key={index} className="flex items-center justify-between border p-3 rounded-md">
+                              <div className="flex items-center">
+                                <FileText className="h-5 w-5 mr-2 text-flitx-blue" />
+                                <div>
+                                  <div className="font-medium">{doc.name}</div>
+                                  <div className="text-xs text-flitx-gray-500">Uploaded on {doc.date}</div>
+                                </div>
+                              </div>
+                              <Button variant="ghost" size="sm">
+                                View
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="flex justify-center">
+                      <label htmlFor="document-upload" className="cursor-pointer">
+                        <input
+                          id="document-upload"
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                          onChange={handleFileUpload}
+                        />
+                        <Button className="bg-flitx-blue hover:bg-flitx-blue-600" asChild>
+                          <span>
+                            <Upload className="h-4 w-4 mr-2" />
+                            Upload Documents
+                          </span>
+                        </Button>
+                      </label>
                     </div>
                   </CardContent>
                 </Card>
@@ -342,8 +447,8 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                         <CalendarComponent
                           mode="multiple"
                           selected={selectedDates}
-                          onSelect={(date) => date && handleDateSelect(date)}
-                          className="rounded-md border p-3 pointer-events-auto"
+                          onSelect={handleDateSelect}
+                          className="rounded-md border p-3"
                           modifiersStyles={{
                             selected: {
                               backgroundColor: "#1EAEDB",
@@ -378,71 +483,39 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                 </Card>
               </TabsContent>
               
-              <TabsContent value="fuel">
-                <Card>
-                  <CardContent className="pt-6">
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between items-center mb-2">
-                          <div className="text-sm font-medium">Current Fuel Level</div>
-                          <div className="text-sm text-flitx-gray-500">{vehicle.fuelLevel || 0}%</div>
-                        </div>
-                        <Progress value={vehicle.fuelLevel || 0} className="h-3" />
-                      </div>
-                      
-                      <div className="flex flex-col md:flex-row gap-4 mt-6">
-                        <div className="flex-1">
-                          <div className="text-sm text-flitx-gray-500 mb-1">Fuel Type</div>
-                          <div className="font-medium">{vehicle.fuelType || 'N/A'}</div>
-                        </div>
-                        
-                        <div className="flex-1">
-                          <div className="text-sm text-flitx-gray-500 mb-1">Estimated Range</div>
-                          <div className="font-medium">415 miles</div>
-                        </div>
-                        
-                        <div className="flex-1">
-                          <div className="text-sm text-flitx-gray-500 mb-1">Last Refuel</div>
-                          <div className="font-medium">Apr 2, 2023</div>
-                        </div>
-                      </div>
-                      
-                      <Button className="mt-4 bg-flitx-blue hover:bg-flitx-blue-600">
-                        <Droplet className="h-4 w-4 mr-2" />
-                        Update Fuel Level
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
               <TabsContent value="finance">
                 <Card>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center">
-                      <BarChart3 className="h-5 w-5 mr-2 text-flitx-blue" />
-                      Financial Summary
-                    </CardTitle>
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-lg flex items-center">
+                        <BarChart3 className="h-5 w-5 mr-2 text-flitx-blue" />
+                        Financial Summary
+                      </CardTitle>
+                      <Button variant="outline" size="sm" onClick={handleEditFinance} className="flex items-center">
+                        <Edit className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="bg-green-50 p-4 rounded-md">
                           <div className="text-sm text-flitx-gray-500">Total Revenue</div>
-                          <div className="text-2xl font-bold">${safeNumber(vehicle.dailyRate * 15).toLocaleString()}</div>
+                          <div className="text-2xl font-bold">${safeNumber(totalRevenue || vehicle.dailyRate * 15).toLocaleString()}</div>
                           <div className="text-xs text-green-600">From {selectedDates.length} booked days</div>
                         </div>
                         
                         <div className="bg-red-50 p-4 rounded-md">
                           <div className="text-sm text-flitx-gray-500">Total Expenses</div>
-                          <div className="text-2xl font-bold">${safeNumber(vehicle.fuelCosts + vehicle.totalServiceCost).toLocaleString()}</div>
+                          <div className="text-2xl font-bold">${safeNumber(totalExpenses || vehicle.fuelCosts + vehicle.totalServiceCost).toLocaleString()}</div>
                           <div className="text-xs text-flitx-gray-500">Fuel, maintenance, repairs</div>
                         </div>
                         
                         <div className="bg-blue-50 p-4 rounded-md">
                           <div className="text-sm text-flitx-gray-500">Net Profit</div>
                           <div className="text-2xl font-bold">
-                            ${safeNumber((vehicle.dailyRate * 15) - (vehicle.fuelCosts + vehicle.totalServiceCost)).toLocaleString()}
+                            ${safeNumber((totalRevenue || vehicle.dailyRate * 15) - (totalExpenses || vehicle.fuelCosts + vehicle.totalServiceCost)).toLocaleString()}
                           </div>
                         </div>
                       </div>
@@ -488,6 +561,56 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
               Cancel
             </Button>
             <Button className="bg-flitx-blue hover:bg-flitx-blue-600" onClick={handleSaveStatus}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Edit Finance Dialog */}
+      <Dialog open={isEditFinanceOpen} onOpenChange={setIsEditFinanceOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Update Financial Data</DialogTitle>
+            <DialogDescription>
+              Manually adjust revenue and expenses for this vehicle.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="total-revenue">Total Revenue ($)</Label>
+              <Input 
+                id="total-revenue" 
+                type="number"
+                value={totalRevenue}
+                onChange={(e) => setTotalRevenue(Number(e.target.value))}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="total-expenses">Total Expenses ($)</Label>
+              <Input 
+                id="total-expenses" 
+                type="number"
+                value={totalExpenses}
+                onChange={(e) => setTotalExpenses(Number(e.target.value))}
+              />
+            </div>
+            
+            <div className="bg-blue-50 p-3 rounded-md">
+              <div className="text-sm font-medium">Calculated Net Profit</div>
+              <div className="text-xl font-semibold mt-1">
+                ${(totalRevenue - totalExpenses).toLocaleString()}
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditFinanceOpen(false)}>
+              Cancel
+            </Button>
+            <Button className="bg-flitx-blue hover:bg-flitx-blue-600" onClick={handleSaveFinance}>
               Save Changes
             </Button>
           </DialogFooter>
