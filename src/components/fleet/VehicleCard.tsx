@@ -3,6 +3,7 @@ import { Car, Calendar, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export interface VehicleData {
   id: string;
@@ -23,6 +24,8 @@ interface VehicleCardProps {
 }
 
 export function VehicleCard({ vehicle }: VehicleCardProps) {
+  const { t } = useLanguage();
+
   const statusColors = {
     available: "bg-green-100 text-green-800",
     rented: "bg-blue-100 text-blue-800",
@@ -31,10 +34,10 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
   };
   
   const statusLabels = {
-    available: "Available",
-    rented: "Rented",
-    maintenance: "Maintenance",
-    repair: "Needs Repair"
+    available: t.available,
+    rented: t.rented,
+    maintenance: t.maintenance,
+    repair: t.repair
   };
   
   const statusIcons = {

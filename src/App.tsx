@@ -10,24 +10,27 @@ import Finance from "./pages/Finance";
 import Tracking from "./pages/Tracking";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import { LanguageProvider } from "./contexts/LanguageContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Fleet />} />
-          <Route path="/vehicle/:id" element={<VehicleDetail />} />
-          <Route path="/finances" element={<Finance />} />
-          <Route path="/tracking" element={<Tracking />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <LanguageProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Fleet />} />
+            <Route path="/vehicle/:id" element={<VehicleDetail />} />
+            <Route path="/finances" element={<Finance />} />
+            <Route path="/tracking" element={<Tracking />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </LanguageProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

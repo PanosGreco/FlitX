@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface MobileSidebarProps {
   isOpen: boolean;
@@ -17,29 +18,29 @@ interface MobileSidebarProps {
 }
 
 interface NavItem {
-  title: string;
+  titleKey: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
 }
 
 const navItems: NavItem[] = [
   {
-    title: "Fleet",
+    titleKey: "fleet",
     href: "/",
     icon: Car,
   },
   {
-    title: "Income & Expenses",
+    titleKey: "finances",
     href: "/finances",
     icon: BarChart3,
   },
   {
-    title: "Live Tracking",
+    titleKey: "tracking",
     href: "/tracking",
     icon: Map,
   },
   {
-    title: "Profile",
+    titleKey: "profile",
     href: "/profile",
     icon: User,
   },
@@ -47,6 +48,7 @@ const navItems: NavItem[] = [
 
 export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   const isMobile = useIsMobile();
+  const { t } = useLanguage();
 
   // Close sidebar when clicking outside on mobile
   useEffect(() => {
@@ -126,7 +128,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                   }
                 >
                   <item.icon className="mr-3 h-5 w-5" />
-                  <span>{item.title}</span>
+                  <span>{t[item.titleKey as keyof typeof t]}</span>
                 </NavLink>
               </li>
             ))}

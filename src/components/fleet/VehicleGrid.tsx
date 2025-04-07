@@ -4,6 +4,7 @@ import { VehicleCard, VehicleData } from "./VehicleCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PlusCircle, Search, Filter } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface VehicleGridProps {
   vehicles: VehicleData[];
@@ -12,6 +13,7 @@ interface VehicleGridProps {
 
 export function VehicleGrid({ vehicles, onAddVehicle }: VehicleGridProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const { t } = useLanguage();
   
   const filteredVehicles = vehicles.filter((vehicle) => {
     const searchTerms = searchQuery.toLowerCase().trim().split(" ");
@@ -23,14 +25,14 @@ export function VehicleGrid({ vehicles, onAddVehicle }: VehicleGridProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold">Fleet</h1>
+        <h1 className="text-2xl font-bold">{t.fleet}</h1>
         
         <Button 
           onClick={onAddVehicle}
           className="bg-flitx-blue hover:bg-flitx-blue-600"
         >
           <PlusCircle className="w-4 h-4 mr-2" />
-          Add Vehicle
+          {t.addVehicle}
         </Button>
       </div>
       
@@ -38,7 +40,7 @@ export function VehicleGrid({ vehicles, onAddVehicle }: VehicleGridProps) {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-flitx-gray-400 h-4 w-4" />
           <Input
-            placeholder="Search vehicles..."
+            placeholder={t.searchVehicles}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -57,9 +59,9 @@ export function VehicleGrid({ vehicles, onAddVehicle }: VehicleGridProps) {
         ) : (
           <div className="col-span-full py-8 text-center text-flitx-gray-500">
             {searchQuery ? (
-              <p>No vehicles match your search criteria.</p>
+              <p>{t.noSearchResults}</p>
             ) : (
-              <p>No vehicles found. Add your first vehicle to get started.</p>
+              <p>{t.noVehicles}</p>
             )}
           </div>
         )}

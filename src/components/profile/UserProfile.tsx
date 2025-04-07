@@ -26,148 +26,17 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-
-// Greek translations for UI elements
-const translations = {
-  en: {
-    profileTitle: "My Profile",
-    profileSubtitle: "Manage your account settings and preferences",
-    tabs: {
-      account: "Account",
-      security: "Security",
-      settings: "Settings",
-    },
-    personalInfo: {
-      title: "Profile Information",
-      subtitle: "Update your personal information",
-      uploadPhoto: "Upload Photo",
-      photoRestriction: "JPG, GIF or PNG. Max size of 800K",
-      firstName: "First Name",
-      lastName: "Last Name",
-      email: "Email",
-      phone: "Phone",
-      company: "Company Name",
-      saveChanges: "Save Changes",
-      saving: "Saving...",
-    },
-    security: {
-      title: "Password & Authentication",
-      subtitle: "Update your password and security settings",
-      currentPassword: "Current Password",
-      newPassword: "New Password",
-      confirmPassword: "Confirm New Password",
-      updatePassword: "Update Password",
-      twoFactorTitle: "Two-Factor Authentication",
-      twoFactorDescription: "Add an extra layer of security to your account",
-    },
-    notifications: {
-      title: "Notifications",
-      subtitle: "Configure how you receive notifications",
-      emailNotifications: "Email Notifications",
-      emailDescription: "Receive email notifications for important updates",
-      pushNotifications: "Push Notifications",
-      pushDescription: "Receive push notifications on your mobile device",
-      maintenanceReminders: "Maintenance Reminders",
-      maintenanceDescription: "Get notified when vehicles need service",
-      bookingAlerts: "Booking Alerts",
-      bookingDescription: "Get notified for new bookings and cancellations",
-    },
-    dangerZone: {
-      title: "Danger Zone",
-      subtitle: "Actions here can't be undone",
-      signOutAll: "Sign out of all devices",
-      signOutDescription: "Log out from all devices where you're currently signed in",
-      deleteAccount: "Delete account",
-      deleteDescription: "Permanently delete your account and all your data",
-      signOutButton: "Sign Out All",
-      deleteButton: "Delete Account",
-    },
-    language: {
-      title: "Language Settings",
-      subtitle: "Change your preferred language",
-      languageLabel: "Interface Language",
-      english: "English",
-      greek: "Greek",
-    },
-  },
-  el: {
-    profileTitle: "Το Προφίλ μου",
-    profileSubtitle: "Διαχειριστείτε τις ρυθμίσεις και τις προτιμήσεις του λογαριασμού σας",
-    tabs: {
-      account: "Λογαριασμός",
-      security: "Ασφάλεια",
-      settings: "Ρυθμίσεις",
-    },
-    personalInfo: {
-      title: "Πληροφορίες Προφίλ",
-      subtitle: "Ενημερώστε τα προσωπικά σας στοιχεία",
-      uploadPhoto: "Μεταφόρτωση Φωτογραφίας",
-      photoRestriction: "JPG, GIF ή PNG. Μέγιστο μέγεθος 800K",
-      firstName: "Όνομα",
-      lastName: "Επώνυμο",
-      email: "Email",
-      phone: "Τηλέφωνο",
-      company: "Όνομα Εταιρείας",
-      saveChanges: "Αποθήκευση Αλλαγών",
-      saving: "Αποθήκευση...",
-    },
-    security: {
-      title: "Κωδικός & Αυθεντικοποίηση",
-      subtitle: "Ενημερώστε τον κωδικό και τις ρυθμίσεις ασφαλείας σας",
-      currentPassword: "Τρέχων Κωδικός",
-      newPassword: "Νέος Κωδικός",
-      confirmPassword: "Επιβεβαίωση Νέου Κωδικού",
-      updatePassword: "Ενημέρωση Κωδικού",
-      twoFactorTitle: "Έλεγχος Ταυτότητας Δύο Παραγόντων",
-      twoFactorDescription: "Προσθέστε ένα επιπλέον επίπεδο ασφάλειας στο λογαριασμό σας",
-    },
-    notifications: {
-      title: "Ειδοποιήσεις",
-      subtitle: "Ρυθμίστε πώς λαμβάνετε ειδοποιήσεις",
-      emailNotifications: "Ειδοποιήσεις Email",
-      emailDescription: "Λάβετε ειδοποιήσεις email για σημαντικές ενημερώσεις",
-      pushNotifications: "Push Ειδοποιήσεις",
-      pushDescription: "Λάβετε push ειδοποιήσεις στην κινητή συσκευή σας",
-      maintenanceReminders: "Υπενθυμίσεις Συντήρησης",
-      maintenanceDescription: "Λάβετε ειδοποιήσεις όταν τα οχήματα χρειάζονται σέρβις",
-      bookingAlerts: "Ειδοποιήσεις Κρατήσεων",
-      bookingDescription: "Λάβετε ειδοποιήσεις για νέες κρατήσεις και ακυρώσεις",
-    },
-    dangerZone: {
-      title: "Ζώνη Κινδύνου",
-      subtitle: "Οι ενέργειες εδώ δεν μπορούν να αναιρεθούν",
-      signOutAll: "Αποσύνδεση από όλες τις συσκευές",
-      signOutDescription: "Αποσυνδεθείτε από όλες τις συσκευές όπου είστε συνδεδεμένοι",
-      deleteAccount: "Διαγραφή λογαριασμού",
-      deleteDescription: "Διαγράψτε μόνιμα τον λογαριασμό σας και όλα τα δεδομένα σας",
-      signOutButton: "Αποσύνδεση Όλων",
-      deleteButton: "Διαγραφή Λογαριασμού",
-    },
-    language: {
-      title: "Ρυθμίσεις Γλώσσας",
-      subtitle: "Αλλάξτε την προτιμώμενη γλώσσα σας",
-      languageLabel: "Γλώσσα Διεπαφής",
-      english: "Αγγλικά",
-      greek: "Ελληνικά",
-    },
-  }
-};
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export function UserProfile() {
   const [activeTab, setActiveTab] = useState("account");
   const [isLoading, setIsLoading] = useState(false);
-  const [language, setLanguage] = useState<"en" | "el">("en");
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const t = translations[language];
+  
+  const { language, setLanguage, t } = useLanguage();
   const { toast } = useToast();
   
   useEffect(() => {
-    // Check if there's a saved language preference
-    const savedLanguage = localStorage.getItem("language");
-    if (savedLanguage === "el" || savedLanguage === "en") {
-      setLanguage(savedLanguage);
-    }
-    
     // Check if there's a saved profile image
     const savedProfileImage = localStorage.getItem("profileImage");
     if (savedProfileImage) {
@@ -177,7 +46,6 @@ export function UserProfile() {
 
   const handleLanguageChange = (newLang: "en" | "el") => {
     setLanguage(newLang);
-    localStorage.setItem("language", newLang);
     
     toast({
       title: newLang === "en" ? "Language Updated" : "Η Γλώσσα Ενημερώθηκε",
@@ -199,10 +67,8 @@ export function UserProfile() {
           localStorage.setItem("profileImage", imageUrl);
           
           toast({
-            title: language === "en" ? "Profile Photo Updated" : "Η Φωτογραφία Προφίλ Ενημερώθηκε",
-            description: language === "en" 
-              ? "Your profile photo has been updated successfully" 
-              : "Η φωτογραφία προφίλ σας ενημερώθηκε με επιτυχία",
+            title: t.photoUpdated,
+            description: t.photoUpdateSuccess,
           });
         }
       };
@@ -218,10 +84,8 @@ export function UserProfile() {
       setIsLoading(false);
       
       toast({
-        title: language === "en" ? "Profile Updated" : "Το Προφίλ Ενημερώθηκε",
-        description: language === "en" 
-          ? "Your profile information has been saved" 
-          : "Οι πληροφορίες του προφίλ σας αποθηκεύτηκαν",
+        title: t.profileUpdated,
+        description: t.profileUpdateSuccess,
       });
     }, 1500);
   };
@@ -229,7 +93,7 @@ export function UserProfile() {
   return (
     <div className="space-y-6 animate-fade-in pb-20">
       <div>
-        <h1 className="text-2xl font-bold">{t.profileTitle}</h1>
+        <h1 className="text-2xl font-bold">{t.myProfile}</h1>
         <p className="text-flitx-gray-500">
           {t.profileSubtitle}
         </p>
