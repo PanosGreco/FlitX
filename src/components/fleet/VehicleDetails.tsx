@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Car, 
@@ -61,7 +60,6 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
   const [totalExpenses, setTotalExpenses] = useState(0);
   const { toast } = useToast();
   
-  // Find the vehicle by ID, or use a default if not found
   const vehicle = vehicles.find(v => v.id === vehicleId) || {
     id: "default",
     make: "Vehicle",
@@ -84,7 +82,6 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
     milesPerDay: 0
   };
   
-  // Ensure all numerical values have safe defaults before calling .toLocaleString()
   const safeNumber = (value: any) => {
     return typeof value === 'number' ? value : 0;
   };
@@ -113,8 +110,6 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
   };
 
   const handleSaveStatus = () => {
-    // Here you would update the vehicle status in the backend
-    // For now we'll just show a toast
     toast({
       title: "Status Updated",
       description: `Vehicle status changed to ${statusLabels[currentStatus as keyof typeof statusLabels] || currentStatus}`,
@@ -155,31 +150,16 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
     }
   };
 
-  const handleDateSelect = (date: Date | undefined) => {
-    if (!date) return;
+  const handleDateSelect = (dates: Date[] | undefined) => {
+    if (!dates) return;
     
-    setSelectedDates(prev => {
-      // Check if date is already selected
-      const isDateSelected = prev.some(
-        d => d.toDateString() === date.toDateString()
-      );
-      
-      if (isDateSelected) {
-        // Remove the date if it's already selected
-        return prev.filter(d => d.toDateString() !== date.toDateString());
-      } else {
-        // Add the date if it's not already selected
-        return [...prev, date];
-      }
-    });
+    setSelectedDates(dates);
 
-    // Here you would update the backend with the new availability
-    // and calculate any rental income if needed
-    if (vehicle.dailyRate) {
-      // Simulate backend calculation and update
+    const lastSelectedDate = dates[dates.length - 1];
+    if (vehicle.dailyRate && lastSelectedDate) {
       toast({
         title: "Rental Income Added",
-        description: `Added $${vehicle.dailyRate} to income for ${date.toLocaleDateString()}`,
+        description: `Added $${vehicle.dailyRate} to income for ${lastSelectedDate.toLocaleDateString()}`,
       });
     }
   };
@@ -532,7 +512,6 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
         </div>
       </div>
 
-      {/* Edit Status Dialog */}
       <Dialog open={isEditStatusOpen} onOpenChange={setIsEditStatusOpen}>
         <DialogContent>
           <DialogHeader>
@@ -567,7 +546,6 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
         </DialogContent>
       </Dialog>
       
-      {/* Edit Finance Dialog */}
       <Dialog open={isEditFinanceOpen} onOpenChange={setIsEditFinanceOpen}>
         <DialogContent>
           <DialogHeader>
