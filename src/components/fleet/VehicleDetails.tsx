@@ -1,6 +1,5 @@
 
 import { useState } from "react";
-import { useParams } from "react-router-dom";
 import { 
   Car, 
   Calendar, 
@@ -20,37 +19,43 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 interface VehicleDetailsProps {
+  vehicleId?: string;
   vehicles: any[];
 }
 
-export function VehicleDetails({ vehicles = [] }: VehicleDetailsProps) {
-  const { id } = useParams();
+export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("details");
   
-  const vehicle = vehicles.find(v => v.id === id) || {
-    id: "1",
-    make: "Toyota",
-    model: "Corolla",
-    year: 2020,
-    type: "Sedan",
-    mileage: 45250,
+  // Find the vehicle by ID, or use a default if not found
+  const vehicle = vehicles.find(v => v.id === vehicleId) || {
+    id: "default",
+    make: "Vehicle",
+    model: "Not Found",
+    year: 2023,
+    type: "Unknown",
+    mileage: 0,
     status: "available",
-    licensePlate: "ABC-1234",
-    fuelLevel: 75,
-    fuelType: "Gasoline",
-    mpg: 32.5,
-    lastServiceDate: "2023-12-15",
-    costPerMile: 0.15,
-    dailyRate: 45,
-    totalServices: 7,
-    serviceReminders: 2,
-    totalServiceCost: 1875.50,
-    fuelCosts: 2340.75,
-    milesPerDay: 32.8
+    licensePlate: "N/A",
+    fuelLevel: 0,
+    fuelType: "Unknown",
+    mpg: 0,
+    lastServiceDate: new Date().toISOString(),
+    costPerMile: 0,
+    dailyRate: 0,
+    totalServices: 0,
+    serviceReminders: 0,
+    totalServiceCost: 0,
+    fuelCosts: 0,
+    milesPerDay: 0
+  };
+  
+  // Ensure all numerical values have safe defaults before calling .toLocaleString()
+  const safeNumber = (value: any) => {
+    return typeof value === 'number' ? value : 0;
   };
   
   const statusColors = {
@@ -94,10 +99,10 @@ export function VehicleDetails({ vehicles = [] }: VehicleDetailsProps) {
               <h1 className="text-2xl font-bold flex items-center">
                 {vehicle.year} {vehicle.make} {vehicle.model}
                 <Badge
-                  className={`ml-3 ${statusColors[vehicle.status as keyof typeof statusColors]}`}
+                  className={`ml-3 ${statusColors[vehicle.status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"}`}
                   variant="outline"
                 >
-                  {statusLabels[vehicle.status as keyof typeof statusLabels]}
+                  {statusLabels[vehicle.status as keyof typeof statusLabels] || "Unknown"}
                 </Badge>
               </h1>
               
@@ -106,7 +111,7 @@ export function VehicleDetails({ vehicles = [] }: VehicleDetailsProps) {
                 <span className="mx-2">•</span>
                 <span>{vehicle.licensePlate}</span>
                 <span className="mx-2">•</span>
-                <span>{vehicle.mileage.toLocaleString()} mi</span>
+                <span>{safeNumber(vehicle.mileage).toLocaleString()} mi</span>
               </div>
             </div>
             
@@ -144,27 +149,27 @@ export function VehicleDetails({ vehicles = [] }: VehicleDetailsProps) {
                 <div className="grid grid-cols-2 gap-y-4 mt-2">
                   <div>
                     <div className="text-sm text-flitx-gray-500">MPG</div>
-                    <div className="font-semibold text-2xl">{vehicle.mpg}</div>
+                    <div className="font-semibold text-2xl">{vehicle.mpg || 0}</div>
                   </div>
                   
                   <div>
                     <div className="text-sm text-flitx-gray-500">Cost/Mi</div>
-                    <div className="font-semibold text-2xl">${vehicle.costPerMile}</div>
+                    <div className="font-semibold text-2xl">${vehicle.costPerMile || 0}</div>
                   </div>
                   
                   <div>
                     <div className="text-sm text-flitx-gray-500">Fuel Costs</div>
-                    <div className="font-semibold text-2xl">${vehicle.fuelCosts.toLocaleString()}</div>
+                    <div className="font-semibold text-2xl">${safeNumber(vehicle.fuelCosts).toLocaleString()}</div>
                   </div>
                   
                   <div>
                     <div className="text-sm text-flitx-gray-500">Service Costs</div>
-                    <div className="font-semibold text-2xl">${vehicle.totalServiceCost.toLocaleString()}</div>
+                    <div className="font-semibold text-2xl">${safeNumber(vehicle.totalServiceCost).toLocaleString()}</div>
                   </div>
                   
                   <div>
                     <div className="text-sm text-flitx-gray-500">Miles/Day</div>
-                    <div className="font-semibold text-2xl">{vehicle.milesPerDay}</div>
+                    <div className="font-semibold text-2xl">{vehicle.milesPerDay || 0}</div>
                   </div>
                 </div>
               </CardContent>
@@ -191,7 +196,7 @@ export function VehicleDetails({ vehicles = [] }: VehicleDetailsProps) {
                   
                   <div className="text-right">
                     <div className="text-sm text-flitx-gray-500">Last Service</div>
-                    <div>{new Date(vehicle.lastServiceDate).toLocaleDateString()}</div>
+                    <div>{vehicle.lastServiceDate ? new Date(vehicle.lastServiceDate).toLocaleDateString() : 'N/A'}</div>
                   </div>
                 </div>
                 
@@ -199,14 +204,14 @@ export function VehicleDetails({ vehicles = [] }: VehicleDetailsProps) {
                   <div className="flex justify-between text-sm">
                     <span>Service Reminders</span>
                     <div>
-                      <span className="text-red-500 font-bold">{vehicle.serviceReminders}</span>
+                      <span className="text-red-500 font-bold">{vehicle.serviceReminders || 0}</span>
                       <span className="text-flitx-gray-400"> active</span>
                     </div>
                   </div>
                   
                   <div className="flex justify-between text-sm">
                     <span>Total Services</span>
-                    <span>{vehicle.totalServices}</span>
+                    <span>{vehicle.totalServices || 0}</span>
                   </div>
                   
                   <Separator className="my-3" />
@@ -278,15 +283,15 @@ export function VehicleDetails({ vehicles = [] }: VehicleDetailsProps) {
                 <div>
                   <div className="flex justify-between items-center mb-2">
                     <div className="text-sm font-medium">Current Fuel Level</div>
-                    <div className="text-sm text-flitx-gray-500">{vehicle.fuelLevel}%</div>
+                    <div className="text-sm text-flitx-gray-500">{vehicle.fuelLevel || 0}%</div>
                   </div>
-                  <Progress value={vehicle.fuelLevel} className="h-3" />
+                  <Progress value={vehicle.fuelLevel || 0} className="h-3" />
                 </div>
                 
                 <div className="flex flex-col md:flex-row gap-4 mt-6">
                   <div className="flex-1">
                     <div className="text-sm text-flitx-gray-500 mb-1">Fuel Type</div>
-                    <div className="font-medium">{vehicle.fuelType}</div>
+                    <div className="font-medium">{vehicle.fuelType || 'N/A'}</div>
                   </div>
                   
                   <div className="flex-1">
