@@ -129,8 +129,10 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                 >
                   <item.icon className="mr-3 h-5 w-5" />
                   <span>
-                    {/* Access the translation as a string using the key */}
-                    {t[item.titleKey as keyof typeof t]}
+                    {/* Make sure we're getting a string from the translation object */}
+                    {typeof t[item.titleKey as keyof typeof t] === 'string' 
+                      ? t[item.titleKey as keyof typeof t] 
+                      : item.titleKey}
                   </span>
                 </NavLink>
               </li>
