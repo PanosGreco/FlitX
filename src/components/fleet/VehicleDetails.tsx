@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { 
   Car, 
@@ -41,6 +42,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { VehicleMaintenance } from "./VehicleMaintenance";
 
 interface VehicleDetailsProps {
   vehicleId?: string;
@@ -164,6 +166,14 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
     }
   };
 
+  const handleUpdateExpenses = (amount: number) => {
+    setTotalExpenses(prev => prev + amount);
+    toast({
+      title: amount > 0 ? "Expense Added" : "Expense Removed",
+      description: `${amount > 0 ? 'Added' : 'Removed'} $${Math.abs(amount).toFixed(2)} ${amount > 0 ? 'to' : 'from'} total expenses.`,
+    });
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="bg-white shadow-bottom">
@@ -216,8 +226,9 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-5 w-full max-w-lg">
+            <TabsList className="grid grid-cols-6 w-full max-w-lg">
               <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
               <TabsTrigger value="damage">Damage</TabsTrigger>
               <TabsTrigger value="documents">Docs</TabsTrigger>
               <TabsTrigger value="availability">Calendar</TabsTrigger>
@@ -336,6 +347,10 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                     </CardContent>
                   </Card>
                 </div>
+              </TabsContent>
+              
+              <TabsContent value="maintenance" className="mt-0">
+                <VehicleMaintenance vehicleId={vehicle.id} updateExpenses={handleUpdateExpenses} />
               </TabsContent>
               
               <TabsContent value="damage">
