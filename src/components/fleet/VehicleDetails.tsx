@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   Car, 
@@ -48,6 +47,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { format, addMonths, addYears, isPast } from "date-fns";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
+import { VehicleDamageViewer } from "./VehicleDamageViewer";
 
 interface MaintenanceEntry {
   id: string;
@@ -444,6 +444,13 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
     setIsEditMaintenanceSettingsOpen(false);
   };
 
+  const handleAddDamagePhoto = (area: string) => {
+    toast({
+      title: "Photo Added",
+      description: `Photo added to ${area} damage report.`
+    });
+  };
+
   const businessType = isBoatBusiness() ? "Boat" : "Vehicle";
 
   return (
@@ -779,7 +786,7 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                               ))}
                             </div>
                           ) : (
-                            <div className="text-center py-4 text-flitx-gray-400 border border-dashed rounded-md">
+                            <div className="text-center py-4 text-flitx-gray-500 border border-dashed rounded-md">
                               <p className="text-sm">No service history</p>
                             </div>
                           )}
@@ -801,17 +808,14 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
               
               <TabsContent value="damage">
                 <Card>
-                  <CardContent className="pt-6">
-                    <div className="text-center py-8 text-flitx-gray-500">
-                      <AlertTriangle className="mx-auto h-12 w-12 text-flitx-gray-300 mb-3" />
-                      <h3 className="text-lg font-medium mb-1">No damage reports</h3>
-                      <p className="text-sm">
-                        This {businessType.toLowerCase()} has no damage reports. You can add one by clicking the button below.
-                      </p>
-                      <Button className="mt-4 bg-flitx-blue hover:bg-flitx-blue-600">
-                        Report Damage
-                      </Button>
-                    </div>
+                  <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                    <CardTitle className="text-lg flex items-center">
+                      <AlertTriangle className="h-5 w-5 mr-2 text-flitx-blue" />
+                      Damage Reports
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <VehicleDamageViewer onAddPhoto={handleAddDamagePhoto} />
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -941,34 +945,6 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                             ${safeNumber((totalRevenue || vehicle.dailyRate * 15) - 
                               (totalExpenses || vehicle.fuelCosts + vehicle.totalServiceCost)).toLocaleString()}
                           </div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <Separator className="my-4" />
-                    
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <div className="text-sm font-medium">Utilization Rate</div>
-                          <div className="text-sm">65%</div>
-                        </div>
-                        <Progress value={65} className="h-2" />
-                        <div className="flex justify-between text-xs text-flitx-gray-500 mt-1">
-                          <span>0%</span>
-                          <span>100%</span>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <div className="flex justify-between mb-1">
-                          <div className="text-sm font-medium">ROI</div>
-                          <div className="text-sm">78%</div>
-                        </div>
-                        <Progress value={78} className="h-2" />
-                        <div className="flex justify-between text-xs text-flitx-gray-500 mt-1">
-                          <span>0%</span>
-                          <span>100%</span>
                         </div>
                       </div>
                     </div>
