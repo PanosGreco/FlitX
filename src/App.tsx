@@ -10,6 +10,8 @@ import Finance from "./pages/Finance";
 import Tracking from "./pages/Tracking";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import SignUpPage from "./pages/SignUp";
+import BoatsHome from "./pages/BoatsHome";
 import { LanguageProvider } from "./contexts/LanguageContext";
 
 const queryClient = new QueryClient();
@@ -23,10 +25,12 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Fleet />} />
+            <Route path="/signup" element={<SignUpPage />} />
             <Route path="/vehicle/:id" element={<VehicleDetail />} />
             <Route path="/finances" element={<Finance />} />
             <Route path="/tracking" element={<Tracking />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/boats" element={<BoatsHome />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

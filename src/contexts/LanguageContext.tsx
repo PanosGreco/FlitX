@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 // Define all translations for the application
@@ -176,6 +175,34 @@ export const translations = {
     photoUpdateSuccess: "Your profile photo has been updated successfully",
     languageUpdated: "Language Updated",
     languageUpdateSuccess: "Your language preference has been set to English",
+
+    // Sign Up
+    signup: {
+      createAccount: "Create your account",
+      getStarted: "Sign up to get started with our rental management software",
+      businessName: "Business Name",
+      enterBusinessName: "Enter your business name",
+      email: "Email Address",
+      enterEmail: "Enter your email address",
+      password: "Password",
+      enterPassword: "Enter your password",
+      businessType: "Business Type",
+      selectBusinessType: "Select your business type",
+      carRental: "Car Rental Business",
+      boatRental: "Boat Rental Business",
+      signUp: "Sign Up",
+      alreadyHaveAccount: "Already have an account?",
+      login: "Log in",
+      passwordWeak: "Weak",
+      passwordMedium: "Medium",
+      passwordStrong: "Strong",
+      accountCreated: "Account created successfully!",
+      errorCreating: "Error creating account. Please try again.",
+      businessNameRequired: "Business name is required",
+      invalidEmail: "Please enter a valid email address",
+      passwordLength: "Password must be at least 6 characters",
+      businessTypeRequired: "Please select your business type"
+    }
   },
   el: {
     // Navigation
@@ -350,6 +377,34 @@ export const translations = {
     photoUpdateSuccess: "Η φωτογραφία προφίλ σας ενημερώθηκε με επιτυχία",
     languageUpdated: "Η Γλώσσα Ενημερώθηκε",
     languageUpdateSuccess: "Η προτίμηση γλώσσας σας έχει οριστεί στα Ελληνικά",
+
+    // Sign Up
+    signup: {
+      createAccount: "Δημιουργία λογαριασμού",
+      getStarted: "Εγγραφείτε για να ξεκινήσετε με το λογισμικό διαχείρισης ενοικιάσεων",
+      businessName: "Όνομα Επιχείρησης",
+      enterBusinessName: "Εισάγετε το όνομα της επιχείρησής σας",
+      email: "Διεύθυνση Email",
+      enterEmail: "Εισάγετε το email σας",
+      password: "Κωδικός",
+      enterPassword: "Εισάγετε τον κωδικό σας",
+      businessType: "Τύπος Επιχείρησης",
+      selectBusinessType: "Επιλέξτε τον τύπο της επιχείρησής σας",
+      carRental: "Επιχείρηση Ενοικίασης Αυτοκινήτων",
+      boatRental: "Επιχείρηση Ενοικίασης Σκαφών",
+      signUp: "Εγγραφή",
+      alreadyHaveAccount: "Έχετε ήδη λογαριασμό;",
+      login: "Σύνδεση",
+      passwordWeak: "Αδύναμος",
+      passwordMedium: "Μέτριος",
+      passwordStrong: "Ισχυρός",
+      accountCreated: "Ο λογαριασμός δημιουργήθηκε με επιτυχία!",
+      errorCreating: "Σφάλμα κατά τη δημιουργία λογαριασμού. Παρακαλώ δοκιμάστε ξανά.",
+      businessNameRequired: "Το όνομα της επιχείρησης είναι υποχρεωτικό",
+      invalidEmail: "Παρακαλώ εισάγετε μια έγκυρη διεύθυνση email",
+      passwordLength: "Ο κωδικός πρέπει να έχει τουλάχιστον 6 χαρακτήρες",
+      businessTypeRequired: "Παρακαλώ επιλέξτε τον τύπο της επιχείρησής σας"
+    }
   }
 };
 
@@ -405,4 +460,3 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
     </LanguageContext.Provider>
   );
 };
-
