@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { 
   Car, 
@@ -878,4 +879,424 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space
+                    <div className="space-y-4">
+                      <div className="flex justify-center">
+                        <CalendarComponent
+                          mode="multiple"
+                          selected={selectedDates}
+                          onSelect={handleDateSelect}
+                          className="border rounded-md p-3"
+                        />
+                      </div>
+                      <div className="text-center text-sm text-flitx-gray-500 mt-2">
+                        <p>Click dates to mark as unavailable.</p>
+                        <p className="font-medium mt-1">
+                          {selectedDates.length} {selectedDates.length === 1 ? 'day' : 'days'} marked unavailable
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="finance">
+                <Card>
+                  <CardHeader className="pb-2 flex flex-row items-center justify-between">
+                    <CardTitle className="text-lg flex items-center">
+                      <BarChart3 className="h-5 w-5 mr-2 text-flitx-blue" />
+                      Financial Overview
+                    </CardTitle>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleEditFinance}
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit Details
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                      <div>
+                        <div className="text-sm text-flitx-gray-500 mb-1">Daily Rate</div>
+                        <div className="font-semibold text-xl">${vehicle.dailyRate || 0}/day</div>
+                        
+                        <div className="mt-4">
+                          <div className="text-sm text-flitx-gray-500 mb-1">Revenue (Last 30 Days)</div>
+                          <div className="font-semibold text-xl text-green-600">
+                            ${safeNumber(totalRevenue || vehicle.dailyRate * 15).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="text-sm text-flitx-gray-500 mb-1">Expenses (Last 30 Days)</div>
+                        <div className="font-semibold text-xl text-red-600">
+                          ${safeNumber(totalExpenses || vehicle.fuelCosts + vehicle.totalServiceCost).toLocaleString()}
+                        </div>
+                        
+                        <div className="mt-4">
+                          <div className="text-sm text-flitx-gray-500 mb-1">Profit</div>
+                          <div className="font-semibold text-xl">
+                            ${safeNumber((totalRevenue || vehicle.dailyRate * 15) - 
+                              (totalExpenses || vehicle.fuelCosts + vehicle.totalServiceCost)).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Separator className="my-4" />
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <div className="text-sm font-medium">Utilization Rate</div>
+                          <div className="text-sm">65%</div>
+                        </div>
+                        <Progress value={65} className="h-2" />
+                        <div className="flex justify-between text-xs text-flitx-gray-500 mt-1">
+                          <span>0%</span>
+                          <span>100%</span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <div className="flex justify-between mb-1">
+                          <div className="text-sm font-medium">ROI</div>
+                          <div className="text-sm">78%</div>
+                        </div>
+                        <Progress value={78} className="h-2" />
+                        <div className="flex justify-between text-xs text-flitx-gray-500 mt-1">
+                          <span>0%</span>
+                          <span>100%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </div>
+          </Tabs>
+        </div>
+      </div>
+      
+      <Dialog open={isEditStatusOpen} onOpenChange={setIsEditStatusOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Vehicle Status</DialogTitle>
+            <DialogDescription>
+              Update the current status of this vehicle.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={currentStatus} onValueChange={handleStatusChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="available">Available</SelectItem>
+                  <SelectItem value="rented">Rented</SelectItem>
+                  <SelectItem value="maintenance">Under Maintenance</SelectItem>
+                  <SelectItem value="repair">Needs Repair</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditStatusOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveStatus}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isEditFinanceOpen} onOpenChange={setIsEditFinanceOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Financial Information</DialogTitle>
+            <DialogDescription>
+              Update financial details for this vehicle.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="dailyRate">Daily Rate ($)</Label>
+              <Input
+                id="dailyRate"
+                type="number"
+                defaultValue={vehicle.dailyRate || 0}
+                min={0}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="revenue">Revenue (Last 30 Days) ($)</Label>
+              <Input
+                id="revenue"
+                value={totalRevenue}
+                onChange={(e) => setTotalRevenue(Number(e.target.value))}
+                type="number"
+                min={0}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="expenses">Expenses (Last 30 Days) ($)</Label>
+              <Input
+                id="expenses"
+                value={totalExpenses}
+                onChange={(e) => setTotalExpenses(Number(e.target.value))}
+                type="number"
+                min={0}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditFinanceOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveFinance}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isEditMaintenanceSettingsOpen} onOpenChange={setIsEditMaintenanceSettingsOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Maintenance Settings</DialogTitle>
+            <DialogDescription>
+              Update maintenance settings for this vehicle.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="nextServiceMiles">Next Service Due (miles)</Label>
+              <Input
+                id="nextServiceMiles"
+                value={editedMaintenanceSettings.nextServiceMiles}
+                onChange={(e) => setEditedMaintenanceSettings({...editedMaintenanceSettings, nextServiceMiles: Number(e.target.value)})}
+                type="number"
+                min={0}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="lastService">Last Service Date</Label>
+              <Input
+                id="lastService"
+                type="date"
+                value={new Date(editedMaintenanceSettings.lastServiceDate).toISOString().split('T')[0]}
+                onChange={(e) => setEditedMaintenanceSettings({
+                  ...editedMaintenanceSettings, 
+                  lastServiceDate: new Date(e.target.value).toISOString()
+                })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditMaintenanceSettingsOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveMaintenanceSettings}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isAddMaintenanceOpen} onOpenChange={setIsAddMaintenanceOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add Maintenance</DialogTitle>
+            <DialogDescription>
+              Add a new maintenance record for this vehicle.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="type">Maintenance Type</Label>
+              <Input
+                id="type"
+                value={newEntry.type}
+                onChange={(e) => setNewEntry({...newEntry, type: e.target.value})}
+                placeholder="Oil Change, Tire Rotation, etc."
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="date">Date</Label>
+              <Input
+                id="date"
+                type="date"
+                value={newEntry.date?.toISOString().split('T')[0]}
+                onChange={(e) => setNewEntry({
+                  ...newEntry, 
+                  date: new Date(e.target.value)
+                })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="cost">Cost ($)</Label>
+              <Input
+                id="cost"
+                value={newEntry.cost}
+                onChange={(e) => setNewEntry({...newEntry, cost: Number(e.target.value)})}
+                type="number"
+                min={0}
+                step="0.01"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Input
+                id="notes"
+                value={newEntry.notes}
+                onChange={(e) => setNewEntry({...newEntry, notes: e.target.value})}
+                placeholder="Additional details..."
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="completed"
+                checked={newEntry.completed}
+                onChange={(e) => setNewEntry({...newEntry, completed: e.target.checked})}
+                className="rounded border-gray-300"
+              />
+              <Label htmlFor="completed" className="text-sm font-normal">
+                Mark as completed
+              </Label>
+            </div>
+            <Button variant="outline" onClick={openReminderDialog} type="button">
+              <Calendar className="mr-2 h-4 w-4" />
+              Set Maintenance Reminder
+            </Button>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddMaintenanceOpen(false)}>Cancel</Button>
+            <Button onClick={handleSaveNewMaintenance}>Save Maintenance</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isEditMaintenanceOpen} onOpenChange={setIsEditMaintenanceOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit Maintenance</DialogTitle>
+          </DialogHeader>
+          {currentEntry && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-type">Maintenance Type</Label>
+                <Input
+                  id="edit-type"
+                  value={currentEntry.type}
+                  onChange={(e) => setCurrentEntry({...currentEntry, type: e.target.value})}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-date">Date</Label>
+                <Input
+                  id="edit-date"
+                  type="date"
+                  value={new Date(currentEntry.date).toISOString().split('T')[0]}
+                  onChange={(e) => setCurrentEntry({
+                    ...currentEntry, 
+                    date: new Date(e.target.value)
+                  })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-cost">Cost ($)</Label>
+                <Input
+                  id="edit-cost"
+                  value={currentEntry.cost}
+                  onChange={(e) => setCurrentEntry({...currentEntry, cost: Number(e.target.value)})}
+                  type="number"
+                  min={0}
+                  step="0.01"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-notes">Notes (Optional)</Label>
+                <Input
+                  id="edit-notes"
+                  value={currentEntry.notes || ''}
+                  onChange={(e) => setCurrentEntry({...currentEntry, notes: e.target.value})}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="edit-completed"
+                  checked={currentEntry.completed}
+                  onChange={(e) => setCurrentEntry({...currentEntry, completed: e.target.checked})}
+                  className="rounded border-gray-300"
+                />
+                <Label htmlFor="edit-completed" className="text-sm font-normal">
+                  Mark as completed
+                </Label>
+              </div>
+              <Button variant="outline" onClick={openReminderDialog} type="button">
+                <Calendar className="mr-2 h-4 w-4" />
+                {currentEntry.reminder ? 'Change Reminder' : 'Set Reminder'}
+              </Button>
+              <div className="flex justify-between mt-2">
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={() => {
+                    handleDeleteMaintenance(currentEntry.id);
+                    setIsEditMaintenanceOpen(false);
+                  }}
+                >
+                  <Trash className="h-4 w-4 mr-1" />
+                  Delete
+                </Button>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditMaintenanceOpen(false)}>Cancel</Button>
+            <Button onClick={handleUpdateMaintenance}>Update</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isReminderDialogOpen} onOpenChange={setIsReminderDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Set Maintenance Reminder</DialogTitle>
+            <DialogDescription>
+              Choose when to be reminded about this maintenance task.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Reminder Frequency</Label>
+              <Select value={reminderType} onValueChange={(value: any) => setReminderType(value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select frequency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="once">One-time reminder</SelectItem>
+                  <SelectItem value="3months">Every 3 months</SelectItem>
+                  <SelectItem value="6months">Every 6 months</SelectItem>
+                  <SelectItem value="1year">Annual reminder</SelectItem>
+                  <SelectItem value="custom">Custom date</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {(reminderType === 'once' || reminderType === 'custom') && (
+              <div className="grid gap-2">
+                <Label>Reminder Date</Label>
+                <Input
+                  type="date"
+                  value={reminderDate.toISOString().split('T')[0]}
+                  onChange={(e) => setReminderDate(new Date(e.target.value))}
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsReminderDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSetReminder}>Set Reminder</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
