@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Car, 
   Calendar, 
@@ -137,7 +137,7 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
   };
   
   // Initialize editable metrics from vehicle data
-  useState(() => {
+  useEffect(() => {
     setEditedMetrics({
       mpg: vehicle.mpg || 0,
       costPerMile: vehicle.costPerMile || 0,
@@ -878,4 +878,4 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y
+                    <div className="space
