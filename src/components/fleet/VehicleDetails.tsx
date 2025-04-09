@@ -95,23 +95,6 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
   const [reminderType, setReminderType] = useState<'once' | '3months' | '6months' | '1year' | 'custom'>('once');
   const [reminderDate, setReminderDate] = useState<Date>(new Date());
   
-  // Performance metrics editable states
-  const [editedMetrics, setEditedMetrics] = useState({
-    mpg: 0,
-    costPerMile: 0,
-    fuelCosts: 0,
-    totalServiceCost: 0,
-    milesPerDay: 0
-  });
-  
-  // Maintenance settings editable states
-  const [editedMaintenanceSettings, setEditedMaintenanceSettings] = useState({
-    nextServiceMiles: 2500,
-    lastServiceDate: new Date().toISOString(),
-    serviceReminders: 0,
-    totalServices: 0
-  });
-  
   const { toast } = useToast();
   
   const vehicle = vehicles.find(v => v.id === vehicleId) || {
@@ -136,7 +119,6 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
     milesPerDay: 0
   };
   
-  // Initialize editable metrics from vehicle data
   useState(() => {
     setEditedMetrics({
       mpg: vehicle.mpg || 0,
@@ -401,14 +383,12 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
     }
   };
 
-  // Get completed maintenance entries
   const getCompletedMaintenanceEntries = () => {
     return maintenanceHistory
       .filter(entry => entry.completed || isPast(new Date(entry.date)))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
-  // Get upcoming maintenance entries
   const getUpcomingMaintenanceEntries = () => {
     return maintenanceHistory
       .filter(entry => 
@@ -422,7 +402,6 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
       });
   };
 
-  // Handle metrics edit
   const handleEditMetrics = () => {
     setIsEditMetricsActive(!isEditMetricsActive);
     
@@ -434,12 +413,10 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
     }
   };
   
-  // Handle maintenance settings edit
   const handleEditMaintenanceSettings = () => {
     setIsEditMaintenanceSettingsOpen(true);
   };
   
-  // Save maintenance settings
   const handleSaveMaintenanceSettings = () => {
     toast({
       title: "Maintenance Settings Updated",
@@ -714,9 +691,7 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                       
                       <Separator className="my-4" />
                       
-                      {/* Two-column layout for maintenance history and upcoming services */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                        {/* Upcoming Services Column */}
                         <div>
                           <h4 className="font-medium text-sm text-flitx-gray-500 mb-2">Upcoming Services</h4>
                           {getUpcomingMaintenanceEntries().length > 0 ? (
@@ -757,7 +732,6 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                           )}
                         </div>
                         
-                        {/* Service History Column */}
                         <div>
                           <h4 className="font-medium text-sm text-flitx-gray-500 mb-2">Service History</h4>
                           {getCompletedMaintenanceEntries().length > 0 ? (
