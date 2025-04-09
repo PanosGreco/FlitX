@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Car, 
@@ -16,7 +15,9 @@ import {
   PenLine,
   Edit,
   Plus,
-  Trash
+  Trash,
+  Save,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -44,7 +45,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { format, addMonths, addYears } from "date-fns";
+import { format, addMonths, addYears, isPast } from "date-fns";
+import { isBoatBusiness } from "@/utils/businessTypeUtils";
 
 interface MaintenanceEntry {
   id: string;
@@ -52,6 +54,7 @@ interface MaintenanceEntry {
   date: Date;
   cost: number;
   notes?: string;
+  completed: boolean;
   reminder?: {
     type: 'once' | '3months' | '6months' | '1year' | 'custom';
     date: Date;
@@ -72,6 +75,8 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
   const [isAddMaintenanceOpen, setIsAddMaintenanceOpen] = useState(false);
   const [isEditMaintenanceOpen, setIsEditMaintenanceOpen] = useState(false);
   const [isReminderDialogOpen, setIsReminderDialogOpen] = useState(false);
+  const [isEditMetricsActive, setIsEditMetricsActive] = useState(false);
+  const [isEditMaintenanceSettingsOpen, setIsEditMaintenanceSettingsOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState("");
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [documentName, setDocumentName] = useState("");
@@ -84,13 +89,30 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
     date: new Date(),
     cost: 0,
     notes: '',
+    completed: false,
   });
   const [currentEntry, setCurrentEntry] = useState<MaintenanceEntry | null>(null);
   const [reminderType, setReminderType] = useState<'once' | '3months' | '6months' | '1year' | 'custom'>('once');
   const [reminderDate, setReminderDate] = useState<Date>(new Date());
   
-  const { toast } = useToast();
+  // Performance metrics editable states
+  const [editedMetrics, setEditedMetrics] = useState({
+    mpg: 0,
+    costPerMile: 0,
+    fuelCosts: 0,
+    totalServiceCost: 0,
+    milesPerDay: 0
+  });
   
+  // Maintenance settings editable states
+  const [editedMaintenanceSettings, setEditedMaintenanceSettings] = useState({
+    nextServiceMiles: 2500,
+    lastServiceDate: new Date().toISOString(),
+    serviceReminders: 0,
+    totalServices: 0
+  });
+  
+  const { toast } = useToast();
   
   const vehicle = vehicles.find(v => v.id === vehicleId) || {
     id: "default",
@@ -114,6 +136,24 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
     milesPerDay: 0
   };
   
+  // Initialize editable metrics from vehicle data
+  useState(() => {
+    setEditedMetrics({
+      mpg: vehicle.mpg || 0,
+      costPerMile: vehicle.costPerMile || 0,
+      fuelCosts: vehicle.fuelCosts || 0,
+      totalServiceCost: vehicle.totalServiceCost || 0,
+      milesPerDay: vehicle.milesPerDay || 0
+    });
+    
+    setEditedMaintenanceSettings({
+      nextServiceMiles: 2500,
+      lastServiceDate: vehicle.lastServiceDate || new Date().toISOString(),
+      serviceReminders: vehicle.serviceReminders || 0,
+      totalServices: vehicle.totalServices || 0
+    });
+  }, [vehicle]);
+  
   const safeNumber = (value: any) => {
     return typeof value === 'number' ? value : 0;
   };
@@ -132,8 +172,6 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
     repair: "Needs Repair"
   };
 
-  
-  
   const handleEditStatus = () => {
     setCurrentStatus(vehicle.status);
     setIsEditStatusOpen(true);
@@ -212,6 +250,7 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
       date: new Date(),
       cost: 0,
       notes: '',
+      completed: false,
     });
     setIsAddMaintenanceOpen(true);
   };
@@ -248,6 +287,7 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
 
     const entryId = `maintenance-${Date.now()}`;
     const cost = Number(newEntry.cost) || 0;
+    const isCompleted = newEntry.completed || false;
     
     const entry: MaintenanceEntry = {
       id: entryId,
@@ -255,6 +295,7 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
       date: newEntry.date || new Date(),
       cost: cost,
       notes: newEntry.notes,
+      completed: isCompleted,
       reminder: newEntry.reminder
     };
 
@@ -360,21 +401,54 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
     }
   };
 
-  const getPastMaintenanceEntries = () => {
+  // Get completed maintenance entries
+  const getCompletedMaintenanceEntries = () => {
     return maintenanceHistory
-      .filter(entry => new Date(entry.date) <= new Date())
+      .filter(entry => entry.completed || isPast(new Date(entry.date)))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   };
 
+  // Get upcoming maintenance entries
   const getUpcomingMaintenanceEntries = () => {
     return maintenanceHistory
-      .filter(entry => entry.reminder && calculateNextReminderDate(entry.reminder)! > new Date())
+      .filter(entry => 
+        (!entry.completed && !isPast(new Date(entry.date))) || 
+        (entry.reminder && calculateNextReminderDate(entry.reminder)! > new Date())
+      )
       .sort((a, b) => {
-        const dateA = calculateNextReminderDate(a.reminder) || new Date();
-        const dateB = calculateNextReminderDate(b.reminder) || new Date();
-        return dateA.getTime() - dateB.getTime();
+        const dateA = (entry: MaintenanceEntry) => entry.reminder ? calculateNextReminderDate(entry.reminder) || new Date(entry.date) : new Date(entry.date);
+        const dateB = (entry: MaintenanceEntry) => entry.reminder ? calculateNextReminderDate(entry.reminder) || new Date(entry.date) : new Date(entry.date);
+        return dateA(a).getTime() - dateB(b).getTime();
       });
   };
+
+  // Handle metrics edit
+  const handleEditMetrics = () => {
+    setIsEditMetricsActive(!isEditMetricsActive);
+    
+    if (isEditMetricsActive) {
+      toast({
+        title: "Performance Metrics Updated",
+        description: "The vehicle performance metrics have been saved."
+      });
+    }
+  };
+  
+  // Handle maintenance settings edit
+  const handleEditMaintenanceSettings = () => {
+    setIsEditMaintenanceSettingsOpen(true);
+  };
+  
+  // Save maintenance settings
+  const handleSaveMaintenanceSettings = () => {
+    toast({
+      title: "Maintenance Settings Updated",
+      description: "The maintenance settings have been updated successfully."
+    });
+    setIsEditMaintenanceSettingsOpen(false);
+  };
+
+  const businessType = isBoatBusiness() ? "Boat" : "Vehicle";
 
   return (
     <div className="animate-fade-in">
@@ -440,37 +514,112 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
               <TabsContent value="details" className="mt-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Card>
-                    <CardHeader className="pb-2">
+                    <CardHeader className="pb-2 flex flex-row items-center justify-between">
                       <CardTitle className="text-lg flex items-center">
                         <Gauge className="h-5 w-5 mr-2 text-flitx-blue" />
                         Performance Metrics
                       </CardTitle>
+                      <Button 
+                        variant={isEditMetricsActive ? "default" : "outline"} 
+                        size="sm"
+                        onClick={handleEditMetrics}
+                        className={isEditMetricsActive ? "bg-green-600 hover:bg-green-700" : ""}
+                      >
+                        {isEditMetricsActive ? (
+                          <>
+                            <Save className="h-4 w-4 mr-1" />
+                            Save
+                          </>
+                        ) : (
+                          <>
+                            <Edit className="h-4 w-4 mr-1" />
+                            Edit
+                          </>
+                        )}
+                      </Button>
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-2 gap-y-4 mt-2">
                         <div>
                           <div className="text-sm text-flitx-gray-500">MPG</div>
-                          <div className="font-semibold text-2xl">{vehicle.mpg || 0}</div>
+                          {isEditMetricsActive ? (
+                            <Input 
+                              type="number" 
+                              value={editedMetrics.mpg}
+                              onChange={(e) => setEditedMetrics({...editedMetrics, mpg: Number(e.target.value)})}
+                              className="h-8 mt-1"
+                            />
+                          ) : (
+                            <div className="font-semibold text-2xl">{editedMetrics.mpg}</div>
+                          )}
                         </div>
                         
                         <div>
                           <div className="text-sm text-flitx-gray-500">Cost/Mi</div>
-                          <div className="font-semibold text-2xl">${vehicle.costPerMile || 0}</div>
+                          {isEditMetricsActive ? (
+                            <div className="flex items-center">
+                              <span className="mr-1 text-lg">$</span>
+                              <Input 
+                                type="number"
+                                step="0.01" 
+                                value={editedMetrics.costPerMile}
+                                onChange={(e) => setEditedMetrics({...editedMetrics, costPerMile: Number(e.target.value)})}
+                                className="h-8 mt-1"
+                              />
+                            </div>
+                          ) : (
+                            <div className="font-semibold text-2xl">${editedMetrics.costPerMile}</div>
+                          )}
                         </div>
                         
                         <div>
                           <div className="text-sm text-flitx-gray-500">Fuel Costs</div>
-                          <div className="font-semibold text-2xl">${safeNumber(vehicle.fuelCosts).toLocaleString()}</div>
+                          {isEditMetricsActive ? (
+                            <div className="flex items-center">
+                              <span className="mr-1 text-lg">$</span>
+                              <Input 
+                                type="number"
+                                step="0.01" 
+                                value={editedMetrics.fuelCosts}
+                                onChange={(e) => setEditedMetrics({...editedMetrics, fuelCosts: Number(e.target.value)})}
+                                className="h-8 mt-1"
+                              />
+                            </div>
+                          ) : (
+                            <div className="font-semibold text-2xl">${safeNumber(editedMetrics.fuelCosts).toLocaleString()}</div>
+                          )}
                         </div>
                         
                         <div>
                           <div className="text-sm text-flitx-gray-500">Service Costs</div>
-                          <div className="font-semibold text-2xl">${safeNumber(vehicle.totalServiceCost).toLocaleString()}</div>
+                          {isEditMetricsActive ? (
+                            <div className="flex items-center">
+                              <span className="mr-1 text-lg">$</span>
+                              <Input 
+                                type="number"
+                                step="0.01" 
+                                value={editedMetrics.totalServiceCost}
+                                onChange={(e) => setEditedMetrics({...editedMetrics, totalServiceCost: Number(e.target.value)})}
+                                className="h-8 mt-1"
+                              />
+                            </div>
+                          ) : (
+                            <div className="font-semibold text-2xl">${safeNumber(editedMetrics.totalServiceCost).toLocaleString()}</div>
+                          )}
                         </div>
                         
                         <div>
                           <div className="text-sm text-flitx-gray-500">Miles/Day</div>
-                          <div className="font-semibold text-2xl">{vehicle.milesPerDay || 0}</div>
+                          {isEditMetricsActive ? (
+                            <Input 
+                              type="number" 
+                              value={editedMetrics.milesPerDay}
+                              onChange={(e) => setEditedMetrics({...editedMetrics, milesPerDay: Number(e.target.value)})}
+                              className="h-8 mt-1"
+                            />
+                          ) : (
+                            <div className="font-semibold text-2xl">{editedMetrics.milesPerDay}</div>
+                          )}
                         </div>
                       </div>
 
@@ -506,13 +655,23 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                         <Wrench className="h-5 w-5 mr-2 text-flitx-blue" />
                         Maintenance
                       </CardTitle>
-                      <Button 
-                        className="bg-flitx-blue hover:bg-flitx-blue-600" 
-                        size="sm"
-                        onClick={handleAddNewMaintenance}
-                      >
-                        <Plus className="h-4 w-4 mr-1" /> Add New
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={handleEditMaintenanceSettings}
+                        >
+                          <Settings className="h-4 w-4 mr-1" />
+                          Edit Settings
+                        </Button>
+                        <Button 
+                          className="bg-flitx-blue hover:bg-flitx-blue-600" 
+                          size="sm"
+                          onClick={handleAddNewMaintenance}
+                        >
+                          <Plus className="h-4 w-4 mr-1" /> Add New
+                        </Button>
+                      </div>
                     </CardHeader>
                     <CardContent>
                       <div className="flex justify-between items-center mb-4">
@@ -522,13 +681,13 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                           </div>
                           <div className="ml-3">
                             <div className="text-sm text-flitx-gray-500">Next Service</div>
-                            <div className="font-semibold">In 2,500 mi</div>
+                            <div className="font-semibold">In {editedMaintenanceSettings.nextServiceMiles.toLocaleString()} mi</div>
                           </div>
                         </div>
                         
                         <div className="text-right">
                           <div className="text-sm text-flitx-gray-500">Last Service</div>
-                          <div>{vehicle.lastServiceDate ? new Date(vehicle.lastServiceDate).toLocaleDateString() : 'N/A'}</div>
+                          <div>{new Date(editedMaintenanceSettings.lastServiceDate).toLocaleDateString()}</div>
                         </div>
                       </div>
                       
@@ -536,91 +695,106 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                         <div className="flex justify-between text-sm">
                           <span>Service Reminders</span>
                           <div>
-                            <span className="text-red-500 font-bold">{vehicle.serviceReminders || 0}</span>
+                            <span className="text-red-500 font-bold">{editedMaintenanceSettings.serviceReminders}</span>
                             <span className="text-flitx-gray-400"> active</span>
                           </div>
                         </div>
                         
                         <div className="flex justify-between text-sm">
                           <span>Total Services</span>
-                          <span>{vehicle.totalServices || 0}</span>
+                          <span>{editedMaintenanceSettings.totalServices}</span>
                         </div>
                         
                         <Separator className="my-3" />
                         
                         <div className="text-sm text-flitx-gray-500">Oil Change Status</div>
                         <Progress value={65} className="h-2" />
-                        <div className="text-xs text-right text-flitx-gray-400">2,500 mi remaining</div>
+                        <div className="text-xs text-right text-flitx-gray-400">{editedMaintenanceSettings.nextServiceMiles} mi remaining</div>
                       </div>
                       
                       <Separator className="my-4" />
                       
-                      {getPastMaintenanceEntries().length > 0 && (
-                        <div className="mt-4">
-                          <h4 className="font-medium text-sm text-flitx-gray-500 mb-2">Maintenance History</h4>
-                          <div className="space-y-3">
-                            {getPastMaintenanceEntries().map((entry) => (
-                              <div 
-                                key={entry.id} 
-                                className="border rounded-md p-3 cursor-pointer hover:bg-gray-50 transition-colors"
-                                onClick={() => handleEditMaintenance(entry)}
-                              >
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <div className="font-medium">
-                                      {entry.type}
-                                    </div>
-                                    <div className="text-flitx-gray-500 text-xs mt-1">
-                                      {format(new Date(entry.date), "MMMM d, yyyy")}
-                                    </div>
-                                    {entry.notes && <div className="text-xs mt-1">{entry.notes}</div>}
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="font-semibold">${entry.cost.toFixed(2)}</div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      
-                      {getUpcomingMaintenanceEntries().length > 0 && (
-                        <div className="mt-4">
+                      {/* Two-column layout for maintenance history and upcoming services */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        {/* Upcoming Services Column */}
+                        <div>
                           <h4 className="font-medium text-sm text-flitx-gray-500 mb-2">Upcoming Services</h4>
-                          <div className="space-y-3">
-                            {getUpcomingMaintenanceEntries().map((entry) => (
-                              <div 
-                                key={entry.id} 
-                                className="border border-blue-100 bg-blue-50 rounded-md p-3"
-                                onClick={() => handleEditMaintenance(entry)}
-                              >
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <div className="font-medium">
-                                      {entry.type}
+                          {getUpcomingMaintenanceEntries().length > 0 ? (
+                            <div className="space-y-3">
+                              {getUpcomingMaintenanceEntries().map((entry) => (
+                                <div 
+                                  key={entry.id} 
+                                  className="border border-blue-100 bg-blue-50 rounded-md p-3 cursor-pointer hover:bg-blue-100 transition-colors"
+                                  onClick={() => handleEditMaintenance(entry)}
+                                >
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <div className="font-medium">
+                                        {entry.type}
+                                      </div>
+                                      <div className="text-flitx-gray-500 text-xs mt-1">
+                                        Due: {entry.reminder 
+                                          ? format(calculateNextReminderDate(entry.reminder)!, "MMMM d, yyyy") 
+                                          : format(new Date(entry.date), "MMMM d, yyyy")}
+                                      </div>
                                     </div>
-                                    <div className="text-flitx-gray-500 text-xs mt-1">
-                                      Due: {calculateNextReminderDate(entry.reminder) 
-                                        ? format(calculateNextReminderDate(entry.reminder)!, "MMMM d, yyyy") 
-                                        : 'N/A'}
-                                    </div>
-                                  </div>
-                                  <div className="text-xs bg-blue-100 px-2 py-1 rounded">
-                                    {entry.reminder?.type === '3months' && 'Every 3 months'}
-                                    {entry.reminder?.type === '6months' && 'Every 6 months'}
-                                    {entry.reminder?.type === '1year' && 'Annual'}
-                                    {entry.reminder?.type === 'once' && 'One-time'}
+                                    {entry.reminder && (
+                                      <div className="text-xs bg-blue-100 px-2 py-1 rounded">
+                                        {entry.reminder.type === '3months' && 'Every 3 months'}
+                                        {entry.reminder.type === '6months' && 'Every 6 months'}
+                                        {entry.reminder.type === '1year' && 'Annual'}
+                                        {entry.reminder.type === 'once' && 'One-time'}
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
-                              </div>
-                            ))}
-                          </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-4 text-flitx-gray-400 border border-dashed rounded-md">
+                              <p className="text-sm">No upcoming services</p>
+                            </div>
+                          )}
                         </div>
-                      )}
+                        
+                        {/* Service History Column */}
+                        <div>
+                          <h4 className="font-medium text-sm text-flitx-gray-500 mb-2">Service History</h4>
+                          {getCompletedMaintenanceEntries().length > 0 ? (
+                            <div className="space-y-3">
+                              {getCompletedMaintenanceEntries().map((entry) => (
+                                <div 
+                                  key={entry.id} 
+                                  className="border rounded-md p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                                  onClick={() => handleEditMaintenance(entry)}
+                                >
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <div className="font-medium">
+                                        {entry.type}
+                                      </div>
+                                      <div className="text-flitx-gray-500 text-xs mt-1">
+                                        {format(new Date(entry.date), "MMMM d, yyyy")}
+                                      </div>
+                                      {entry.notes && <div className="text-xs mt-1">{entry.notes}</div>}
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="font-semibold">${entry.cost.toFixed(2)}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-4 text-flitx-gray-400 border border-dashed rounded-md">
+                              <p className="text-sm">No service history</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                       
                       {maintenanceHistory.length === 0 && (
-                        <div className="text-center py-4 text-flitx-gray-500">
+                        <div className="text-center py-4 text-flitx-gray-500 mt-4">
                           <Wrench className="mx-auto h-8 w-8 text-flitx-gray-300 mb-2" />
                           <p className="text-sm">
                             No maintenance records yet. Add your first maintenance entry.
@@ -639,7 +813,7 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                       <AlertTriangle className="mx-auto h-12 w-12 text-flitx-gray-300 mb-3" />
                       <h3 className="text-lg font-medium mb-1">No damage reports</h3>
                       <p className="text-sm">
-                        This vehicle has no damage reports. You can add one by clicking the button below.
+                        This {businessType.toLowerCase()} has no damage reports. You can add one by clicking the button below.
                       </p>
                       <Button className="mt-4 bg-flitx-blue hover:bg-flitx-blue-600">
                         Report Damage
@@ -888,7 +1062,7 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
+      
       <Dialog open={isAddMaintenanceOpen} onOpenChange={setIsAddMaintenanceOpen}>
         <DialogContent>
           <DialogHeader>
@@ -940,6 +1114,17 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                 value={newEntry.notes || ''}
                 onChange={(e) => setNewEntry({...newEntry, notes: e.target.value})}
               />
+            </div>
+            
+            <div className="flex items-center space-x-2 pt-2">
+              <input
+                type="checkbox"
+                id="completed-status"
+                className="rounded border-gray-300"
+                checked={newEntry.completed}
+                onChange={(e) => setNewEntry({...newEntry, completed: e.target.checked})}
+              />
+              <Label htmlFor="completed-status" className="cursor-pointer">Mark as completed service</Label>
             </div>
             
             <Button 
@@ -1025,6 +1210,17 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                   value={currentEntry.notes || ''}
                   onChange={(e) => setCurrentEntry({...currentEntry, notes: e.target.value})}
                 />
+              </div>
+              
+              <div className="flex items-center space-x-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="edit-completed-status"
+                  className="rounded border-gray-300"
+                  checked={currentEntry.completed}
+                  onChange={(e) => setCurrentEntry({...currentEntry, completed: e.target.checked})}
+                />
+                <Label htmlFor="edit-completed-status" className="cursor-pointer">Mark as completed service</Label>
               </div>
               
               <Button 
@@ -1122,6 +1318,83 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
             </Button>
             <Button onClick={handleSetReminder} className="bg-flitx-blue hover:bg-flitx-blue-600">
               Set Reminder
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={isEditMaintenanceSettingsOpen} onOpenChange={setIsEditMaintenanceSettingsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Maintenance Settings</DialogTitle>
+            <DialogDescription>
+              Update the maintenance tracking settings for this {businessType.toLowerCase()}.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="next-service-miles">Next Service (miles)</Label>
+              <Input 
+                id="next-service-miles" 
+                type="number"
+                min="0"
+                value={editedMaintenanceSettings.nextServiceMiles}
+                onChange={(e) => setEditedMaintenanceSettings({
+                  ...editedMaintenanceSettings, 
+                  nextServiceMiles: Number(e.target.value)
+                })}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Last Service Date</Label>
+              <CalendarComponent
+                mode="single"
+                selected={new Date(editedMaintenanceSettings.lastServiceDate)}
+                onSelect={(date) => date && setEditedMaintenanceSettings({
+                  ...editedMaintenanceSettings, 
+                  lastServiceDate: date.toISOString()
+                })}
+                className="border rounded-md"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="service-reminders">Service Reminders</Label>
+              <Input 
+                id="service-reminders" 
+                type="number"
+                min="0"
+                value={editedMaintenanceSettings.serviceReminders}
+                onChange={(e) => setEditedMaintenanceSettings({
+                  ...editedMaintenanceSettings, 
+                  serviceReminders: Number(e.target.value)
+                })}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="total-services">Total Services</Label>
+              <Input 
+                id="total-services" 
+                type="number"
+                min="0"
+                value={editedMaintenanceSettings.totalServices}
+                onChange={(e) => setEditedMaintenanceSettings({
+                  ...editedMaintenanceSettings, 
+                  totalServices: Number(e.target.value)
+                })}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditMaintenanceSettingsOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveMaintenanceSettings} className="bg-flitx-blue hover:bg-flitx-blue-600">
+              Save Settings
             </Button>
           </DialogFooter>
         </DialogContent>
