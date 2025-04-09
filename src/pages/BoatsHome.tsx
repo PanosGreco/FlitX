@@ -1,7 +1,7 @@
 
 import React from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import MobileLayout from "@/components/layout/MobileLayout";
+import { MobileLayout } from "@/components/layout/MobileLayout";
 
 const BoatsHome = () => {
   const { t } = useLanguage();
