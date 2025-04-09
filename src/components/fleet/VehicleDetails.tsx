@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { 
   Car, 
@@ -631,7 +632,6 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                 </div>
               </TabsContent>
               
-              
               <TabsContent value="damage">
                 <Card>
                   <CardContent className="pt-6">
@@ -806,7 +806,6 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
         </div>
       </div>
 
-      
       <Dialog open={isEditStatusOpen} onOpenChange={setIsEditStatusOpen}>
         <DialogContent>
           <DialogHeader>
@@ -873,4 +872,260 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
             
             <div className="bg-blue-50 p-3 rounded-md">
               <div className="text-sm font-medium">Calculated Net Profit</div>
-              <div className="text-xl font-semibold mt
+              <div className="text-xl font-semibold mt-1">
+                ${(totalRevenue - totalExpenses).toLocaleString()}
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditFinanceOpen(false)}>
+              Cancel
+            </Button>
+            <Button className="bg-flitx-blue hover:bg-flitx-blue-600" onClick={handleSaveFinance}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isAddMaintenanceOpen} onOpenChange={setIsAddMaintenanceOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Maintenance Record</DialogTitle>
+            <DialogDescription>
+              Enter the details for the new maintenance record.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="maintenance-type">Maintenance Type</Label>
+              <Input 
+                id="maintenance-type" 
+                placeholder="e.g., Oil Change, Tire Rotation"
+                value={newEntry.type || ''}
+                onChange={(e) => setNewEntry({...newEntry, type: e.target.value})}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Maintenance Date</Label>
+              <CalendarComponent
+                mode="single"
+                selected={newEntry.date}
+                onSelect={(date) => date && setNewEntry({...newEntry, date})}
+                className="border rounded-md"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="maintenance-cost">Cost ($)</Label>
+              <Input 
+                id="maintenance-cost" 
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={newEntry.cost || ''}
+                onChange={(e) => setNewEntry({...newEntry, cost: parseFloat(e.target.value)})}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="maintenance-notes">Notes (Optional)</Label>
+              <Input 
+                id="maintenance-notes" 
+                placeholder="Additional details about the service"
+                value={newEntry.notes || ''}
+                onChange={(e) => setNewEntry({...newEntry, notes: e.target.value})}
+              />
+            </div>
+            
+            <Button 
+              variant="outline" 
+              className="w-full mt-2"
+              onClick={openReminderDialog}
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Set Reminder
+            </Button>
+            
+            {newEntry.reminder && (
+              <div className="bg-blue-50 p-3 rounded-md text-sm">
+                <div className="font-medium">Reminder Set</div>
+                <div className="text-flitx-gray-500">
+                  {newEntry.reminder.type === 'once' && `Once on ${format(newEntry.reminder.date, "MMMM d, yyyy")}`}
+                  {newEntry.reminder.type === '3months' && 'Every 3 months'}
+                  {newEntry.reminder.type === '6months' && 'Every 6 months'}
+                  {newEntry.reminder.type === '1year' && 'Every year'}
+                  {newEntry.reminder.type === 'custom' && `On ${format(newEntry.reminder.date, "MMMM d, yyyy")}`}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddMaintenanceOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveNewMaintenance} className="bg-flitx-blue hover:bg-flitx-blue-600">
+              Save Record
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isEditMaintenanceOpen} onOpenChange={setIsEditMaintenanceOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Maintenance Record</DialogTitle>
+            <DialogDescription>
+              Update the details for this maintenance record.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {currentEntry && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-maintenance-type">Maintenance Type</Label>
+                <Input 
+                  id="edit-maintenance-type" 
+                  value={currentEntry.type}
+                  onChange={(e) => setCurrentEntry({...currentEntry, type: e.target.value})}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label>Maintenance Date</Label>
+                <CalendarComponent
+                  mode="single"
+                  selected={new Date(currentEntry.date)}
+                  onSelect={(date) => date && setCurrentEntry({...currentEntry, date})}
+                  className="border rounded-md"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-maintenance-cost">Cost ($)</Label>
+                <Input 
+                  id="edit-maintenance-cost" 
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={currentEntry.cost}
+                  onChange={(e) => setCurrentEntry({...currentEntry, cost: parseFloat(e.target.value)})}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-maintenance-notes">Notes (Optional)</Label>
+                <Input 
+                  id="edit-maintenance-notes" 
+                  value={currentEntry.notes || ''}
+                  onChange={(e) => setCurrentEntry({...currentEntry, notes: e.target.value})}
+                />
+              </div>
+              
+              <Button 
+                variant="outline" 
+                className="w-full mt-2"
+                onClick={openReminderDialog}
+              >
+                <Calendar className="h-4 w-4 mr-2" />
+                {currentEntry.reminder ? 'Edit Reminder' : 'Set Reminder'}
+              </Button>
+              
+              {currentEntry.reminder && (
+                <div className="bg-blue-50 p-3 rounded-md text-sm">
+                  <div className="font-medium">Reminder Set</div>
+                  <div className="text-flitx-gray-500">
+                    {currentEntry.reminder.type === 'once' && `Once on ${format(new Date(currentEntry.reminder.date), "MMMM d, yyyy")}`}
+                    {currentEntry.reminder.type === '3months' && 'Every 3 months'}
+                    {currentEntry.reminder.type === '6months' && 'Every 6 months'}
+                    {currentEntry.reminder.type === '1year' && 'Every year'}
+                    {currentEntry.reminder.type === 'custom' && `On ${format(new Date(currentEntry.reminder.date), "MMMM d, yyyy")}`}
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex justify-end">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                  onClick={() => {
+                    handleDeleteMaintenance(currentEntry.id);
+                    setIsEditMaintenanceOpen(false);
+                  }}
+                >
+                  <Trash className="h-3.5 w-3.5 mr-1" /> Delete
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditMaintenanceOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateMaintenance} className="bg-flitx-blue hover:bg-flitx-blue-600">
+              Update Record
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isReminderDialogOpen} onOpenChange={setIsReminderDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Maintenance Reminder</DialogTitle>
+            <DialogDescription>
+              Choose when you want to be reminded about this maintenance.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="reminder-type">Reminder Frequency</Label>
+              <Select value={reminderType} onValueChange={(value) => setReminderType(value as any)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select when to remind" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="once">Once on specific date</SelectItem>
+                  <SelectItem value="3months">Every 3 months</SelectItem>
+                  <SelectItem value="6months">Every 6 months</SelectItem>
+                  <SelectItem value="1year">Every year</SelectItem>
+                  <SelectItem value="custom">Custom date</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {(reminderType === 'once' || reminderType === 'custom') && (
+              <div className="space-y-2">
+                <Label>Select Date</Label>
+                <CalendarComponent
+                  mode="single"
+                  selected={reminderDate}
+                  onSelect={(date) => date && setReminderDate(date)}
+                  className="border rounded-md"
+                  disabled={(date) => date < new Date()}
+                />
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsReminderDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSetReminder} className="bg-flitx-blue hover:bg-flitx-blue-600">
+              Set Reminder
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
