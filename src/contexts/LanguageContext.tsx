@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState } from 'react';
 
 // First, let's make TypeScript happy by adding the missing translations
@@ -43,7 +44,30 @@ interface Translations {
   signup: {
     title: string;
     subtitle: string;
-    // ... other signup translations
+    passwordWeak: string;
+    passwordMedium: string;
+    passwordStrong: string;
+    businessNameRequired: string;
+    invalidEmail: string;
+    passwordLength: string;
+    businessTypeRequired: string;
+    accountCreated: string;
+    errorCreating: string;
+    createAccount: string;
+    getStarted: string;
+    businessName: string;
+    enterBusinessName: string;
+    email: string;
+    enterEmail: string;
+    password: string;
+    enterPassword: string;
+    businessType: string;
+    selectBusinessType: string;
+    carRental: string;
+    boatRental: string;
+    signUp: string;
+    alreadyHaveAccount: string;
+    login: string;
   };
   [key: string]: any; // Allow for dynamic keys
 }
@@ -90,7 +114,30 @@ const englishTranslations: Translations = {
   signup: {
     title: "Sign Up",
     subtitle: "Create your FlitX account",
-    // ... other signup translations
+    passwordWeak: "Weak",
+    passwordMedium: "Medium",
+    passwordStrong: "Strong",
+    businessNameRequired: "Business name is required",
+    invalidEmail: "Invalid email address",
+    passwordLength: "Password must be at least 6 characters",
+    businessTypeRequired: "Business type is required",
+    accountCreated: "Account created successfully!",
+    errorCreating: "Error creating account. Please try again.",
+    createAccount: "Create Account",
+    getStarted: "Get started with your fleet management",
+    businessName: "Business Name",
+    enterBusinessName: "Enter your business name",
+    email: "Email",
+    enterEmail: "Enter your email address",
+    password: "Password",
+    enterPassword: "Create a password",
+    businessType: "Business Type",
+    selectBusinessType: "Select your business type",
+    carRental: "Car Rental",
+    boatRental: "Boat Rental",
+    signUp: "Sign Up",
+    alreadyHaveAccount: "Already have an account?",
+    login: "Log In"
   },
 };
 
@@ -136,7 +183,30 @@ const spanishTranslations: Translations = {
   signup: {
     title: "Registrarse",
     subtitle: "Crea tu cuenta FlitX",
-    // ... other signup translations
+    passwordWeak: "Débil",
+    passwordMedium: "Medio",
+    passwordStrong: "Fuerte",
+    businessNameRequired: "El nombre de la empresa es obligatorio",
+    invalidEmail: "Dirección de correo electrónico inválida",
+    passwordLength: "La contraseña debe tener al menos 6 caracteres",
+    businessTypeRequired: "El tipo de negocio es obligatorio",
+    accountCreated: "¡Cuenta creada con éxito!",
+    errorCreating: "Error al crear la cuenta. Por favor, inténtelo de nuevo.",
+    createAccount: "Crear Cuenta",
+    getStarted: "Comienza con la gestión de tu flota",
+    businessName: "Nombre de la Empresa",
+    enterBusinessName: "Introduce el nombre de tu empresa",
+    email: "Correo Electrónico",
+    enterEmail: "Introduce tu dirección de correo electrónico",
+    password: "Contraseña",
+    enterPassword: "Crea una contraseña",
+    businessType: "Tipo de Negocio",
+    selectBusinessType: "Selecciona tu tipo de negocio",
+    carRental: "Alquiler de Coches",
+    boatRental: "Alquiler de Barcos",
+    signUp: "Registrarse",
+    alreadyHaveAccount: "¿Ya tienes una cuenta?",
+    login: "Iniciar Sesión"
   },
 };
 
