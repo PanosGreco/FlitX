@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Boat, Car } from 'lucide-react';
+import { Car, Ship } from 'lucide-react'; // Changed from Boat to Ship which exists in lucide-react
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { 
@@ -53,7 +53,7 @@ export function BusinessTypeSwitch() {
           {isBoatMode ? 'Boat Mode' : 'Car Mode'}
         </Label>
       </div>
-      <Boat className={`h-4 w-4 ${isBoatMode ? 'text-blue-600' : 'text-gray-400'}`} />
+      <Ship className={`h-4 w-4 ${isBoatMode ? 'text-blue-600' : 'text-gray-400'}`} />
     </div>
   );
 }

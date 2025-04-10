@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, ChevronLeft } from 'lucide-react';
@@ -9,6 +10,7 @@ import { isBoatBusiness } from '@/utils/businessTypeUtils';
 interface MobileHeaderProps {
   title?: string;
   onOpenSidebar?: () => void;
+  onMenuClick?: () => void; // Added this prop to fix the error
   showBackButton?: boolean;
   className?: string;
 }
@@ -16,6 +18,7 @@ interface MobileHeaderProps {
 export function MobileHeader({
   title,
   onOpenSidebar,
+  onMenuClick, // Using the new prop
   showBackButton = false,
   className,
 }: MobileHeaderProps) {
@@ -24,6 +27,15 @@ export function MobileHeader({
 
   const handleBackClick = () => {
     navigate(-1);
+  };
+
+  const handleMenuClick = () => {
+    // Use the appropriate handler
+    if (onMenuClick) {
+      onMenuClick();
+    } else if (onOpenSidebar) {
+      onOpenSidebar();
+    }
   };
 
   return (
@@ -39,7 +51,7 @@ export function MobileHeader({
             <ChevronLeft className="h-5 w-5" />
           </Button>
         ) : (
-          <Button variant="ghost" size="icon" onClick={onOpenSidebar}>
+          <Button variant="ghost" size="icon" onClick={handleMenuClick}>
             <Menu className="h-5 w-5" />
           </Button>
         )}

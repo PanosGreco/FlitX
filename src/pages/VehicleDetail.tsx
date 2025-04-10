@@ -17,7 +17,7 @@ const VehicleDetail = () => {
       <VehicleDetails 
         vehicleId={id} 
         vehicles={vehicles} 
-        isBoatMode={isBoatMode} 
+        // Remove isBoatMode prop as it's not in the VehicleDetails interface
       />
     </MobileLayout>
   );
