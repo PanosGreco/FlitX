@@ -1,8 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { VehicleGrid } from "@/components/fleet/VehicleGrid";
+import { Marina } from "@/components/fleet/Marina";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { sampleVehicles } from "@/lib/data";
+import { sampleBoats } from "@/lib/boatData";
 import {
   Dialog,
   DialogContent,
@@ -24,8 +26,10 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Image } from "lucide-react";
+import { Upload, Image, Ship } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { isBoatBusiness, getVehicleTypeDisplayName } from "@/utils/businessTypeUtils";
+import { useNavigate } from "react-router-dom";
 
 const Fleet = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -33,6 +37,15 @@ const Fleet = () => {
   const [vehicleImage, setVehicleImage] = useState<string | null>(null);
   const { toast } = useToast();
   const { t } = useLanguage();
+  const isBoatMode = isBoatBusiness();
+  const navigate = useNavigate();
+
+  // Redirect to boat home if in boat mode
+  useEffect(() => {
+    if (isBoatMode) {
+      navigate('/boats');
+    }
+  }, [isBoatMode, navigate]);
 
   const handleAddVehicle = () => {
     setIsAddDialogOpen(true);
