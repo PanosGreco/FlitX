@@ -1,7 +1,5 @@
-
 import React, { createContext, useContext, useState } from 'react';
 
-// First, let's make TypeScript happy by adding the missing translations
 interface Translations {
   fleet: string;
   finances: string;
@@ -31,7 +29,6 @@ interface Translations {
   economy: string;
   luxury: string;
   van: string;
-  // Add boat-specific translations
   ourFleet: string;
   addNewBoat: string;
   noBoats: string;
@@ -41,7 +38,6 @@ interface Translations {
   rented: string;
   maintenance: string;
   repair: string;
-  // Add profile-specific translations
   myProfile: string;
   profileSubtitle: string;
   photoUpdated: string;
@@ -133,7 +129,9 @@ interface Translations {
     alreadyHaveAccount: string;
     login: string;
   };
-  [key: string]: any; // Allow for dynamic keys
+  marinaOverview: string;
+  newBoatSlip: string;
+  [key: string]: any;
 }
 
 const englishTranslations: Translations = {
@@ -162,10 +160,9 @@ const englishTranslations: Translations = {
   vehicleTypes: "Vehicle Types",
   sedan: "Sedan",
   suv: "SUV",
-  economy: "Economy",
-  luxury: "Luxury",
+  economy: "Económico",
+  luxury: "Lujo",
   van: "Van",
-  // Boat translations
   ourFleet: "Our Fleet",
   addNewBoat: "Add New Boat",
   noBoats: "No boats yet",
@@ -175,7 +172,6 @@ const englishTranslations: Translations = {
   rented: "Rented Out",
   maintenance: "Maintenance",
   repair: "Needs Repair",
-  // Profile translations
   myProfile: "My Profile",
   profileSubtitle: "Manage your personal information, account security and preferences",
   photoUpdated: "Profile Photo Updated",
@@ -267,6 +263,8 @@ const englishTranslations: Translations = {
     alreadyHaveAccount: "Already have an account?",
     login: "Log In"
   },
+  marinaOverview: "Marina Overview",
+  newBoatSlip: "New Slip"
 };
 
 const spanishTranslations: Translations = {
@@ -298,7 +296,6 @@ const spanishTranslations: Translations = {
   economy: "Económico",
   luxury: "Lujo",
   van: "Furgoneta",
-  // Boat translations
   ourFleet: "Nuestra Flota",
   addNewBoat: "Añadir Nuevo Barco",
   noBoats: "No hay barcos todavía",
@@ -308,7 +305,6 @@ const spanishTranslations: Translations = {
   rented: "Alquilado",
   maintenance: "Mantenimiento",
   repair: "Necesita Reparación",
-  // Profile translations
   myProfile: "Mi Perfil",
   profileSubtitle: "Gestione su información personal, seguridad de la cuenta y preferencias",
   photoUpdated: "Foto de Perfil Actualizada",
@@ -400,6 +396,8 @@ const spanishTranslations: Translations = {
     alreadyHaveAccount: "¿Ya tienes una cuenta?",
     login: "Iniciar Sesión"
   },
+  marinaOverview: "Vista General de la Marina",
+  newBoatSlip: "Nuevo Espacio"
 };
 
 interface LanguageContextType {

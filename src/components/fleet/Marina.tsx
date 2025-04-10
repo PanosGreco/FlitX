@@ -1,11 +1,13 @@
+
 import React, { useState } from 'react';
-import { Sailboat, PlusCircle } from 'lucide-react';
+import { Sailboat, PlusCircle, MapPin, Anchor } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from "@/components/ui/badge";
 import { BoatData } from '@/lib/boatData';
 import { Link } from 'react-router-dom';
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface MarinaProps {
   boats: BoatData[];
@@ -23,10 +25,74 @@ export function Marina({ boats, onAddBoat }: MarinaProps) {
     repair: "bg-red-100 text-red-800 border-red-200"
   };
 
+  // Group boats by marina sections
+  const marinaSection = {
+    sectionA: boats.filter((_, i) => i % 5 === 0),
+    sectionB: boats.filter((_, i) => i % 5 === 1),
+    sectionC: boats.filter((_, i) => i % 5 === 2),
+    sectionD: boats.filter((_, i) => i % 5 === 3),
+    sectionE: boats.filter((_, i) => i % 5 === 4),
+  };
+
+  // Render boat icon with appropriate styling based on status
+  const renderBoatIcon = (boat: BoatData, sectionIndex: number) => {
+    const statusColor = boat.status === 'available' ? 'text-green-600' : 
+                        boat.status === 'rented' ? 'text-blue-600' :
+                        boat.status === 'maintenance' ? 'text-yellow-600' : 'text-red-600';
+    
+    return (
+      <Link
+        key={boat.id}
+        to={`/vehicle/${boat.id}`}
+        className={cn(
+          "group relative flex flex-col items-center transition-all duration-200",
+          hoveredBoat === boat.id ? "scale-110 z-10" : ""
+        )}
+        onMouseEnter={() => setHoveredBoat(boat.id)}
+        onMouseLeave={() => setHoveredBoat(null)}
+      >
+        <div className={cn(
+          "relative",
+          statusColor
+        )}>
+          <div className="rotate-90">
+            <svg width="40" height="20" viewBox="0 0 100 50" className="fill-current">
+              <path d="M10,25 L25,10 L75,10 L90,25 L75,40 L25,40 Z" />
+            </svg>
+          </div>
+          
+          {boat.status === 'maintenance' && (
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full animate-pulse" />
+          )}
+          {boat.status === 'repair' && (
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+          )}
+        </div>
+        
+        <span className="text-xs font-medium mt-1 max-w-16 text-center leading-tight text-balance">
+          {boat.name}
+        </span>
+        
+        {hoveredBoat === boat.id && (
+          <div className="absolute -bottom-16 bg-white rounded-md shadow-lg p-2 w-36 z-20">
+            <p className="text-xs font-semibold">{boat.make} {boat.model}</p>
+            <p className="text-xs">{boat.length}ft • Slip #{sectionIndex}</p>
+            <Badge className={cn(
+              "mt-1 text-xs w-full justify-center",
+              statusColors[boat.status]
+            )}>
+              {boat.status}
+            </Badge>
+          </div>
+        )}
+      </Link>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Marina Overview</h1>
+        <h1 className="text-2xl font-bold">{t.marinaOverview || "Marina Overview"}</h1>
         
         <Button
           onClick={onAddBoat}
@@ -38,80 +104,127 @@ export function Marina({ boats, onAddBoat }: MarinaProps) {
       </div>
       
       {boats.length > 0 ? (
-        <div className="relative bg-blue-50 border-2 border-blue-200 rounded-lg p-6 overflow-hidden">
-          {/* Marina header */}
-          <div className="absolute top-0 left-0 right-0 bg-blue-600 text-white py-2 px-4 flex items-center">
-            <Sailboat className="h-5 w-5 mr-2" />
-            <h3 className="font-medium">Marina Bay</h3>
-          </div>
-          
-          {/* Water effect */}
-          <div className="absolute inset-0 bg-gradient-to-t from-blue-200/30 to-blue-100/10 opacity-50" />
-          
-          {/* Grid of docks */}
-          <div className="relative mt-10 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pt-4">
-            {boats.map((boat, index) => (
-              <Link
-                key={boat.id}
-                to={`/vehicle/${boat.id}`}
-                className={cn(
-                  "relative bg-white rounded-lg transition-all transform hover:-translate-y-1",
-                  "border-2",
-                  statusColors[boat.status] || "border-gray-200",
-                  hoveredBoat === boat.id ? "shadow-lg scale-105 z-10" : "shadow"
-                )}
-                onMouseEnter={() => setHoveredBoat(boat.id)}
-                onMouseLeave={() => setHoveredBoat(null)}
-              >
-                <div className="p-4">
-                  <div className="flex items-start justify-between">
-                    <h3 className="font-semibold text-gray-800">{boat.name}</h3>
-                    <Badge className={cn(statusColors[boat.status])}>
-                      {boat.status}
-                    </Badge>
+        <Card className="overflow-hidden border-2 border-blue-200">
+          <CardContent className="p-0">
+            <div className="w-full relative bg-gradient-to-b from-blue-200 to-blue-400">
+              {/* Marina Header */}
+              <div className="bg-blue-700 text-white py-2 px-4 flex items-center">
+                <Anchor className="h-5 w-5 mr-2" />
+                <h3 className="font-medium">Marina Bay</h3>
+              </div>
+              
+              {/* Main Marina Area */}
+              <div className="relative p-8 bg-[url('public/lovable-uploads/63c57374-db37-4424-af53-823ff6974e5f.png')] bg-cover bg-center min-h-[420px]">
+                {/* Docks and Sections */}
+                <div className="absolute inset-0 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Left side docks */}
+                  <div className="relative flex flex-col justify-around">
+                    <div className="marina-section">
+                      <div className="bg-gray-700 w-full h-2 mb-1"></div>
+                      <div className="flex justify-around">
+                        {marinaSection.sectionA.map((boat, i) => renderBoatIcon(boat, i + 1))}
+                      </div>
+                      <div className="bg-blue-900/20 backdrop-blur-sm rounded px-2 py-1 text-xs text-white font-bold absolute -top-6 left-0">
+                        <MapPin className="h-3 w-3 inline mr-1" /> Section A
+                      </div>
+                    </div>
+                    
+                    <div className="marina-section">
+                      <div className="bg-gray-700 w-full h-2 mb-1"></div>
+                      <div className="flex justify-around">
+                        {marinaSection.sectionB.map((boat, i) => renderBoatIcon(boat, i + 10))}
+                      </div>
+                      <div className="bg-blue-900/20 backdrop-blur-sm rounded px-2 py-1 text-xs text-white font-bold absolute -top-6 left-0">
+                        <MapPin className="h-3 w-3 inline mr-1" /> Section B
+                      </div>
+                    </div>
                   </div>
                   
-                  <div className="mt-2 flex items-center">
-                    <Sailboat className="h-4 w-4 text-blue-500 mr-1" />
-                    <span className="text-sm text-gray-600">
-                      {boat.make} {boat.model}
-                    </span>
+                  {/* Center - Main dock */}
+                  <div className="relative flex flex-col justify-center items-center">
+                    <div className="marina-section">
+                      <div className="bg-gray-700 w-full h-2 mb-1"></div>
+                      <div className="flex justify-around">
+                        {marinaSection.sectionC.map((boat, i) => renderBoatIcon(boat, i + 20))}
+                      </div>
+                      <div className="bg-blue-900/20 backdrop-blur-sm rounded px-2 py-1 text-xs text-white font-bold absolute -top-6 left-0">
+                        <MapPin className="h-3 w-3 inline mr-1" /> Section C
+                      </div>
+                    </div>
                   </div>
                   
-                  <div className="mt-3 text-xs text-gray-500">
-                    {boat.length}ft • Slip #{index + 1}
-                  </div>
-                  
-                  {/* Boat representation */}
-                  <div className="mt-2 h-12 flex items-center justify-center">
-                    <div className="relative">
-                      <svg width="100" height="40" viewBox="0 0 100 40" className="text-blue-800 fill-current">
-                        <path d="M20,20 L40,10 L60,10 L80,20 L80,30 L20,30 L20,20 Z" />
-                      </svg>
+                  {/* Right side docks */}
+                  <div className="relative flex flex-col justify-around">
+                    <div className="marina-section">
+                      <div className="bg-gray-700 w-full h-2 mb-1"></div>
+                      <div className="flex justify-around">
+                        {marinaSection.sectionD.map((boat, i) => renderBoatIcon(boat, i + 30))}
+                      </div>
+                      <div className="bg-blue-900/20 backdrop-blur-sm rounded px-2 py-1 text-xs text-white font-bold absolute -top-6 left-0">
+                        <MapPin className="h-3 w-3 inline mr-1" /> Section D
+                      </div>
+                    </div>
+                    
+                    <div className="marina-section">
+                      <div className="bg-gray-700 w-full h-2 mb-1"></div>
+                      <div className="flex justify-around">
+                        {marinaSection.sectionE.map((boat, i) => renderBoatIcon(boat, i + 40))}
+                      </div>
+                      <div className="bg-blue-900/20 backdrop-blur-sm rounded px-2 py-1 text-xs text-white font-bold absolute -top-6 left-0">
+                        <MapPin className="h-3 w-3 inline mr-1" /> Section E
+                      </div>
                     </div>
                   </div>
                 </div>
-              </Link>
-            ))}
-            
-            {/* Empty dock spots */}
-            {Array.from({ length: Math.max(0, 8 - boats.length) }).map((_, i) => (
-              <div 
-                key={`empty-${i}`} 
-                className="bg-blue-100/50 border-2 border-dashed border-blue-200 rounded-lg p-4 flex flex-col items-center justify-center min-h-[140px]"
-                onClick={onAddBoat}
-              >
-                <div className="text-blue-400 flex flex-col items-center cursor-pointer">
-                  <PlusCircle className="h-8 w-8 mb-2" />
-                  <span className="text-sm font-medium">Empty Slip</span>
+                
+                {/* Empty dock spots - add button */}
+                {boats.length < 8 && (
+                  <div 
+                    className="absolute bottom-4 right-4 bg-blue-100/70 border-2 border-dashed border-blue-200 rounded-lg p-3 flex flex-col items-center justify-center cursor-pointer hover:bg-blue-100/90 transition-colors"
+                    onClick={onAddBoat}
+                  >
+                    <PlusCircle className="h-6 w-6 text-blue-400 mb-1" />
+                    <span className="text-xs font-medium text-blue-600">
+                      {t.newBoatSlip || "New Slip"}
+                    </span>
+                  </div>
+                )}
+                
+                {/* Marina facilities */}
+                <div className="absolute bottom-4 left-4 bg-blue-900/20 backdrop-blur-sm rounded px-2 py-1">
+                  <span className="text-xs text-white">Marina Facilities</span>
                 </div>
               </div>
-            ))}
-          </div>
-          
-          {/* Marina footer */}
-          <div className="absolute bottom-0 left-0 right-0 bg-blue-100 h-2" />
-        </div>
+              
+              {/* Marina Legend */}
+              <div className="bg-white p-3 border-t border-blue-200">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 rounded-full bg-green-600 mr-1"></div>
+                      <span>{t.available || "Available"}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 rounded-full bg-blue-600 mr-1"></div>
+                      <span>{t.rented || "Rented"}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 rounded-full bg-yellow-600 mr-1"></div>
+                      <span>{t.maintenance || "Maintenance"}</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-3 h-3 rounded-full bg-red-600 mr-1"></div>
+                      <span>{t.repair || "Repair"}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">{boats.length} boats • Click on boat for details</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
         <div className="flex flex-col items-center justify-center bg-gray-50 rounded-lg p-10 text-center">
           <Sailboat className="h-16 w-16 text-gray-300 mb-4" />
