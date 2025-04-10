@@ -3,7 +3,8 @@ import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Camera, Plus, Trash, Edit, Check, X } from "lucide-react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, PerspectiveCamera, useGLTF } from "@react-three/drei";
+import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
+import * as THREE from "three";
 
 interface VehicleDamageViewerProps {
   vehicleType?: string;
@@ -47,19 +48,19 @@ const CarModel = ({
       
       {/* Wheels */}
       <mesh position={[-1.5, 0, -1]} receiveShadow castShadow>
-        <cylinderGeometry args={[0.5, 0.5, 0.3, 32]} rotation={[Math.PI / 2, 0, 0]} />
+        <cylinderGeometry args={[0.5, 0.5, 0.3, 32]} />
         <meshStandardMaterial color="#222" />
       </mesh>
       <mesh position={[-1.5, 0, 1]} receiveShadow castShadow>
-        <cylinderGeometry args={[0.5, 0.5, 0.3, 32]} rotation={[Math.PI / 2, 0, 0]} />
+        <cylinderGeometry args={[0.5, 0.5, 0.3, 32]} />
         <meshStandardMaterial color="#222" />
       </mesh>
       <mesh position={[1.5, 0, -1]} receiveShadow castShadow>
-        <cylinderGeometry args={[0.5, 0.5, 0.3, 32]} rotation={[Math.PI / 2, 0, 0]} />
+        <cylinderGeometry args={[0.5, 0.5, 0.3, 32]} />
         <meshStandardMaterial color="#222" />
       </mesh>
       <mesh position={[1.5, 0, 1]} receiveShadow castShadow>
-        <cylinderGeometry args={[0.5, 0.5, 0.3, 32]} rotation={[Math.PI / 2, 0, 0]} />
+        <cylinderGeometry args={[0.5, 0.5, 0.3, 32]} />
         <meshStandardMaterial color="#222" />
       </mesh>
 
