@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +12,7 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, userData: any) => Promise<void>;
   signOut: () => Promise<void>;
-  updateProfile: (data: any) => Promise<void>; // Updated return type to void
+  updateProfile: (data: any) => Promise<void>;
   userProfile: any;
   refreshProfile: () => Promise<void>;
 };
@@ -56,13 +55,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
-        // Defer profile fetch to avoid recursion
         if (currentSession?.user) {
           setTimeout(() => {
             fetchUserProfile(currentSession.user.id);
@@ -77,7 +74,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // THEN check for existing session
     const initializeAuth = async () => {
       try {
         const { data } = await supabase.auth.getSession();
@@ -152,7 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateProfile = async (data: any): Promise<void> => { // Updated return type
+  const updateProfile = async (data: any): Promise<void> => {
     try {
       if (!user) throw new Error("User not authenticated");
 
@@ -166,7 +162,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Refresh the profile data
       await fetchUserProfile(user.id);
-      // Return void instead of object
     } catch (error: any) {
       console.error('Error updating profile:', error);
       throw error;

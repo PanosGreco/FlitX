@@ -113,7 +113,7 @@ const AuthPage = () => {
             {mode === "signup" ? t.signup.createAccount : t.signup.login}
           </h1>
           <p className="text-gray-600 mt-2">
-            {mode === "signup" ? t.signup.getStarted : t.signup.welcomeBack}
+            {mode === "signup" ? t.signup.getStarted : t.signup.login}
           </p>
         </div>
 
@@ -122,7 +122,7 @@ const AuthPage = () => {
             {mode === "signup" && (
               <>
                 <FormField
-                  control={form.control}
+                  control={signUpForm.control}
                   name="fullName"
                   render={({ field }) => (
                     <FormItem>
@@ -136,7 +136,7 @@ const AuthPage = () => {
                 />
                 
                 <FormField
-                  control={form.control}
+                  control={signUpForm.control}
                   name="businessName"
                   render={({ field }) => (
                     <FormItem>
@@ -209,7 +209,7 @@ const AuthPage = () => {
             
             {mode === "signup" && (
               <FormField
-                control={form.control}
+                control={signUpForm.control}
                 name="businessType"
                 render={({ field }) => (
                   <FormItem>
