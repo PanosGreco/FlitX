@@ -17,7 +17,8 @@ import {
   Plus,
   Trash,
   Save,
-  X
+  X,
+  PlugZap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -45,7 +46,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { format, addMonths, addYears, isPast } from "date-fns";
+import { format, addMonths, addYears, isPast, differenceInDays, isAfter, parseISO } from "date-fns";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { VehicleDamageViewer } from "./VehicleDamageViewer";
 
@@ -78,6 +79,7 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
   const [isReminderDialogOpen, setIsReminderDialogOpen] = useState(false);
   const [isEditMetricsActive, setIsEditMetricsActive] = useState(false);
   const [isEditMaintenanceSettingsOpen, setIsEditMaintenanceSettingsOpen] = useState(false);
+  const [isConnectOBDOpen, setIsConnectOBDOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState("");
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [documentName, setDocumentName] = useState("");
@@ -107,7 +109,7 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
   
   // Maintenance settings editable states
   const [editedMaintenanceSettings, setEditedMaintenanceSettings] = useState({
-    nextServiceMiles: 2500,
+    nextServiceDate: new Date(addMonths(new Date(), 3).toISOString()),
     lastServiceDate: new Date().toISOString(),
     serviceReminders: 0,
     totalServices: 0
@@ -148,12 +150,42 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
     });
     
     setEditedMaintenanceSettings({
-      nextServiceMiles: 2500,
+      nextServiceDate: vehicle.nextServiceDate ? new Date(vehicle.nextServiceDate) : addMonths(new Date(), 3),
       lastServiceDate: vehicle.lastServiceDate || new Date().toISOString(),
       serviceReminders: vehicle.serviceReminders || 0,
       totalServices: vehicle.totalServices || 0
     });
   }, [vehicle]);
+
+  // Calculate days until next service
+  const calculateDaysUntilNextService = () => {
+    const nextDate = editedMaintenanceSettings.nextServiceDate;
+    const today = new Date();
+    
+    if (isAfter(nextDate, today)) {
+      return differenceInDays(nextDate, today);
+    }
+    return 0;
+  };
+  
+  // Calculate progress percentage for oil change status bar
+  const calculateServiceProgress = () => {
+    const nextDate = editedMaintenanceSettings.nextServiceDate;
+    const lastDate = parseISO(editedMaintenanceSettings.lastServiceDate);
+    const today = new Date();
+    
+    const totalDays = differenceInDays(nextDate, lastDate);
+    const daysElapsed = differenceInDays(today, lastDate);
+    
+    if (totalDays <= 0) return 0;
+    
+    let progressPercent = Math.round((daysElapsed / totalDays) * 100);
+    
+    // Cap between 0 and 100
+    progressPercent = Math.max(0, Math.min(100, progressPercent));
+    
+    return progressPercent;
+  };
   
   const safeNumber = (value: any) => {
     return typeof value === 'number' ? value : 0;
@@ -450,6 +482,10 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
       description: `Photo added to ${area} damage report.`
     });
   };
+  
+  const handleOpenOBDConnect = () => {
+    setIsConnectOBDOpen(true);
+  };
 
   const businessType = isBoatBusiness() ? "Boat" : "Vehicle";
 
@@ -522,24 +558,35 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                         <Gauge className="h-5 w-5 mr-2 text-flitx-blue" />
                         Performance Metrics
                       </CardTitle>
-                      <Button 
-                        variant={isEditMetricsActive ? "default" : "outline"} 
-                        size="sm"
-                        onClick={handleEditMetrics}
-                        className={isEditMetricsActive ? "bg-green-600 hover:bg-green-700" : ""}
-                      >
-                        {isEditMetricsActive ? (
-                          <>
-                            <Save className="h-4 w-4 mr-1" />
-                            Save
-                          </>
-                        ) : (
-                          <>
-                            <Edit className="h-4 w-4 mr-1" />
-                            Edit
-                          </>
-                        )}
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={handleOpenOBDConnect}
+                          className="border-flitx-blue text-flitx-blue hover:bg-flitx-blue/10"
+                        >
+                          <PlugZap className="h-4 w-4 mr-1" />
+                          Connect OBD Scanner
+                        </Button>
+                        <Button 
+                          variant={isEditMetricsActive ? "default" : "outline"} 
+                          size="sm"
+                          onClick={handleEditMetrics}
+                          className={isEditMetricsActive ? "bg-green-600 hover:bg-green-700" : ""}
+                        >
+                          {isEditMetricsActive ? (
+                            <>
+                              <Save className="h-4 w-4 mr-1" />
+                              Save
+                            </>
+                          ) : (
+                            <>
+                              <Edit className="h-4 w-4 mr-1" />
+                              Edit
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-2 gap-y-4 mt-2">
@@ -684,7 +731,9 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                           </div>
                           <div className="ml-3">
                             <div className="text-sm text-flitx-gray-500">Next Service</div>
-                            <div className="font-semibold">In {editedMaintenanceSettings.nextServiceMiles.toLocaleString()} mi</div>
+                            <div className="font-semibold">
+                              In {calculateDaysUntilNextService()} days · {format(editedMaintenanceSettings.nextServiceDate, "d MMM yyyy")}
+                            </div>
                           </div>
                         </div>
                         
@@ -711,8 +760,10 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                         <Separator className="my-3" />
                         
                         <div className="text-sm text-flitx-gray-500">Oil Change Status</div>
-                        <Progress value={65} className="h-2" />
-                        <div className="text-xs text-right text-flitx-gray-400">{editedMaintenanceSettings.nextServiceMiles} mi remaining</div>
+                        <Progress value={calculateServiceProgress()} className="h-2" />
+                        <div className="text-xs text-right text-flitx-gray-400">
+                          In {calculateDaysUntilNextService()} days
+                        </div>
                       </div>
                       
                       <Separator className="my-4" />
@@ -830,449 +881,3 @@ export function VehicleDetails({ vehicleId, vehicles = [] }: VehicleDetailsProps
                         <p className="text-sm">
                           Upload important documents like registration, insurance, and service records.
                         </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-4 mb-6">
-                        <h3 className="text-lg font-medium">Uploaded Documents</h3>
-                        <div className="space-y-3">
-                          {documents.map((doc, index) => (
-                            <div key={index} className="flex items-center justify-between border p-3 rounded-md">
-                              <div className="flex items-center">
-                                <FileText className="h-5 w-5 mr-2 text-flitx-blue" />
-                                <div>
-                                  <div className="font-medium">{doc.name}</div>
-                                  <div className="text-xs text-flitx-gray-500">Uploaded on {doc.date}</div>
-                                </div>
-                              </div>
-                              <Button variant="ghost" size="sm">
-                                View
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="flex justify-center">
-                      <label htmlFor="document-upload" className="cursor-pointer">
-                        <input
-                          id="document-upload"
-                          type="file"
-                          className="hidden"
-                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                          onChange={handleFileUpload}
-                        />
-                        <Button className="bg-flitx-blue hover:bg-flitx-blue-600" asChild>
-                          <span>
-                            <Upload className="h-4 w-4 mr-2" />
-                            Upload Documents
-                          </span>
-                        </Button>
-                      </label>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="availability">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg flex items-center">
-                      <Calendar className="h-5 w-5 mr-2 text-flitx-blue" />
-                      Vehicle Availability
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div className="flex justify-center">
-                        <CalendarComponent
-                          mode="multiple"
-                          selected={selectedDates}
-                          onSelect={handleDateSelect}
-                          className="border rounded-md p-3"
-                        />
-                      </div>
-                      <div className="text-center text-sm text-flitx-gray-500 mt-2">
-                        <p>Click dates to mark as unavailable.</p>
-                        <p className="font-medium mt-1">
-                          {selectedDates.length} {selectedDates.length === 1 ? 'day' : 'days'} marked unavailable
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="finance">
-                <Card>
-                  <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                    <CardTitle className="text-lg flex items-center">
-                      <BarChart3 className="h-5 w-5 mr-2 text-flitx-blue" />
-                      Financial Overview
-                    </CardTitle>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleEditFinance}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit Details
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                      <div>
-                        <div className="text-sm text-flitx-gray-500 mb-1">Daily Rate</div>
-                        <div className="font-semibold text-xl">${vehicle.dailyRate || 0}/day</div>
-                        
-                        <div className="mt-4">
-                          <div className="text-sm text-flitx-gray-500 mb-1">Revenue (Last 30 Days)</div>
-                          <div className="font-semibold text-xl text-green-600">
-                            ${safeNumber(totalRevenue || vehicle.dailyRate * 15).toLocaleString()}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <div className="text-sm text-flitx-gray-500 mb-1">Expenses (Last 30 Days)</div>
-                        <div className="font-semibold text-xl text-red-600">
-                          ${safeNumber(totalExpenses || vehicle.fuelCosts + vehicle.totalServiceCost).toLocaleString()}
-                        </div>
-                        
-                        <div className="mt-4">
-                          <div className="text-sm text-flitx-gray-500 mb-1">Profit</div>
-                          <div className="font-semibold text-xl">
-                            ${safeNumber((totalRevenue || vehicle.dailyRate * 15) - 
-                              (totalExpenses || vehicle.fuelCosts + vehicle.totalServiceCost)).toLocaleString()}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </div>
-          </Tabs>
-        </div>
-      </div>
-      
-      <Dialog open={isEditStatusOpen} onOpenChange={setIsEditStatusOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Vehicle Status</DialogTitle>
-            <DialogDescription>
-              Update the current status of this vehicle.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="status">Status</Label>
-              <Select value={currentStatus} onValueChange={handleStatusChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="available">Available</SelectItem>
-                  <SelectItem value="rented">Rented</SelectItem>
-                  <SelectItem value="maintenance">Under Maintenance</SelectItem>
-                  <SelectItem value="repair">Needs Repair</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditStatusOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveStatus}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={isEditFinanceOpen} onOpenChange={setIsEditFinanceOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit Financial Information</DialogTitle>
-            <DialogDescription>
-              Update financial details for this vehicle.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="dailyRate">Daily Rate ($)</Label>
-              <Input
-                id="dailyRate"
-                type="number"
-                defaultValue={vehicle.dailyRate || 0}
-                min={0}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="revenue">Revenue (Last 30 Days) ($)</Label>
-              <Input
-                id="revenue"
-                value={totalRevenue}
-                onChange={(e) => setTotalRevenue(Number(e.target.value))}
-                type="number"
-                min={0}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="expenses">Expenses (Last 30 Days) ($)</Label>
-              <Input
-                id="expenses"
-                value={totalExpenses}
-                onChange={(e) => setTotalExpenses(Number(e.target.value))}
-                type="number"
-                min={0}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditFinanceOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveFinance}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={isEditMaintenanceSettingsOpen} onOpenChange={setIsEditMaintenanceSettingsOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Maintenance Settings</DialogTitle>
-            <DialogDescription>
-              Update maintenance settings for this vehicle.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="nextServiceMiles">Next Service Due (miles)</Label>
-              <Input
-                id="nextServiceMiles"
-                value={editedMaintenanceSettings.nextServiceMiles}
-                onChange={(e) => setEditedMaintenanceSettings({...editedMaintenanceSettings, nextServiceMiles: Number(e.target.value)})}
-                type="number"
-                min={0}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="lastService">Last Service Date</Label>
-              <Input
-                id="lastService"
-                type="date"
-                value={new Date(editedMaintenanceSettings.lastServiceDate).toISOString().split('T')[0]}
-                onChange={(e) => setEditedMaintenanceSettings({
-                  ...editedMaintenanceSettings, 
-                  lastServiceDate: new Date(e.target.value).toISOString()
-                })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditMaintenanceSettingsOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveMaintenanceSettings}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={isAddMaintenanceOpen} onOpenChange={setIsAddMaintenanceOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Add Maintenance</DialogTitle>
-            <DialogDescription>
-              Add a new maintenance record for this vehicle.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="type">Maintenance Type</Label>
-              <Input
-                id="type"
-                value={newEntry.type}
-                onChange={(e) => setNewEntry({...newEntry, type: e.target.value})}
-                placeholder="Oil Change, Tire Rotation, etc."
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="date">Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={newEntry.date?.toISOString().split('T')[0]}
-                onChange={(e) => setNewEntry({
-                  ...newEntry, 
-                  date: new Date(e.target.value)
-                })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="cost">Cost ($)</Label>
-              <Input
-                id="cost"
-                value={newEntry.cost}
-                onChange={(e) => setNewEntry({...newEntry, cost: Number(e.target.value)})}
-                type="number"
-                min={0}
-                step="0.01"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="notes">Notes (Optional)</Label>
-              <Input
-                id="notes"
-                value={newEntry.notes}
-                onChange={(e) => setNewEntry({...newEntry, notes: e.target.value})}
-                placeholder="Additional details..."
-              />
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="completed"
-                checked={newEntry.completed}
-                onChange={(e) => setNewEntry({...newEntry, completed: e.target.checked})}
-                className="rounded border-gray-300"
-              />
-              <Label htmlFor="completed" className="text-sm font-normal">
-                Mark as completed
-              </Label>
-            </div>
-            <Button variant="outline" onClick={openReminderDialog} type="button">
-              <Calendar className="mr-2 h-4 w-4" />
-              Set Maintenance Reminder
-            </Button>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddMaintenanceOpen(false)}>Cancel</Button>
-            <Button onClick={handleSaveNewMaintenance}>Save Maintenance</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={isEditMaintenanceOpen} onOpenChange={setIsEditMaintenanceOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit Maintenance</DialogTitle>
-          </DialogHeader>
-          {currentEntry && (
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-type">Maintenance Type</Label>
-                <Input
-                  id="edit-type"
-                  value={currentEntry.type}
-                  onChange={(e) => setCurrentEntry({...currentEntry, type: e.target.value})}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-date">Date</Label>
-                <Input
-                  id="edit-date"
-                  type="date"
-                  value={new Date(currentEntry.date).toISOString().split('T')[0]}
-                  onChange={(e) => setCurrentEntry({
-                    ...currentEntry, 
-                    date: new Date(e.target.value)
-                  })}
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-cost">Cost ($)</Label>
-                <Input
-                  id="edit-cost"
-                  value={currentEntry.cost}
-                  onChange={(e) => setCurrentEntry({...currentEntry, cost: Number(e.target.value)})}
-                  type="number"
-                  min={0}
-                  step="0.01"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="edit-notes">Notes (Optional)</Label>
-                <Input
-                  id="edit-notes"
-                  value={currentEntry.notes || ''}
-                  onChange={(e) => setCurrentEntry({...currentEntry, notes: e.target.value})}
-                />
-              </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="edit-completed"
-                  checked={currentEntry.completed}
-                  onChange={(e) => setCurrentEntry({...currentEntry, completed: e.target.checked})}
-                  className="rounded border-gray-300"
-                />
-                <Label htmlFor="edit-completed" className="text-sm font-normal">
-                  Mark as completed
-                </Label>
-              </div>
-              <Button variant="outline" onClick={openReminderDialog} type="button">
-                <Calendar className="mr-2 h-4 w-4" />
-                {currentEntry.reminder ? 'Change Reminder' : 'Set Reminder'}
-              </Button>
-              <div className="flex justify-between mt-2">
-                <Button 
-                  variant="destructive" 
-                  size="sm"
-                  onClick={() => {
-                    handleDeleteMaintenance(currentEntry.id);
-                    setIsEditMaintenanceOpen(false);
-                  }}
-                >
-                  <Trash className="h-4 w-4 mr-1" />
-                  Delete
-                </Button>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditMaintenanceOpen(false)}>Cancel</Button>
-            <Button onClick={handleUpdateMaintenance}>Update</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <Dialog open={isReminderDialogOpen} onOpenChange={setIsReminderDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Set Maintenance Reminder</DialogTitle>
-            <DialogDescription>
-              Choose when to be reminded about this maintenance task.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label>Reminder Frequency</Label>
-              <Select value={reminderType} onValueChange={(value: any) => setReminderType(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select frequency" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="once">One-time reminder</SelectItem>
-                  <SelectItem value="3months">Every 3 months</SelectItem>
-                  <SelectItem value="6months">Every 6 months</SelectItem>
-                  <SelectItem value="1year">Annual reminder</SelectItem>
-                  <SelectItem value="custom">Custom date</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {(reminderType === 'once' || reminderType === 'custom') && (
-              <div className="grid gap-2">
-                <Label>Reminder Date</Label>
-                <Input
-                  type="date"
-                  value={reminderDate.toISOString().split('T')[0]}
-                  onChange={(e) => setReminderDate(new Date(e.target.value))}
-                  min={new Date().toISOString().split('T')[0]}
-                />
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsReminderDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSetReminder}>Set Reminder</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
