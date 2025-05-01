@@ -15,6 +15,23 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
+// Define strict schemas with proper field types
+const signUpSchema = z.object({
+  fullName: z.string().min(2, { message: "Full name is required" }),
+  businessName: z.string().min(2, { message: "Business name is required" }),
+  email: z.string().email({ message: "Invalid email address" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters" }),
+  businessType: z.string().min(1, { message: "Business type is required" }),
+});
+
+const signInSchema = z.object({
+  email: z.string().email({ message: "Invalid email address" }),
+  password: z.string().min(1, { message: "Password is required" }),
+});
+
+type SignUpFormValues = z.infer<typeof signUpSchema>;
+type SignInFormValues = z.infer<typeof signInSchema>;
+
 const AuthPage = () => {
   const [searchParams] = useSearchParams();
   const mode = searchParams.get("mode") || "signup";
@@ -32,50 +49,44 @@ const AuthPage = () => {
     }
   }, [user, navigate]);
 
-  const signUpSchema = z.object({
-    businessName: z.string().min(2, { message: t.signup.businessNameRequired }),
-    email: z.string().email({ message: t.signup.invalidEmail }),
-    password: z.string().min(6, { message: t.signup.passwordLength }),
-    businessType: z.string().min(1, { message: t.signup.businessTypeRequired }),
-    fullName: z.string().min(2, { message: "Full name is required" }),
-  });
-
-  const signInSchema = z.object({
-    email: z.string().email({ message: t.signup.invalidEmail }),
-    password: z.string().min(1, { message: "Password is required" }),
-  });
-
-  const currentSchema = mode === "signup" ? signUpSchema : signInSchema;
-
-  const form = useForm<z.infer<typeof currentSchema>>({
-    resolver: zodResolver(currentSchema),
+  // Use the correct form based on mode
+  const signUpForm = useForm<SignUpFormValues>({
+    resolver: zodResolver(signUpSchema),
     defaultValues: {
-      ...(mode === "signup" ? {
-        businessName: "",
-        email: "",
-        password: "",
-        businessType: "",
-        fullName: "",
-      } : {
-        email: "",
-        password: "",
-      })
+      fullName: "",
+      businessName: "",
+      email: "",
+      password: "",
+      businessType: "",
+    },
+  });
+  
+  const signInForm = useForm<SignInFormValues>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: {
+      email: "",
+      password: "",
     },
   });
 
+  // Use the appropriate form based on current mode
+  const form = mode === "signup" ? signUpForm : signInForm;
+
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
-  const onSubmit = async (values: any) => {
+  const onSubmit = async (values: SignUpFormValues | SignInFormValues) => {
     setIsSubmitting(true);
     try {
       if (mode === "signup") {
-        await signUp(values.email, values.password, {
-          full_name: values.fullName,
-          business_name: values.businessName,
-          business_type: values.businessType,
+        const signUpValues = values as SignUpFormValues;
+        await signUp(signUpValues.email, signUpValues.password, {
+          full_name: signUpValues.fullName,
+          business_name: signUpValues.businessName,
+          business_type: signUpValues.businessType,
         });
       } else {
-        await signIn(values.email, values.password);
+        const signInValues = values as SignInFormValues;
+        await signIn(signInValues.email, signInValues.password);
       }
     } catch (error) {
       console.error("Auth error:", error);

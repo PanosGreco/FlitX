@@ -13,7 +13,7 @@ type AuthContextType = {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, userData: any) => Promise<void>;
   signOut: () => Promise<void>;
-  updateProfile: (data: any) => Promise<void>;
+  updateProfile: (data: any) => Promise<void>; // Updated return type to void
   userProfile: any;
   refreshProfile: () => Promise<void>;
 };
@@ -152,7 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const updateProfile = async (data: any) => {
+  const updateProfile = async (data: any): Promise<void> => { // Updated return type
     try {
       if (!user) throw new Error("User not authenticated");
 
@@ -166,14 +166,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Refresh the profile data
       await fetchUserProfile(user.id);
-      return { success: true };
+      // Return void instead of object
     } catch (error: any) {
       console.error('Error updating profile:', error);
       throw error;
     }
   };
 
-  const value = {
+  const value: AuthContextType = {
     user,
     session,
     loading,

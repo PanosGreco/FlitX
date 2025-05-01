@@ -82,7 +82,6 @@ export function UserProfile() {
     setLanguage(newLang);
     
     toast({
-      title: newLang === "en" ? "Language Updated" : "Η Γλώσσα Ενημερώθηκε",
       description: newLang === "en" 
         ? "Your language preference has been set to English"
         : "Η προτίμηση γλώσσας σας έχει οριστεί στα Ελληνικά",
@@ -120,7 +119,6 @@ export function UserProfile() {
         setProfileImage(publicUrl);
         
         toast({
-          title: t.photoUpdated,
           description: t.photoUpdateSuccess,
         });
       } catch (error) {
@@ -156,7 +154,6 @@ export function UserProfile() {
       });
       
       toast({
-        title: t.profileUpdated,
         description: t.profileUpdateSuccess,
       });
     } catch (error) {

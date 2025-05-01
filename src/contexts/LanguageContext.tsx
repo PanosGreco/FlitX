@@ -128,6 +128,7 @@ interface Translations {
     signUp: string;
     alreadyHaveAccount: string;
     login: string;
+    welcomeBack: string;
   };
   marinaOverview: string;
   newBoatSlip: string;
@@ -261,7 +262,8 @@ const englishTranslations: Translations = {
     boatRental: "Boat Rental",
     signUp: "Sign Up",
     alreadyHaveAccount: "Already have an account?",
-    login: "Log In"
+    login: "Log In",
+    welcomeBack: "Welcome back to your dashboard"
   },
   marinaOverview: "Marina Overview",
   newBoatSlip: "New Slip"
@@ -394,7 +396,8 @@ const spanishTranslations: Translations = {
     boatRental: "Alquiler de Barcos",
     signUp: "Registrarse",
     alreadyHaveAccount: "¿Ya tienes una cuenta?",
-    login: "Iniciar Sesión"
+    login: "Iniciar Sesión",
+    welcomeBack: "Bienvenido de nuevo a tu panel"
   },
   marinaOverview: "Vista General de la Marina",
   newBoatSlip: "Nuevo Espacio"
