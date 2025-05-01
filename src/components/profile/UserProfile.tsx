@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import {
   Card,
@@ -81,11 +80,10 @@ export function UserProfile() {
   const handleLanguageChange = (newLang: "en" | "el") => {
     setLanguage(newLang);
     
-    toast({
-      description: newLang === "en" 
-        ? "Your language preference has been set to English"
-        : "Η προτίμηση γλώσσας σας έχει οριστεί στα Ελληνικά",
-    });
+    toast(newLang === "en" 
+      ? "Your language preference has been set to English"
+      : "Η προτίμηση γλώσσας σας έχει οριστεί στα Ελληνικά"
+    );
   };
   
   const handleProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -118,9 +116,7 @@ export function UserProfile() {
         
         setProfileImage(publicUrl);
         
-        toast({
-          description: t.photoUpdateSuccess,
-        });
+        toast(t.photoUpdateSuccess);
       } catch (error) {
         console.error('Error uploading profile photo:', error);
         toast.error("Failed to upload profile photo");
@@ -153,9 +149,7 @@ export function UserProfile() {
         phone: formState.phone
       });
       
-      toast({
-        description: t.profileUpdateSuccess,
-      });
+      toast(t.profileUpdateSuccess);
     } catch (error) {
       console.error('Error updating profile:', error);
       toast.error("Failed to update profile");
