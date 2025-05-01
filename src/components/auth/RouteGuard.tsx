@@ -1,5 +1,6 @@
 
 import { useAuth } from "@/contexts/AuthContext";
+import { useTestMode } from "@/contexts/TestModeContext";
 import { Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 
@@ -9,7 +10,13 @@ interface RouteGuardProps {
 
 export const RouteGuard = ({ children }: RouteGuardProps) => {
   const { user, loading } = useAuth();
+  const { isTestMode } = useTestMode();
   const location = useLocation();
+  
+  // Allow access when in test mode
+  if (isTestMode) {
+    return <>{children}</>;
+  }
   
   if (loading) {
     return (

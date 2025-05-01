@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -13,6 +12,7 @@ import { LanguageSwitcher } from "@/components/signup/LanguageSwitcher";
 import { PasswordStrengthMeter } from "@/components/signup/PasswordStrengthMeter";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTestMode } from "@/contexts/TestModeContext";
 import { toast } from "sonner";
 
 // Define less strict schemas for testing
@@ -38,16 +38,17 @@ const AuthPage = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { signIn, signUp, user } = useAuth();
+  const { isTestMode, enableTestMode } = useTestMode();
   const [showPassword, setShowPassword] = useState(false);
   const [passwordScore, setPasswordScore] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   useEffect(() => {
-    // Redirect to home if already authenticated
-    if (user) {
+    // Redirect if user is authenticated or in test mode
+    if (user || isTestMode) {
       navigate("/");
     }
-  }, [user, navigate]);
+  }, [user, isTestMode, navigate]);
 
   // Use the correct form based on mode
   const signUpForm = useForm<SignUpFormValues>({
@@ -121,6 +122,12 @@ const AuthPage = () => {
   const toggleMode = () => {
     navigate(`/auth?mode=${mode === "signup" ? "signin" : "signup"}`);
     form.reset();
+  };
+
+  const handleEnableTestMode = () => {
+    enableTestMode();
+    toast.success("Test mode enabled - bypassing authentication");
+    navigate('/');
   };
 
   // For debugging
@@ -271,15 +278,12 @@ const AuthPage = () => {
               {isSubmitting ? "Please wait..." : mode === "signup" ? t.signup.signUp : t.signup.login}
             </Button>
             
-            {/* Bypass button for testing only */}
+            {/* Test mode button with new handler */}
             <Button 
               type="button" 
               variant="outline" 
               className="w-full mt-2"
-              onClick={() => {
-                toast.success("Testing mode enabled - bypassing authentication");
-                navigate('/');
-              }}
+              onClick={handleEnableTestMode}
             >
               Enter Test Mode (Skip Authentication)
             </Button>

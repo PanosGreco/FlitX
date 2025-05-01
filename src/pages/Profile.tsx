@@ -5,20 +5,23 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTestMode } from "@/contexts/TestModeContext";
 import { Loader2 } from "lucide-react";
 
 const Profile = () => {
   const { t } = useLanguage();
   const { user, loading } = useAuth();
+  const { isTestMode } = useTestMode();
   const navigate = useNavigate();
   
   useEffect(() => {
-    if (!loading && !user) {
+    // Only redirect if not in test mode and not authenticated
+    if (!loading && !user && !isTestMode) {
       navigate('/auth?mode=signin');
     }
-  }, [user, loading, navigate]);
+  }, [user, loading, navigate, isTestMode]);
   
-  if (loading) {
+  if (loading && !isTestMode) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
