@@ -10,9 +10,11 @@ import Finance from "./pages/Finance";
 import Tracking from "./pages/Tracking";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
-import SignUpPage from "./pages/SignUp";
+import Auth from "./pages/Auth";
 import BoatsHome from "./pages/BoatsHome";
 import { LanguageProvider } from "./contexts/LanguageContext";
+import { AuthProvider } from "./contexts/AuthContext";
+import { RouteGuard } from "./components/auth/RouteGuard";
 
 const queryClient = new QueryClient();
 
@@ -23,16 +25,18 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Fleet />} />
-            <Route path="/signup" element={<SignUpPage />} />
-            <Route path="/vehicle/:id" element={<VehicleDetail />} />
-            <Route path="/finances" element={<Finance />} />
-            <Route path="/tracking" element={<Tracking />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/boats" element={<BoatsHome />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AuthProvider>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/" element={<RouteGuard><Fleet /></RouteGuard>} />
+              <Route path="/vehicle/:id" element={<RouteGuard><VehicleDetail /></RouteGuard>} />
+              <Route path="/finances" element={<RouteGuard><Finance /></RouteGuard>} />
+              <Route path="/tracking" element={<RouteGuard><Tracking /></RouteGuard>} />
+              <Route path="/profile" element={<RouteGuard><Profile /></RouteGuard>} />
+              <Route path="/boats" element={<RouteGuard><BoatsHome /></RouteGuard>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
         </BrowserRouter>
       </LanguageProvider>
     </TooltipProvider>
