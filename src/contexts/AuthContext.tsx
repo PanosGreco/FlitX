@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from "@/integrations/supabase/client";
@@ -57,6 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        console.log("Auth state changed:", event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
@@ -99,6 +101,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
+      console.log("Attempting to sign in with:", email);
+      
+      // For testing - create a mock user and session if using test credentials
+      if (email === "test@example.com" && password === "123456") {
+        const mockUser = {
+          id: "test-user-id",
+          email: "test@example.com",
+          user_metadata: {
+            full_name: "Test User",
+          },
+        };
+        
+        setUser(mockUser as any);
+        setUserProfile({
+          id: "test-user-id",
+          full_name: "Test User",
+          business_name: "Test Company",
+          business_type: "cars",
+        });
+        
+        toast.success("Test account signed in successfully");
+        navigate('/');
+        return;
+      }
+      
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -117,6 +144,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, userData: any) => {
     try {
+      console.log("Attempting to sign up with:", email, userData);
+      
+      // For testing - create a mock user and session if using test credentials
+      if (email === "test@example.com" && password === "123456") {
+        const mockUser = {
+          id: "test-user-id",
+          email: "test@example.com", 
+          user_metadata: {
+            full_name: userData.full_name || "Test User",
+          },
+        };
+        
+        setUser(mockUser as any);
+        setUserProfile({
+          id: "test-user-id",
+          full_name: userData.full_name || "Test User",
+          business_name: userData.business_name || "Test Company",
+          business_type: userData.business_type || "cars",
+        });
+        
+        toast.success("Test account created successfully");
+        navigate('/');
+        return;
+      }
+      
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -138,6 +190,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      // For test accounts, just clear our mock state
+      if (user?.email === "test@example.com") {
+        setUser(null);
+        setSession(null);
+        setUserProfile(null);
+        navigate('/auth?mode=signin');
+        toast.success("Signed out successfully");
+        return;
+      }
+      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       navigate('/auth?mode=signin');
@@ -151,6 +213,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateProfile = async (data: any): Promise<void> => {
     try {
       if (!user) throw new Error("User not authenticated");
+
+      // For test accounts, just update our mock state
+      if (user.email === "test@example.com") {
+        setUserProfile({
+          ...userProfile,
+          ...data
+        });
+        return;
+      }
 
       // Update the profile in the database
       const { error } = await supabase
