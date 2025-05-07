@@ -56,7 +56,7 @@ export function MobileHeader({
           </Button>
         )}
         <h1 className={`text-lg font-semibold ml-2 ${isBoatMode ? 'text-blue-600' : ''}`}>
-          {title || (isBoatMode ? 'Boat Fleet' : 'Car Fleet')}
+          {title || (isBoatMode ? 'Fleet' : 'Fleet')}
         </h1>
       </div>
       

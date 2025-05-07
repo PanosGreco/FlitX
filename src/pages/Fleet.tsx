@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { VehicleGrid } from "@/components/fleet/VehicleGrid";
 import { Marina } from "@/components/fleet/Marina";
@@ -30,15 +29,34 @@ import { Upload, Image, Ship } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { isBoatBusiness, getVehicleTypeDisplayName } from "@/utils/businessTypeUtils";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useTestMode } from "@/contexts/TestModeContext";
+import { addVehicle, fetchVehicles, VehicleFormData } from "@/services/vehicleService";
+import { VehicleData } from "@/components/fleet/VehicleCard";
+import { toast } from "sonner";
 
 const Fleet = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [vehicleImage, setVehicleImage] = useState<string | null>(null);
-  const { toast } = useToast();
-  const { t } = useLanguage();
+  const [vehicleImageFile, setVehicleImageFile] = useState<File | null>(null);
+  const [vehicles, setVehicles] = useState<VehicleData[]>(sampleVehicles);
+  const [vehicleForm, setVehicleForm] = useState<Partial<VehicleFormData>>({
+    make: "",
+    model: "",
+    year: new Date().getFullYear(),
+    type: "",
+    licensePlate: "",
+    dailyRate: 0,
+    mileage: 0,
+  });
+  
+  const { t } = useToast();
+  const { t: translate } = useLanguage();
   const isBoatMode = isBoatBusiness();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { isTestMode } = useTestMode();
 
   // Redirect to boat home if in boat mode
   useEffect(() => {
@@ -46,49 +64,148 @@ const Fleet = () => {
       navigate('/boats');
     }
   }, [isBoatMode, navigate]);
+  
+  // Load vehicles from Supabase
+  useEffect(() => {
+    const loadVehicles = async () => {
+      try {
+        if (user || isTestMode) {
+          const userId = user?.id;
+          const loadedVehicles = await fetchVehicles(userId);
+          
+          // Only replace sample vehicles if we got actual vehicles
+          if (loadedVehicles && loadedVehicles.length > 0) {
+            setVehicles(loadedVehicles);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading vehicles:", error);
+        // Keep using sample vehicles as fallback
+      }
+    };
+    
+    loadVehicles();
+  }, [user, isTestMode]);
 
   const handleAddVehicle = () => {
     setIsAddDialogOpen(true);
+    resetVehicleForm();
+  };
+  
+  const resetVehicleForm = () => {
+    setVehicleForm({
+      make: "",
+      model: "",
+      year: new Date().getFullYear(),
+      type: "",
+      licensePlate: "",
+      dailyRate: 0,
+      mileage: 0,
+    });
+    setVehicleImage(null);
+    setVehicleImageFile(null);
   };
   
   const handleVehicleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      const reader = new FileReader();
+      setVehicleImageFile(file);
       
+      const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
           setVehicleImage(event.target.result.toString());
         }
       };
-      
       reader.readAsDataURL(file);
     }
   };
   
-  const handleSubmitNewVehicle = (e: React.FormEvent) => {
+  const handleFormChange = (field: keyof VehicleFormData, value: any) => {
+    setVehicleForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+  
+  const handleSubmitNewVehicle = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!isFormValid()) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
     
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      if (user || isTestMode) {
+        const userId = user?.id || 'test-user-id';
+        const vehicleData: VehicleFormData = {
+          make: vehicleForm.make!,
+          model: vehicleForm.model!,
+          year: Number(vehicleForm.year),
+          type: vehicleForm.type!,
+          licensePlate: vehicleForm.licensePlate!,
+          dailyRate: Number(vehicleForm.dailyRate),
+          mileage: Number(vehicleForm.mileage),
+          image: vehicleImageFile,
+        };
+        
+        let newVehicle: VehicleData;
+        
+        if (isTestMode || !user) {
+          // In test mode, create a mock vehicle
+          newVehicle = {
+            id: `test-${Date.now()}`,
+            make: vehicleData.make,
+            model: vehicleData.model,
+            year: vehicleData.year,
+            type: vehicleData.type,
+            mileage: vehicleData.mileage,
+            image: vehicleImage,
+            status: 'available',
+            licensePlate: vehicleData.licensePlate,
+            fuelLevel: 100,
+            dailyRate: vehicleData.dailyRate,
+          };
+        } else {
+          // Add to Supabase
+          newVehicle = await addVehicle(vehicleData, userId);
+        }
+        
+        // Add the new vehicle to our local state
+        setVehicles(prev => [...prev, newVehicle]);
+        
+        toast.success("Vehicle added successfully!");
+        setIsAddDialogOpen(false);
+        resetVehicleForm();
+      }
+    } catch (error) {
+      console.error("Error adding vehicle:", error);
+      toast.error("Failed to add vehicle. Please try again.");
+    } finally {
       setIsSubmitting(false);
-      setIsAddDialogOpen(false);
-      setVehicleImage(null); // Reset image after submit
-      
-      toast({
-        title: t.vehicleAdded,
-        description: t.vehicleAddedDesc,
-      });
-    }, 1500);
+    }
+  };
+  
+  const isFormValid = () => {
+    return (
+      vehicleForm.make &&
+      vehicleForm.model &&
+      vehicleForm.year &&
+      vehicleForm.type &&
+      vehicleForm.licensePlate &&
+      vehicleForm.dailyRate &&
+      vehicleForm.mileage
+    );
   };
   
   return (
     <MobileLayout>
       <div className="container py-6">
         <VehicleGrid 
-          vehicles={sampleVehicles} 
+          vehicles={vehicles} 
           onAddVehicle={handleAddVehicle}
         />
         
@@ -96,9 +213,9 @@ const Fleet = () => {
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{t.addNewVehicle}</DialogTitle>
+              <DialogTitle>{translate.addNewVehicle}</DialogTitle>
               <DialogDescription>
-                {t.enterVehicleDetails}
+                {translate.enterVehicleDetails}
               </DialogDescription>
             </DialogHeader>
             
@@ -123,7 +240,7 @@ const Fleet = () => {
                     className="flex items-center px-3 py-1.5 text-sm border border-input rounded-md bg-background hover:bg-accent cursor-pointer"
                   >
                     <Upload className="h-4 w-4 mr-2" />
-                    {t.uploadPhoto}
+                    {translate.uploadPhoto}
                     <input
                       id="vehicle-photo-upload"
                       type="file"
@@ -134,25 +251,37 @@ const Fleet = () => {
                   </label>
                 </div>
                 <p className="text-xs text-flitx-gray-400 mt-1">
-                  {t.photoRestrictions}
+                  {translate.photoRestrictions}
                 </p>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="make">{t.make}</Label>
-                  <Input id="make" placeholder="e.g. Toyota" required />
+                  <Label htmlFor="make">{translate.make}</Label>
+                  <Input 
+                    id="make" 
+                    placeholder="e.g. Toyota" 
+                    required 
+                    value={vehicleForm.make || ''}
+                    onChange={(e) => handleFormChange('make', e.target.value)}
+                  />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="model">{t.model}</Label>
-                  <Input id="model" placeholder="e.g. Corolla" required />
+                  <Label htmlFor="model">{translate.model}</Label>
+                  <Input 
+                    id="model" 
+                    placeholder="e.g. Corolla" 
+                    required
+                    value={vehicleForm.model || ''}
+                    onChange={(e) => handleFormChange('model', e.target.value)}
+                  />
                 </div>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="year">{t.year}</Label>
+                  <Label htmlFor="year">{translate.year}</Label>
                   <Input 
                     id="year" 
                     type="number" 
@@ -160,23 +289,28 @@ const Fleet = () => {
                     min={1950}
                     max={new Date().getFullYear() + 1}
                     required
+                    value={vehicleForm.year || ''}
+                    onChange={(e) => handleFormChange('year', Number(e.target.value))}
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="type">{t.type}</Label>
-                  <Select>
+                  <Label htmlFor="type">{translate.type}</Label>
+                  <Select 
+                    value={vehicleForm.type} 
+                    onValueChange={(value) => handleFormChange('type', value)}
+                  >
                     <SelectTrigger>
-                      <SelectValue placeholder={t.type} />
+                      <SelectValue placeholder={translate.type} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        <SelectLabel>{t.vehicleTypes}</SelectLabel>
-                        <SelectItem value="sedan">{t.sedan}</SelectItem>
-                        <SelectItem value="suv">{t.suv}</SelectItem>
-                        <SelectItem value="economy">{t.economy}</SelectItem>
-                        <SelectItem value="luxury">{t.luxury}</SelectItem>
-                        <SelectItem value="van">{t.van}</SelectItem>
+                        <SelectLabel>{translate.vehicleTypes}</SelectLabel>
+                        <SelectItem value="Sedan">{translate.sedan}</SelectItem>
+                        <SelectItem value="SUV">{translate.suv}</SelectItem>
+                        <SelectItem value="Economy">{translate.economy}</SelectItem>
+                        <SelectItem value="Luxury">{translate.luxury}</SelectItem>
+                        <SelectItem value="Van">{translate.van}</SelectItem>
                       </SelectGroup>
                     </SelectContent>
                   </Select>
@@ -185,12 +319,18 @@ const Fleet = () => {
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="licensePlate">{t.licensePlate}</Label>
-                  <Input id="licensePlate" placeholder="e.g. ABC-1234" required />
+                  <Label htmlFor="licensePlate">{translate.licensePlate}</Label>
+                  <Input 
+                    id="licensePlate" 
+                    placeholder="e.g. ABC-1234" 
+                    required
+                    value={vehicleForm.licensePlate || ''}
+                    onChange={(e) => handleFormChange('licensePlate', e.target.value)}
+                  />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="dailyRate">{t.dailyRate}</Label>
+                  <Label htmlFor="dailyRate">{translate.dailyRate}</Label>
                   <Input 
                     id="dailyRate" 
                     type="number" 
@@ -198,18 +338,22 @@ const Fleet = () => {
                     min={0}
                     step="0.01"
                     required
+                    value={vehicleForm.dailyRate || ''}
+                    onChange={(e) => handleFormChange('dailyRate', Number(e.target.value))}
                   />
                 </div>
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="mileage">{t.mileage}</Label>
+                <Label htmlFor="mileage">{translate.mileage}</Label>
                 <Input 
                   id="mileage" 
                   type="number" 
                   placeholder="e.g. 15000"
                   min={0}
                   required
+                  value={vehicleForm.mileage || ''}
+                  onChange={(e) => handleFormChange('mileage', Number(e.target.value))}
                 />
               </div>
               
@@ -219,17 +363,17 @@ const Fleet = () => {
                   variant="outline" 
                   onClick={() => {
                     setIsAddDialogOpen(false);
-                    setVehicleImage(null);
+                    resetVehicleForm();
                   }}
                 >
-                  {t.cancel}
+                  {translate.cancel}
                 </Button>
                 <Button 
                   type="submit" 
                   className="bg-flitx-blue hover:bg-flitx-blue-600"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? t.adding : t.add}
+                  {isSubmitting ? translate.adding : translate.add}
                 </Button>
               </DialogFooter>
             </form>
