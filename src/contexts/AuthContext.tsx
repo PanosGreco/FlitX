@@ -1,8 +1,7 @@
+
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
 import { useTestMode } from "@/contexts/TestModeContext";
 
@@ -25,8 +24,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
-  const navigate = useNavigate();
-  const { toast: uiToast } = useToast();
   const { isTestMode } = useTestMode();
 
   const fetchUserProfile = async (userId: string) => {
@@ -59,24 +56,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Check if in test mode and load test user from localStorage if available
     if (isTestMode) {
-      const testUserString = localStorage.getItem('testUser');
-      if (testUserString) {
-        try {
+      try {
+        // Get test user data
+        const testUserString = localStorage.getItem('testUser');
+        const testProfileString = localStorage.getItem('testUserProfile');
+        
+        if (testUserString) {
           const testUser = JSON.parse(testUserString);
           setUser(testUser as any);
-          setUserProfile({
-            id: testUser.id,
-            full_name: "Test User",
-            business_name: "Test Company",
-            business_type: "cars",
-            avatar_url: null,
-            phone: "555-123-4567"
-          });
           setLoading(false);
-          return;
-        } catch (e) {
-          console.error("Error parsing test user:", e);
+          
+          // Get test profile data if available
+          if (testProfileString) {
+            setUserProfile(JSON.parse(testProfileString));
+          } else {
+            // Create default test profile
+            const defaultProfile = {
+              id: testUser.id,
+              full_name: "Test User",
+              business_name: "Test Company",
+              business_type: "cars",
+              avatar_url: null,
+              phone: "555-123-4567"
+            };
+            setUserProfile(defaultProfile);
+            localStorage.setItem('testUserProfile', JSON.stringify(defaultProfile));
+          }
         }
+        return;
+      } catch (e) {
+        console.error("Error parsing test user:", e);
       }
     }
 
@@ -90,11 +99,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setTimeout(() => {
             fetchUserProfile(currentSession.user.id);
           }, 0);
-        } else {
+        } else if (!isTestMode) {
           setUserProfile(null);
         }
 
-        if (event === 'SIGNED_OUT') {
+        if (event === 'SIGNED_OUT' && !isTestMode) {
           setUserProfile(null);
         }
       }
@@ -149,7 +158,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         localStorage.setItem('testUser', JSON.stringify(mockUser));
         toast.success("Test account signed in successfully");
-        navigate('/');
         return;
       }
       
@@ -161,7 +169,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) throw error;
 
       toast.success("Signed in successfully");
-      navigate('/');
     } catch (error: any) {
       console.error('Sign in error:', error);
       toast.error(error.message || "Failed to sign in");
@@ -195,7 +202,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         localStorage.setItem('testUser', JSON.stringify(mockUser));
         toast.success("Test account created successfully");
-        navigate('/');
         return;
       }
       
@@ -210,7 +216,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) throw error;
 
       toast.success("Account created successfully! You can now sign in.");
-      navigate('/auth?mode=signin');
     } catch (error: any) {
       console.error('Sign up error:', error);
       toast.error(error.message || "Failed to create account");
@@ -226,14 +231,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(null);
         setUserProfile(null);
         localStorage.removeItem('testUser');
-        navigate('/auth?mode=signin');
+        localStorage.removeItem('testUserProfile');
+        localStorage.setItem('testMode', 'false');
         toast.success("Signed out successfully");
         return;
       }
       
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      navigate('/auth?mode=signin');
+      
       toast.success("Signed out successfully");
     } catch (error: any) {
       console.error('Sign out error:', error);
@@ -247,10 +253,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // For test accounts, just update our mock state
       if ((user?.email === "test@example.com") || isTestMode) {
-        setUserProfile({
+        const updatedProfile = {
           ...userProfile,
           ...data
-        });
+        };
+        setUserProfile(updatedProfile);
+        localStorage.setItem('testUserProfile', JSON.stringify(updatedProfile));
         return;
       }
 

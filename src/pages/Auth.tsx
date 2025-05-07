@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,8 +35,9 @@ type SignInFormValues = z.infer<typeof signInSchema>;
 
 const AuthPage = () => {
   const [searchParams] = useSearchParams();
-  const mode = searchParams.get("mode") || "signup";
+  const mode = searchParams.get("mode") || "signin";
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useLanguage();
   const { signIn, signUp, user } = useAuth();
   const { isTestMode, enableTestMode } = useTestMode();
@@ -47,9 +48,11 @@ const AuthPage = () => {
   useEffect(() => {
     // Redirect if user is authenticated or in test mode
     if (user || isTestMode) {
-      navigate("/");
+      // Go to intended location or home
+      const from = (location.state as any)?.from?.pathname || "/";
+      navigate(from);
     }
-  }, [user, isTestMode, navigate]);
+  }, [user, isTestMode, navigate, location]);
 
   // Use the correct form based on mode
   const signUpForm = useForm<SignUpFormValues>({
@@ -90,14 +93,11 @@ const AuthPage = () => {
             business_type: signUpValues.businessType,
           });
           
-          toast.success("Account created! Redirecting to home page");
-          navigate('/');
+          toast.success("Account created! You can now sign in");
+          navigate('/auth?mode=signin');
         } catch (error: any) {
           console.error("Signup error:", error);
-          // For testing - allow access anyway
-          toast.success("Testing mode enabled - redirecting to home");
-          enableTestMode();
-          setTimeout(() => navigate('/'), 1000);
+          toast.error(error.message || "Error during signup");
         }
       } else {
         const signInValues = values as SignInFormValues;
@@ -105,12 +105,14 @@ const AuthPage = () => {
         
         try {
           await signIn(signInValues.email, signInValues.password);
+          toast.success("Sign in successful");
+          
+          // Navigate to home or intended location
+          const from = (location.state as any)?.from?.pathname || "/";
+          navigate(from);
         } catch (error: any) {
           console.error("Signin error:", error);
-          // For testing - allow access anyway
-          toast.success("Testing mode enabled - redirecting to home");
-          enableTestMode();
-          setTimeout(() => navigate('/'), 1000);
+          toast.error(error.message || "Invalid credentials");
         }
       }
     } catch (error) {
@@ -129,7 +131,9 @@ const AuthPage = () => {
   const handleEnableTestMode = () => {
     enableTestMode();
     toast.success("Test mode enabled - bypassing authentication");
-    navigate('/');
+    // Go to intended location or home
+    const from = (location.state as any)?.from?.pathname || "/";
+    navigate(from);
   };
 
   // For debugging

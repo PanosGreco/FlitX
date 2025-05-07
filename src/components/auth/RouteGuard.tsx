@@ -33,6 +33,7 @@ export const RouteGuard = ({ children }: RouteGuardProps) => {
   
   // Always allow access when in test mode, regardless of the page
   if (isTestMode) {
+    console.log("Test mode enabled, allowing access");
     return <>{children}</>;
   }
   
@@ -47,6 +48,7 @@ export const RouteGuard = ({ children }: RouteGuardProps) => {
   
   // Redirect to login if not authenticated
   if (!user) {
+    console.log("User not authenticated, redirecting to login");
     // Save the location they were trying to go to for redirection after login
     return <Navigate to="/auth?mode=signin" state={{ from: location }} replace />;
   }

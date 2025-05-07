@@ -18,25 +18,12 @@ export const TestModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (savedTestMode === 'true') {
       setIsTestMode(true);
       
-      // Create test user in localStorage if it doesn't exist
-      if (!localStorage.getItem('testUser')) {
-        const testUser = {
-          id: "test-user-id",
-          email: "test@example.com",
-          user_metadata: {
-            full_name: "Test User",
-          }
-        };
-        localStorage.setItem('testUser', JSON.stringify(testUser));
-      }
+      // Always ensure test user exists when test mode is active
+      createTestUser();
     }
   }, []);
 
-  const enableTestMode = () => {
-    setIsTestMode(true);
-    localStorage.setItem('testMode', 'true');
-    
-    // Create a test user in local storage when test mode is enabled
+  const createTestUser = () => {
     const testUser = {
       id: "test-user-id",
       email: "test@example.com",
@@ -46,12 +33,33 @@ export const TestModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
     
     localStorage.setItem('testUser', JSON.stringify(testUser));
+    
+    // Also create test profile data
+    const testProfile = {
+      id: "test-user-id",
+      full_name: "Test User",
+      business_name: "Test Company",
+      business_type: "cars",
+      avatar_url: null,
+      phone: "555-123-4567"
+    };
+    
+    localStorage.setItem('testUserProfile', JSON.stringify(testProfile));
+  };
+
+  const enableTestMode = () => {
+    setIsTestMode(true);
+    localStorage.setItem('testMode', 'true');
+    
+    // Create test user data
+    createTestUser();
   };
 
   const disableTestMode = () => {
     setIsTestMode(false);
     localStorage.setItem('testMode', 'false');
     localStorage.removeItem('testUser');
+    localStorage.removeItem('testUserProfile');
   };
 
   return (

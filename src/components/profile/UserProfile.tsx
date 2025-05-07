@@ -28,6 +28,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTestMode } from "@/contexts/TestModeContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -46,22 +47,17 @@ export function UserProfile() {
   
   const { language, setLanguage, t } = useLanguage();
   const { user, userProfile, updateProfile, signOut } = useAuth();
+  const { isTestMode } = useTestMode();
   const navigate = useNavigate();
   
   useEffect(() => {
-    // Redirect to login if not authenticated
-    if (!user) {
-      navigate('/auth?mode=signin');
-      return;
-    }
-    
     // Check if there's a saved profile image
     if (userProfile?.avatar_url) {
       setProfileImage(userProfile.avatar_url);
     }
     
     // Initialize form with user data
-    if (userProfile) {
+    if (user && userProfile) {
       const fullName = userProfile.full_name || "";
       const nameParts = fullName.split(" ");
       const firstName = nameParts[0] || "";
@@ -75,7 +71,7 @@ export function UserProfile() {
         company: userProfile.business_name || ""
       });
     }
-  }, [userProfile, user, navigate]);
+  }, [userProfile, user]);
 
   const handleLanguageChange = (newLang: "en" | "el") => {
     setLanguage(newLang);
@@ -91,6 +87,19 @@ export function UserProfile() {
       try {
         setIsLoading(true);
         const file = e.target.files[0];
+        
+        if (isTestMode) {
+          // In test mode, just update the UI
+          const fakeUrl = URL.createObjectURL(file);
+          setProfileImage(fakeUrl);
+          
+          // Update the test user profile
+          await updateProfile({ avatar_url: fakeUrl });
+          
+          toast(t.photoUpdateSuccess);
+          setIsLoading(false);
+          return;
+        }
         
         // Upload to Supabase Storage
         const fileExt = file.name.split('.').pop();
@@ -135,8 +144,6 @@ export function UserProfile() {
   };
   
   const handleSaveProfile = async () => {
-    if (!user) return;
-    
     setIsLoading(true);
     try {
       // Combine first and last name
@@ -160,9 +167,10 @@ export function UserProfile() {
   
   const handleLogout = async () => {
     await signOut();
+    navigate('/auth?mode=signin');
   };
 
-  // Return empty div if no user (redirect will happen in useEffect)
+  // Show loading state if user or userProfile is not available yet
   if (!user || !userProfile) {
     return <div className="flex items-center justify-center h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
