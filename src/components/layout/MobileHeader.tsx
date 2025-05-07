@@ -55,8 +55,8 @@ export function MobileHeader({
             <Menu className="h-5 w-5" />
           </Button>
         )}
-        <h1 className={`text-lg font-semibold ml-2 ${isBoatMode ? 'text-blue-600' : ''}`}>
-          {title || (isBoatMode ? 'Fleet' : 'Fleet')}
+        <h1 className="text-lg font-semibold ml-2 text-blue-600">
+          {title || "FleetX"}
         </h1>
       </div>
       
