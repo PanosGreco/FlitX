@@ -90,13 +90,13 @@ const AuthPage = () => {
             business_type: signUpValues.businessType,
           });
           
-          // For testing - auto-redirect to home page even if signup fails
-          toast.success("Testing account created");
+          toast.success("Account created! Redirecting to home page");
           navigate('/');
         } catch (error: any) {
           console.error("Signup error:", error);
           // For testing - allow access anyway
           toast.success("Testing mode enabled - redirecting to home");
+          enableTestMode();
           setTimeout(() => navigate('/'), 1000);
         }
       } else {
@@ -109,6 +109,7 @@ const AuthPage = () => {
           console.error("Signin error:", error);
           // For testing - allow access anyway
           toast.success("Testing mode enabled - redirecting to home");
+          enableTestMode();
           setTimeout(() => navigate('/'), 1000);
         }
       }

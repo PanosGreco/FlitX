@@ -17,6 +17,18 @@ export const TestModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const savedTestMode = localStorage.getItem('testMode');
     if (savedTestMode === 'true') {
       setIsTestMode(true);
+      
+      // Create test user in localStorage if it doesn't exist
+      if (!localStorage.getItem('testUser')) {
+        const testUser = {
+          id: "test-user-id",
+          email: "test@example.com",
+          user_metadata: {
+            full_name: "Test User",
+          }
+        };
+        localStorage.setItem('testUser', JSON.stringify(testUser));
+      }
     }
   }, []);
 

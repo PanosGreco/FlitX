@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from "@/integrations/supabase/client";
@@ -70,7 +69,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             full_name: "Test User",
             business_name: "Test Company",
             business_type: "cars",
-            avatar_url: null
+            avatar_url: null,
+            phone: "555-123-4567"
           });
           setLoading(false);
           return;
@@ -143,7 +143,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           full_name: "Test User",
           business_name: "Test Company",
           business_type: "cars",
-          avatar_url: null
+          avatar_url: null,
+          phone: "555-123-4567"
         });
         
         localStorage.setItem('testUser', JSON.stringify(mockUser));
@@ -188,7 +189,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           full_name: userData.full_name || "Test User",
           business_name: userData.business_name || "Test Company",
           business_type: userData.business_type || "cars",
-          avatar_url: null
+          avatar_url: null,
+          phone: "555-123-4567"
         });
         
         localStorage.setItem('testUser', JSON.stringify(mockUser));

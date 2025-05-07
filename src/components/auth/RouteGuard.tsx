@@ -31,7 +31,7 @@ export const RouteGuard = ({ children }: RouteGuardProps) => {
     );
   }
   
-  // Allow access when in test mode
+  // Always allow access when in test mode, regardless of the page
   if (isTestMode) {
     return <>{children}</>;
   }
