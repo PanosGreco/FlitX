@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { VehicleGrid } from "@/components/fleet/VehicleGrid";
 import { Marina } from "@/components/fleet/Marina";
@@ -51,7 +52,9 @@ const Fleet = () => {
     mileage: 0,
   });
   
-  const { t } = useToast();
+  // Fix: Remove the incorrect reference to 't' from useToast
+  const { toast: showToast } = useToast();
+  // Use the translation object from useLanguage instead
   const { t: translate } = useLanguage();
   const isBoatMode = isBoatBusiness();
   const navigate = useNavigate();
