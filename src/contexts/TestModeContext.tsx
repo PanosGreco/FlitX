@@ -23,11 +23,23 @@ export const TestModeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const enableTestMode = () => {
     setIsTestMode(true);
     localStorage.setItem('testMode', 'true');
+    
+    // Create a test user in local storage when test mode is enabled
+    const testUser = {
+      id: "test-user-id",
+      email: "test@example.com",
+      user_metadata: {
+        full_name: "Test User",
+      }
+    };
+    
+    localStorage.setItem('testUser', JSON.stringify(testUser));
   };
 
   const disableTestMode = () => {
     setIsTestMode(false);
     localStorage.setItem('testMode', 'false');
+    localStorage.removeItem('testUser');
   };
 
   return (

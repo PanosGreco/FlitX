@@ -42,7 +42,7 @@ const App = () => {
                   <Route path="/vehicle/:id" element={<RouteGuard><VehicleDetail /></RouteGuard>} />
                   <Route path="/finances" element={<RouteGuard><Finance /></RouteGuard>} />
                   <Route path="/tracking" element={<RouteGuard><Tracking /></RouteGuard>} />
-                  <Route path="/profile" element={<RouteGuard><Profile /></RouteGuard>} />
+                  <Route path="/profile" element={<Profile />} />
                   <Route path="/boats" element={<RouteGuard><BoatsHome /></RouteGuard>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>

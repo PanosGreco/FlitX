@@ -16,6 +16,12 @@ const Profile = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   
   useEffect(() => {
+    if (isTestMode) {
+      // In test mode, we don't need to redirect
+      setIsInitialized(true);
+      return;
+    }
+    
     // Only redirect if not in test mode and not authenticated
     if (!loading) {
       if (!user && !isTestMode) {

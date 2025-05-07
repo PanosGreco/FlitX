@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
+import { useTestMode } from "@/contexts/TestModeContext";
 
 type AuthContextType = {
   user: User | null;
@@ -27,6 +28,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userProfile, setUserProfile] = useState<any>(null);
   const navigate = useNavigate();
   const { toast: uiToast } = useToast();
+  const { isTestMode } = useTestMode();
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -56,6 +58,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
+    // Check if in test mode and load test user from localStorage if available
+    if (isTestMode) {
+      const testUserString = localStorage.getItem('testUser');
+      if (testUserString) {
+        try {
+          const testUser = JSON.parse(testUserString);
+          setUser(testUser as any);
+          setUserProfile({
+            id: testUser.id,
+            full_name: "Test User",
+            business_name: "Test Company",
+            business_type: "cars",
+            avatar_url: null
+          });
+          setLoading(false);
+          return;
+        } catch (e) {
+          console.error("Error parsing test user:", e);
+        }
+      }
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log("Auth state changed:", event);
@@ -97,7 +121,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [isTestMode]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -119,8 +143,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           full_name: "Test User",
           business_name: "Test Company",
           business_type: "cars",
+          avatar_url: null
         });
         
+        localStorage.setItem('testUser', JSON.stringify(mockUser));
         toast.success("Test account signed in successfully");
         navigate('/');
         return;
@@ -162,8 +188,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           full_name: userData.full_name || "Test User",
           business_name: userData.business_name || "Test Company",
           business_type: userData.business_type || "cars",
+          avatar_url: null
         });
         
+        localStorage.setItem('testUser', JSON.stringify(mockUser));
         toast.success("Test account created successfully");
         navigate('/');
         return;
@@ -191,10 +219,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     try {
       // For test accounts, just clear our mock state
-      if (user?.email === "test@example.com") {
+      if (user?.email === "test@example.com" || isTestMode) {
         setUser(null);
         setSession(null);
         setUserProfile(null);
+        localStorage.removeItem('testUser');
         navigate('/auth?mode=signin');
         toast.success("Signed out successfully");
         return;
@@ -212,10 +241,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateProfile = async (data: any): Promise<void> => {
     try {
-      if (!user) throw new Error("User not authenticated");
+      if (!user && !isTestMode) throw new Error("User not authenticated");
 
       // For test accounts, just update our mock state
-      if (user.email === "test@example.com") {
+      if ((user?.email === "test@example.com") || isTestMode) {
         setUserProfile({
           ...userProfile,
           ...data
@@ -223,16 +252,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // Update the profile in the database
-      const { error } = await supabase
-        .from('profiles')
-        .update(data)
-        .eq('id', user.id);
+      if (user) {
+        // Update the profile in the database
+        const { error } = await supabase
+          .from('profiles')
+          .update(data)
+          .eq('id', user.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Refresh the profile data
-      await fetchUserProfile(user.id);
+        // Refresh the profile data
+        await fetchUserProfile(user.id);
+      }
     } catch (error: any) {
       console.error('Error updating profile:', error);
       throw error;

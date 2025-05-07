@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { z } from "zod";
@@ -132,6 +133,7 @@ const AuthPage = () => {
 
   // For debugging
   console.log("Current form values:", form.getValues());
+  console.log("Current mode:", mode);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center justify-center p-4">
@@ -278,7 +280,6 @@ const AuthPage = () => {
               {isSubmitting ? "Please wait..." : mode === "signup" ? t.signup.signUp : t.signup.login}
             </Button>
             
-            {/* Test mode button with new handler */}
             <Button 
               type="button" 
               variant="outline" 
