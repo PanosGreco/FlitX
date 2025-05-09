@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import {
   Card,
@@ -20,160 +21,74 @@ import {
   Bell,
   Upload,
   Globe,
-  LogOut,
-  Loader2
+  LogOut
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useAuth } from "@/contexts/AuthContext";
-import { useTestMode } from "@/contexts/TestModeContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 
 export function UserProfile() {
   const [activeTab, setActiveTab] = useState("account");
   const [isLoading, setIsLoading] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
-  const [formState, setFormState] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    company: ""
-  });
   
   const { language, setLanguage, t } = useLanguage();
-  const { user, userProfile, updateProfile, signOut } = useAuth();
-  const { isTestMode } = useTestMode();
-  const navigate = useNavigate();
+  const { toast } = useToast();
   
   useEffect(() => {
     // Check if there's a saved profile image
-    if (userProfile?.avatar_url) {
-      setProfileImage(userProfile.avatar_url);
+    const savedProfileImage = localStorage.getItem("profileImage");
+    if (savedProfileImage) {
+      setProfileImage(savedProfileImage);
     }
-    
-    // Initialize form with user data
-    if (user && userProfile) {
-      const fullName = userProfile.full_name || "";
-      const nameParts = fullName.split(" ");
-      const firstName = nameParts[0] || "";
-      const lastName = nameParts.slice(1).join(" ") || "";
-      
-      setFormState({
-        firstName,
-        lastName,
-        email: user.email || "",
-        phone: userProfile.phone || "",
-        company: userProfile.business_name || ""
-      });
-    }
-  }, [userProfile, user]);
+  }, []);
 
   const handleLanguageChange = (newLang: "en" | "el") => {
     setLanguage(newLang);
     
-    toast(newLang === "en" 
-      ? "Your language preference has been set to English"
-      : "Η προτίμηση γλώσσας σας έχει οριστεί στα Ελληνικά"
-    );
+    toast({
+      title: newLang === "en" ? "Language Updated" : "Η Γλώσσα Ενημερώθηκε",
+      description: newLang === "en" 
+        ? "Your language preference has been set to English"
+        : "Η προτίμηση γλώσσας σας έχει οριστεί στα Ελληνικά",
+    });
   };
   
-  const handleProfilePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0 && user) {
-      try {
-        setIsLoading(true);
-        const file = e.target.files[0];
-        
-        if (isTestMode) {
-          // In test mode, just update the UI
-          const fakeUrl = URL.createObjectURL(file);
-          setProfileImage(fakeUrl);
+  const handleProfilePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          const imageUrl = event.target.result.toString();
+          setProfileImage(imageUrl);
+          localStorage.setItem("profileImage", imageUrl);
           
-          // Update the test user profile
-          await updateProfile({ avatar_url: fakeUrl });
-          
-          toast(t.photoUpdateSuccess);
-          setIsLoading(false);
-          return;
-        }
-        
-        // Upload to Supabase Storage
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-        const filePath = `avatars/${fileName}`;
-        
-        const { data, error } = await supabase.storage
-          .from('vehicles') // Using the vehicles bucket for now
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: true
+          toast({
+            title: t.photoUpdated,
+            description: t.photoUpdateSuccess,
           });
-          
-        if (error) throw error;
-        
-        // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('vehicles')
-          .getPublicUrl(filePath);
-        
-        // Update profile with new avatar URL
-        await updateProfile({ avatar_url: publicUrl });
-        
-        setProfileImage(publicUrl);
-        
-        toast(t.photoUpdateSuccess);
-      } catch (error) {
-        console.error('Error uploading profile photo:', error);
-        toast.error("Failed to upload profile photo");
-      } finally {
-        setIsLoading(false);
-      }
+        }
+      };
+      
+      reader.readAsDataURL(file);
     }
   };
   
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setFormState(prev => ({
-      ...prev,
-      [id]: value
-    }));
-  };
-  
-  const handleSaveProfile = async () => {
+  const handleSaveProfile = () => {
     setIsLoading(true);
-    try {
-      // Combine first and last name
-      const fullName = `${formState.firstName} ${formState.lastName}`.trim();
-      
-      // Update profile in Supabase
-      await updateProfile({
-        full_name: fullName,
-        business_name: formState.company,
-        phone: formState.phone
-      });
-      
-      toast(t.profileUpdateSuccess);
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error("Failed to update profile");
-    } finally {
+    // Simulate API call
+    setTimeout(() => {
       setIsLoading(false);
-    }
+      
+      toast({
+        title: t.profileUpdated,
+        description: t.profileUpdateSuccess,
+      });
+    }, 1500);
   };
-  
-  const handleLogout = async () => {
-    await signOut();
-    navigate('/auth?mode=signin');
-  };
-
-  // Show loading state if user or userProfile is not available yet
-  if (!user || !userProfile) {
-    return <div className="flex items-center justify-center h-screen"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-  }
 
   return (
     <div className="space-y-6 animate-fade-in pb-20">
@@ -208,9 +123,7 @@ export function UserProfile() {
                       {profileImage ? (
                         <AvatarImage src={profileImage} className="object-cover" />
                       ) : (
-                        <AvatarFallback className="text-xl">
-                          {formState.firstName.charAt(0)}{formState.lastName.charAt(0)}
-                        </AvatarFallback>
+                        <AvatarFallback className="text-xl">JD</AvatarFallback>
                       )}
                     </Avatar>
                     
@@ -222,15 +135,10 @@ export function UserProfile() {
                           className="hidden"
                           accept="image/*"
                           onChange={handleProfilePhotoUpload}
-                          disabled={isLoading}
                         />
-                        <Button variant="outline" size="sm" asChild disabled={isLoading}>
+                        <Button variant="outline" size="sm" asChild>
                           <span>
-                            {isLoading ? (
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            ) : (
-                              <Upload className="h-4 w-4 mr-2" />
-                            )}
+                            <Upload className="h-4 w-4 mr-2" />
                             {t.personalInfo.uploadPhoto}
                           </span>
                         </Button>
@@ -247,52 +155,28 @@ export function UserProfile() {
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="firstName">{t.personalInfo.firstName}</Label>
-                        <Input 
-                          id="firstName" 
-                          value={formState.firstName}
-                          onChange={handleFormChange}
-                        />
+                        <Input id="firstName" defaultValue="John" />
                       </div>
                       
                       <div className="space-y-2">
                         <Label htmlFor="lastName">{t.personalInfo.lastName}</Label>
-                        <Input 
-                          id="lastName" 
-                          value={formState.lastName}
-                          onChange={handleFormChange}
-                        />
+                        <Input id="lastName" defaultValue="Doe" />
                       </div>
                     </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="email">{t.personalInfo.email}</Label>
-                      <Input 
-                        id="email" 
-                        type="email" 
-                        value={formState.email}
-                        onChange={handleFormChange}
-                        disabled
-                      />
-                      <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                      <Input id="email" type="email" defaultValue="john.doe@example.com" />
                     </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="phone">{t.personalInfo.phone}</Label>
-                      <Input 
-                        id="phone" 
-                        type="tel" 
-                        value={formState.phone}
-                        onChange={handleFormChange}
-                      />
+                      <Input id="phone" type="tel" defaultValue="+1 (555) 123-4567" />
                     </div>
                     
                     <div className="space-y-2">
                       <Label htmlFor="company">{t.personalInfo.company}</Label>
-                      <Input 
-                        id="company" 
-                        value={formState.company}
-                        onChange={handleFormChange}
-                      />
+                      <Input id="company" defaultValue="Acme Car Rentals" />
                     </div>
                   </div>
                   
@@ -492,17 +376,6 @@ export function UserProfile() {
                   </div>
                   <Button variant="outline" size="sm" className="border-red-200 text-red-600 hover:bg-red-50">
                     {t.dangerZone.deleteButton}
-                  </Button>
-                </div>
-
-                <div className="pt-4">
-                  <Button 
-                    variant="destructive" 
-                    className="w-full" 
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
                   </Button>
                 </div>
               </CardContent>

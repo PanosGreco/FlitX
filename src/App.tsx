@@ -10,49 +10,33 @@ import Finance from "./pages/Finance";
 import Tracking from "./pages/Tracking";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
-import Auth from "./pages/Auth";
+import SignUpPage from "./pages/SignUp";
 import BoatsHome from "./pages/BoatsHome";
 import { LanguageProvider } from "./contexts/LanguageContext";
-import { AuthProvider } from "./contexts/AuthContext";
-import { TestModeProvider } from "./contexts/TestModeContext";
-import { RouteGuard } from "./components/auth/RouteGuard";
-import { useEffect } from "react";
-import { ensureStorageBuckets } from "./services/storageService";
 
 const queryClient = new QueryClient();
 
-const App = () => {
-  // Initialize storage buckets when app loads
-  useEffect(() => {
-    ensureStorageBuckets();
-  }, []);
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <LanguageProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <TestModeProvider>
-              <AuthProvider>
-                <Routes>
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/" element={<RouteGuard><Fleet /></RouteGuard>} />
-                  <Route path="/vehicle/:id" element={<RouteGuard><VehicleDetail /></RouteGuard>} />
-                  <Route path="/finances" element={<RouteGuard><Finance /></RouteGuard>} />
-                  <Route path="/tracking" element={<RouteGuard><Tracking /></RouteGuard>} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/boats" element={<RouteGuard><BoatsHome /></RouteGuard>} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </AuthProvider>
-            </TestModeProvider>
-          </BrowserRouter>
-        </LanguageProvider>
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
-};
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <LanguageProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Fleet />} />
+            <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/vehicle/:id" element={<VehicleDetail />} />
+            <Route path="/finances" element={<Finance />} />
+            <Route path="/tracking" element={<Tracking />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/boats" element={<BoatsHome />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </LanguageProvider>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;

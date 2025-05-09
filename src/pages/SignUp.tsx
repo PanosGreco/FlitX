@@ -19,13 +19,11 @@ const SignUpPage = () => {
   const { t } = useLanguage();
   const [showPassword, setShowPassword] = useState(false);
   const [passwordScore, setPasswordScore] = useState(0);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Use a looser validation schema for testing
   const signUpSchema = z.object({
-    businessName: z.string().min(1, { message: t.signup.businessNameRequired }),
-    email: z.string().min(1, { message: t.signup.invalidEmail }),
-    password: z.string().min(1, { message: t.signup.passwordLength }),
+    businessName: z.string().min(2, { message: t.signup.businessNameRequired }),
+    email: z.string().email({ message: t.signup.invalidEmail }),
+    password: z.string().min(6, { message: t.signup.passwordLength }),
     businessType: z.string().min(1, { message: t.signup.businessTypeRequired }),
   });
 
@@ -43,7 +41,7 @@ const SignUpPage = () => {
 
   const onSubmit = async (values: z.infer<typeof signUpSchema>) => {
     try {
-      setIsSubmitting(true);
+      // In a real app, you would send this data to your backend
       console.log("Form values:", values);
       
       // Simulate API call
@@ -61,13 +59,8 @@ const SignUpPage = () => {
     } catch (error) {
       console.error("Sign up error:", error);
       toast.error(t.signup.errorCreating);
-    } finally {
-      setIsSubmitting(false);
     }
   };
-
-  // Debug form values
-  console.log("Current form values:", form.getValues());
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center justify-center p-4">
@@ -177,21 +170,8 @@ const SignUpPage = () => {
               )}
             />
             
-            <Button type="submit" className="w-full mt-6" disabled={isSubmitting}>
-              {isSubmitting ? "Please wait..." : t.signup.signUp}
-            </Button>
-            
-            {/* Bypass button for testing */}
-            <Button 
-              type="button" 
-              variant="outline" 
-              className="w-full mt-2"
-              onClick={() => {
-                toast.success("Test mode enabled - bypassing signup");
-                navigate('/');
-              }}
-            >
-              Enter Test Mode (Skip Authentication)
+            <Button type="submit" className="w-full mt-6">
+              {t.signup.signUp}
             </Button>
           </form>
         </Form>
@@ -199,7 +179,7 @@ const SignUpPage = () => {
         <div className="text-center text-sm">
           <p className="text-gray-600">
             {t.signup.alreadyHaveAccount}{" "}
-            <a href="/auth?mode=signin" className="text-primary hover:underline">
+            <a href="/login" className="text-primary hover:underline">
               {t.signup.login}
             </a>
           </p>

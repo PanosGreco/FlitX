@@ -1,431 +1,462 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-interface Translations {
-  fleet: string;
-  finances: string;
-  tracking: string;
-  profile: string;
-  addVehicle: string;
-  searchVehicles: string;
-  noVehicles: string;
-  noSearchResults: string;
-  vehicleAdded: string;
-  vehicleAddedDesc: string;
-  make: string;
-  model: string;
-  year: string;
-  type: string;
-  licensePlate: string;
-  dailyRate: string;
-  mileage: string;
-  cancel: string;
-  adding: string;
-  add: string;
-  uploadPhoto: string;
-  photoRestrictions: string;
-  vehicleTypes: string;
-  sedan: string;
-  suv: string;
-  economy: string;
-  luxury: string;
-  van: string;
-  ourFleet: string;
-  addNewBoat: string;
-  noBoats: string;
-  noBoatsDesc: string;
-  addYourFirstBoat: string;
-  available: string;
-  rented: string;
-  maintenance: string;
-  repair: string;
-  myProfile: string;
-  profileSubtitle: string;
-  photoUpdated: string;
-  photoUpdateSuccess: string;
-  profileUpdated: string;
-  profileUpdateSuccess: string;
-  tabs: {
-    account: string;
-    security: string;
-    settings: string;
-  };
-  personalInfo: {
-    title: string;
-    subtitle: string;
-    uploadPhoto: string;
-    photoRestriction: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone: string;
-    company: string;
-    saving: string;
-    saveChanges: string;
-  };
-  language: {
-    title: string;
-    subtitle: string;
-    languageLabel: string;
-    english: string;
-    greek: string;
-  };
-  security: {
-    title: string;
-    subtitle: string;
-    currentPassword: string;
-    newPassword: string;
-    confirmPassword: string;
-    updatePassword: string;
-    twoFactorTitle: string;
-    twoFactorDescription: string;
-  };
-  notifications: {
-    title: string;
-    subtitle: string;
-    emailNotifications: string;
-    emailDescription: string;
-    pushNotifications: string;
-    pushDescription: string;
-    maintenanceReminders: string;
-    maintenanceDescription: string;
-    bookingAlerts: string;
-    bookingDescription: string;
-  };
-  dangerZone: {
-    title: string;
-    subtitle: string;
-    signOutAll: string;
-    signOutDescription: string;
-    signOutButton: string;
-    deleteAccount: string;
-    deleteDescription: string;
-    deleteButton: string;
-  };
-  signup: {
-    title: string;
-    subtitle: string;
-    passwordWeak: string;
-    passwordMedium: string;
-    passwordStrong: string;
-    businessNameRequired: string;
-    invalidEmail: string;
-    passwordLength: string;
-    businessTypeRequired: string;
-    accountCreated: string;
-    errorCreating: string;
-    createAccount: string;
-    getStarted: string;
-    businessName: string;
-    enterBusinessName: string;
-    email: string;
-    enterEmail: string;
-    password: string;
-    enterPassword: string;
-    businessType: string;
-    selectBusinessType: string;
-    carRental: string;
-    boatRental: string;
-    signUp: string;
-    alreadyHaveAccount: string;
-    login: string;
-    welcomeBack: string;
-  };
-  marinaOverview: string;
-  newBoatSlip: string;
-  [key: string]: any;
-}
-
-const englishTranslations: Translations = {
-  fleet: "Fleet",
-  finances: "Finances",
-  tracking: "Tracking",
-  profile: "Profile",
-  addVehicle: "Add Vehicle",
-  searchVehicles: "Search Vehicles",
-  noVehicles: "No vehicles",
-  noSearchResults: "No search results",
-  vehicleAdded: "Vehicle Added",
-  vehicleAddedDesc: "The vehicle has been added to your fleet.",
-  make: "Make",
-  model: "Model",
-  year: "Year",
-  type: "Type",
-  licensePlate: "License Plate",
-  dailyRate: "Daily Rate",
-  mileage: "Mileage",
-  cancel: "Cancel",
-  adding: "Adding...",
-  add: "Add",
-  uploadPhoto: "Upload Photo",
-  photoRestrictions: "Photos must be JPG or PNG format, up to 5MB",
-  vehicleTypes: "Vehicle Types",
-  sedan: "Sedan",
-  suv: "SUV",
-  economy: "Económico",
-  luxury: "Lujo",
-  van: "Van",
-  ourFleet: "Our Fleet",
-  addNewBoat: "Add New Boat",
-  noBoats: "No boats yet",
-  noBoatsDesc: "Add your first boat to start managing your fleet",
-  addYourFirstBoat: "Add Your First Boat",
-  available: "Available",
-  rented: "Rented Out",
-  maintenance: "Maintenance",
-  repair: "Needs Repair",
-  myProfile: "My Profile",
-  profileSubtitle: "Manage your personal information, account security and preferences",
-  photoUpdated: "Profile Photo Updated",
-  photoUpdateSuccess: "Your profile photo has been updated successfully",
-  profileUpdated: "Profile Updated",
-  profileUpdateSuccess: "Your profile has been updated successfully",
-  tabs: {
-    account: "Account",
-    security: "Security",
-    settings: "Settings"
-  },
-  personalInfo: {
-    title: "Personal Information",
-    subtitle: "Update your personal details",
+// Define all translations for the application
+export const translations = {
+  en: {
+    // Navigation
+    fleet: "Fleet",
+    finances: "Income & Expenses",
+    tracking: "Live Tracking",
+    profile: "Profile",
+    
+    // Fleet section
+    addVehicle: "Add Vehicle",
+    searchVehicles: "Search vehicles...",
+    noVehicles: "No vehicles found. Add your first vehicle to get started.",
+    noSearchResults: "No vehicles match your search criteria.",
+    vehicleAdded: "Vehicle Added",
+    vehicleAddedDesc: "New vehicle has been added to your fleet",
+    addNewVehicle: "Add New Vehicle",
+    enterVehicleDetails: "Enter the details for the new vehicle.",
+    make: "Make",
+    model: "Model",
+    year: "Year",
+    type: "Type",
+    licensePlate: "License Plate",
+    dailyRate: "Daily Rate ($)",
+    mileage: "Current Mileage",
+    vehicleTypes: "Vehicle Types",
+    sedan: "Sedan",
+    suv: "SUV",
+    economy: "Economy",
+    luxury: "Luxury",
+    van: "Van",
+    adding: "Adding...",
+    add: "Add",
+    cancel: "Cancel",
     uploadPhoto: "Upload Photo",
-    photoRestriction: "JPG or PNG, max 5MB",
-    firstName: "First Name",
-    lastName: "Last Name",
-    email: "Email",
-    phone: "Phone",
-    company: "Company",
+    photoRestrictions: "JPG, GIF or PNG. Max size of 800K",
+    
+    // Vehicle statuses
+    available: "Available",
+    rented: "Rented",
+    maintenance: "Maintenance",
+    repair: "Needs Repair",
+    
+    // Vehicle details
+    editStatus: "Edit Status",
+    selectStatus: "Select Status",
+    save: "Save",
     saving: "Saving...",
-    saveChanges: "Save Changes"
+    statusUpdated: "Status Updated",
+    vehicleStatusChanged: "Vehicle status changed to",
+    overview: "Overview",
+    performance: "Performance",
+    finance: "Finance",
+    documents: "Documents",
+    bookings: "Bookings",
+    editFinance: "Edit Finance",
+    enterFinanceDetails: "Enter financial details for this vehicle.",
+    totalRevenue: "Total Revenue",
+    totalExpenses: "Total Expenses",
+    netProfit: "Net Profit",
+    financeUpdated: "Finance Updated",
+    financeDetailsUpdated: "Financial details have been updated",
+    currentMileage: "Current Mileage",
+    fuelLevel: "Fuel Level",
+    serviceHistory: "Service History",
+    rentalHistory: "Rental History",
+    uploadDocuments: "Upload Documents",
+    selectFiles: "Select Files",
+    availability: "Availability",
+    selectDays: "Select days when the vehicle is rented/unavailable.",
+    rentalIncomeAdded: "Rental Income Added",
+    addedIncome: "Added $",
+    toIncomeFor: "to income for",
+    documentUploaded: "Document Uploaded",
+    documentSaved: "Document has been saved successfully",
+
+    // Finance section
+    addRecord: "Add Record",
+    thisMonth: "This Month",
+    last3Months: "Last 3 Months",
+    last6Months: "Last 6 Months",
+    thisYear: "This Year",
+    all: "All",
+    addTransaction: "Add Transaction",
+    enterTransactionDetails: "Enter the details for the transaction.",
+    transactionType: "Transaction Type",
+    income: "Income",
+    expense: "Expense",
+    amount: "Amount",
+    category: "Category",
+    expenseCategories: "Expense Categories",
+    fuel: "Fuel",
+    vehicleMaintenance: "Vehicle Maintenance",
+    carWash: "Car Wash",
+    employeeSalaries: "Employee Salaries",
+    other: "Other",
+    incomeCategories: "Income Categories",
+    rental: "Rental",
+    insurance: "Insurance",
+    sale: "Sale",
+    notes: "Notes (Optional)",
+    transactionAdded: "Transaction Added",
+    transactionAddedDesc: "Your transaction has been recorded",
+    
+    // Common
+    error: "Error",
+    copied: "Copied to clipboard",
+    copiedToClipboard: "Copied to clipboard",
+    
+    // Profile
+    myProfile: "My Profile",
+    profileSubtitle: "Manage your account settings and preferences",
+    tabs: {
+      account: "Account",
+      security: "Security",
+      settings: "Settings",
+    },
+    personalInfo: {
+      title: "Profile Information",
+      subtitle: "Update your personal information",
+      uploadPhoto: "Upload Photo",
+      photoRestriction: "JPG, GIF or PNG. Max size of 800K",
+      firstName: "First Name",
+      lastName: "Last Name",
+      email: "Email",
+      phone: "Phone",
+      company: "Company Name",
+      saveChanges: "Save Changes",
+      saving: "Saving...",
+    },
+    security: {
+      title: "Password & Authentication",
+      subtitle: "Update your password and security settings",
+      currentPassword: "Current Password",
+      newPassword: "New Password",
+      confirmPassword: "Confirm New Password",
+      updatePassword: "Update Password",
+      twoFactorTitle: "Two-Factor Authentication",
+      twoFactorDescription: "Add an extra layer of security to your account",
+    },
+    notifications: {
+      title: "Notifications",
+      subtitle: "Configure how you receive notifications",
+      emailNotifications: "Email Notifications",
+      emailDescription: "Receive email notifications for important updates",
+      pushNotifications: "Push Notifications",
+      pushDescription: "Receive push notifications on your mobile device",
+      maintenanceReminders: "Maintenance Reminders",
+      maintenanceDescription: "Get notified when vehicles need service",
+      bookingAlerts: "Booking Alerts",
+      bookingDescription: "Get notified for new bookings and cancellations",
+    },
+    dangerZone: {
+      title: "Danger Zone",
+      subtitle: "Actions here can't be undone",
+      signOutAll: "Sign out of all devices",
+      signOutDescription: "Log out from all devices where you're currently signed in",
+      deleteAccount: "Delete account",
+      deleteDescription: "Permanently delete your account and all your data",
+      signOutButton: "Sign Out All",
+      deleteButton: "Delete Account",
+    },
+    language: {
+      title: "Language Settings",
+      subtitle: "Change your preferred language",
+      languageLabel: "Interface Language",
+      english: "English",
+      greek: "Greek",
+    },
+    profileUpdated: "Profile Updated",
+    profileUpdateSuccess: "Your profile information has been saved",
+    photoUpdated: "Profile Photo Updated",
+    photoUpdateSuccess: "Your profile photo has been updated successfully",
+    languageUpdated: "Language Updated",
+    languageUpdateSuccess: "Your language preference has been set to English",
+
+    // Sign Up
+    signup: {
+      createAccount: "Create your account",
+      getStarted: "Sign up to get started with our rental management software",
+      businessName: "Business Name",
+      enterBusinessName: "Enter your business name",
+      email: "Email Address",
+      enterEmail: "Enter your email address",
+      password: "Password",
+      enterPassword: "Enter your password",
+      businessType: "Business Type",
+      selectBusinessType: "Select your business type",
+      carRental: "Car Rental Business",
+      boatRental: "Boat Rental Business",
+      signUp: "Sign Up",
+      alreadyHaveAccount: "Already have an account?",
+      login: "Log in",
+      passwordWeak: "Weak",
+      passwordMedium: "Medium",
+      passwordStrong: "Strong",
+      accountCreated: "Account created successfully!",
+      errorCreating: "Error creating account. Please try again.",
+      businessNameRequired: "Business name is required",
+      invalidEmail: "Please enter a valid email address",
+      passwordLength: "Password must be at least 6 characters",
+      businessTypeRequired: "Please select your business type"
+    }
   },
-  language: {
-    title: "Language Preferences",
-    subtitle: "Choose your preferred language",
-    languageLabel: "Language",
-    english: "English",
-    greek: "Greek"
-  },
-  security: {
-    title: "Security Settings",
-    subtitle: "Manage your account security",
-    currentPassword: "Current Password",
-    newPassword: "New Password",
-    confirmPassword: "Confirm Password",
-    updatePassword: "Update Password",
-    twoFactorTitle: "Two-Factor Authentication",
-    twoFactorDescription: "Add an extra layer of security to your account"
-  },
-  notifications: {
-    title: "Notification Preferences",
-    subtitle: "Manage how you receive notifications",
-    emailNotifications: "Email Notifications",
-    emailDescription: "Receive important updates via email",
-    pushNotifications: "Push Notifications",
-    pushDescription: "Get alerts on your device",
-    maintenanceReminders: "Maintenance Reminders",
-    maintenanceDescription: "Receive reminders about vehicle maintenance",
-    bookingAlerts: "Booking Alerts",
-    bookingDescription: "Get notifications about new bookings"
-  },
-  dangerZone: {
-    title: "Danger Zone",
-    subtitle: "Manage account deletion and sign-out options",
-    signOutAll: "Sign Out All Devices",
-    signOutDescription: "Sign out from all sessions on all devices",
-    signOutButton: "Sign Out All",
-    deleteAccount: "Delete Account",
-    deleteDescription: "Permanently delete your account and all associated data",
-    deleteButton: "Delete Account"
-  },
-  signup: {
-    title: "Sign Up",
-    subtitle: "Create your FlitX account",
-    passwordWeak: "Weak",
-    passwordMedium: "Medium",
-    passwordStrong: "Strong",
-    businessNameRequired: "Business name is required",
-    invalidEmail: "Invalid email address",
-    passwordLength: "Password must be at least 6 characters",
-    businessTypeRequired: "Business type is required",
-    accountCreated: "Account created successfully!",
-    errorCreating: "Error creating account. Please try again.",
-    createAccount: "Create Account",
-    getStarted: "Get started with your fleet management",
-    businessName: "Business Name",
-    enterBusinessName: "Enter your business name",
-    email: "Email",
-    enterEmail: "Enter your email address",
-    password: "Password",
-    enterPassword: "Create a password",
-    businessType: "Business Type",
-    selectBusinessType: "Select your business type",
-    carRental: "Car Rental",
-    boatRental: "Boat Rental",
-    signUp: "Sign Up",
-    alreadyHaveAccount: "Already have an account?",
-    login: "Log In",
-    welcomeBack: "Welcome back to your dashboard"
-  },
-  marinaOverview: "Marina Overview",
-  newBoatSlip: "New Slip"
+  el: {
+    // Navigation
+    fleet: "Στόλος",
+    finances: "Έσοδα & Έξοδα",
+    tracking: "Ζωντανή Παρακολούθηση",
+    profile: "Προφίλ",
+    
+    // Fleet section
+    addVehicle: "Προσθήκη Οχήματος",
+    searchVehicles: "Αναζήτηση οχημάτων...",
+    noVehicles: "Δεν βρέθηκαν οχήματα. Προσθέστε το πρώτο σας όχημα για να ξεκινήσετε.",
+    noSearchResults: "Κανένα όχημα δεν ταιριάζει με τα κριτήρια αναζήτησής σας.",
+    vehicleAdded: "Το Όχημα Προστέθηκε",
+    vehicleAddedDesc: "Το νέο όχημα έχει προστεθεί στο στόλο σας",
+    addNewVehicle: "Προσθήκη Νέου Οχήματος",
+    enterVehicleDetails: "Εισάγετε τα στοιχεία για το νέο όχημα.",
+    make: "Μάρκα",
+    model: "Μοντέλο",
+    year: "Έτος",
+    type: "Τύπος",
+    licensePlate: "Αριθμός Πινακίδας",
+    dailyRate: "Ημερήσιο Κόστος (€)",
+    mileage: "Τρέχων Χιλιομετρητής",
+    vehicleTypes: "Τύποι Οχημάτων",
+    sedan: "Sedan",
+    suv: "SUV",
+    economy: "Οικονομικό",
+    luxury: "Πολυτελείας",
+    van: "Φορτηγό",
+    adding: "Προσθήκη...",
+    add: "Προσθήκη",
+    cancel: "Ακύρωση",
+    uploadPhoto: "Μεταφόρτωση Φωτογραφίας",
+    photoRestrictions: "JPG, GIF ή PNG. Μέγιστο μέγεθος 800K",
+    
+    // Vehicle statuses
+    available: "Διαθέσιμο",
+    rented: "Ενοικιασμένο",
+    maintenance: "Συντήρηση",
+    repair: "Χρειάζεται Επισκευή",
+    
+    // Vehicle details
+    editStatus: "Επεξεργασία Κατάστασης",
+    selectStatus: "Επιλέξτε Κατάσταση",
+    save: "Αποθήκευση",
+    saving: "Αποθήκευση...",
+    statusUpdated: "Κατάσταση Ενημερώθηκε",
+    vehicleStatusChanged: "Η κατάσταση του οχήματος άλλαξε σε",
+    overview: "Επισκόπηση",
+    performance: "Απόδοση",
+    finance: "Οικονομικά",
+    documents: "Έγγραφα",
+    bookings: "Κρατήσεις",
+    editFinance: "Επεξεργασία Οικονομικών",
+    enterFinanceDetails: "Εισάγετε οικονομικά στοιχεία για αυτό το όχημα.",
+    totalRevenue: "Συνολικά Έσοδα",
+    totalExpenses: "Συνολικά Έξοδα",
+    netProfit: "Καθαρό Κέρδος",
+    financeUpdated: "Οικονομικά Ενημερώθηκαν",
+    financeDetailsUpdated: "Τα οικονομικά στοιχεία έχουν ενημερωθεί",
+    currentMileage: "Τρέχων Χιλιομετρητής",
+    fuelLevel: "Επίπεδο Καυσίμου",
+    serviceHistory: "Ιστορικό Συντήρησης",
+    rentalHistory: "Ιστορικό Ενοικιάσεων",
+    uploadDocuments: "Μεταφόρτωση Εγγράφων",
+    selectFiles: "Επιλογή Αρχείων",
+    availability: "Διαθεσιμότητα",
+    selectDays: "Επιλέξτε ημέρες που το όχημα είναι ενοικιασμένο/μη διαθέσιμο.",
+    rentalIncomeAdded: "Προστέθηκε Έσοδο Ενοικίασης",
+    addedIncome: "Προστέθηκαν €",
+    toIncomeFor: "στα έσοδα για",
+    documentUploaded: "Έγγραφο Μεταφορτώθηκε",
+    documentSaved: "Το έγγραφο αποθηκεύτηκε επιτυχώς",
+
+    // Finance section
+    addRecord: "Προσθήκη Εγγραφής",
+    thisMonth: "Αυτός ο Μήνας",
+    last3Months: "Τελευταίοι 3 Μήνες",
+    last6Months: "Τελευταίοι 6 Μήνες",
+    thisYear: "Φέτος",
+    all: "Όλα",
+    addTransaction: "Προσθήκη Συναλλαγής",
+    enterTransactionDetails: "Εισάγετε τα στοιχεία για τη συναλλαγή.",
+    transactionType: "Τύπος Συναλλαγής",
+    income: "Έσοδο",
+    expense: "Έξοδο",
+    amount: "Ποσό",
+    category: "Κατηγορία",
+    expenseCategories: "Κατηγορίες Εξόδων",
+    fuel: "Καύσιμα",
+    vehicleMaintenance: "Συντήρηση Οχήματος",
+    carWash: "Πλύσιμο Αυτοκινήτου",
+    employeeSalaries: "Μισθοί Υπαλλήλων",
+    other: "Άλλο",
+    incomeCategories: "Κατηγορίες Εσόδων",
+    rental: "Ενοικίαση",
+    insurance: "Ασφάλεια",
+    sale: "Πώληση",
+    notes: "Σημειώσεις (Προαιρετικό)",
+    transactionAdded: "Η Συναλλαγή Προστέθηκε",
+    transactionAddedDesc: "Η συναλλαγή σας έχει καταγραφεί",
+    
+    // Common
+    error: "Σφάλμα",
+    copied: "Αντιγράφηκε",
+    copiedToClipboard: "Αντιγράφηκε στο πρόχειρο",
+    
+    // Profile
+    myProfile: "Το Προφίλ μου",
+    profileSubtitle: "Διαχειριστείτε τις ρυθμίσεις και τις προτιμήσεις του λογαριασμού σας",
+    tabs: {
+      account: "Λογαριασμός",
+      security: "Ασφάλεια",
+      settings: "Ρυθμίσεις",
+    },
+    personalInfo: {
+      title: "Πληροφορίες Προφίλ",
+      subtitle: "Ενημερώστε τα προσωπικά σας στοιχεία",
+      uploadPhoto: "Μεταφόρτωση Φωτογραφίας",
+      photoRestriction: "JPG, GIF ή PNG. Μέγιστο μέγεθος 800K",
+      firstName: "Όνομα",
+      lastName: "Επώνυμο",
+      email: "Email",
+      phone: "Τηλέφωνο",
+      company: "Όνομα Εταιρείας",
+      saveChanges: "Αποθήκευση Αλλαγών",
+      saving: "Αποθήκευση...",
+    },
+    security: {
+      title: "Κωδικός & Αυθεντικοποίηση",
+      subtitle: "Ενημερώστε τον κωδικό και τις ρυθμίσεις ασφαλείας σας",
+      currentPassword: "Τρέχων Κωδικός",
+      newPassword: "Νέος Κωδικός",
+      confirmPassword: "Επιβεβαίωση Νέου Κωδικού",
+      updatePassword: "Ενημέρωση Κωδικού",
+      twoFactorTitle: "Έλεγχος Ταυτότητας Δύο Παραγόντων",
+      twoFactorDescription: "Προσθέστε ένα επιπλέον επίπεδο ασφάλειας στο λογαριασμό σας",
+    },
+    notifications: {
+      title: "Ειδοποιήσεις",
+      subtitle: "Ρυθμίστε πώς λαμβάνετε ειδοποιήσεις",
+      emailNotifications: "Ειδοποιήσεις Email",
+      emailDescription: "Λάβετε ειδοποιήσεις email για σημαντικές ενημερώσεις",
+      pushNotifications: "Push Ειδοποιήσεις",
+      pushDescription: "Λάβετε push ειδοποιήσεις στην κινητή συσκευή σας",
+      maintenanceReminders: "Υπενθυμίσεις Συντήρησης",
+      maintenanceDescription: "Λάβετε ειδοποιήσεις όταν τα οχήματα χρειάζονται σέρβις",
+      bookingAlerts: "Ειδοποιήσεις Κρατήσεων",
+      bookingDescription: "Λάβετε ειδοποιήσεις για νέες κρατήσεις και ακυρώσεις",
+    },
+    dangerZone: {
+      title: "Ζώνη Κινδύνου",
+      subtitle: "Οι ενέργειες εδώ δεν μπορούν να αναιρεθούν",
+      signOutAll: "Αποσύνδεση από όλες τις συσκευές",
+      signOutDescription: "Αποσυνδεθείτε από όλες τις συσκευές όπου είστε συνδεδεμένοι",
+      deleteAccount: "Διαγραφή λογαριασμού",
+      deleteDescription: "Διαγράψτε μόνιμα τον λογαριασμό σας και όλα τα δεδομένα σας",
+      signOutButton: "Αποσύνδεση Όλων",
+      deleteButton: "Διαγραφή Λογαριασμού",
+    },
+    language: {
+      title: "Ρυθμίσεις Γλώσσας",
+      subtitle: "Αλλάξτε την προτιμώμενη γλώσσα σας",
+      languageLabel: "Γλώσσα Διεπαφής",
+      english: "Αγγλικά",
+      greek: "Ελληνικά",
+    },
+    profileUpdated: "Το Προφίλ Ενημερώθηκε",
+    profileUpdateSuccess: "Οι πληροφορίες του προφίλ σας αποθηκεύτηκαν",
+    photoUpdated: "Η Φωτογραφία Προφίλ Ενημερώθηκε",
+    photoUpdateSuccess: "Η φωτογραφία προφίλ σας ενημερώθηκε με επιτυχία",
+    languageUpdated: "Η Γλώσσα Ενημερώθηκε",
+    languageUpdateSuccess: "Η προτίμηση γλώσσας σας έχει οριστεί στα Ελληνικά",
+
+    // Sign Up
+    signup: {
+      createAccount: "Δημιουργία λογαριασμού",
+      getStarted: "Εγγραφείτε για να ξεκινήσετε με το λογισμικό διαχείρισης ενοικιάσεων",
+      businessName: "Όνομα Επιχείρησης",
+      enterBusinessName: "Εισάγετε το όνομα της επιχείρησής σας",
+      email: "Διεύθυνση Email",
+      enterEmail: "Εισάγετε το email σας",
+      password: "Κωδικός",
+      enterPassword: "Εισάγετε τον κωδικό σας",
+      businessType: "Τύπος Επιχείρησης",
+      selectBusinessType: "Επιλέξτε τον τύπο της επιχείρησής σας",
+      carRental: "Επιχείρηση Ενοικίασης Αυτοκινήτων",
+      boatRental: "Επιχείρηση Ενοικίασης Σκαφών",
+      signUp: "Εγγραφή",
+      alreadyHaveAccount: "Έχετε ήδη λογαριασμό;",
+      login: "Σύνδεση",
+      passwordWeak: "Αδύναμος",
+      passwordMedium: "Μέτριος",
+      passwordStrong: "Ισχυρός",
+      accountCreated: "Ο λογαριασμός δημιουργήθηκε με επιτυχία!",
+      errorCreating: "Σφάλμα κατά τη δημιουργία λογαριασμού. Παρακαλώ δοκιμάστε ξανά.",
+      businessNameRequired: "Το όνομα της επιχείρησης είναι υποχρεωτικό",
+      invalidEmail: "Παρακαλώ εισάγετε μια έγκυρη διεύθυνση email",
+      passwordLength: "Ο κωδικός πρέπει να έχει τουλάχιστον 6 χαρακτήρες",
+      businessTypeRequired: "Παρακαλώ επιλέξτε τον τύπο της επιχείρησής σας"
+    }
+  }
 };
 
-const spanishTranslations: Translations = {
-  fleet: "Flota",
-  finances: "Finanzas",
-  tracking: "Seguimiento",
-  profile: "Perfil",
-  addVehicle: "Añadir Vehículo",
-  searchVehicles: "Buscar Vehículos",
-  noVehicles: "No hay vehículos",
-  noSearchResults: "No hay resultados",
-  vehicleAdded: "Vehículo Añadido",
-  vehicleAddedDesc: "El vehículo ha sido añadido a tu flota.",
-  make: "Marca",
-  model: "Modelo",
-  year: "Año",
-  type: "Tipo",
-  licensePlate: "Matrícula",
-  dailyRate: "Tarifa Diaria",
-  mileage: "Kilometraje",
-  cancel: "Cancelar",
-  adding: "Añadiendo...",
-  add: "Añadir",
-  uploadPhoto: "Subir Foto",
-  photoRestrictions: "Las fotos deben ser en formato JPG o PNG, hasta 5MB",
-  vehicleTypes: "Tipos de Vehículos",
-  sedan: "Sedán",
-  suv: "SUV",
-  economy: "Económico",
-  luxury: "Lujo",
-  van: "Furgoneta",
-  ourFleet: "Nuestra Flota",
-  addNewBoat: "Añadir Nuevo Barco",
-  noBoats: "No hay barcos todavía",
-  noBoatsDesc: "Añade tu primer barco para comenzar a gestionar tu flota",
-  addYourFirstBoat: "Añadir Tu Primer Barco",
-  available: "Disponible",
-  rented: "Alquilado",
-  maintenance: "Mantenimiento",
-  repair: "Necesita Reparación",
-  myProfile: "Mi Perfil",
-  profileSubtitle: "Gestione su información personal, seguridad de la cuenta y preferencias",
-  photoUpdated: "Foto de Perfil Actualizada",
-  photoUpdateSuccess: "Su foto de perfil ha sido actualizada con éxito",
-  profileUpdated: "Perfil Actualizado",
-  profileUpdateSuccess: "Su perfil ha sido actualizado con éxito",
-  tabs: {
-    account: "Cuenta",
-    security: "Seguridad",
-    settings: "Configuración"
-  },
-  personalInfo: {
-    title: "Información Personal",
-    subtitle: "Actualice sus datos personales",
-    uploadPhoto: "Subir Foto",
-    photoRestriction: "JPG o PNG, máx 5MB",
-    firstName: "Nombre",
-    lastName: "Apellido",
-    email: "Correo Electrónico",
-    phone: "Teléfono",
-    company: "Empresa",
-    saving: "Guardando...",
-    saveChanges: "Guardar Cambios"
-  },
-  language: {
-    title: "Preferencias de Idioma",
-    subtitle: "Elija su idioma preferido",
-    languageLabel: "Idioma",
-    english: "Inglés",
-    greek: "Griego"
-  },
-  security: {
-    title: "Configuración de Seguridad",
-    subtitle: "Gestione la seguridad de su cuenta",
-    currentPassword: "Contraseña Actual",
-    newPassword: "Nueva Contraseña",
-    confirmPassword: "Confirmar Contraseña",
-    updatePassword: "Actualizar Contraseña",
-    twoFactorTitle: "Autenticación de Dos Factores",
-    twoFactorDescription: "Añada una capa extra de seguridad a su cuenta"
-  },
-  notifications: {
-    title: "Preferencias de Notificación",
-    subtitle: "Gestione cómo recibe notificaciones",
-    emailNotifications: "Notificaciones por Correo",
-    emailDescription: "Reciba actualizaciones importantes por correo electrónico",
-    pushNotifications: "Notificaciones Push",
-    pushDescription: "Reciba alertas en su dispositivo",
-    maintenanceReminders: "Recordatorios de Mantenimiento",
-    maintenanceDescription: "Reciba recordatorios sobre el mantenimiento de vehículos",
-    bookingAlerts: "Alertas de Reservas",
-    bookingDescription: "Reciba notificaciones sobre nuevas reservas"
-  },
-  dangerZone: {
-    title: "Zona de Peligro",
-    subtitle: "Gestione la eliminación de la cuenta y las opciones de cierre de sesión",
-    signOutAll: "Cerrar Sesión en Todos los Dispositivos",
-    signOutDescription: "Cierre sesión de todas las sesiones en todos los dispositivos",
-    signOutButton: "Cerrar Sesión en Todos",
-    deleteAccount: "Eliminar Cuenta",
-    deleteDescription: "Elimine permanentemente su cuenta y todos los datos asociados",
-    deleteButton: "Eliminar Cuenta"
-  },
-  signup: {
-    title: "Registrarse",
-    subtitle: "Crea tu cuenta FlitX",
-    passwordWeak: "Débil",
-    passwordMedium: "Medio",
-    passwordStrong: "Fuerte",
-    businessNameRequired: "El nombre de la empresa es obligatorio",
-    invalidEmail: "Dirección de correo electrónico inválida",
-    passwordLength: "La contraseña debe tener al menos 6 caracteres",
-    businessTypeRequired: "El tipo de negocio es obligatorio",
-    accountCreated: "¡Cuenta creada con éxito!",
-    errorCreating: "Error al crear la cuenta. Por favor, inténtelo de nuevo.",
-    createAccount: "Crear Cuenta",
-    getStarted: "Comienza con la gestión de tu flota",
-    businessName: "Nombre de la Empresa",
-    enterBusinessName: "Introduce el nombre de tu empresa",
-    email: "Correo Electrónico",
-    enterEmail: "Introduce tu dirección de correo electrónico",
-    password: "Contraseña",
-    enterPassword: "Crea una contraseña",
-    businessType: "Tipo de Negocio",
-    selectBusinessType: "Selecciona tu tipo de negocio",
-    carRental: "Alquiler de Coches",
-    boatRental: "Alquiler de Barcos",
-    signUp: "Registrarse",
-    alreadyHaveAccount: "¿Ya tienes una cuenta?",
-    login: "Iniciar Sesión",
-    welcomeBack: "Bienvenido de nuevo a tu panel"
-  },
-  marinaOverview: "Vista General de la Marina",
-  newBoatSlip: "Nuevo Espacio"
+type LanguageContextType = {
+  language: "en" | "el";
+  setLanguage: (lang: "en" | "el") => void;
+  t: typeof translations.en;
 };
 
-interface LanguageContextType {
-  language: string;
-  setLanguage: (lang: string) => void;
-  t: Translations;
+const LanguageContext = createContext<LanguageContextType | null>(null);
+
+export const useLanguage = () => {
+  const context = useContext(LanguageContext);
+  if (!context) {
+    throw new Error("useLanguage must be used within a LanguageProvider");
+  }
+  return context;
+};
+
+interface LanguageProviderProps {
+  children: ReactNode;
 }
 
-const LanguageContext = createContext<LanguageContextType>({
-  language: 'en',
-  setLanguage: () => {},
-  t: englishTranslations,
-});
+export const LanguageProvider = ({ children }: LanguageProviderProps) => {
+  const [language, setLanguageState] = useState<"en" | "el">("en");
+  const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Initialize language from localStorage on first render
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem("language");
+    if (savedLanguage === "el" || savedLanguage === "en") {
+      setLanguageState(savedLanguage);
+    }
+    setIsInitialized(true);
+  }, []);
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguage] = useState('en');
-  const t = language === 'es' ? spanishTranslations : englishTranslations;
+  const setLanguage = (lang: "en" | "el") => {
+    setLanguageState(lang);
+    localStorage.setItem("language", lang);
+  };
+  
+  // Current translations based on selected language
+  const t = translations[language];
+  
+  // Only render children after we've checked localStorage for language preference
+  if (!isInitialized) {
+    return null;
+  }
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, t }}>
       {children}
     </LanguageContext.Provider>
   );
-}
-
-export function useLanguage() {
-  return useContext(LanguageContext);
-}
+};
