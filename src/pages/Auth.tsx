@@ -34,7 +34,7 @@ type SignUpFormValues = z.infer<typeof signUpSchema>;
 type SignInFormValues = z.infer<typeof signInSchema>;
 
 const AuthPage = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const mode = searchParams.get("mode") || "signin";
   const navigate = useNavigate();
   const location = useLocation();
@@ -94,7 +94,7 @@ const AuthPage = () => {
           });
           
           toast.success("Account created! You can now sign in");
-          navigate('/auth?mode=signin');
+          setSearchParams({ mode: "signin" });
         } catch (error: any) {
           console.error("Signup error:", error);
           toast.error(error.message || "Error during signup");
@@ -124,7 +124,7 @@ const AuthPage = () => {
   };
 
   const toggleMode = () => {
-    navigate(`/auth?mode=${mode === "signup" ? "signin" : "signup"}`);
+    setSearchParams({ mode: mode === "signup" ? "signin" : "signup" });
     form.reset();
   };
 

@@ -13,26 +13,18 @@ const Profile = () => {
   const { user, loading } = useAuth();
   const { isTestMode } = useTestMode();
   const navigate = useNavigate();
-  const [isReady, setIsReady] = useState(false);
+  
+  // Remove the isReady state as it's causing the endless loading
   
   useEffect(() => {
-    // Don't do any redirects if test mode is enabled
-    if (isTestMode) {
-      setIsReady(true);
-      return;
-    }
-    
-    // Only check auth if not in test mode and loading is complete
-    if (!loading) {
-      setIsReady(true);
-      if (!user && !isTestMode) {
-        navigate('/auth?mode=signin');
-      }
+    // Only redirect if not in test mode, not loading, and no user
+    if (!isTestMode && !loading && !user) {
+      navigate('/auth?mode=signin');
     }
   }, [user, loading, isTestMode, navigate]);
   
-  // Show loading spinner while checking authentication or initializing
-  if (!isReady || (!isTestMode && loading)) {
+  // Show loading spinner only while checking authentication
+  if (!isTestMode && loading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
