@@ -15,25 +15,127 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { BarChart, LineChart, PieChart } from "@/components/finances/charts";
-import { TrendingUp, TrendingDown, Plus, Filter } from "lucide-react";
+import { TrendingUp, TrendingDown, Plus, Filter, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isBoatBusiness } from "@/utils/businessTypeUtils";
+
+interface FinancialRecord {
+  id: string;
+  record_type: string;
+  category: string;
+  amount: number;
+  date: string;
+  description: string;
+}
 
 interface FinanceDashboardProps {
   onAddRecord?: () => void;
+  financialRecords?: FinancialRecord[];
+  isLoading?: boolean;
 }
 
-export function FinanceDashboard({ onAddRecord }: FinanceDashboardProps) {
+export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading = false }: FinanceDashboardProps) {
   const [timeframe, setTimeframe] = useState("month");
+  const isBoats = isBoatBusiness();
   
-  // Summary data
-  const summaryData = {
-    totalIncome: 24850.75,
-    totalExpenses: 9725.35,
-    netProfit: 15125.40,
-    incomeChange: 8.5,
-    expenseChange: 3.2,
-    profitChange: 12.7
+  // Calculate summary data from financial records
+  const calculateSummaryData = () => {
+    // Get only records from the selected timeframe
+    let filteredRecords = [...financialRecords];
+    
+    if (timeframe === "week") {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      filteredRecords = financialRecords.filter(record => 
+        new Date(record.date) >= oneWeekAgo
+      );
+    } else if (timeframe === "month") {
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      filteredRecords = financialRecords.filter(record => 
+        new Date(record.date) >= oneMonthAgo
+      );
+    } else if (timeframe === "quarter") {
+      const oneQuarterAgo = new Date();
+      oneQuarterAgo.setMonth(oneQuarterAgo.getMonth() - 3);
+      filteredRecords = financialRecords.filter(record => 
+        new Date(record.date) >= oneQuarterAgo
+      );
+    } else if (timeframe === "year") {
+      const oneYearAgo = new Date();
+      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+      filteredRecords = financialRecords.filter(record => 
+        new Date(record.date) >= oneYearAgo
+      );
+    }
+    
+    // Calculate totals
+    const incomeRecords = filteredRecords.filter(record => record.record_type === "income");
+    const expenseRecords = filteredRecords.filter(record => record.record_type === "expense");
+    
+    const totalIncome = incomeRecords.reduce((sum, record) => sum + record.amount, 0);
+    const totalExpenses = expenseRecords.reduce((sum, record) => sum + record.amount, 0);
+    const netProfit = totalIncome - totalExpenses;
+    
+    // Calculate previous period for comparison
+    let prevPeriodStart = new Date();
+    let currentPeriodStart = new Date();
+    
+    if (timeframe === "week") {
+      prevPeriodStart.setDate(prevPeriodStart.getDate() - 14);
+      currentPeriodStart.setDate(currentPeriodStart.getDate() - 7);
+    } else if (timeframe === "month") {
+      prevPeriodStart.setMonth(prevPeriodStart.getMonth() - 2);
+      currentPeriodStart.setMonth(currentPeriodStart.getMonth() - 1);
+    } else if (timeframe === "quarter") {
+      prevPeriodStart.setMonth(prevPeriodStart.getMonth() - 6);
+      currentPeriodStart.setMonth(currentPeriodStart.getMonth() - 3);
+    } else if (timeframe === "year") {
+      prevPeriodStart.setFullYear(prevPeriodStart.getFullYear() - 2);
+      currentPeriodStart.setFullYear(currentPeriodStart.getFullYear() - 1);
+    }
+    
+    const prevPeriodRecords = financialRecords.filter(record => 
+      new Date(record.date) >= prevPeriodStart && new Date(record.date) < currentPeriodStart
+    );
+    
+    const prevIncomeRecords = prevPeriodRecords.filter(record => record.record_type === "income");
+    const prevExpenseRecords = prevPeriodRecords.filter(record => record.record_type === "expense");
+    
+    const prevTotalIncome = prevIncomeRecords.reduce((sum, record) => sum + record.amount, 0);
+    const prevTotalExpenses = prevExpenseRecords.reduce((sum, record) => sum + record.amount, 0);
+    const prevNetProfit = prevTotalIncome - prevTotalExpenses;
+    
+    // Calculate percentage changes
+    const incomeChange = prevTotalIncome === 0 ? 100 : ((totalIncome - prevTotalIncome) / prevTotalIncome) * 100;
+    const expenseChange = prevTotalExpenses === 0 ? 100 : ((totalExpenses - prevTotalExpenses) / prevTotalExpenses) * 100;
+    const profitChange = prevNetProfit === 0 ? 100 : ((netProfit - prevNetProfit) / Math.abs(prevNetProfit)) * 100;
+    
+    return {
+      totalIncome,
+      totalExpenses,
+      netProfit,
+      incomeChange: isNaN(incomeChange) ? 0 : parseFloat(incomeChange.toFixed(1)),
+      expenseChange: isNaN(expenseChange) ? 0 : parseFloat(expenseChange.toFixed(1)),
+      profitChange: isNaN(profitChange) ? 0 : parseFloat(profitChange.toFixed(1))
+    };
   };
+
+  const summaryData = calculateSummaryData();
+  
+  // Get recent transactions
+  const recentTransactions = [...financialRecords]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5);
+  
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 gap-4">
+        <Loader2 className="h-12 w-12 animate-spin text-flitx-blue" />
+        <p className="text-flitx-gray-500">Loading financial data...</p>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6 animate-fade-in">
@@ -73,7 +175,7 @@ export function FinanceDashboard({ onAddRecord }: FinanceDashboardProps) {
           title="Total Income" 
           value={summaryData.totalIncome} 
           change={summaryData.incomeChange} 
-          trend="up" 
+          trend={summaryData.incomeChange >= 0 ? "up" : "down"} 
           prefix="$" 
         />
         
@@ -81,7 +183,7 @@ export function FinanceDashboard({ onAddRecord }: FinanceDashboardProps) {
           title="Total Expenses" 
           value={summaryData.totalExpenses} 
           change={summaryData.expenseChange} 
-          trend="up" 
+          trend={summaryData.expenseChange >= 0 ? "up" : "down"} 
           prefix="$"
           trendReversed
         />
@@ -90,7 +192,7 @@ export function FinanceDashboard({ onAddRecord }: FinanceDashboardProps) {
           title="Net Profit" 
           value={summaryData.netProfit} 
           change={summaryData.profitChange} 
-          trend="up" 
+          trend={summaryData.profitChange >= 0 ? "up" : "down"} 
           prefix="$"
         />
       </div>
@@ -132,35 +234,21 @@ export function FinanceDashboard({ onAddRecord }: FinanceDashboardProps) {
             <CardTitle className="text-lg">Recent Transactions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <TransactionItem 
-                description="Vehicle Rental - Toyota Corolla"
-                amount={45}
-                date="Apr 5, 2023"
-                type="income"
-              />
-              
-              <TransactionItem 
-                description="Fuel Purchase - Gas Station"
-                amount={35.75}
-                date="Apr 4, 2023"
-                type="expense"
-              />
-              
-              <TransactionItem 
-                description="Vehicle Rental - Fiat Panda"
-                amount={40}
-                date="Apr 4, 2023"
-                type="income"
-              />
-              
-              <TransactionItem 
-                description="Maintenance - Oil Change"
-                amount={65.50}
-                date="Apr 2, 2023"
-                type="expense"
-              />
-            </div>
+            {recentTransactions.length > 0 ? (
+              <div className="space-y-4">
+                {recentTransactions.map(record => (
+                  <TransactionItem 
+                    key={record.id}
+                    description={record.description}
+                    amount={record.amount}
+                    date={new Date(record.date).toLocaleDateString()}
+                    type={record.record_type}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-flitx-gray-400 py-8">No recent transactions found</p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -192,7 +280,7 @@ function SummaryCard({ title, value, change, trend, prefix = "", trendReversed =
             ) : (
               <TrendingDown className="h-4 w-4 mr-1" />
             )}
-            {change}%
+            {Math.abs(change)}%
           </div>
         </div>
       </CardContent>
