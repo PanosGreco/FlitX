@@ -239,6 +239,59 @@ export type Database = {
           },
         ]
       }
+      vehicle_reminders: {
+        Row: {
+          created_at: string
+          description: string | null
+          event_date: string
+          frequency: string
+          id: string
+          is_completed: boolean
+          is_predefined: boolean
+          notification_days: number
+          title: string
+          updated_at: string
+          user_id: string
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          event_date: string
+          frequency: string
+          id?: string
+          is_completed?: boolean
+          is_predefined?: boolean
+          notification_days: number
+          title: string
+          updated_at?: string
+          user_id: string
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          event_date?: string
+          frequency?: string
+          id?: string
+          is_completed?: boolean
+          is_predefined?: boolean
+          notification_days?: number
+          title?: string
+          updated_at?: string
+          user_id?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_reminders_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicle_tracking: {
         Row: {
           heading: number | null
