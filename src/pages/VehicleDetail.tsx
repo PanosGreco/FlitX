@@ -26,6 +26,7 @@ interface Vehicle {
   totalServiceCost: number;
   fuelCosts: number;
   milesPerDay: number;
+  image?: string;
 }
 
 const VehicleDetail = () => {
@@ -53,7 +54,8 @@ const VehicleDetail = () => {
               model: data.model || 'Unknown',
               year: data.year || 2023,
               type: data.type || 'Unknown',
-              mileage: data.mileage || 0,
+              // Convert miles to kilometers if needed
+              mileage: data.mileage ? (data.mileage * 1.60934) : 0,
               status: data.status || 'available',
               licensePlate: data.license_plate || 'N/A',
               fuelLevel: data.fuel_level || 0,
@@ -66,7 +68,8 @@ const VehicleDetail = () => {
               serviceReminders: 0,
               totalServiceCost: 0,
               fuelCosts: 0,
-              milesPerDay: 0
+              milesPerDay: 0,
+              image: data.image || undefined
             };
             setVehicle(vehicleData);
           }
@@ -81,11 +84,18 @@ const VehicleDetail = () => {
     fetchVehicle();
   }, [id]);
   
+  // Find the matching sample vehicle to get the image if not available from Supabase
+  const sampleVehicle = id ? sampleVehicles.find(v => v.id === id) : null;
+  const vehicleWithImage = vehicle ? {
+    ...vehicle,
+    image: vehicle.image || (sampleVehicle ? sampleVehicle.image : undefined)
+  } : null;
+  
   return (
     <MobileLayout>
       <VehicleDetails 
         vehicleId={id} 
-        vehicles={vehicle ? [vehicle] : sampleVehicles} 
+        vehicles={vehicleWithImage ? [vehicleWithImage] : sampleVehicles} 
         loading={loading}
       />
     </MobileLayout>

@@ -83,7 +83,8 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
     serviceReminders: 0,
     totalServiceCost: 0,
     fuelCosts: 0,
-    milesPerDay: 0
+    milesPerDay: 0,
+    image: undefined
   };
   
   const safeNumber = (value: any) => {
@@ -201,9 +202,19 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
           ) : (
             <div className="flex flex-col md:flex-row md:items-center gap-4 pb-2">
               <div className="flex-shrink-0">
-                <div className="h-20 w-20 bg-flitx-gray-100 rounded-lg flex items-center justify-center">
-                  <Car className="h-10 w-10 text-flitx-gray-400" />
-                </div>
+                {vehicle.image ? (
+                  <div className="h-20 w-20 rounded-lg overflow-hidden">
+                    <img
+                      src={vehicle.image}
+                      alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="h-20 w-20 bg-flitx-gray-100 rounded-lg flex items-center justify-center">
+                    <Car className="h-10 w-10 text-flitx-gray-400" />
+                  </div>
+                )}
               </div>
               
               <div className="flex-1">
@@ -222,7 +233,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                   <span className="mx-2">•</span>
                   <span>{vehicle.licensePlate}</span>
                   <span className="mx-2">•</span>
-                  <span>{safeNumber(vehicle.mileage).toLocaleString()} mi</span>
+                  <span>{safeNumber(vehicle.mileage).toLocaleString()} km</span>
                 </div>
               </div>
               
@@ -265,12 +276,12 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                         <CardContent>
                           <div className="grid grid-cols-2 gap-y-4 mt-2">
                             <div>
-                              <div className="text-sm text-flitx-gray-500">MPG</div>
-                              <div className="font-semibold text-2xl">{vehicle.mpg || 0}</div>
+                              <div className="text-sm text-flitx-gray-500">Fuel Economy</div>
+                              <div className="font-semibold text-2xl">{vehicle.mpg || 0} km/L</div>
                             </div>
                             
                             <div>
-                              <div className="text-sm text-flitx-gray-500">Cost/Mi</div>
+                              <div className="text-sm text-flitx-gray-500">Cost/Km</div>
                               <div className="font-semibold text-2xl">${vehicle.costPerMile || 0}</div>
                             </div>
                             
@@ -285,7 +296,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                             </div>
                             
                             <div>
-                              <div className="text-sm text-flitx-gray-500">Miles/Day</div>
+                              <div className="text-sm text-flitx-gray-500">Km/Day</div>
                               <div className="font-semibold text-2xl">{vehicle.milesPerDay || 0}</div>
                             </div>
                           </div>
@@ -309,7 +320,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                               
                               <div className="flex-1">
                                 <div className="text-sm text-flitx-gray-500 mb-1">Estimated Range</div>
-                                <div className="font-medium">415 miles</div>
+                                <div className="font-medium">670 km</div>
                               </div>
                             </div>
                           </div>
@@ -331,7 +342,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                               </div>
                               <div className="ml-3">
                                 <div className="text-sm text-flitx-gray-500">Next Service</div>
-                                <div className="font-semibold">In 2,500 mi</div>
+                                <div className="font-semibold">In 4,000 km</div>
                               </div>
                             </div>
                             
@@ -359,18 +370,18 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                             
                             <div className="text-sm text-flitx-gray-500">Oil Change Status</div>
                             <Progress value={65} className="h-2" />
-                            <div className="text-xs text-right text-flitx-gray-400">2,500 mi remaining</div>
+                            <div className="text-xs text-right text-flitx-gray-400">4,000 km remaining</div>
                           </div>
                         </CardContent>
                       </Card>
                     </div>
                   </TabsContent>
                   
-                  <TabsContent value="maintenance" className="mt-0">
+                  <TabsContent value="maintenance" className="mt-4">
                     <VehicleMaintenance vehicleId={vehicle.id} updateExpenses={handleUpdateExpenses} />
                   </TabsContent>
                   
-                  <TabsContent value="damage">
+                  <TabsContent value="damage" className="mt-4">
                     <Card>
                       <CardContent className="pt-6">
                         <div className="text-center py-8 text-flitx-gray-500">
@@ -387,7 +398,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                     </Card>
                   </TabsContent>
                   
-                  <TabsContent value="documents">
+                  <TabsContent value="documents" className="mt-4">
                     <Card>
                       <CardContent className="pt-6">
                         {documents.length === 0 ? (
@@ -441,11 +452,11 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                     </Card>
                   </TabsContent>
                   
-                  <TabsContent value="reminders" className="mt-0">
+                  <TabsContent value="reminders" className="mt-4">
                     <VehicleReminders vehicleId={vehicle.id} />
                   </TabsContent>
                   
-                  <TabsContent value="availability">
+                  <TabsContent value="availability" className="mt-4">
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-lg flex items-center">
@@ -499,7 +510,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                     </Card>
                   </TabsContent>
                   
-                  <TabsContent value="finance">
+                  <TabsContent value="finance" className="mt-4">
                     <Card>
                       <CardHeader className="pb-2">
                         <div className="flex justify-between items-center">

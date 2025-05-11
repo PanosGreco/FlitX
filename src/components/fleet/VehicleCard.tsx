@@ -85,7 +85,7 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
         
         <div className="mt-3 flex justify-between items-center">
           <div className="text-xs text-flitx-gray-400">
-            {vehicle.mileage.toLocaleString()} mi
+            {vehicle.mileage.toLocaleString()} km
           </div>
           
           <div className="flex items-center text-flitx-blue font-semibold">
