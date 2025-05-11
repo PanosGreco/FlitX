@@ -1,15 +1,27 @@
 
 import { useEffect, useRef, useState } from "react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-// Use a placeholder API key first, we'll update this with environmental configuration
-// Note: This is a public token that can be visible in the client-side code
-const MAPBOX_TOKEN = "pk.eyJ1IjoibG92YWJsZS1kZXYiLCJhIjoiY2xwcnB5cGVzMDAxdDJqcG5mZGp3OWR3NCJ9.lRghplAEilD7XsOizdV4Gw";
+// Dynamically import mapbox-gl to handle build issues
+let mapboxgl: any = null;
+try {
+  // Use dynamic import with error handling
+  import('mapbox-gl').then(module => {
+    mapboxgl = module.default;
+    // Use a placeholder API key first, we'll update this with environmental configuration
+    const MAPBOX_TOKEN = "pk.eyJ1IjoibG92YWJsZS1kZXYiLCJhIjoiY2xwcnB5cGVzMDAxdDJqcG5mZGp3OWR3NCJ9.lRghplAEilD7XsOizdV4Gw";
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+  }).catch(err => {
+    console.error("Failed to load mapbox-gl:", err);
+  });
+} catch (err) {
+  console.error("Error importing mapbox-gl:", err);
+}
 
-mapboxgl.accessToken = MAPBOX_TOKEN;
+// Import CSS separately to prevent issues
+import 'mapbox-gl/dist/mapbox-gl.css';
 
 interface Vehicle {
   id: string;
@@ -31,14 +43,21 @@ interface MapComponentProps {
 
 export function MapComponent({ selectedVehicle, vehicles, onVehiclePositionUpdate }: MapComponentProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<mapboxgl.Map | null>(null);
-  const markers = useRef<{ [key: string]: mapboxgl.Marker }>({});
+  const map = useRef<any>(null);
+  const markers = useRef<{ [key: string]: any }>({});
   const [mapLoaded, setMapLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Check if mapbox is available
+  useEffect(() => {
+    if (!mapboxgl) {
+      setError("Mapbox GL library could not be loaded. Please check your internet connection or try again later.");
+    }
+  }, []);
+
   // Initialize map
   useEffect(() => {
-    if (!mapContainer.current || map.current) return;
+    if (!mapContainer.current || map.current || !mapboxgl) return;
 
     try {
       map.current = new mapboxgl.Map({
@@ -59,7 +78,7 @@ export function MapComponent({ selectedVehicle, vehicles, onVehiclePositionUpdat
       });
 
       // Enable drop functionality for vehicles
-      map.current.on("click", (e) => {
+      map.current.on("click", (e: any) => {
         if (selectedVehicle && onVehiclePositionUpdate) {
           onVehiclePositionUpdate(
             selectedVehicle, 
@@ -77,11 +96,11 @@ export function MapComponent({ selectedVehicle, vehicles, onVehiclePositionUpdat
       map.current?.remove();
       map.current = null;
     };
-  }, []);
+  }, [mapboxgl]);
 
   // Update markers when vehicles or selected vehicle changes
   useEffect(() => {
-    if (!map.current || !mapLoaded) return;
+    if (!map.current || !mapLoaded || !mapboxgl) return;
 
     // Clear existing markers
     Object.values(markers.current).forEach(marker => marker.remove());
@@ -134,7 +153,7 @@ export function MapComponent({ selectedVehicle, vehicles, onVehiclePositionUpdat
         }
       }
     });
-  }, [vehicles, selectedVehicle, mapLoaded]);
+  }, [vehicles, selectedVehicle, mapLoaded, mapboxgl]);
 
   if (error) {
     return (

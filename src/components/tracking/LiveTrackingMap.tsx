@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { 
   Card, 
   CardContent,
@@ -16,6 +16,7 @@ import { VehicleTrackingList } from "./VehicleTrackingList";
 import { updateVehicleLocation, getLatestVehicleLocation } from "@/services/vehicleTrackingService";
 import { supabase } from "@/integrations/supabase/client";
 import { sampleVehicles } from "@/lib/data";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Vehicle {
   id: string;
@@ -201,26 +202,33 @@ export function LiveTrackingMap() {
         {/* Map Area */}
         <Card className="lg:col-span-3 h-[60vh]">
           <CardContent className="p-0 rounded-lg overflow-hidden h-full">
-            {mapError ? (
+            <Suspense fallback={
               <div className="flex flex-col items-center justify-center h-full bg-gray-50">
-                <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-                <h3 className="text-lg font-medium mb-2">Map could not be loaded</h3>
-                <p className="text-sm text-flitx-gray-500 text-center max-w-md mb-4">
-                  To view live vehicle tracking, please connect a Mapbox API key or other map provider.
-                </p>
-                <Button 
-                  className="bg-flitx-blue hover:bg-flitx-blue-600"
-                >
-                  Connect Map API
-                </Button>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-flitx-blue mb-4"></div>
+                <p className="text-flitx-gray-500">Loading map components...</p>
               </div>
-            ) : (
-              <MapComponent 
-                selectedVehicle={selectedVehicle}
-                vehicles={vehicles}
-                onVehiclePositionUpdate={handleVehiclePositionUpdate}
-              />
-            )}
+            }>
+              {mapError ? (
+                <div className="flex flex-col items-center justify-center h-full bg-gray-50">
+                  <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
+                  <h3 className="text-lg font-medium mb-2">Map could not be loaded</h3>
+                  <p className="text-sm text-flitx-gray-500 text-center max-w-md mb-4">
+                    To view live vehicle tracking, please connect a Mapbox API key or other map provider.
+                  </p>
+                  <Button 
+                    className="bg-flitx-blue hover:bg-flitx-blue-600"
+                  >
+                    Connect Map API
+                  </Button>
+                </div>
+              ) : (
+                <MapComponent 
+                  selectedVehicle={selectedVehicle}
+                  vehicles={vehicles}
+                  onVehiclePositionUpdate={handleVehiclePositionUpdate}
+                />
+              )}
+            </Suspense>
           </CardContent>
         </Card>
       </div>

@@ -21,6 +21,16 @@ export default defineConfig(({ mode }) => ({
     },
   },
   optimizeDeps: {
-    include: ['@supabase/supabase-js']
+    include: ['@supabase/supabase-js', 'mapbox-gl']
+  },
+  build: {
+    rollupOptions: {
+      external: ['mapbox-gl'],
+      output: {
+        globals: {
+          'mapbox-gl': 'mapboxgl'
+        }
+      }
+    }
   }
 }));
