@@ -44,6 +44,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { VehicleMaintenance } from "./VehicleMaintenance";
 import { VehicleReminders } from "./VehicleReminders";
+import { supabase } from "@/integrations/supabase/client";
 
 interface VehicleDetailsProps {
   vehicleId?: string;
@@ -155,26 +156,91 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
     }
   };
 
-  const handleDateSelect = (dates: Date[] | undefined) => {
+  const handleDateSelect = async (dates: Date[] | undefined) => {
     if (!dates) return;
     
     setSelectedDates(dates);
 
     const lastSelectedDate = dates[dates.length - 1];
     if (vehicle.dailyRate && lastSelectedDate) {
-      toast({
-        title: "Rental Income Added",
-        description: `Added $${vehicle.dailyRate} to income for ${lastSelectedDate.toLocaleDateString()}`,
-      });
+      // Record this booking as income in the financial_records table
+      if (vehicleId) {
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          
+          if (session?.session?.user) {
+            const { error } = await supabase.from('financial_records').insert({
+              user_id: session.session.user.id,
+              vehicle_id: vehicleId,
+              record_type: 'income',
+              category: 'sales',
+              amount: vehicle.dailyRate,
+              date: lastSelectedDate.toISOString(),
+              description: `Booking for ${vehicle.make} ${vehicle.model}`
+            });
+            
+            if (error) {
+              console.error("Error recording booking income:", error);
+            } else {
+              toast({
+                title: "Rental Income Added",
+                description: `Added $${vehicle.dailyRate} to income for ${lastSelectedDate.toLocaleDateString()}`,
+              });
+            }
+          } else {
+            console.log("User not authenticated");
+            toast({
+              title: "Authentication Required",
+              description: "Please log in to record bookings",
+              variant: "destructive"
+            });
+          }
+        } catch (err) {
+          console.error("Error in handleDateSelect:", err);
+        }
+      }
     }
   };
 
-  const handleUpdateExpenses = (amount: number) => {
+  const handleUpdateExpenses = async (amount: number, serviceType: string) => {
     setTotalExpenses(prev => prev + amount);
-    toast({
-      title: amount > 0 ? "Expense Added" : "Expense Removed",
-      description: `${amount > 0 ? 'Added' : 'Removed'} $${Math.abs(amount).toFixed(2)} ${amount > 0 ? 'to' : 'from'} total expenses.`,
-    });
+    
+    // Record this maintenance cost as expense in the financial_records table
+    if (vehicleId && amount > 0) {
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        
+        if (session?.session?.user) {
+          const { error } = await supabase.from('financial_records').insert({
+            user_id: session.session.user.id,
+            vehicle_id: vehicleId,
+            record_type: 'expense',
+            category: 'maintenance',
+            amount: amount,
+            date: new Date().toISOString(),
+            description: `Maintenance: ${serviceType} for ${vehicle.make} ${vehicle.model}`
+          });
+          
+          if (error) {
+            console.error("Error recording maintenance expense:", error);
+          } else {
+            toast({
+              title: amount > 0 ? "Expense Added" : "Expense Removed",
+              description: `${amount > 0 ? 'Added' : 'Removed'} $${Math.abs(amount).toFixed(2)} ${amount > 0 ? 'to' : 'from'} total expenses.`,
+            });
+          }
+        } else {
+          console.log("User not authenticated");
+          toast({
+            title: "Authentication Required",
+            description: "Please log in to record expenses",
+            variant: "destructive"
+          });
+        }
+      } catch (err) {
+        console.error("Error in handleUpdateExpenses:", err);
+      }
+    }
   };
 
   return (
@@ -264,8 +330,8 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                 </div>
               ) : (
                 <>
-                  <TabsContent value="details" className="mt-0">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <TabsContent value="details" className="mt-6 space-y-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                       <Card>
                         <CardHeader className="pb-2">
                           <CardTitle className="text-lg flex items-center">
@@ -377,12 +443,12 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                     </div>
                   </TabsContent>
                   
-                  <TabsContent value="maintenance" className="mt-4">
+                  <TabsContent value="maintenance" className="mt-6">
                     <VehicleMaintenance vehicleId={vehicle.id} updateExpenses={handleUpdateExpenses} />
                   </TabsContent>
                   
-                  <TabsContent value="damage" className="mt-4">
-                    <Card>
+                  <TabsContent value="damage" className="mt-6">
+                    <Card className="mb-6">
                       <CardContent className="pt-6">
                         <div className="text-center py-8 text-flitx-gray-500">
                           <AlertTriangle className="mx-auto h-12 w-12 text-flitx-gray-300 mb-3" />
@@ -398,8 +464,8 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                     </Card>
                   </TabsContent>
                   
-                  <TabsContent value="documents" className="mt-4">
-                    <Card>
+                  <TabsContent value="documents" className="mt-6">
+                    <Card className="mb-6">
                       <CardContent className="pt-6">
                         {documents.length === 0 ? (
                           <div className="text-center py-8 text-flitx-gray-500">
@@ -452,12 +518,12 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                     </Card>
                   </TabsContent>
                   
-                  <TabsContent value="reminders" className="mt-4">
+                  <TabsContent value="reminders" className="mt-6">
                     <VehicleReminders vehicleId={vehicle.id} />
                   </TabsContent>
                   
-                  <TabsContent value="availability" className="mt-4">
-                    <Card>
+                  <TabsContent value="availability" className="mt-6">
+                    <Card className="mb-6">
                       <CardHeader className="pb-2">
                         <CardTitle className="text-lg flex items-center">
                           <Calendar className="h-5 w-5 mr-2 text-flitx-blue" />
@@ -510,8 +576,8 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                     </Card>
                   </TabsContent>
                   
-                  <TabsContent value="finance" className="mt-4">
-                    <Card>
+                  <TabsContent value="finance" className="mt-6">
+                    <Card className="mb-6">
                       <CardHeader className="pb-2">
                         <div className="flex justify-between items-center">
                           <CardTitle className="text-lg flex items-center">

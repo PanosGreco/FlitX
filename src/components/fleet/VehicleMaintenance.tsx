@@ -1,529 +1,333 @@
 
-import { useState } from "react";
-import { Wrench, Plus, Calendar, Edit, Trash } from "lucide-react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
+import { Calendar, Plus, Settings2, Wrench } from "lucide-react";
+import { 
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { format, addMonths, addYears } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
 
-interface MaintenanceEntry {
+interface MaintenanceRecord {
   id: string;
-  type: string;
-  date: Date;
+  vehicle_id: string;
+  service_date: string;
+  next_service_date?: string;
+  service_type: string;
   cost: number;
   notes?: string;
-  reminder?: {
-    type: 'once' | '3months' | '6months' | '1year' | 'custom';
-    date: Date;
-  };
 }
 
-interface MaintenanceProps {
+interface VehicleMaintenanceProps {
   vehicleId: string;
-  updateExpenses: (amount: number) => void;
+  updateExpenses?: (amount: number, serviceType: string) => void;
 }
 
-export function VehicleMaintenance({ vehicleId, updateExpenses }: MaintenanceProps) {
-  const [maintenanceHistory, setMaintenanceHistory] = useState<MaintenanceEntry[]>([]);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isReminderDialogOpen, setIsReminderDialogOpen] = useState(false);
-  const [currentEntry, setCurrentEntry] = useState<MaintenanceEntry | null>(null);
-  const [newEntry, setNewEntry] = useState<Partial<MaintenanceEntry>>({
-    type: '',
-    date: new Date(),
-    cost: 0,
-    notes: '',
-  });
-  const [reminderType, setReminderType] = useState<'once' | '3months' | '6months' | '1year' | 'custom'>('once');
-  const [reminderDate, setReminderDate] = useState<Date>(new Date());
-  
+export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMaintenanceProps) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [serviceType, setServiceType] = useState("oil_change");
+  const [serviceDate, setServiceDate] = useState(new Date().toISOString().substring(0, 10));
+  const [nextServiceDate, setNextServiceDate] = useState("");
+  const [cost, setCost] = useState("");
+  const [notes, setNotes] = useState("");
+  const [records, setRecords] = useState<MaintenanceRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-
-  const handleAddNew = () => {
-    setNewEntry({
-      type: '',
-      date: new Date(),
-      cost: 0,
-      notes: '',
-    });
-    setIsAddDialogOpen(true);
-  };
-
-  const handleEditEntry = (entry: MaintenanceEntry) => {
-    setCurrentEntry(entry);
-    setIsEditDialogOpen(true);
-  };
-
-  const handleDeleteEntry = (entryId: string) => {
-    const entryToDelete = maintenanceHistory.find(entry => entry.id === entryId);
-    
-    if (entryToDelete && entryToDelete.cost > 0) {
-      // Subtract the cost from total expenses
-      updateExpenses(-entryToDelete.cost);
+  
+  useEffect(() => {
+    if (vehicleId) {
+      fetchMaintenanceRecords();
     }
-    
-    setMaintenanceHistory(prev => prev.filter(entry => entry.id !== entryId));
-    
-    toast({
-      title: "Maintenance Entry Deleted",
-      description: "The maintenance record has been removed."
-    });
+  }, [vehicleId]);
+  
+  const fetchMaintenanceRecords = async () => {
+    try {
+      setLoading(true);
+      if (!vehicleId) return;
+      
+      const { data, error } = await supabase
+        .from("maintenance_records")
+        .select("*")
+        .eq("vehicle_id", vehicleId)
+        .order("service_date", { ascending: false });
+        
+      if (error) {
+        console.error("Error fetching maintenance records:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load maintenance history",
+          variant: "destructive"
+        });
+      } else {
+        setRecords(data || []);
+      }
+    } catch (error) {
+      console.error("Exception fetching maintenance records:", error);
+    } finally {
+      setLoading(false);
+    }
   };
-
-  const handleSaveNewEntry = () => {
-    if (!newEntry.type) {
+  
+  const handleAddRecord = async () => {
+    if (!serviceType || !serviceDate || !cost) {
       toast({
-        title: "Error",
-        description: "Please enter a maintenance type",
-        variant: "destructive",
+        title: "Missing Information",
+        description: "Please fill in all required fields",
+        variant: "destructive"
       });
       return;
     }
-
-    const entryId = `maintenance-${Date.now()}`;
-    const cost = Number(newEntry.cost) || 0;
     
-    const entry: MaintenanceEntry = {
-      id: entryId,
-      type: newEntry.type,
-      date: newEntry.date || new Date(),
-      cost: cost,
-      notes: newEntry.notes,
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      if (!session?.session?.user) {
+        toast({
+          title: "Authentication Required",
+          description: "Please log in to add maintenance records",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const costValue = parseFloat(cost);
+      
+      const { data, error } = await supabase
+        .from("maintenance_records")
+        .insert([{
+          vehicle_id: vehicleId,
+          user_id: session.session.user.id,
+          service_type: serviceType,
+          service_date: serviceDate,
+          next_service_date: nextServiceDate || null,
+          cost: costValue,
+          notes: notes
+        }])
+        .select();
+        
+      if (error) {
+        console.error("Error adding maintenance record:", error);
+        toast({
+          title: "Error",
+          description: "Failed to add maintenance record",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Maintenance record added"
+        });
+        
+        // Call the updateExpenses function to register this as an expense
+        if (updateExpenses && costValue > 0) {
+          updateExpenses(costValue, getServiceTypeLabel(serviceType));
+        }
+        
+        // Reset form and refresh records
+        setServiceType("oil_change");
+        setServiceDate(new Date().toISOString().substring(0, 10));
+        setNextServiceDate("");
+        setCost("");
+        setNotes("");
+        setIsDialogOpen(false);
+        fetchMaintenanceRecords();
+      }
+    } catch (error) {
+      console.error("Exception adding maintenance record:", error);
+    }
+  };
+  
+  const getServiceTypeLabel = (type: string) => {
+    const labels: {[key: string]: string} = {
+      oil_change: "Oil Change",
+      tire_rotation: "Tire Rotation",
+      full_service: "Full Service",
+      filter_replacement: "Filter Replacement",
+      brake_service: "Brake Service",
+      battery_replacement: "Battery Replacement",
+      other: "Other Service"
     };
-
-    setMaintenanceHistory(prev => [...prev, entry]);
     
-    if (cost > 0) {
-      // Add the cost to total expenses
-      updateExpenses(cost);
-    }
-    
-    toast({
-      title: "Maintenance Added",
-      description: `${newEntry.type} maintenance record added successfully.`
-    });
-    
-    setIsAddDialogOpen(false);
+    return labels[type] || type;
   };
-
-  const handleUpdateEntry = () => {
-    if (!currentEntry) return;
-
-    const originalEntry = maintenanceHistory.find(entry => entry.id === currentEntry.id);
-    const costDifference = (currentEntry.cost || 0) - (originalEntry?.cost || 0);
-    
-    setMaintenanceHistory(prev => 
-      prev.map(entry => 
-        entry.id === currentEntry.id ? currentEntry : entry
-      )
-    );
-    
-    // Update expenses if the cost has changed
-    if (costDifference !== 0) {
-      updateExpenses(costDifference);
-    }
-    
-    toast({
-      title: "Maintenance Updated",
-      description: `${currentEntry.type} maintenance record updated successfully.`
-    });
-    
-    setIsEditDialogOpen(false);
-  };
-
-  const openReminderDialog = () => {
-    setReminderType('once');
-    setReminderDate(new Date());
-    setIsReminderDialogOpen(true);
-  };
-
-  const handleSetReminder = () => {
-    if (!newEntry && !currentEntry) return;
-    
-    let reminderObj = {
-      type: reminderType,
-      date: reminderDate,
-    };
-    
-    if (isAddDialogOpen) {
-      setNewEntry(prev => ({
-        ...prev,
-        reminder: reminderObj,
-      }));
-    } else if (currentEntry) {
-      setCurrentEntry(prev => ({
-        ...prev!,
-        reminder: reminderObj,
-      }));
-    }
-    
-    let reminderDescription = "once on " + format(reminderDate, "MMM d, yyyy");
-    
-    if (reminderType === '3months') {
-      reminderDescription = "every 3 months";
-    } else if (reminderType === '6months') {
-      reminderDescription = "every 6 months";
-    } else if (reminderType === '1year') {
-      reminderDescription = "annually";
-    }
-    
-    toast({
-      title: "Reminder Set",
-      description: `You'll be reminded ${reminderDescription}.`
-    });
-    
-    setIsReminderDialogOpen(false);
-  };
-
-  const calculateNextReminderDate = (reminder?: { type: string; date: Date }) => {
-    if (!reminder) return null;
-    
-    const { type, date } = reminder;
-    const now = new Date();
-    
-    switch (type) {
-      case '3months':
-        return addMonths(now, 3);
-      case '6months':
-        return addMonths(now, 6);
-      case '1year':
-        return addYears(now, 1);
-      case 'once':
-      case 'custom':
-      default:
-        return new Date(date);
-    }
+  
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
   };
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+      <Card className="shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-lg flex items-center">
             <Wrench className="h-5 w-5 mr-2 text-flitx-blue" />
             Maintenance History
           </CardTitle>
-          <Button 
-            className="bg-flitx-blue hover:bg-flitx-blue-600" 
-            size="sm"
-            onClick={handleAddNew}
+          <Button
+            onClick={() => setIsDialogOpen(true)}
+            className="bg-flitx-blue hover:bg-flitx-blue-600"
           >
-            <Plus className="h-4 w-4 mr-1" /> Add New
+            <Plus className="h-4 w-4 mr-2" />
+            Add Service
           </Button>
         </CardHeader>
         <CardContent>
-          {maintenanceHistory.length === 0 ? (
-            <div className="text-center py-10 text-flitx-gray-500">
-              <Wrench className="mx-auto h-12 w-12 text-flitx-gray-300 mb-3" />
+          {loading ? (
+            <div className="py-8 text-center">
+              <div className="animate-spin h-6 w-6 border-2 border-flitx-blue border-t-transparent rounded-full mx-auto mb-2"></div>
+              <p className="text-sm text-flitx-gray-500">Loading maintenance records...</p>
+            </div>
+          ) : records.length === 0 ? (
+            <div className="py-12 text-center text-flitx-gray-500">
+              <Settings2 className="h-12 w-12 mx-auto mb-3 text-flitx-gray-300" />
               <h3 className="text-lg font-medium mb-1">No maintenance records</h3>
-              <p className="text-sm">
-                Keep track of your vehicle maintenance by adding service records.
+              <p className="text-sm max-w-md mx-auto">
+                Track all services and repairs for this vehicle to maintain its performance and value.
               </p>
+              <Button
+                onClick={() => setIsDialogOpen(true)}
+                className="mt-4 bg-flitx-blue hover:bg-flitx-blue-600"
+              >
+                Add First Service Record
+              </Button>
             </div>
           ) : (
             <div className="space-y-4">
-              {maintenanceHistory
-                .sort((a, b) => b.date.getTime() - a.date.getTime()) // Sort by date, newest first
-                .map((entry) => (
-                  <div 
-                    key={entry.id} 
-                    className="border rounded-md p-4 cursor-pointer hover:bg-gray-50 transition-colors"
-                    onClick={() => handleEditEntry(entry)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-medium text-lg">
-                          {entry.type}
-                        </div>
-                        <div className="text-flitx-gray-500 text-sm mt-1">
-                          {format(new Date(entry.date), "MMMM d, yyyy")}
-                        </div>
-                        {entry.notes && <div className="text-sm mt-2">{entry.notes}</div>}
+              {records.map((record) => (
+                <div
+                  key={record.id}
+                  className="p-4 border rounded-md hover:bg-gray-50"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold">
+                        {getServiceTypeLabel(record.service_type)}
+                      </h3>
+                      <div className="text-sm text-flitx-gray-500 mt-1">
+                        Performed on {formatDate(record.service_date)}
                       </div>
-                      <div className="flex flex-col items-end">
-                        <div className="text-lg font-semibold">${entry.cost.toFixed(2)}</div>
-                        {entry.reminder && (
-                          <div className="flex items-center text-xs text-flitx-gray-500 mt-1">
-                            <Calendar className="h-3 w-3 mr-1" />
-                            <span>
-                              Next: {format(calculateNextReminderDate(entry.reminder) || new Date(), "MMM d, yyyy")}
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                      {record.next_service_date && (
+                        <div className="flex items-center text-sm text-flitx-blue mt-1">
+                          <Calendar className="h-3.5 w-3.5 mr-1" />
+                          Next service: {formatDate(record.next_service_date)}
+                        </div>
+                      )}
+                      {record.notes && (
+                        <p className="mt-2 text-sm text-flitx-gray-600">
+                          {record.notes}
+                        </p>
+                      )}
                     </div>
-                    <div className="flex justify-end gap-2 mt-3">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="h-8"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditEntry(entry);
-                        }}
-                      >
-                        <Edit className="h-3.5 w-3.5 mr-1" /> Edit
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="h-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteEntry(entry.id);
-                        }}
-                      >
-                        <Trash className="h-3.5 w-3.5 mr-1" /> Delete
-                      </Button>
+                    <div className="text-right">
+                      <div className="text-lg font-semibold">
+                        ${record.cost.toFixed(2)}
+                      </div>
                     </div>
                   </div>
-                ))}
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
       </Card>
-
-      {/* Add New Maintenance Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+      
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Add Maintenance Record</DialogTitle>
             <DialogDescription>
-              Enter the details for the new maintenance record.
+              Record a service or repair for this vehicle
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="maintenance-type">Maintenance Type</Label>
-              <Input 
-                id="maintenance-type" 
-                placeholder="e.g., Oil Change, Tire Rotation"
-                value={newEntry.type || ''}
-                onChange={(e) => setNewEntry({...newEntry, type: e.target.value})}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Maintenance Date</Label>
-              <CalendarComponent
-                mode="single"
-                selected={newEntry.date}
-                onSelect={(date) => date && setNewEntry({...newEntry, date})}
-                className="border rounded-md"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="maintenance-cost">Cost ($)</Label>
-              <Input 
-                id="maintenance-cost" 
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                value={newEntry.cost || ''}
-                onChange={(e) => setNewEntry({...newEntry, cost: parseFloat(e.target.value)})}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="maintenance-notes">Notes (Optional)</Label>
-              <Input 
-                id="maintenance-notes" 
-                placeholder="Additional details about the service"
-                value={newEntry.notes || ''}
-                onChange={(e) => setNewEntry({...newEntry, notes: e.target.value})}
-              />
-            </div>
-            
-            <Button 
-              variant="outline" 
-              className="w-full mt-2"
-              onClick={openReminderDialog}
-            >
-              <Calendar className="h-4 w-4 mr-2" />
-              Set Reminder
-            </Button>
-            
-            {newEntry.reminder && (
-              <div className="bg-blue-50 p-3 rounded-md text-sm">
-                <div className="font-medium">Reminder Set</div>
-                <div className="text-flitx-gray-500">
-                  {reminderType === 'once' && `Once on ${format(reminderDate, "MMMM d, yyyy")}`}
-                  {reminderType === '3months' && 'Every 3 months'}
-                  {reminderType === '6months' && 'Every 6 months'}
-                  {reminderType === '1year' && 'Every year'}
-                  {reminderType === 'custom' && `On ${format(reminderDate, "MMMM d, yyyy")}`}
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSaveNewEntry} className="bg-flitx-blue hover:bg-flitx-blue-600">
-              Save Record
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Maintenance Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Maintenance Record</DialogTitle>
-            <DialogDescription>
-              Update the details for this maintenance record.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {currentEntry && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-maintenance-type">Maintenance Type</Label>
-                <Input 
-                  id="edit-maintenance-type" 
-                  value={currentEntry.type}
-                  onChange={(e) => setCurrentEntry({...currentEntry, type: e.target.value})}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Maintenance Date</Label>
-                <CalendarComponent
-                  mode="single"
-                  selected={new Date(currentEntry.date)}
-                  onSelect={(date) => date && setCurrentEntry({...currentEntry, date})}
-                  className="border rounded-md"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="edit-maintenance-cost">Cost ($)</Label>
-                <Input 
-                  id="edit-maintenance-cost" 
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={currentEntry.cost}
-                  onChange={(e) => setCurrentEntry({...currentEntry, cost: parseFloat(e.target.value)})}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="edit-maintenance-notes">Notes (Optional)</Label>
-                <Input 
-                  id="edit-maintenance-notes" 
-                  value={currentEntry.notes || ''}
-                  onChange={(e) => setCurrentEntry({...currentEntry, notes: e.target.value})}
-                />
-              </div>
-              
-              <Button 
-                variant="outline" 
-                className="w-full mt-2"
-                onClick={openReminderDialog}
-              >
-                <Calendar className="h-4 w-4 mr-2" />
-                {currentEntry.reminder ? 'Edit Reminder' : 'Set Reminder'}
-              </Button>
-              
-              {currentEntry.reminder && (
-                <div className="bg-blue-50 p-3 rounded-md text-sm">
-                  <div className="font-medium">Reminder Set</div>
-                  <div className="text-flitx-gray-500">
-                    {currentEntry.reminder.type === 'once' && `Once on ${format(new Date(currentEntry.reminder.date), "MMMM d, yyyy")}`}
-                    {currentEntry.reminder.type === '3months' && 'Every 3 months'}
-                    {currentEntry.reminder.type === '6months' && 'Every 6 months'}
-                    {currentEntry.reminder.type === '1year' && 'Every year'}
-                    {currentEntry.reminder.type === 'custom' && `On ${format(new Date(currentEntry.reminder.date), "MMMM d, yyyy")}`}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleUpdateEntry} className="bg-flitx-blue hover:bg-flitx-blue-600">
-              Update Record
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Set Reminder Dialog */}
-      <Dialog open={isReminderDialogOpen} onOpenChange={setIsReminderDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Set Maintenance Reminder</DialogTitle>
-            <DialogDescription>
-              Choose when you want to be reminded about this maintenance.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="reminder-type">Reminder Frequency</Label>
-              <Select value={reminderType} onValueChange={(value) => setReminderType(value as any)}>
+              <Label htmlFor="service-type">Service Type</Label>
+              <Select value={serviceType} onValueChange={setServiceType}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select when to remind" />
+                  <SelectValue placeholder="Select service type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="once">Once on specific date</SelectItem>
-                  <SelectItem value="3months">Every 3 months</SelectItem>
-                  <SelectItem value="6months">Every 6 months</SelectItem>
-                  <SelectItem value="1year">Every year</SelectItem>
-                  <SelectItem value="custom">Custom date</SelectItem>
+                  <SelectItem value="oil_change">Oil Change</SelectItem>
+                  <SelectItem value="tire_rotation">Tire Rotation</SelectItem>
+                  <SelectItem value="full_service">Full Service</SelectItem>
+                  <SelectItem value="filter_replacement">Filter Replacement</SelectItem>
+                  <SelectItem value="brake_service">Brake Service</SelectItem>
+                  <SelectItem value="battery_replacement">Battery Replacement</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
-            {(reminderType === 'once' || reminderType === 'custom') && (
-              <div className="space-y-2">
-                <Label>Select Date</Label>
-                <CalendarComponent
-                  mode="single"
-                  selected={reminderDate}
-                  onSelect={(date) => date && setReminderDate(date)}
-                  className="border rounded-md"
-                  disabled={(date) => date < new Date()}
-                />
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="service-date">Service Date</Label>
+              <Input
+                id="service-date"
+                type="date"
+                value={serviceDate}
+                onChange={(e) => setServiceDate(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="next-service">Next Service Date (Optional)</Label>
+              <Input
+                id="next-service"
+                type="date"
+                value={nextServiceDate}
+                onChange={(e) => setNextServiceDate(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="cost">Cost ($)</Label>
+              <Input
+                id="cost"
+                type="number"
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                value={cost}
+                onChange={(e) => setCost(e.target.value)}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                placeholder="Add any additional details about this service"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsReminderDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSetReminder} className="bg-flitx-blue hover:bg-flitx-blue-600">
-              Set Reminder
+            <Button 
+              onClick={handleAddRecord}
+              className="bg-flitx-blue hover:bg-flitx-blue-600"
+            >
+              Add Record
             </Button>
           </DialogFooter>
         </DialogContent>

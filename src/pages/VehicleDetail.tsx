@@ -38,6 +38,7 @@ const VehicleDetail = () => {
     const fetchVehicle = async () => {
       if (id) {
         try {
+          // Try fetching from Supabase first
           const { data, error } = await supabase
             .from('vehicles')
             .select('*')
@@ -46,6 +47,33 @@ const VehicleDetail = () => {
           
           if (error) {
             console.error('Error fetching vehicle:', error);
+            // If there's an error (like using a numeric ID from sample data), fall back to sample data
+            const sampleVehicle = sampleVehicles.find(v => v.id === id);
+            if (sampleVehicle) {
+              // Convert sample vehicle to match our expected format
+              setVehicle({
+                id: sampleVehicle.id,
+                make: sampleVehicle.make,
+                model: sampleVehicle.model,
+                year: sampleVehicle.year,
+                type: sampleVehicle.type,
+                mileage: sampleVehicle.mileage,
+                status: sampleVehicle.status,
+                licensePlate: sampleVehicle.licensePlate,
+                fuelLevel: sampleVehicle.fuelLevel,
+                dailyRate: sampleVehicle.dailyRate,
+                fuelType: 'Unknown',
+                mpg: 0,
+                lastServiceDate: new Date().toISOString(),
+                costPerMile: 0,
+                totalServices: 0,
+                serviceReminders: 0,
+                totalServiceCost: 0,
+                fuelCosts: 0,
+                milesPerDay: 0,
+                image: sampleVehicle.image
+              });
+            }
           } else if (data) {
             // Transform Supabase data to match the component's expected format
             const vehicleData: Vehicle = {
@@ -54,8 +82,7 @@ const VehicleDetail = () => {
               model: data.model || 'Unknown',
               year: data.year || 2023,
               type: data.type || 'Unknown',
-              // Convert miles to kilometers if needed
-              mileage: data.mileage ? (data.mileage * 1.60934) : 0,
+              mileage: data.mileage || 0,
               status: data.status || 'available',
               licensePlate: data.license_plate || 'N/A',
               fuelLevel: data.fuel_level || 0,
@@ -69,7 +96,7 @@ const VehicleDetail = () => {
               totalServiceCost: 0,
               fuelCosts: 0,
               milesPerDay: 0,
-              image: data.image || undefined
+              image: data.image_url || undefined
             };
             setVehicle(vehicleData);
           }
