@@ -1,13 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-
-interface VehicleLocation {
-  vehicle_id: string;
-  latitude: number;
-  longitude: number;
-  speed?: number;
-  heading?: number;
-}
+import { VehicleLocation } from "@/types/vehicleTracking";
 
 export async function updateVehicleLocation(data: VehicleLocation) {
   try {
