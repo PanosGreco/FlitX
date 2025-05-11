@@ -6,7 +6,7 @@ import { Globe } from "lucide-react";
 import { toast } from "sonner";
 
 export const LanguageSwitcher = () => {
-  const { language, setLanguage, t, isLanguageLoading } = useLanguage();
+  const { language, setLanguage, isLanguageLoading } = useLanguage();
 
   const toggleLanguage = () => {
     const newLanguage = language === "en" ? "el" : "en";

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -175,9 +176,7 @@ export const translations = {
     profileUpdateSuccess: "Your profile information has been saved",
     photoUpdated: "Profile Photo Updated",
     photoUpdateSuccess: "Your profile photo has been updated successfully",
-    languageUpdated: "Language Updated",
-    languageUpdateSuccess: "Your language preference has been set to English",
-
+    
     // Sign Up
     signup: {
       createAccount: "Create your account",
@@ -206,9 +205,10 @@ export const translations = {
       businessTypeRequired: "Please select your business type"
     },
     
-    // Add any missing translation keys
+    // Tracking
     loadingMap: "Loading map resources...",
-    saving: "Saving...",
+    
+    // Language
     languagePreference: "Language Preference",
     languageUpdated: "Language Updated",
     languageUpdateSuccess: "Your language preference has been saved"
@@ -384,9 +384,7 @@ export const translations = {
     profileUpdateSuccess: "Οι πληροφορίες του προφίλ σας αποθηκεύτηκαν",
     photoUpdated: "Η Φωτογραφία Προφίλ Ενημερώθηκε",
     photoUpdateSuccess: "Η φωτογραφία προφίλ σας ενημερώθηκε με επιτυχία",
-    languageUpdated: "Η Γλώσσα Ενημερώθηκε",
-    languageUpdateSuccess: "Η προτίμηση γλώσσας σας έχει οριστεί στα Ελληνικά",
-
+    
     // Sign Up
     signup: {
       createAccount: "Δημιουργία λογαριασμού",
@@ -415,9 +413,10 @@ export const translations = {
       businessTypeRequired: "Παρακαλώ επιλέξτε τον τύπο της επιχείρησής σας"
     },
     
-    // Add any missing translation keys
+    // Tracking
     loadingMap: "Φόρτωση πόρων χάρτη...",
-    saving: "Αποθήκευση...",
+    
+    // Language
     languagePreference: "Προτίμηση Γλώσσας",
     languageUpdated: "Η Γλώσσα Ενημερώθηκε",
     languageUpdateSuccess: "Η προτίμηση γλώσσας σας έχει αποθηκευτεί"
@@ -520,6 +519,7 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
   // Function to update language preference
   const setLanguage = async (lang: "en" | "el") => {
     try {
+      setIsLanguageLoading(true);
       setLanguageState(lang);
       // Always update localStorage for fallback
       localStorage.setItem("language", lang);
@@ -544,6 +544,8 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
       }
     } catch (error) {
       console.error("Error setting language:", error);
+    } finally {
+      setIsLanguageLoading(false);
     }
   };
   
