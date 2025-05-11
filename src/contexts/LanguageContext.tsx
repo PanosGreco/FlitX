@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 // Define all translations for the application
 export const translations = {
@@ -202,7 +204,14 @@ export const translations = {
       invalidEmail: "Please enter a valid email address",
       passwordLength: "Password must be at least 6 characters",
       businessTypeRequired: "Please select your business type"
-    }
+    },
+    
+    // Add any missing translation keys
+    loadingMap: "Loading map resources...",
+    saving: "Saving...",
+    languagePreference: "Language Preference",
+    languageUpdated: "Language Updated",
+    languageUpdateSuccess: "Your language preference has been saved"
   },
   el: {
     // Navigation
@@ -404,7 +413,14 @@ export const translations = {
       invalidEmail: "Παρακαλώ εισάγετε μια έγκυρη διεύθυνση email",
       passwordLength: "Ο κωδικός πρέπει να έχει τουλάχιστον 6 χαρακτήρες",
       businessTypeRequired: "Παρακαλώ επιλέξτε τον τύπο της επιχείρησής σας"
-    }
+    },
+    
+    // Add any missing translation keys
+    loadingMap: "Φόρτωση πόρων χάρτη...",
+    saving: "Αποθήκευση...",
+    languagePreference: "Προτίμηση Γλώσσας",
+    languageUpdated: "Η Γλώσσα Ενημερώθηκε",
+    languageUpdateSuccess: "Η προτίμηση γλώσσας σας έχει αποθηκευτεί"
   }
 };
 
@@ -412,6 +428,7 @@ type LanguageContextType = {
   language: "en" | "el";
   setLanguage: (lang: "en" | "el") => void;
   t: typeof translations.en;
+  isLanguageLoading: boolean;
 };
 
 const LanguageContext = createContext<LanguageContextType | null>(null);
@@ -431,31 +448,115 @@ interface LanguageProviderProps {
 export const LanguageProvider = ({ children }: LanguageProviderProps) => {
   const [language, setLanguageState] = useState<"en" | "el">("en");
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isLanguageLoading, setIsLanguageLoading] = useState(true);
   
-  // Initialize language from localStorage on first render
+  // Initialize language from Supabase on first render and auth changes
   useEffect(() => {
-    const savedLanguage = localStorage.getItem("language");
-    if (savedLanguage === "el" || savedLanguage === "en") {
-      setLanguageState(savedLanguage);
-    }
-    setIsInitialized(true);
+    const fetchUserLanguagePreference = async () => {
+      try {
+        setIsLanguageLoading(true);
+        
+        // First check if user is authenticated
+        const { data: sessionData } = await supabase.auth.getSession();
+        
+        if (sessionData?.session?.user) {
+          // User is logged in, get their language preference from profiles table
+          const { data: profileData, error } = await supabase
+            .from('profiles')
+            .select('language_preference')
+            .eq('id', sessionData.session.user.id)
+            .single();
+          
+          if (error) {
+            console.error("Error fetching language preference:", error);
+            // Fallback to localStorage if there's an error
+            fallbackToLocalStorage();
+            return;
+          }
+          
+          if (profileData?.language_preference === 'el' || profileData?.language_preference === 'en') {
+            setLanguageState(profileData.language_preference);
+          } else {
+            // If no preference is set in profile, use localStorage as fallback
+            fallbackToLocalStorage();
+          }
+        } else {
+          // Not authenticated, use localStorage
+          fallbackToLocalStorage();
+        }
+      } catch (error) {
+        console.error("Failed to fetch language preference:", error);
+        fallbackToLocalStorage();
+      } finally {
+        setIsInitialized(true);
+        setIsLanguageLoading(false);
+      }
+    };
+    
+    const fallbackToLocalStorage = () => {
+      const savedLanguage = localStorage.getItem("language");
+      if (savedLanguage === "el" || savedLanguage === "en") {
+        setLanguageState(savedLanguage);
+      }
+    };
+    
+    fetchUserLanguagePreference();
+    
+    // Listen for auth state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        fetchUserLanguagePreference();
+      } else {
+        // User logged out, use localStorage
+        fallbackToLocalStorage();
+      }
+    });
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
-  const setLanguage = (lang: "en" | "el") => {
-    setLanguageState(lang);
-    localStorage.setItem("language", lang);
+  // Function to update language preference
+  const setLanguage = async (lang: "en" | "el") => {
+    try {
+      setLanguageState(lang);
+      // Always update localStorage for fallback
+      localStorage.setItem("language", lang);
+      
+      // If user is authenticated, update their profile in Supabase
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session?.user) {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ language_preference: lang })
+          .eq('id', sessionData.session.user.id);
+          
+        if (error) {
+          console.error("Failed to update language preference in Supabase:", error);
+          // Show error toast only if Supabase update fails
+          toast.error(
+            lang === "en" 
+              ? "Failed to save language preference" 
+              : "Αποτυχία αποθήκευσης προτίμησης γλώσσας"
+          );
+        }
+      }
+    } catch (error) {
+      console.error("Error setting language:", error);
+    }
   };
   
   // Current translations based on selected language
   const t = translations[language];
   
-  // Only render children after we've checked localStorage for language preference
+  // Only render children after we've checked for language preference
   if (!isInitialized) {
     return null;
   }
 
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, t }}>
+    <LanguageContext.Provider value={{ language, setLanguage, t, isLanguageLoading }}>
       {children}
     </LanguageContext.Provider>
   );

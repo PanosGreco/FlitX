@@ -1,6 +1,7 @@
 
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LanguageSwitcher } from "@/components/signup/LanguageSwitcher";
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
@@ -8,21 +9,23 @@ interface MobileHeaderProps {
 
 export function MobileHeader({ onMenuClick }: MobileHeaderProps) {
   return (
-    <header className="sticky top-0 z-30 flex items-center h-14 px-4 bg-white shadow-bottom">
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        className="mr-3" 
-        onClick={onMenuClick}
-        aria-label="Menu"
-      >
-        <Menu className="h-5 w-5" />
-      </Button>
-      <div className="flex items-center gap-2">
+    <header className="sticky top-0 z-30 flex items-center justify-between h-14 px-4 bg-white shadow-bottom">
+      <div className="flex items-center">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="mr-3" 
+          onClick={onMenuClick}
+          aria-label="Menu"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
         <div className="font-bold text-flitx-blue text-xl tracking-tight">
           FlitX
         </div>
       </div>
+      
+      <LanguageSwitcher />
     </header>
   );
 }

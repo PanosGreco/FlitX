@@ -6,7 +6,7 @@ import { Globe } from "lucide-react";
 import { toast } from "sonner";
 
 export const LanguageSwitcher = () => {
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage, t, isLanguageLoading } = useLanguage();
 
   const toggleLanguage = () => {
     const newLanguage = language === "en" ? "el" : "en";
@@ -24,9 +24,10 @@ export const LanguageSwitcher = () => {
       variant="outline" 
       size="sm" 
       className="flex items-center gap-2"
+      disabled={isLanguageLoading}
     >
-      <Globe className="h-4 w-4" />
-      <span>{language === "en" ? "EN" : "EL"}</span>
+      <Globe className={`h-4 w-4 ${isLanguageLoading ? "animate-spin" : ""}`} />
+      <span>{isLanguageLoading ? "..." : language === "en" ? "EN" : "EL"}</span>
     </Button>
   );
 };
