@@ -24,7 +24,7 @@ interface VehicleCardProps {
 }
 
 export function VehicleCard({ vehicle }: VehicleCardProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   const statusColors = {
     available: "bg-green-100 text-green-800",
@@ -85,12 +85,12 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
         
         <div className="mt-3 flex justify-between items-center">
           <div className="text-xs text-flitx-gray-400">
-            {vehicle.mileage.toLocaleString()} km
+            {vehicle.mileage.toLocaleString()} {language === 'el' ? 'χλμ' : 'km'}
           </div>
           
           <div className="flex items-center text-flitx-blue font-semibold">
             <Calendar className="w-4 h-4 mr-1" />
-            <span>${vehicle.dailyRate}/day</span>
+            <span>{language === 'el' ? '€' : '$'}{vehicle.dailyRate}/{t.day}</span>
           </div>
         </div>
       </div>

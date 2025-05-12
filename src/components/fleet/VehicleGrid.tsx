@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PlusCircle, Search, Filter } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 interface VehicleGridProps {
   vehicles: VehicleData[];
@@ -13,7 +14,10 @@ interface VehicleGridProps {
 
 export function VehicleGrid({ vehicles, onAddVehicle }: VehicleGridProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const { t } = useLanguage();
+  const { t, isLanguageLoading } = useLanguage();
+  
+  // Use the page title hook
+  usePageTitle("fleet");
   
   const filteredVehicles = vehicles.filter((vehicle) => {
     const searchTerms = searchQuery.toLowerCase().trim().split(" ");
@@ -30,6 +34,7 @@ export function VehicleGrid({ vehicles, onAddVehicle }: VehicleGridProps) {
         <Button 
           onClick={onAddVehicle}
           className="bg-flitx-blue hover:bg-flitx-blue-600"
+          disabled={isLanguageLoading}
         >
           <PlusCircle className="w-4 h-4 mr-2" />
           {t.addVehicle}
@@ -44,9 +49,15 @@ export function VehicleGrid({ vehicles, onAddVehicle }: VehicleGridProps) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
+            disabled={isLanguageLoading}
           />
         </div>
-        <Button variant="outline" size="icon" aria-label="Filter">
+        <Button 
+          variant="outline" 
+          size="icon" 
+          aria-label="Filter"
+          disabled={isLanguageLoading}
+        >
           <Filter className="h-4 w-4" />
         </Button>
       </div>

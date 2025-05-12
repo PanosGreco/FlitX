@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { FinanceDashboard } from "@/components/finances/FinanceDashboard";
@@ -26,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const Finance = () => {
   const [isAddFinanceOpen, setIsAddFinanceOpen] = useState(false);
@@ -38,8 +38,11 @@ const Finance = () => {
   const [financialRecords, setFinancialRecords] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, language, isLanguageLoading } = useLanguage();
   const isBoats = isBoatBusiness();
+  
+  // Use the page title hook
+  usePageTitle("finances");
 
   // Fetch financial records when component mounts
   useEffect(() => {
@@ -162,54 +165,54 @@ const Finance = () => {
         <Dialog open={isAddFinanceOpen} onOpenChange={setIsAddFinanceOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add Financial Record</DialogTitle>
+              <DialogTitle>{t.addTransaction}</DialogTitle>
               <DialogDescription>
-                Enter the details for the new income or expense.
+                {t.enterTransactionDetails}
               </DialogDescription>
             </DialogHeader>
             
             <form onSubmit={handleSubmitFinanceRecord} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="recordType">Record Type</Label>
-                <Select value={recordType} onValueChange={setRecordType}>
+                <Label htmlFor="recordType">{t.transactionType}</Label>
+                <Select value={recordType} onValueChange={setRecordType} disabled={isLanguageLoading}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
+                    <SelectValue placeholder={t.selectType} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="income">Income</SelectItem>
-                    <SelectItem value="expense">Expense</SelectItem>
+                    <SelectItem value="income">{t.income}</SelectItem>
+                    <SelectItem value="expense">{t.expense}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
               {recordType === "expense" && (
                 <div className="space-y-2">
-                  <Label htmlFor="expenseType">Expense Category</Label>
-                  <Select value={expenseCategory} onValueChange={setExpenseCategory}>
+                  <Label htmlFor="expenseType">{t.category}</Label>
+                  <Select value={expenseCategory} onValueChange={setExpenseCategory} disabled={isLanguageLoading}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
+                      <SelectValue placeholder={t.selectCategory} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
                         {isBoats ? (
                           <>
-                            <SelectItem value="fuel">Fuel</SelectItem>
-                            <SelectItem value="maintenance">Boat Maintenance</SelectItem>
-                            <SelectItem value="cleaning">Cleaning</SelectItem>
-                            <SelectItem value="docking">Docking Fees</SelectItem>
-                            <SelectItem value="licensing">Licensing</SelectItem>
-                            <SelectItem value="salary">Employee Salaries</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
+                            <SelectItem value="fuel">{t.fuel}</SelectItem>
+                            <SelectItem value="maintenance">{t.boatMaintenance}</SelectItem>
+                            <SelectItem value="cleaning">{t.cleaning}</SelectItem>
+                            <SelectItem value="docking">{t.dockingFees}</SelectItem>
+                            <SelectItem value="licensing">{t.licensing}</SelectItem>
+                            <SelectItem value="salary">{t.employeeSalaries}</SelectItem>
+                            <SelectItem value="other">{t.other}</SelectItem>
                           </>
                         ) : (
                           <>
-                            <SelectItem value="fuel">Fuel</SelectItem>
-                            <SelectItem value="maintenance">Vehicle Maintenance</SelectItem>
-                            <SelectItem value="carwash">Car Wash</SelectItem>
-                            <SelectItem value="insurance">Insurance</SelectItem>
-                            <SelectItem value="tax">Taxes & Fees</SelectItem>
-                            <SelectItem value="salary">Employee Salaries</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
+                            <SelectItem value="fuel">{t.fuel}</SelectItem>
+                            <SelectItem value="maintenance">{t.vehicleMaintenance}</SelectItem>
+                            <SelectItem value="carwash">{t.carWash}</SelectItem>
+                            <SelectItem value="insurance">{t.insurance}</SelectItem>
+                            <SelectItem value="tax">{t.taxesFees}</SelectItem>
+                            <SelectItem value="salary">{t.employeeSalaries}</SelectItem>
+                            <SelectItem value="other">{t.other}</SelectItem>
                           </>
                         )}
                       </SelectGroup>
@@ -219,7 +222,7 @@ const Finance = () => {
               )}
               
               <div className="space-y-2">
-                <Label htmlFor="amount">Amount ($)</Label>
+                <Label htmlFor="amount">{t.amount} ({language === 'el' ? '€' : '$'})</Label>
                 <Input 
                   id="amount" 
                   type="number" 
@@ -229,28 +232,33 @@ const Finance = () => {
                   required
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
+                  disabled={isLanguageLoading}
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
+                <Label htmlFor="date">{t.date}</Label>
                 <Input 
                   id="date" 
                   type="date" 
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                   required
+                  disabled={isLanguageLoading}
                 />
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="notes">Notes (Optional)</Label>
+                <Label htmlFor="notes">{t.notes}</Label>
                 <Textarea 
                   id="notes" 
-                  placeholder="Add any additional details about this transaction"
+                  placeholder={language === 'el' 
+                    ? 'Προσθέστε τυχόν πρόσθετες λεπτομέρειες σχετικά με αυτή τη συναλλαγή' 
+                    : 'Add any additional details about this transaction'}
                   rows={3}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
+                  disabled={isLanguageLoading}
                 />
               </div>
               
@@ -259,15 +267,16 @@ const Finance = () => {
                   type="button" 
                   variant="outline" 
                   onClick={() => setIsAddFinanceOpen(false)}
+                  disabled={isLanguageLoading}
                 >
-                  Cancel
+                  {t.cancel}
                 </Button>
                 <Button 
                   type="submit" 
                   className="bg-flitx-blue hover:bg-flitx-blue-600"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isLanguageLoading}
                 >
-                  {isSubmitting ? "Adding..." : "Add Record"}
+                  {isSubmitting ? t.adding : t.addRecord}
                 </Button>
               </DialogFooter>
             </form>

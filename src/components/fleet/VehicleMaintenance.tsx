@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface MaintenanceRecord {
   id: string;
@@ -48,6 +49,7 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
   const [records, setRecords] = useState<MaintenanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { t, language, isLanguageLoading } = useLanguage();
   
   useEffect(() => {
     if (vehicleId) {
@@ -154,20 +156,20 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
   
   const getServiceTypeLabel = (type: string) => {
     const labels: {[key: string]: string} = {
-      oil_change: "Oil Change",
-      tire_rotation: "Tire Rotation",
-      full_service: "Full Service",
-      filter_replacement: "Filter Replacement",
-      brake_service: "Brake Service",
-      battery_replacement: "Battery Replacement",
-      other: "Other Service"
+      oil_change: language === 'el' ? 'Αλλαγή Λαδιών' : 'Oil Change',
+      tire_rotation: language === 'el' ? 'Περιστροφή Ελαστικών' : 'Tire Rotation',
+      full_service: language === 'el' ? 'Πλήρες Σέρβις' : 'Full Service',
+      filter_replacement: language === 'el' ? 'Αντικατάσταση Φίλτρων' : 'Filter Replacement',
+      brake_service: language === 'el' ? 'Σέρβις Φρένων' : 'Brake Service',
+      battery_replacement: language === 'el' ? 'Αντικατάσταση Μπαταρίας' : 'Battery Replacement',
+      other: language === 'el' ? 'Άλλο Σέρβις' : 'Other Service'
     };
     
     return labels[type] || type;
   };
   
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString();
+    return new Date(dateString).toLocaleDateString(language === 'el' ? 'el-GR' : 'en-US');
   };
 
   return (
@@ -176,34 +178,44 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-lg flex items-center">
             <Wrench className="h-5 w-5 mr-2 text-flitx-blue" />
-            Maintenance History
+            {language === 'el' ? 'Ιστορικό Συντήρησης' : 'Maintenance History'}
           </CardTitle>
           <Button
             onClick={() => setIsDialogOpen(true)}
             className="bg-flitx-blue hover:bg-flitx-blue-600"
+            disabled={isLanguageLoading}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Service
+            {language === 'el' ? 'Προσθήκη Σέρβις' : 'Add Service'}
           </Button>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="py-8 text-center">
               <div className="animate-spin h-6 w-6 border-2 border-flitx-blue border-t-transparent rounded-full mx-auto mb-2"></div>
-              <p className="text-sm text-flitx-gray-500">Loading maintenance records...</p>
+              <p className="text-sm text-flitx-gray-500">
+                {language === 'el' ? 'Φόρτωση ιστορικού συντήρησης...' : 'Loading maintenance records...'}
+              </p>
             </div>
           ) : records.length === 0 ? (
             <div className="py-12 text-center text-flitx-gray-500">
               <Settings2 className="h-12 w-12 mx-auto mb-3 text-flitx-gray-300" />
-              <h3 className="text-lg font-medium mb-1">No maintenance records</h3>
+              <h3 className="text-lg font-medium mb-1">
+                {language === 'el' ? 'Κανένα αρχείο συντήρησης' : 'No maintenance records'}
+              </h3>
               <p className="text-sm max-w-md mx-auto">
-                Track all services and repairs for this vehicle to maintain its performance and value.
+                {language === 'el' 
+                  ? 'Καταγράψτε όλα τα σέρβις και τις επισκευές για αυτό το όχημα για να διατηρήσετε την απόδοση και την αξία του.'
+                  : 'Track all services and repairs for this vehicle to maintain its performance and value.'}
               </p>
               <Button
                 onClick={() => setIsDialogOpen(true)}
                 className="mt-4 bg-flitx-blue hover:bg-flitx-blue-600"
+                disabled={isLanguageLoading}
               >
-                Add First Service Record
+                {language === 'el' 
+                  ? 'Προσθήκη Πρώτης Εγγραφής Σέρβις' 
+                  : 'Add First Service Record'}
               </Button>
             </div>
           ) : (
@@ -249,53 +261,59 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Maintenance Record</DialogTitle>
+            <DialogTitle>{language === 'el' ? 'Προσθήκη Εγγραφής Συντήρησης' : 'Add Maintenance Record'}</DialogTitle>
             <DialogDescription>
-              Record a service or repair for this vehicle
+              {language === 'el' 
+                ? 'Καταγράψτε ένα σέρβις ή μια επισκευή για αυτό το όχημα' 
+                : 'Record a service or repair for this vehicle'}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="service-type">Service Type</Label>
-              <Select value={serviceType} onValueChange={setServiceType}>
+              <Label htmlFor="service-type">{language === 'el' ? 'Τύπος Σέρβις' : 'Service Type'}</Label>
+              <Select value={serviceType} onValueChange={setServiceType} disabled={isLanguageLoading}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select service type" />
+                  <SelectValue placeholder={language === 'el' ? 'Επιλέξτε τύπο σέρβις' : 'Select service type'} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="oil_change">Oil Change</SelectItem>
-                  <SelectItem value="tire_rotation">Tire Rotation</SelectItem>
-                  <SelectItem value="full_service">Full Service</SelectItem>
-                  <SelectItem value="filter_replacement">Filter Replacement</SelectItem>
-                  <SelectItem value="brake_service">Brake Service</SelectItem>
-                  <SelectItem value="battery_replacement">Battery Replacement</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="oil_change">{getServiceTypeLabel('oil_change')}</SelectItem>
+                  <SelectItem value="tire_rotation">{getServiceTypeLabel('tire_rotation')}</SelectItem>
+                  <SelectItem value="full_service">{getServiceTypeLabel('full_service')}</SelectItem>
+                  <SelectItem value="filter_replacement">{getServiceTypeLabel('filter_replacement')}</SelectItem>
+                  <SelectItem value="brake_service">{getServiceTypeLabel('brake_service')}</SelectItem>
+                  <SelectItem value="battery_replacement">{getServiceTypeLabel('battery_replacement')}</SelectItem>
+                  <SelectItem value="other">{getServiceTypeLabel('other')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="service-date">Service Date</Label>
+              <Label htmlFor="service-date">{language === 'el' ? 'Ημερομηνία Σέρβις' : 'Service Date'}</Label>
               <Input
                 id="service-date"
                 type="date"
                 value={serviceDate}
                 onChange={(e) => setServiceDate(e.target.value)}
+                disabled={isLanguageLoading}
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="next-service">Next Service Date (Optional)</Label>
+              <Label htmlFor="next-service">
+                {language === 'el' ? 'Επόμενη Ημερομηνία Σέρβις (Προαιρετικό)' : 'Next Service Date (Optional)'}
+              </Label>
               <Input
                 id="next-service"
                 type="date"
                 value={nextServiceDate}
                 onChange={(e) => setNextServiceDate(e.target.value)}
+                disabled={isLanguageLoading}
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="cost">Cost ($)</Label>
+              <Label htmlFor="cost">{language === 'el' ? 'Κόστος (€)' : 'Cost ($)'}</Label>
               <Input
                 id="cost"
                 type="number"
@@ -304,30 +322,39 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
                 min="0"
                 value={cost}
                 onChange={(e) => setCost(e.target.value)}
+                disabled={isLanguageLoading}
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Label htmlFor="notes">{language === 'el' ? 'Σημειώσεις (Προαιρετικό)' : 'Notes (Optional)'}</Label>
               <Textarea
                 id="notes"
-                placeholder="Add any additional details about this service"
+                placeholder={language === 'el' 
+                  ? 'Προσθέστε τυχόν πρόσθετες λεπτομέρειες σχετικά με αυτό το σέρβις' 
+                  : 'Add any additional details about this service'}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
+                disabled={isLanguageLoading}
               />
             </div>
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancel
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDialogOpen(false)}
+              disabled={isLanguageLoading}
+            >
+              {language === 'el' ? 'Ακύρωση' : 'Cancel'}
             </Button>
             <Button 
               onClick={handleAddRecord}
               className="bg-flitx-blue hover:bg-flitx-blue-600"
+              disabled={isLanguageLoading}
             >
-              Add Record
+              {language === 'el' ? 'Προσθήκη Εγγραφής' : 'Add Record'}
             </Button>
           </DialogFooter>
         </DialogContent>

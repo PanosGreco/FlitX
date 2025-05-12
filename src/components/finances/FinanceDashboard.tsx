@@ -18,6 +18,7 @@ import { BarChart, LineChart, PieChart } from "@/components/finances/charts";
 import { TrendingUp, TrendingDown, Plus, Filter, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface FinancialRecord {
   id: string;
@@ -37,6 +38,7 @@ interface FinanceDashboardProps {
 export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading = false }: FinanceDashboardProps) {
   const [timeframe, setTimeframe] = useState("month");
   const isBoats = isBoatBusiness();
+  const { t, language, isLanguageLoading } = useLanguage();
   
   // Calculate summary data from financial records
   const calculateSummaryData = () => {
@@ -132,7 +134,9 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     return (
       <div className="flex flex-col items-center justify-center h-96 gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-flitx-blue" />
-        <p className="text-flitx-gray-500">Loading financial data...</p>
+        <p className="text-flitx-gray-500">
+          {language === 'el' ? 'Φόρτωση οικονομικών δεδομένων...' : 'Loading financial data...'}
+        </p>
       </div>
     );
   }
@@ -140,31 +144,37 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold">Income & Expenses</h1>
+        <h1 className="text-2xl font-bold">{t.finances}</h1>
         
         <div className="flex items-center gap-2">
-          <Select value={timeframe} onValueChange={setTimeframe}>
+          <Select value={timeframe} onValueChange={setTimeframe} disabled={isLanguageLoading}>
             <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Select timeframe" />
+              <SelectValue placeholder={t.selectTimeframe} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="week">This Week</SelectItem>
-              <SelectItem value="month">This Month</SelectItem>
-              <SelectItem value="quarter">This Quarter</SelectItem>
-              <SelectItem value="year">This Year</SelectItem>
+              <SelectItem value="week">{t.thisWeek}</SelectItem>
+              <SelectItem value="month">{t.thisMonth}</SelectItem>
+              <SelectItem value="quarter">{t.thisQuarter}</SelectItem>
+              <SelectItem value="year">{t.thisYear}</SelectItem>
             </SelectContent>
           </Select>
           
-          <Button size="icon" variant="outline" aria-label="Filter">
+          <Button 
+            size="icon" 
+            variant="outline" 
+            aria-label={t.filter}
+            disabled={isLanguageLoading}
+          >
             <Filter className="h-4 w-4" />
           </Button>
           
           <Button 
             className="bg-flitx-blue hover:bg-flitx-blue-600"
             onClick={onAddRecord}
+            disabled={isLanguageLoading}
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add Record
+            {t.addRecord}
           </Button>
         </div>
       </div>
@@ -172,28 +182,31 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <SummaryCard 
-          title="Total Income" 
+          title={t.totalIncome} 
           value={summaryData.totalIncome} 
           change={summaryData.incomeChange} 
           trend={summaryData.incomeChange >= 0 ? "up" : "down"} 
-          prefix="$" 
+          prefix={language === 'el' ? '€' : '$'} 
+          lang={language}
         />
         
         <SummaryCard 
-          title="Total Expenses" 
+          title={t.totalExpenses} 
           value={summaryData.totalExpenses} 
           change={summaryData.expenseChange} 
           trend={summaryData.expenseChange >= 0 ? "up" : "down"} 
-          prefix="$"
+          prefix={language === 'el' ? '€' : '$'}
           trendReversed
+          lang={language}
         />
         
         <SummaryCard 
-          title="Net Profit" 
+          title={t.netProfit} 
           value={summaryData.netProfit} 
           change={summaryData.profitChange} 
           trend={summaryData.profitChange >= 0 ? "up" : "down"} 
-          prefix="$"
+          prefix={language === 'el' ? '€' : '$'}
+          lang={language}
         />
       </div>
       
@@ -201,7 +214,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Income vs Expenses</CardTitle>
+            <CardTitle className="text-lg">{language === 'el' ? 'Έσοδα έναντι Εξόδων' : 'Income vs Expenses'}</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <BarChart />
@@ -210,7 +223,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Revenue Growth</CardTitle>
+            <CardTitle className="text-lg">{language === 'el' ? 'Αύξηση Εσόδων' : 'Revenue Growth'}</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <LineChart />
@@ -222,7 +235,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle className="text-lg">Expense Breakdown</CardTitle>
+            <CardTitle className="text-lg">{language === 'el' ? 'Ανάλυση Εξόδων' : 'Expense Breakdown'}</CardTitle>
           </CardHeader>
           <CardContent>
             <PieChart />
@@ -231,7 +244,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle className="text-lg">Recent Transactions</CardTitle>
+            <CardTitle className="text-lg">{language === 'el' ? 'Πρόσφατες Συναλλαγές' : 'Recent Transactions'}</CardTitle>
           </CardHeader>
           <CardContent>
             {recentTransactions.length > 0 ? (
@@ -241,13 +254,16 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
                     key={record.id}
                     description={record.description}
                     amount={record.amount}
-                    date={new Date(record.date).toLocaleDateString()}
+                    date={new Date(record.date).toLocaleDateString(language === 'el' ? 'el-GR' : 'en-US')}
                     type={record.record_type}
+                    lang={language}
                   />
                 ))}
               </div>
             ) : (
-              <p className="text-center text-flitx-gray-400 py-8">No recent transactions found</p>
+              <p className="text-center text-flitx-gray-400 py-8">
+                {language === 'el' ? 'Δεν βρέθηκαν πρόσφατες συναλλαγές' : 'No recent transactions found'}
+              </p>
             )}
           </CardContent>
         </Card>
@@ -256,7 +272,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   );
 }
 
-function SummaryCard({ title, value, change, trend, prefix = "", trendReversed = false }) {
+function SummaryCard({ title, value, change, trend, prefix = "", trendReversed = false, lang }) {
   const trendIsPositive = trend === "up";
   const displayedTrend = trendReversed ? !trendIsPositive : trendIsPositive;
   
@@ -267,7 +283,7 @@ function SummaryCard({ title, value, change, trend, prefix = "", trendReversed =
           <div>
             <p className="text-sm text-flitx-gray-500">{title}</p>
             <h3 className="text-2xl font-semibold mt-1">
-              {prefix}{value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {prefix}{value.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </h3>
           </div>
           
@@ -288,7 +304,7 @@ function SummaryCard({ title, value, change, trend, prefix = "", trendReversed =
   );
 }
 
-function TransactionItem({ description, amount, date, type }) {
+function TransactionItem({ description, amount, date, type, lang }) {
   const isIncome = type === "income";
   
   return (
@@ -315,7 +331,7 @@ function TransactionItem({ description, amount, date, type }) {
         "font-medium",
         isIncome ? "text-green-600" : "text-red-600"
       )}>
-        {isIncome ? "+" : "-"}${amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        {isIncome ? "+" : "-"}{lang === 'el' ? '€' : '$'}{amount.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </div>
     </div>
   );

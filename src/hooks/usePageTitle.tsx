@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 
 export const usePageTitle = (titleKey: keyof typeof import('@/contexts/LanguageContext').translations.en) => {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   
   useEffect(() => {
     // Set the document title when language or page changes
@@ -14,5 +14,5 @@ export const usePageTitle = (titleKey: keyof typeof import('@/contexts/LanguageC
       // Reset title when unmounting (optional)
       document.title = 'FlitX';
     };
-  }, [t, titleKey]);
+  }, [t, titleKey, language]);
 };

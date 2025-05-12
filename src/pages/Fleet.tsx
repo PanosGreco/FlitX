@@ -26,13 +26,17 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Image } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 const Fleet = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [vehicleImage, setVehicleImage] = useState<string | null>(null);
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, language, isLanguageLoading } = useLanguage();
+  
+  // Use the page title hook
+  usePageTitle("fleet");
 
   const handleAddVehicle = () => {
     setIsAddDialogOpen(true);
@@ -117,6 +121,7 @@ const Fleet = () => {
                       accept="image/*"
                       className="hidden"
                       onChange={handleVehicleImageUpload}
+                      disabled={isLanguageLoading}
                     />
                   </label>
                 </div>
@@ -128,12 +133,22 @@ const Fleet = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="make">{t.make}</Label>
-                  <Input id="make" placeholder="e.g. Toyota" required />
+                  <Input 
+                    id="make" 
+                    placeholder="e.g. Toyota" 
+                    required 
+                    disabled={isLanguageLoading}
+                  />
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="model">{t.model}</Label>
-                  <Input id="model" placeholder="e.g. Corolla" required />
+                  <Input 
+                    id="model" 
+                    placeholder="e.g. Corolla" 
+                    required 
+                    disabled={isLanguageLoading}
+                  />
                 </div>
               </div>
               
@@ -147,12 +162,13 @@ const Fleet = () => {
                     min={1950}
                     max={new Date().getFullYear() + 1}
                     required
+                    disabled={isLanguageLoading}
                   />
                 </div>
                 
                 <div className="space-y-2">
                   <Label htmlFor="type">{t.type}</Label>
-                  <Select>
+                  <Select disabled={isLanguageLoading}>
                     <SelectTrigger>
                       <SelectValue placeholder={t.type} />
                     </SelectTrigger>
@@ -173,7 +189,12 @@ const Fleet = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="licensePlate">{t.licensePlate}</Label>
-                  <Input id="licensePlate" placeholder="e.g. ABC-1234" required />
+                  <Input 
+                    id="licensePlate" 
+                    placeholder="e.g. ABC-1234" 
+                    required 
+                    disabled={isLanguageLoading}
+                  />
                 </div>
                 
                 <div className="space-y-2">
@@ -185,6 +206,7 @@ const Fleet = () => {
                     min={0}
                     step="0.01"
                     required
+                    disabled={isLanguageLoading}
                   />
                 </div>
               </div>
@@ -197,6 +219,7 @@ const Fleet = () => {
                   placeholder="e.g. 15000"
                   min={0}
                   required
+                  disabled={isLanguageLoading}
                 />
               </div>
               
@@ -208,13 +231,14 @@ const Fleet = () => {
                     setIsAddDialogOpen(false);
                     setVehicleImage(null);
                   }}
+                  disabled={isLanguageLoading}
                 >
                   {t.cancel}
                 </Button>
                 <Button 
                   type="submit" 
                   className="bg-flitx-blue hover:bg-flitx-blue-600"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isLanguageLoading}
                 >
                   {isSubmitting ? t.adding : t.add}
                 </Button>
