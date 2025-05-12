@@ -182,7 +182,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <SummaryCard 
-          title={t.totalIncome} 
+          title={t.income} 
           value={summaryData.totalIncome} 
           change={summaryData.incomeChange} 
           trend={summaryData.incomeChange >= 0 ? "up" : "down"} 
@@ -191,7 +191,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         />
         
         <SummaryCard 
-          title={t.totalExpenses} 
+          title={t.expense} 
           value={summaryData.totalExpenses} 
           change={summaryData.expenseChange} 
           trend={summaryData.expenseChange >= 0 ? "up" : "down"} 
