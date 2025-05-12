@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { FinanceDashboard } from "@/components/finances/FinanceDashboard";
@@ -44,10 +45,26 @@ const Finance = () => {
   // Use the page title hook
   usePageTitle("finances");
 
-  // Fetch financial records when component mounts
+  // Fetch financial records when component mounts or language changes
   useEffect(() => {
     fetchFinancialRecords();
-  }, []);
+    
+    // Subscribe to real-time changes
+    const channel = supabase
+      .channel('financial_records_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'financial_records' }, 
+        (payload) => {
+          console.log('Real-time update received in Finance.tsx:', payload);
+          fetchFinancialRecords();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [language]);
 
   const fetchFinancialRecords = async () => {
     try {
@@ -68,8 +85,10 @@ const Finance = () => {
       if (error) {
         console.error("Error fetching financial records:", error);
         toast({
-          title: "Error",
-          description: "Failed to fetch financial records",
+          title: language === 'el' ? "Σφάλμα" : "Error",
+          description: language === 'el' 
+            ? "Αποτυχία φόρτωσης οικονομικών εγγραφών" 
+            : "Failed to fetch financial records",
           variant: "destructive",
         });
       } else {
@@ -102,8 +121,10 @@ const Finance = () => {
       
       if (!session?.session?.user) {
         toast({
-          title: "Error",
-          description: "You must be logged in to add financial records",
+          title: language === 'el' ? "Σφάλμα" : "Error",
+          description: language === 'el'
+            ? "Πρέπει να είστε συνδεδεμένοι για να προσθέσετε οικονομικές εγγραφές"
+            : "You must be logged in to add financial records",
           variant: "destructive",
         });
         setIsSubmitting(false);
@@ -116,7 +137,9 @@ const Finance = () => {
         category: recordType === "income" ? "sales" : expenseCategory,
         amount: parseFloat(amount),
         date: new Date(date).toISOString(),
-        description: notes || `${recordType === "income" ? "Income" : "Expense"} record`,
+        description: notes || `${recordType === "income" ? 
+          (language === 'el' ? "Έσοδο" : "Income") : 
+          (language === 'el' ? "Έξοδο" : "Expense")} record`,
       };
       
       const { error } = await supabase
@@ -126,25 +149,30 @@ const Finance = () => {
       if (error) {
         console.error("Error adding financial record:", error);
         toast({
-          title: "Error",
-          description: "Failed to add financial record",
+          title: language === 'el' ? "Σφάλμα" : "Error",
+          description: language === 'el'
+            ? "Αποτυχία προσθήκης οικονομικής εγγραφής"
+            : "Failed to add financial record",
           variant: "destructive",
         });
       } else {
         toast({
-          title: "Record Added",
-          description: `New ${recordType} record has been added`,
+          title: language === 'el' ? "Επιτυχία" : "Record Added",
+          description: language === 'el'
+            ? `Προστέθηκε νέα εγγραφή ${recordType === "income" ? "εσόδων" : "εξόδων"}`
+            : `New ${recordType} record has been added`,
         });
         
-        // Refresh financial records
-        fetchFinancialRecords();
+        // Close the dialog
         setIsAddFinanceOpen(false);
       }
     } catch (error) {
       console.error("Exception adding financial record:", error);
       toast({
-        title: "Error",
-        description: "An unexpected error occurred",
+        title: language === 'el' ? "Σφάλμα" : "Error",
+        description: language === 'el'
+          ? "Προέκυψε ένα απρόσμενο σφάλμα"
+          : "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {

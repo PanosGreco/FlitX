@@ -12,7 +12,8 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer
+  ResponsiveContainer,
+  Sector
 } from "recharts";
 
 // Sample data for charts
@@ -119,34 +120,114 @@ export function LineChart() {
   );
 }
 
-export function PieChart() {
+// Custom label renderer for the pie chart to improve readability
+const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name }) => {
+  const radius = innerRadius + (outerRadius - innerRadius) * 1.1;
+  const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
+  const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
+
   return (
-    <div className="h-64">
+    <text 
+      x={x} 
+      y={y} 
+      fill="#333"
+      textAnchor={x > cx ? 'start' : 'end'} 
+      dominantBaseline="central"
+      fontSize="12px"
+      fontWeight="500"
+    >
+      {`${name} (${(percent * 100).toFixed(0)}%)`}
+    </text>
+  );
+};
+
+// Active shape for the pie chart when hovering
+const renderActiveShape = (props) => {
+  const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
+  const sin = Math.sin(-midAngle * Math.PI / 180);
+  const cos = Math.cos(-midAngle * Math.PI / 180);
+  const sx = cx + (outerRadius + 10) * cos;
+  const sy = cy + (outerRadius + 10) * sin;
+  const mx = cx + (outerRadius + 30) * cos;
+  const my = cy + (outerRadius + 30) * sin;
+  const ex = mx + (cos >= 0 ? 1 : -1) * 22;
+  const ey = my;
+  const textAnchor = cos >= 0 ? 'start' : 'end';
+
+  return (
+    <g>
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius}
+        outerRadius={outerRadius}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+      />
+      <Sector
+        cx={cx}
+        cy={cy}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        innerRadius={outerRadius + 6}
+        outerRadius={outerRadius + 10}
+        fill={fill}
+      />
+      <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
+      <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
+      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#333" fontSize={12}>
+        {`${payload.name}: ${value}%`}
+      </text>
+      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#999" fontSize={11}>
+        {`(${(percent * 100).toFixed(2)}%)`}
+      </text>
+    </g>
+  );
+};
+
+export function PieChart() {
+  const [activeIndex, setActiveIndex] = React.useState(0);
+
+  const onPieEnter = (_, index) => {
+    setActiveIndex(index);
+  };
+
+  return (
+    <div className="h-72">
       <ResponsiveContainer width="100%" height="100%">
         <RechartsPieChart>
           <Pie
+            activeIndex={activeIndex}
+            activeShape={renderActiveShape}
             data={pieData}
             cx="50%"
             cy="50%"
-            labelLine={false}
-            outerRadius={80}
+            innerRadius={40}
+            outerRadius={60}
             fill="#8884d8"
             dataKey="value"
-            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+            onMouseEnter={onPieEnter}
           >
             {pieData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
+          <Legend 
+            layout="vertical"
+            verticalAlign="middle"
+            align="right"
+            wrapperStyle={{ fontSize: '12px', paddingLeft: '10px' }}
+          />
           <Tooltip 
             formatter={(value) => [`${value}%`, undefined]}
             contentStyle={{
               borderRadius: 8,
               border: "none",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+              fontSize: '12px'
             }}
           />
-          <Legend />
         </RechartsPieChart>
       </ResponsiveContainer>
     </div>

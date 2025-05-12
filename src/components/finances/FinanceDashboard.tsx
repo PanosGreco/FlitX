@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Card, 
   CardContent, 
@@ -19,6 +19,9 @@ import { TrendingUp, TrendingDown, Plus, Filter, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { enUS, el } from 'date-fns/locale';
 
 interface FinancialRecord {
   id: string;
@@ -37,8 +40,60 @@ interface FinanceDashboardProps {
 
 export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading = false }: FinanceDashboardProps) {
   const [timeframe, setTimeframe] = useState("month");
+  const [recentTransactions, setRecentTransactions] = useState<FinancialRecord[]>([]);
+  const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
   const isBoats = isBoatBusiness();
   const { t, language, isLanguageLoading } = useLanguage();
+  
+  // Fetch recent transactions
+  useEffect(() => {
+    const fetchRecentTransactions = async () => {
+      try {
+        setIsTransactionsLoading(true);
+        const { data: session } = await supabase.auth.getSession();
+        
+        if (!session?.session?.user) {
+          console.log("No authenticated user");
+          setIsTransactionsLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('financial_records')
+          .select('*')
+          .order('date', { ascending: false })
+          .limit(5);
+
+        if (error) {
+          console.error("Error fetching recent transactions:", error);
+        } else {
+          setRecentTransactions(data || []);
+        }
+      } catch (error) {
+        console.error("Exception fetching recent transactions:", error);
+      } finally {
+        setIsTransactionsLoading(false);
+      }
+    };
+
+    fetchRecentTransactions();
+    
+    // Subscribe to real-time changes
+    const channel = supabase
+      .channel('financial_records_changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'financial_records' }, 
+        (payload) => {
+          console.log('Real-time update received:', payload);
+          fetchRecentTransactions();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
   
   // Calculate summary data from financial records
   const calculateSummaryData = () => {
@@ -125,10 +180,16 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
 
   const summaryData = calculateSummaryData();
   
-  // Get recent transactions
-  const recentTransactions = [...financialRecords]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5);
+  // Format date with the appropriate locale
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return format(date, 'PPp', { locale: language === 'el' ? el : enUS });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return dateString;
+    }
+  };
   
   if (isLoading) {
     return (
@@ -243,8 +304,9 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         </Card>
         
         <Card className="lg:col-span-2">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">{language === 'el' ? 'Πρόσφατες Συναλλαγές' : 'Recent Transactions'}</CardTitle>
+            {isTransactionsLoading && <Loader2 className="h-4 w-4 animate-spin text-flitx-gray-400" />}
           </CardHeader>
           <CardContent>
             {recentTransactions.length > 0 ? (
@@ -254,7 +316,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
                     key={record.id}
                     description={record.description}
                     amount={record.amount}
-                    date={new Date(record.date).toLocaleDateString(language === 'el' ? 'el-GR' : 'en-US')}
+                    date={formatDate(record.date)}
                     type={record.record_type}
                     lang={language}
                   />

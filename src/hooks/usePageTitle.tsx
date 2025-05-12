@@ -10,6 +10,12 @@ export const usePageTitle = (titleKey: keyof typeof import('@/contexts/LanguageC
     const title = t[titleKey] || titleKey;
     document.title = `FlitX - ${title}`;
     
+    // Update the meta description for SEO
+    const metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute('content', `FlitX - ${title} | ${language === 'el' ? 'Διαχείριση στόλου οχημάτων' : 'Fleet management software'}`);
+    }
+    
     return () => {
       // Reset title when unmounting (optional)
       document.title = 'FlitX';
