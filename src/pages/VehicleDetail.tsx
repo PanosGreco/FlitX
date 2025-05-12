@@ -5,6 +5,7 @@ import { sampleVehicles } from "@/lib/data";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface Vehicle {
   id: string;
@@ -33,6 +34,7 @@ const VehicleDetail = () => {
   const { id } = useParams();
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
+  const { t } = useLanguage();
   
   useEffect(() => {
     const fetchVehicle = async () => {
