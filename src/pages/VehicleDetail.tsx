@@ -36,10 +36,10 @@ const VehicleDetail = () => {
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
   
-  // Ensure we have all the translations needed for the vehicle details page
+  // Create a translations object that includes both the translations from context
+  // and our fallback translations for missing keys
   const translations = {
-    ...t,
-    // Add missing translations with fallback values
+    // Vehicle detail specific translations with fallbacks
     serviceReminders: t.serviceReminders || "Service Reminders",
     fuelType: t.fuelType || "Fuel Type",
     costPerMile: t.costPerMile || "Cost Per Mile",
@@ -74,8 +74,11 @@ const VehicleDetail = () => {
     editStatus: t.editStatus || "Edit Status",
     selectStatus: t.selectStatus || "Select a status for this vehicle",
     statusUpdated: t.statusUpdated || "Status Updated",
-    vehicleStatusChanged: t.vehicleStatusChanged || "Vehicle status changed to "
-  };
+    vehicleStatusChanged: t.vehicleStatusChanged || "Vehicle status changed to ",
+    // Include the rest of the translations from the context
+    // We use the spread operator to include all other translations
+    ...t
+  } as Record<string, string>;
   
   useEffect(() => {
     const fetchVehicle = async () => {
