@@ -30,6 +30,11 @@ interface Vehicle {
   image?: string;
 }
 
+// Define a custom interface for our translations that allows for any string key
+interface VehicleTranslations {
+  [key: string]: string | { [key: string]: string };
+}
+
 const VehicleDetail = () => {
   const { id } = useParams();
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
@@ -38,7 +43,7 @@ const VehicleDetail = () => {
   
   // Create a translations object that includes both the translations from context
   // and our fallback translations for missing keys
-  const translations = {
+  const translations: VehicleTranslations = {
     // Vehicle detail specific translations with fallbacks
     serviceReminders: t.serviceReminders || "Service Reminders",
     fuelType: t.fuelType || "Fuel Type",
@@ -75,10 +80,14 @@ const VehicleDetail = () => {
     selectStatus: t.selectStatus || "Select a status for this vehicle",
     statusUpdated: t.statusUpdated || "Status Updated",
     vehicleStatusChanged: t.vehicleStatusChanged || "Vehicle status changed to ",
-    // Include the rest of the translations from the context
-    // We use the spread operator to include all other translations
-    ...t
-  } as Record<string, string>;
+  };
+
+  // Copy all remaining properties from t, preserving their structure
+  Object.keys(t).forEach(key => {
+    if (translations[key] === undefined) {
+      translations[key] = t[key as keyof typeof t];
+    }
+  });
   
   useEffect(() => {
     const fetchVehicle = async () => {

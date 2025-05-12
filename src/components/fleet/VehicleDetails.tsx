@@ -47,11 +47,16 @@ import { VehicleReminders } from "./VehicleReminders";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+// Define a custom interface for our translations that allows for any string key
+interface VehicleTranslations {
+  [key: string]: string | { [key: string]: string };
+}
+
 interface VehicleDetailsProps {
   vehicleId?: string;
   vehicles: any[];
   loading?: boolean;
-  translations?: Record<string, string>;
+  translations?: VehicleTranslations;
 }
 
 export function VehicleDetails({ vehicleId, vehicles = [], loading = false, translations }: VehicleDetailsProps) {
