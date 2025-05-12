@@ -1,4 +1,4 @@
-
+import React, { useState } from "react";
 import {
   BarChart as RechartsBarChart,
   LineChart as RechartsLineChart,
@@ -187,7 +187,7 @@ const renderActiveShape = (props) => {
 };
 
 export function PieChart() {
-  const [activeIndex, setActiveIndex] = React.useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const onPieEnter = (_, index) => {
     setActiveIndex(index);
