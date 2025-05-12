@@ -45,7 +45,7 @@ const VehicleDetail = () => {
             .from('vehicles')
             .select('*')
             .eq('id', id)
-            .single();
+            .maybeSingle(); // Using maybeSingle instead of single to handle not found cases better
           
           if (error) {
             console.error('Error fetching vehicle:', error);
