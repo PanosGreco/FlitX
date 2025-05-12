@@ -36,6 +36,47 @@ const VehicleDetail = () => {
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
   
+  // Ensure we have all the translations needed for the vehicle details page
+  const translations = {
+    ...t,
+    // Add missing translations with fallback values
+    serviceReminders: t.serviceReminders || "Service Reminders",
+    fuelType: t.fuelType || "Fuel Type",
+    costPerMile: t.costPerMile || "Cost Per Mile",
+    fuelCosts: t.fuelCosts || "Fuel Costs",
+    totalServiceCost: t.totalServiceCost || "Total Service Cost",
+    milesPerDay: t.milesPerDay || "Miles Per Day",
+    lastServiceDate: t.lastServiceDate || "Last Service Date",
+    totalServices: t.totalServices || "Total Services",
+    performance: t.performance || "Performance",
+    fuelLevel: t.fuelLevel || "Fuel Level",
+    vehicleMaintenance: t.vehicleMaintenance || "Vehicle Maintenance",
+    repair: t.repair || "Repair",
+    documents: t.documents || "Documents",
+    availability: t.availability || "Availability",
+    finance: t.finance || "Finance",
+    overview: t.overview || "Overview",
+    uploadDocuments: t.uploadDocuments || "Upload Documents",
+    selectDays: t.selectDays || "Select days when the vehicle is booked or unavailable",
+    dailyRate: t.dailyRate || "Daily Rate",
+    totalRevenue: t.totalRevenue || "Total Revenue",
+    totalExpenses: t.totalExpenses || "Total Expenses",
+    netProfit: t.netProfit || "Net Profit",
+    editFinance: t.editFinance || "Edit Finance",
+    enterFinanceDetails: t.enterFinanceDetails || "Enter finance details for this vehicle",
+    financeUpdated: t.financeUpdated || "Finance Updated",
+    financeDetailsUpdated: t.financeDetailsUpdated || "Finance details have been updated",
+    documentUploaded: t.documentUploaded || "Document Uploaded",
+    documentSaved: t.documentSaved || "Your document has been saved",
+    rentalIncomeAdded: t.rentalIncomeAdded || "Rental Income Added",
+    addedIncome: t.addedIncome || "Added $",
+    toIncomeFor: t.toIncomeFor || " to income for ",
+    editStatus: t.editStatus || "Edit Status",
+    selectStatus: t.selectStatus || "Select a status for this vehicle",
+    statusUpdated: t.statusUpdated || "Status Updated",
+    vehicleStatusChanged: t.vehicleStatusChanged || "Vehicle status changed to "
+  };
+  
   useEffect(() => {
     const fetchVehicle = async () => {
       if (id) {
@@ -126,6 +167,7 @@ const VehicleDetail = () => {
         vehicleId={id} 
         vehicles={vehicleWithImage ? [vehicleWithImage] : sampleVehicles} 
         loading={loading}
+        translations={translations}
       />
     </MobileLayout>
   );

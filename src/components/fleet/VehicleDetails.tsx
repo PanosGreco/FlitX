@@ -51,9 +51,10 @@ interface VehicleDetailsProps {
   vehicleId?: string;
   vehicles: any[];
   loading?: boolean;
+  translations?: Record<string, string>;
 }
 
-export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: VehicleDetailsProps) {
+export function VehicleDetails({ vehicleId, vehicles = [], loading = false, translations }: VehicleDetailsProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("details");
   const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
@@ -67,47 +68,65 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
   const { toast } = useToast();
   const { t } = useLanguage();
   
-  // Create fallback translations for missing keys
-  const translations = {
-    ...t,
-    // Add missing translations with fallback values
-    serviceReminders: t.serviceReminders || "Service Reminders",
-    fuelType: t.fuelType || "Fuel Type",
-    costPerMile: t.costPerMile || "Cost Per Mile",
-    fuelCosts: t.fuelCosts || "Fuel Costs",
-    totalServiceCost: t.totalServiceCost || "Total Service Cost",
-    milesPerDay: t.milesPerDay || "Miles Per Day",
-    lastServiceDate: t.lastServiceDate || "Last Service Date",
-    totalServices: t.totalServices || "Total Services",
-    performance: t.performance || "Performance",
-    fuelLevel: t.fuelLevel || "Fuel Level",
-    vehicleMaintenance: t.vehicleMaintenance || "Vehicle Maintenance",
-    repair: t.repair || "Repair",
-    documents: t.documents || "Documents",
-    availability: t.availability || "Availability",
-    finance: t.finance || "Finance",
-    overview: t.overview || "Overview",
-    uploadDocuments: t.uploadDocuments || "Upload Documents",
-    selectDays: t.selectDays || "Select days when the vehicle is booked or unavailable",
-    dailyRate: t.dailyRate || "Daily Rate",
-    totalRevenue: t.totalRevenue || "Total Revenue",
-    totalExpenses: t.totalExpenses || "Total Expenses",
-    netProfit: t.netProfit || "Net Profit",
-    editFinance: t.editFinance || "Edit Finance",
-    enterFinanceDetails: t.enterFinanceDetails || "Enter finance details for this vehicle",
-    financeUpdated: t.financeUpdated || "Finance Updated",
-    financeDetailsUpdated: t.financeDetailsUpdated || "Finance details have been updated",
-    documentUploaded: t.documentUploaded || "Document Uploaded",
-    documentSaved: t.documentSaved || "Your document has been saved",
-    rentalIncomeAdded: t.rentalIncomeAdded || "Rental Income Added",
-    addedIncome: t.addedIncome || "Added $",
-    toIncomeFor: t.toIncomeFor || " to income for ",
-    editStatus: t.editStatus || "Edit Status",
-    selectStatus: t.selectStatus || "Select a status for this vehicle",
-    statusUpdated: t.statusUpdated || "Status Updated",
-    vehicleStatusChanged: t.vehicleStatusChanged || "Vehicle status changed to "
+  // Use translations from props if provided, otherwise use translations from context
+  const trans = translations || {
+    // Fallback translations if neither props nor context provides them
+    serviceReminders: "Service Reminders",
+    fuelType: "Fuel Type",
+    costPerMile: "Cost Per Mile",
+    fuelCosts: "Fuel Costs",
+    totalServiceCost: "Total Service Cost",
+    milesPerDay: "Miles Per Day",
+    lastServiceDate: "Last Service Date",
+    totalServices: "Total Services",
+    performance: "Performance",
+    fuelLevel: "Fuel Level",
+    vehicleMaintenance: "Vehicle Maintenance",
+    repair: "Repair",
+    documents: "Documents",
+    availability: "Availability",
+    finance: "Finance",
+    overview: "Overview",
+    uploadDocuments: "Upload Documents",
+    selectDays: "Select days when the vehicle is booked or unavailable",
+    dailyRate: "Daily Rate",
+    totalRevenue: "Total Revenue",
+    totalExpenses: "Total Expenses",
+    netProfit: "Net Profit",
+    editFinance: "Edit Finance",
+    enterFinanceDetails: "Enter finance details for this vehicle",
+    financeUpdated: "Finance Updated",
+    financeDetailsUpdated: "Finance details have been updated",
+    documentUploaded: "Document Uploaded",
+    documentSaved: "Your document has been saved",
+    rentalIncomeAdded: "Rental Income Added",
+    addedIncome: "Added $",
+    toIncomeFor: " to income for ",
+    editStatus: "Edit Status",
+    selectStatus: "Select a status for this vehicle",
+    statusUpdated: "Status Updated",
+    vehicleStatusChanged: "Vehicle status changed to ",
+    ...t
   };
   
+  const safeNumber = (value: any) => {
+    return typeof value === 'number' ? value : 0;
+  };
+  
+  const statusColors = {
+    available: "bg-green-100 text-green-800",
+    rented: "bg-blue-100 text-blue-800",
+    maintenance: "bg-yellow-100 text-yellow-800",
+    repair: "bg-red-100 text-red-800"
+  };
+  
+  const statusLabels = {
+    available: t.available,
+    rented: t.rented,
+    maintenance: t.maintenance,
+    repair: t.repair
+  };
+
   const vehicle = vehicles.find(v => v.id === vehicleId) || {
     id: "default",
     make: "Vehicle",
@@ -131,24 +150,6 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
     image: undefined
   };
   
-  const safeNumber = (value: any) => {
-    return typeof value === 'number' ? value : 0;
-  };
-  
-  const statusColors = {
-    available: "bg-green-100 text-green-800",
-    rented: "bg-blue-100 text-blue-800",
-    maintenance: "bg-yellow-100 text-yellow-800",
-    repair: "bg-red-100 text-red-800"
-  };
-  
-  const statusLabels = {
-    available: t.available,
-    rented: t.rented,
-    maintenance: t.maintenance,
-    repair: t.repair
-  };
-
   const handleEditStatus = () => {
     setCurrentStatus(vehicle.status);
     setIsEditStatusOpen(true);
@@ -160,8 +161,8 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
 
   const handleSaveStatus = () => {
     toast({
-      title: translations.statusUpdated,
-      description: `${translations.vehicleStatusChanged} ${statusLabels[currentStatus as keyof typeof statusLabels] || currentStatus}`,
+      title: trans.statusUpdated,
+      description: `${trans.vehicleStatusChanged} ${statusLabels[currentStatus as keyof typeof statusLabels] || currentStatus}`,
     });
     setIsEditStatusOpen(false);
   };
@@ -174,8 +175,8 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
   
   const handleSaveFinance = () => {
     toast({
-      title: translations.financeUpdated,
-      description: translations.financeDetailsUpdated,
+      title: trans.financeUpdated,
+      description: trans.financeDetailsUpdated,
     });
     setIsEditFinanceOpen(false);
   };
@@ -193,8 +194,8 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
       setDocuments(prev => [...prev, newDoc]);
       
       toast({
-        title: translations.documentUploaded,
-        description: translations.documentSaved,
+        title: trans.documentUploaded,
+        description: trans.documentSaved,
       });
     }
   };
@@ -226,8 +227,8 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
               console.error("Error recording booking income:", error);
             } else {
               toast({
-                title: translations.rentalIncomeAdded,
-                description: `${translations.addedIncome}${vehicle.dailyRate} ${translations.toIncomeFor} ${lastSelectedDate.toLocaleDateString()}`,
+                title: trans.rentalIncomeAdded,
+                description: `${trans.addedIncome}${vehicle.dailyRate} ${trans.toIncomeFor} ${lastSelectedDate.toLocaleDateString()}`,
               });
             }
           } else {
@@ -349,21 +350,21 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
               <div className="flex-shrink-0 flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleEditStatus}>
                   <Settings className="h-4 w-4 mr-2" />
-                  {translations.editStatus}
+                  {trans.editStatus}
                 </Button>
               </div>
             </div>
           )}
           
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-7 w-full max-w-lg mb-6">
-              <TabsTrigger value="details" className="px-3 py-2">{translations.overview}</TabsTrigger>
-              <TabsTrigger value="maintenance" className="px-3 py-2">{translations.vehicleMaintenance}</TabsTrigger>
-              <TabsTrigger value="damage" className="px-3 py-2">{translations.repair}</TabsTrigger>
-              <TabsTrigger value="documents" className="px-3 py-2">{translations.documents}</TabsTrigger>
-              <TabsTrigger value="reminders" className="px-3 py-2">{translations.serviceReminders}</TabsTrigger>
-              <TabsTrigger value="availability" className="px-3 py-2">{translations.availability}</TabsTrigger>
-              <TabsTrigger value="finance" className="px-3 py-2">{translations.finance}</TabsTrigger>
+            <TabsList className="grid grid-cols-7 w-full max-w-lg mb-6 overflow-x-auto">
+              <TabsTrigger value="details" className="px-3 py-2 whitespace-nowrap">{trans.overview}</TabsTrigger>
+              <TabsTrigger value="maintenance" className="px-3 py-2 whitespace-nowrap">{trans.vehicleMaintenance}</TabsTrigger>
+              <TabsTrigger value="damage" className="px-3 py-2 whitespace-nowrap">{trans.repair}</TabsTrigger>
+              <TabsTrigger value="documents" className="px-3 py-2 whitespace-nowrap">{trans.documents}</TabsTrigger>
+              <TabsTrigger value="reminders" className="px-3 py-2 whitespace-nowrap">{trans.serviceReminders}</TabsTrigger>
+              <TabsTrigger value="availability" className="px-3 py-2 whitespace-nowrap">{trans.availability}</TabsTrigger>
+              <TabsTrigger value="finance" className="px-3 py-2 whitespace-nowrap">{trans.finance}</TabsTrigger>
             </TabsList>
           
             <div className="container py-6">
@@ -379,33 +380,33 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                         <CardHeader className="pb-2">
                           <CardTitle className="text-lg flex items-center">
                             <Gauge className="h-5 w-5 mr-2 text-flitx-blue" />
-                            {translations.performance}
+                            {trans.performance}
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
                           <div className="grid grid-cols-2 gap-y-4 mt-2">
                             <div>
-                              <div className="text-sm text-flitx-gray-500">{translations.fuelType}</div>
+                              <div className="text-sm text-flitx-gray-500">{trans.fuelType}</div>
                               <div className="font-semibold text-2xl">{vehicle.mpg || 0} km/L</div>
                             </div>
                             
                             <div>
-                              <div className="text-sm text-flitx-gray-500">{translations.costPerMile}</div>
+                              <div className="text-sm text-flitx-gray-500">{trans.costPerMile}</div>
                               <div className="font-semibold text-2xl">${vehicle.costPerMile || 0}</div>
                             </div>
                             
                             <div>
-                              <div className="text-sm text-flitx-gray-500">{translations.fuelCosts}</div>
+                              <div className="text-sm text-flitx-gray-500">{trans.fuelCosts}</div>
                               <div className="font-semibold text-2xl">${safeNumber(vehicle.fuelCosts).toLocaleString()}</div>
                             </div>
                             
                             <div>
-                              <div className="text-sm text-flitx-gray-500">{translations.totalServiceCost}</div>
+                              <div className="text-sm text-flitx-gray-500">{trans.totalServiceCost}</div>
                               <div className="font-semibold text-2xl">${safeNumber(vehicle.totalServiceCost).toLocaleString()}</div>
                             </div>
                             
                             <div>
-                              <div className="text-sm text-flitx-gray-500">{translations.milesPerDay}</div>
+                              <div className="text-sm text-flitx-gray-500">{trans.milesPerDay}</div>
                               <div className="font-semibold text-2xl">{vehicle.milesPerDay || 0}</div>
                             </div>
                           </div>
@@ -415,7 +416,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                           <div className="space-y-4">
                             <div>
                               <div className="flex justify-between items-center mb-2">
-                                <div className="text-sm font-medium">{translations.fuelLevel}</div>
+                                <div className="text-sm font-medium">{trans.fuelLevel}</div>
                                 <div className="text-sm text-flitx-gray-500">{vehicle.fuelLevel || 0}%</div>
                               </div>
                               <Progress value={vehicle.fuelLevel || 0} className="h-3" />
@@ -423,7 +424,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                             
                             <div className="flex flex-col sm:flex-row gap-4">
                               <div className="flex-1">
-                                <div className="text-sm text-flitx-gray-500 mb-1">{translations.fuelType}</div>
+                                <div className="text-sm text-flitx-gray-500 mb-1">{trans.fuelType}</div>
                                 <div className="font-medium">{vehicle.fuelType || 'N/A'}</div>
                               </div>
                               
@@ -440,7 +441,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                         <CardHeader className="pb-2">
                           <CardTitle className="text-lg flex items-center">
                             <Wrench className="h-5 w-5 mr-2 text-flitx-blue" />
-                            {translations.vehicleMaintenance}
+                            {trans.vehicleMaintenance}
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -456,14 +457,14 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                             </div>
                             
                             <div className="text-right">
-                              <div className="text-sm text-flitx-gray-500">{translations.lastServiceDate}</div>
+                              <div className="text-sm text-flitx-gray-500">{trans.lastServiceDate}</div>
                               <div>{vehicle.lastServiceDate ? new Date(vehicle.lastServiceDate).toLocaleDateString() : 'N/A'}</div>
                             </div>
                           </div>
                           
                           <div className="space-y-1">
                             <div className="flex justify-between text-sm">
-                              <span>{translations.serviceReminders}</span>
+                              <span>{trans.serviceReminders}</span>
                               <div>
                                 <span className="text-red-500 font-bold">{vehicle.serviceReminders || 0}</span>
                                 <span className="text-flitx-gray-400"> active</span>
@@ -471,7 +472,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                             </div>
                             
                             <div className="flex justify-between text-sm">
-                              <span>{translations.totalServices}</span>
+                              <span>{trans.totalServices}</span>
                               <span>{vehicle.totalServices || 0}</span>
                             </div>
                             
@@ -513,14 +514,14 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                         {documents.length === 0 ? (
                           <div className="text-center py-8 text-flitx-gray-500">
                             <FileText className="mx-auto h-12 w-12 text-flitx-gray-300 mb-3" />
-                            <h3 className="text-lg font-medium mb-1">{translations.uploadDocuments}</h3>
+                            <h3 className="text-lg font-medium mb-1">{trans.uploadDocuments}</h3>
                             <p className="text-sm">
                               Upload important documents like registration, insurance, and service records.
                             </p>
                           </div>
                         ) : (
                           <div className="space-y-4 mb-6">
-                            <h3 className="text-lg font-medium">{translations.uploadDocuments}</h3>
+                            <h3 className="text-lg font-medium">{trans.uploadDocuments}</h3>
                             <div className="space-y-3">
                               {documents.map((doc, index) => (
                                 <div key={index} className="flex items-center justify-between border p-3 rounded-md">
@@ -552,7 +553,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                             <Button className="bg-flitx-blue hover:bg-flitx-blue-600" asChild>
                               <span>
                                 <Upload className="h-4 w-4 mr-2" />
-                                {translations.uploadDocuments}
+                                {trans.uploadDocuments}
                               </span>
                             </Button>
                           </label>
@@ -570,13 +571,13 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                       <CardHeader className="pb-2">
                         <CardTitle className="text-lg flex items-center">
                           <Calendar className="h-5 w-5 mr-2 text-flitx-blue" />
-                          {translations.availability}
+                          {trans.availability}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
                           <p className="text-flitx-gray-500 text-sm">
-                            {translations.selectDays}
+                            {trans.selectDays}
                           </p>
                           
                           <div className="flex flex-col items-center">
@@ -597,7 +598,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                           <div className="mt-4 p-4 bg-blue-50 rounded-md">
                             <div className="flex justify-between items-center">
                               <div>
-                                <div className="text-sm font-medium">{translations.dailyRate}</div>
+                                <div className="text-sm font-medium">{trans.dailyRate}</div>
                                 <div className="text-2xl font-bold">${vehicle.dailyRate || 0}</div>
                               </div>
                               
@@ -625,11 +626,11 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                         <div className="flex justify-between items-center">
                           <CardTitle className="text-lg flex items-center">
                             <BarChart3 className="h-5 w-5 mr-2 text-flitx-blue" />
-                            {translations.finance}
+                            {trans.finance}
                           </CardTitle>
                           <Button variant="outline" size="sm" onClick={handleEditFinance} className="flex items-center">
                             <Edit className="h-4 w-4 mr-1" />
-                            {translations.editFinance}
+                            {trans.editFinance}
                           </Button>
                         </div>
                       </CardHeader>
@@ -637,19 +638,19 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
                         <div className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="bg-green-50 p-4 rounded-md">
-                              <div className="text-sm text-flitx-gray-500">{translations.totalRevenue}</div>
+                              <div className="text-sm text-flitx-gray-500">{trans.totalRevenue}</div>
                               <div className="text-2xl font-bold">${safeNumber(totalRevenue || vehicle.dailyRate * 15).toLocaleString()}</div>
                               <div className="text-xs text-green-600">From {selectedDates.length} booked days</div>
                             </div>
                             
                             <div className="bg-red-50 p-4 rounded-md">
-                              <div className="text-sm text-flitx-gray-500">{translations.totalExpenses}</div>
+                              <div className="text-sm text-flitx-gray-500">{trans.totalExpenses}</div>
                               <div className="text-2xl font-bold">${safeNumber(totalExpenses || vehicle.fuelCosts + vehicle.totalServiceCost).toLocaleString()}</div>
                               <div className="text-xs text-flitx-gray-500">Fuel, maintenance, repairs</div>
                             </div>
                             
                             <div className="bg-blue-50 p-4 rounded-md">
-                              <div className="text-sm text-flitx-gray-500">{translations.netProfit}</div>
+                              <div className="text-sm text-flitx-gray-500">{trans.netProfit}</div>
                               <div className="text-2xl font-bold">
                                 ${safeNumber((totalRevenue || vehicle.dailyRate * 15) - (totalExpenses || vehicle.fuelCosts + vehicle.totalServiceCost)).toLocaleString()}
                               </div>
@@ -673,16 +674,16 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
       <Dialog open={isEditStatusOpen} onOpenChange={setIsEditStatusOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{translations.editStatus}</DialogTitle>
+            <DialogTitle>{trans.editStatus}</DialogTitle>
             <DialogDescription>
-              {translations.selectStatus}
+              {trans.selectStatus}
             </DialogDescription>
           </DialogHeader>
           
           <div className="py-4">
             <Select value={currentStatus} onValueChange={handleStatusChange}>
               <SelectTrigger>
-                <SelectValue placeholder={translations.selectStatus} />
+                <SelectValue placeholder={trans.selectStatus} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="available">{t.available}</SelectItem>
@@ -707,15 +708,15 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
       <Dialog open={isEditFinanceOpen} onOpenChange={setIsEditFinanceOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{translations.editFinance}</DialogTitle>
+            <DialogTitle>{trans.editFinance}</DialogTitle>
             <DialogDescription>
-              {translations.enterFinanceDetails}
+              {trans.enterFinanceDetails}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="total-revenue">{translations.totalRevenue} ($)</Label>
+              <Label htmlFor="total-revenue">{trans.totalRevenue} ($)</Label>
               <Input 
                 id="total-revenue" 
                 type="number"
@@ -725,7 +726,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="total-expenses">{translations.totalExpenses} ($)</Label>
+              <Label htmlFor="total-expenses">{trans.totalExpenses} ($)</Label>
               <Input 
                 id="total-expenses" 
                 type="number"
@@ -735,7 +736,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false }: Ve
             </div>
             
             <div className="bg-blue-50 p-3 rounded-md">
-              <div className="text-sm font-medium">{translations.netProfit}</div>
+              <div className="text-sm font-medium">{trans.netProfit}</div>
               <div className="text-xl font-semibold mt-1">
                 ${(totalRevenue - totalExpenses).toLocaleString()}
               </div>
