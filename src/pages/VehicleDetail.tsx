@@ -30,9 +30,9 @@ interface Vehicle {
   image?: string;
 }
 
-// Define a custom interface for our translations that allows for any string key
+// Define a custom interface for our translations that handles both strings and nested objects
 interface VehicleTranslations {
-  [key: string]: string | { [key: string]: string };
+  [key: string]: string | VehicleTranslations;
 }
 
 const VehicleDetail = () => {

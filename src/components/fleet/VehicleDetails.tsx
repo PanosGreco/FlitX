@@ -47,9 +47,16 @@ import { VehicleReminders } from "./VehicleReminders";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-// Define a custom interface for our translations that allows for any string key
+// Define a custom interface for our translations that handles both strings and nested objects
 interface VehicleTranslations {
-  [key: string]: string | { [key: string]: string };
+  [key: string]: string | VehicleTranslations;
+}
+
+// Helper function to safely access translation strings
+function getTranslation(translations: VehicleTranslations | undefined, key: string, fallback: string): string {
+  if (!translations) return fallback;
+  const value = translations[key];
+  return typeof value === 'string' ? value : fallback;
 }
 
 interface VehicleDetailsProps {
@@ -111,7 +118,6 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
     selectStatus: "Select a status for this vehicle",
     statusUpdated: "Status Updated",
     vehicleStatusChanged: "Vehicle status changed to ",
-    ...t
   };
   
   const safeNumber = (value: any) => {
@@ -125,11 +131,11 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
     repair: "bg-red-100 text-red-800"
   };
   
-  const statusLabels = {
-    available: t.available,
-    rented: t.rented,
-    maintenance: t.maintenance,
-    repair: t.repair
+  const statusLabels: Record<string, string> = {
+    available: typeof t.available === 'string' ? t.available : 'Available',
+    rented: typeof t.rented === 'string' ? t.rented : 'Rented',
+    maintenance: typeof t.maintenance === 'string' ? t.maintenance : 'Maintenance',
+    repair: typeof t.repair === 'string' ? t.repair : 'Needs Repair'
   };
 
   const vehicle = vehicles.find(v => v.id === vehicleId) || {
@@ -166,8 +172,8 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
 
   const handleSaveStatus = () => {
     toast({
-      title: trans.statusUpdated,
-      description: `${trans.vehicleStatusChanged} ${statusLabels[currentStatus as keyof typeof statusLabels] || currentStatus}`,
+      title: getTranslation(trans, 'statusUpdated', 'Status Updated'),
+      description: `${getTranslation(trans, 'vehicleStatusChanged', 'Vehicle status changed to ')} ${statusLabels[currentStatus] || currentStatus}`,
     });
     setIsEditStatusOpen(false);
   };
@@ -180,8 +186,8 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
   
   const handleSaveFinance = () => {
     toast({
-      title: trans.financeUpdated,
-      description: trans.financeDetailsUpdated,
+      title: getTranslation(trans, 'financeUpdated', 'Finance Updated'),
+      description: getTranslation(trans, 'financeDetailsUpdated', 'Finance details have been updated'),
     });
     setIsEditFinanceOpen(false);
   };
@@ -199,8 +205,8 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
       setDocuments(prev => [...prev, newDoc]);
       
       toast({
-        title: trans.documentUploaded,
-        description: trans.documentSaved,
+        title: getTranslation(trans, 'documentUploaded', 'Document Uploaded'),
+        description: getTranslation(trans, 'documentSaved', 'Your document has been saved'),
       });
     }
   };
@@ -232,8 +238,8 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
               console.error("Error recording booking income:", error);
             } else {
               toast({
-                title: trans.rentalIncomeAdded,
-                description: `${trans.addedIncome}${vehicle.dailyRate} ${trans.toIncomeFor} ${lastSelectedDate.toLocaleDateString()}`,
+                title: getTranslation(trans, 'rentalIncomeAdded', 'Rental Income Added'),
+                description: `${getTranslation(trans, 'addedIncome', 'Added $')}${vehicle.dailyRate} ${getTranslation(trans, 'toIncomeFor', ' to income for ')} ${lastSelectedDate.toLocaleDateString()}`,
               });
             }
           } else {
@@ -292,6 +298,11 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
     }
   };
 
+  // Safe access to translation strings
+  const getTrans = (key: string, fallback: string): string => {
+    return getTranslation(trans, key, fallback);
+  };
+
   return (
     <div className="animate-fade-in">
       <div className="bg-white shadow-bottom">
@@ -304,7 +315,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
               onClick={() => navigate(-1)}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
-              {t.cancel}
+              {typeof t.cancel === 'string' ? t.cancel : 'Cancel'}
             </Button>
           </div>
           
@@ -355,7 +366,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
               <div className="flex-shrink-0 flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleEditStatus}>
                   <Settings className="h-4 w-4 mr-2" />
-                  {trans.editStatus}
+                  {getTrans('editStatus', 'Edit Status')}
                 </Button>
               </div>
             </div>
@@ -363,13 +374,13 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
           
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid grid-cols-7 w-full max-w-lg mb-6 overflow-x-auto">
-              <TabsTrigger value="details" className="px-3 py-2 whitespace-nowrap">{trans.overview}</TabsTrigger>
-              <TabsTrigger value="maintenance" className="px-3 py-2 whitespace-nowrap">{trans.vehicleMaintenance}</TabsTrigger>
-              <TabsTrigger value="damage" className="px-3 py-2 whitespace-nowrap">{trans.repair}</TabsTrigger>
-              <TabsTrigger value="documents" className="px-3 py-2 whitespace-nowrap">{trans.documents}</TabsTrigger>
-              <TabsTrigger value="reminders" className="px-3 py-2 whitespace-nowrap">{trans.serviceReminders}</TabsTrigger>
-              <TabsTrigger value="availability" className="px-3 py-2 whitespace-nowrap">{trans.availability}</TabsTrigger>
-              <TabsTrigger value="finance" className="px-3 py-2 whitespace-nowrap">{trans.finance}</TabsTrigger>
+              <TabsTrigger value="details" className="px-3 py-2 whitespace-nowrap">{getTrans('overview', 'Overview')}</TabsTrigger>
+              <TabsTrigger value="maintenance" className="px-3 py-2 whitespace-nowrap">{getTrans('vehicleMaintenance', 'Vehicle Maintenance')}</TabsTrigger>
+              <TabsTrigger value="damage" className="px-3 py-2 whitespace-nowrap">{getTrans('repair', 'Repair')}</TabsTrigger>
+              <TabsTrigger value="documents" className="px-3 py-2 whitespace-nowrap">{getTrans('documents', 'Documents')}</TabsTrigger>
+              <TabsTrigger value="reminders" className="px-3 py-2 whitespace-nowrap">{getTrans('serviceReminders', 'Service Reminders')}</TabsTrigger>
+              <TabsTrigger value="availability" className="px-3 py-2 whitespace-nowrap">{getTrans('availability', 'Availability')}</TabsTrigger>
+              <TabsTrigger value="finance" className="px-3 py-2 whitespace-nowrap">{getTrans('finance', 'Finance')}</TabsTrigger>
             </TabsList>
           
             <div className="container py-6">
@@ -385,33 +396,33 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                         <CardHeader className="pb-2">
                           <CardTitle className="text-lg flex items-center">
                             <Gauge className="h-5 w-5 mr-2 text-flitx-blue" />
-                            {trans.performance}
+                            {getTrans('performance', 'Performance')}
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
                           <div className="grid grid-cols-2 gap-y-4 mt-2">
                             <div>
-                              <div className="text-sm text-flitx-gray-500">{trans.fuelType}</div>
+                              <div className="text-sm text-flitx-gray-500">{getTrans('fuelType', 'Fuel Type')}</div>
                               <div className="font-semibold text-2xl">{vehicle.mpg || 0} km/L</div>
                             </div>
                             
                             <div>
-                              <div className="text-sm text-flitx-gray-500">{trans.costPerMile}</div>
+                              <div className="text-sm text-flitx-gray-500">{getTrans('costPerMile', 'Cost Per Mile')}</div>
                               <div className="font-semibold text-2xl">${vehicle.costPerMile || 0}</div>
                             </div>
                             
                             <div>
-                              <div className="text-sm text-flitx-gray-500">{trans.fuelCosts}</div>
+                              <div className="text-sm text-flitx-gray-500">{getTrans('fuelCosts', 'Fuel Costs')}</div>
                               <div className="font-semibold text-2xl">${safeNumber(vehicle.fuelCosts).toLocaleString()}</div>
                             </div>
                             
                             <div>
-                              <div className="text-sm text-flitx-gray-500">{trans.totalServiceCost}</div>
+                              <div className="text-sm text-flitx-gray-500">{getTrans('totalServiceCost', 'Total Service Cost')}</div>
                               <div className="font-semibold text-2xl">${safeNumber(vehicle.totalServiceCost).toLocaleString()}</div>
                             </div>
                             
                             <div>
-                              <div className="text-sm text-flitx-gray-500">{trans.milesPerDay}</div>
+                              <div className="text-sm text-flitx-gray-500">{getTrans('milesPerDay', 'Miles Per Day')}</div>
                               <div className="font-semibold text-2xl">{vehicle.milesPerDay || 0}</div>
                             </div>
                           </div>
@@ -421,7 +432,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                           <div className="space-y-4">
                             <div>
                               <div className="flex justify-between items-center mb-2">
-                                <div className="text-sm font-medium">{trans.fuelLevel}</div>
+                                <div className="text-sm font-medium">{getTrans('fuelLevel', 'Fuel Level')}</div>
                                 <div className="text-sm text-flitx-gray-500">{vehicle.fuelLevel || 0}%</div>
                               </div>
                               <Progress value={vehicle.fuelLevel || 0} className="h-3" />
@@ -429,7 +440,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                             
                             <div className="flex flex-col sm:flex-row gap-4">
                               <div className="flex-1">
-                                <div className="text-sm text-flitx-gray-500 mb-1">{trans.fuelType}</div>
+                                <div className="text-sm text-flitx-gray-500 mb-1">{getTrans('fuelType', 'Fuel Type')}</div>
                                 <div className="font-medium">{vehicle.fuelType || 'N/A'}</div>
                               </div>
                               
@@ -446,7 +457,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                         <CardHeader className="pb-2">
                           <CardTitle className="text-lg flex items-center">
                             <Wrench className="h-5 w-5 mr-2 text-flitx-blue" />
-                            {trans.vehicleMaintenance}
+                            {getTrans('vehicleMaintenance', 'Vehicle Maintenance')}
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -462,14 +473,14 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                             </div>
                             
                             <div className="text-right">
-                              <div className="text-sm text-flitx-gray-500">{trans.lastServiceDate}</div>
+                              <div className="text-sm text-flitx-gray-500">{getTrans('lastServiceDate', 'Last Service Date')}</div>
                               <div>{vehicle.lastServiceDate ? new Date(vehicle.lastServiceDate).toLocaleDateString() : 'N/A'}</div>
                             </div>
                           </div>
                           
                           <div className="space-y-1">
                             <div className="flex justify-between text-sm">
-                              <span>{trans.serviceReminders}</span>
+                              <span>{getTrans('serviceReminders', 'Service Reminders')}</span>
                               <div>
                                 <span className="text-red-500 font-bold">{vehicle.serviceReminders || 0}</span>
                                 <span className="text-flitx-gray-400"> active</span>
@@ -477,7 +488,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                             </div>
                             
                             <div className="flex justify-between text-sm">
-                              <span>{trans.totalServices}</span>
+                              <span>{getTrans('totalServices', 'Total Services')}</span>
                               <span>{vehicle.totalServices || 0}</span>
                             </div>
                             
@@ -519,14 +530,14 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                         {documents.length === 0 ? (
                           <div className="text-center py-8 text-flitx-gray-500">
                             <FileText className="mx-auto h-12 w-12 text-flitx-gray-300 mb-3" />
-                            <h3 className="text-lg font-medium mb-1">{trans.uploadDocuments}</h3>
+                            <h3 className="text-lg font-medium mb-1">{getTrans('uploadDocuments', 'Upload Documents')}</h3>
                             <p className="text-sm">
                               Upload important documents like registration, insurance, and service records.
                             </p>
                           </div>
                         ) : (
                           <div className="space-y-4 mb-6">
-                            <h3 className="text-lg font-medium">{trans.uploadDocuments}</h3>
+                            <h3 className="text-lg font-medium">{getTrans('uploadDocuments', 'Upload Documents')}</h3>
                             <div className="space-y-3">
                               {documents.map((doc, index) => (
                                 <div key={index} className="flex items-center justify-between border p-3 rounded-md">
@@ -558,7 +569,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                             <Button className="bg-flitx-blue hover:bg-flitx-blue-600" asChild>
                               <span>
                                 <Upload className="h-4 w-4 mr-2" />
-                                {trans.uploadDocuments}
+                                {getTrans('uploadDocuments', 'Upload Documents')}
                               </span>
                             </Button>
                           </label>
@@ -576,13 +587,13 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                       <CardHeader className="pb-2">
                         <CardTitle className="text-lg flex items-center">
                           <Calendar className="h-5 w-5 mr-2 text-flitx-blue" />
-                          {trans.availability}
+                          {getTrans('availability', 'Availability')}
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
                         <div className="space-y-4">
                           <p className="text-flitx-gray-500 text-sm">
-                            {trans.selectDays}
+                            {getTrans('selectDays', 'Select days when the vehicle is booked or unavailable')}
                           </p>
                           
                           <div className="flex flex-col items-center">
@@ -603,7 +614,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                           <div className="mt-4 p-4 bg-blue-50 rounded-md">
                             <div className="flex justify-between items-center">
                               <div>
-                                <div className="text-sm font-medium">{trans.dailyRate}</div>
+                                <div className="text-sm font-medium">{getTrans('dailyRate', 'Daily Rate')}</div>
                                 <div className="text-2xl font-bold">${vehicle.dailyRate || 0}</div>
                               </div>
                               
@@ -631,11 +642,11 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                         <div className="flex justify-between items-center">
                           <CardTitle className="text-lg flex items-center">
                             <BarChart3 className="h-5 w-5 mr-2 text-flitx-blue" />
-                            {trans.finance}
+                            {getTrans('finance', 'Finance')}
                           </CardTitle>
                           <Button variant="outline" size="sm" onClick={handleEditFinance} className="flex items-center">
                             <Edit className="h-4 w-4 mr-1" />
-                            {trans.editFinance}
+                            {getTrans('editFinance', 'Edit Finance')}
                           </Button>
                         </div>
                       </CardHeader>
@@ -643,19 +654,19 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                         <div className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="bg-green-50 p-4 rounded-md">
-                              <div className="text-sm text-flitx-gray-500">{trans.totalRevenue}</div>
+                              <div className="text-sm text-flitx-gray-500">{getTrans('totalRevenue', 'Total Revenue')}</div>
                               <div className="text-2xl font-bold">${safeNumber(totalRevenue || vehicle.dailyRate * 15).toLocaleString()}</div>
                               <div className="text-xs text-green-600">From {selectedDates.length} booked days</div>
                             </div>
                             
                             <div className="bg-red-50 p-4 rounded-md">
-                              <div className="text-sm text-flitx-gray-500">{trans.totalExpenses}</div>
+                              <div className="text-sm text-flitx-gray-500">{getTrans('totalExpenses', 'Total Expenses')}</div>
                               <div className="text-2xl font-bold">${safeNumber(totalExpenses || vehicle.fuelCosts + vehicle.totalServiceCost).toLocaleString()}</div>
                               <div className="text-xs text-flitx-gray-500">Fuel, maintenance, repairs</div>
                             </div>
                             
                             <div className="bg-blue-50 p-4 rounded-md">
-                              <div className="text-sm text-flitx-gray-500">{trans.netProfit}</div>
+                              <div className="text-sm text-flitx-gray-500">{getTrans('netProfit', 'Net Profit')}</div>
                               <div className="text-2xl font-bold">
                                 ${safeNumber((totalRevenue || vehicle.dailyRate * 15) - (totalExpenses || vehicle.fuelCosts + vehicle.totalServiceCost)).toLocaleString()}
                               </div>
@@ -679,16 +690,16 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
       <Dialog open={isEditStatusOpen} onOpenChange={setIsEditStatusOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{trans.editStatus}</DialogTitle>
+            <DialogTitle>{getTrans('editStatus', 'Edit Status')}</DialogTitle>
             <DialogDescription>
-              {trans.selectStatus}
+              {getTrans('selectStatus', 'Select a status for this vehicle')}
             </DialogDescription>
           </DialogHeader>
           
           <div className="py-4">
             <Select value={currentStatus} onValueChange={handleStatusChange}>
               <SelectTrigger>
-                <SelectValue placeholder={trans.selectStatus} />
+                <SelectValue placeholder={getTrans('selectStatus', 'Select a status for this vehicle')} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="available">{t.available}</SelectItem>
@@ -701,10 +712,10 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditStatusOpen(false)}>
-              {t.cancel}
+              {typeof t.cancel === 'string' ? t.cancel : 'Cancel'}
             </Button>
             <Button className="bg-flitx-blue hover:bg-flitx-blue-600" onClick={handleSaveStatus}>
-              {t.save}
+              {typeof t.save === 'string' ? t.save : 'Save'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -713,15 +724,15 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
       <Dialog open={isEditFinanceOpen} onOpenChange={setIsEditFinanceOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{trans.editFinance}</DialogTitle>
+            <DialogTitle>{getTrans('editFinance', 'Edit Finance')}</DialogTitle>
             <DialogDescription>
-              {trans.enterFinanceDetails}
+              {getTrans('enterFinanceDetails', 'Enter finance details for this vehicle')}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="total-revenue">{trans.totalRevenue} ($)</Label>
+              <Label htmlFor="total-revenue">{getTrans('totalRevenue', 'Total Revenue')} ($)</Label>
               <Input 
                 id="total-revenue" 
                 type="number"
@@ -731,7 +742,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="total-expenses">{trans.totalExpenses} ($)</Label>
+              <Label htmlFor="total-expenses">{getTrans('totalExpenses', 'Total Expenses')} ($)</Label>
               <Input 
                 id="total-expenses" 
                 type="number"
@@ -741,7 +752,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
             </div>
             
             <div className="bg-blue-50 p-3 rounded-md">
-              <div className="text-sm font-medium">{trans.netProfit}</div>
+              <div className="text-sm font-medium">{getTrans('netProfit', 'Net Profit')}</div>
               <div className="text-xl font-semibold mt-1">
                 ${(totalRevenue - totalExpenses).toLocaleString()}
               </div>
@@ -750,10 +761,10 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditFinanceOpen(false)}>
-              {t.cancel}
+              {typeof t.cancel === 'string' ? t.cancel : 'Cancel'}
             </Button>
             <Button className="bg-flitx-blue hover:bg-flitx-blue-600" onClick={handleSaveFinance}>
-              {t.save}
+              {typeof t.save === 'string' ? t.save : 'Save'}
             </Button>
           </DialogFooter>
         </DialogContent>
