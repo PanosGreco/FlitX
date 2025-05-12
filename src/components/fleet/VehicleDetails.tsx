@@ -702,10 +702,10 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                 <SelectValue placeholder={getTrans('selectStatus', 'Select a status for this vehicle')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="available">{t.available}</SelectItem>
-                <SelectItem value="rented">{t.rented}</SelectItem>
-                <SelectItem value="maintenance">{t.maintenance}</SelectItem>
-                <SelectItem value="repair">{t.repair}</SelectItem>
+                <SelectItem value="available">{typeof t.available === 'string' ? t.available : 'Available'}</SelectItem>
+                <SelectItem value="rented">{typeof t.rented === 'string' ? t.rented : 'Rented'}</SelectItem>
+                <SelectItem value="maintenance">{typeof t.maintenance === 'string' ? t.maintenance : 'Maintenance'}</SelectItem>
+                <SelectItem value="repair">{typeof t.repair === 'string' ? t.repair : 'Needs Repair'}</SelectItem>
               </SelectContent>
             </Select>
           </div>

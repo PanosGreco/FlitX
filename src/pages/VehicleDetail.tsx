@@ -1,4 +1,3 @@
-
 import { VehicleDetails } from "@/components/fleet/VehicleDetails";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { sampleVehicles } from "@/lib/data";
@@ -41,51 +40,57 @@ const VehicleDetail = () => {
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
   
+  // Helper function to safely get translation values with fallbacks
+  const getTransValue = (key: string, fallback: string): string => {
+    const value = t[key as keyof typeof t];
+    return typeof value === 'string' ? value : fallback;
+  };
+  
   // Create a translations object that includes both the translations from context
   // and our fallback translations for missing keys
   const translations: VehicleTranslations = {
     // Vehicle detail specific translations with fallbacks
-    serviceReminders: t.serviceReminders || "Service Reminders",
-    fuelType: t.fuelType || "Fuel Type",
-    costPerMile: t.costPerMile || "Cost Per Mile",
-    fuelCosts: t.fuelCosts || "Fuel Costs",
-    totalServiceCost: t.totalServiceCost || "Total Service Cost",
-    milesPerDay: t.milesPerDay || "Miles Per Day",
-    lastServiceDate: t.lastServiceDate || "Last Service Date",
-    totalServices: t.totalServices || "Total Services",
-    performance: t.performance || "Performance",
-    fuelLevel: t.fuelLevel || "Fuel Level",
-    vehicleMaintenance: t.vehicleMaintenance || "Vehicle Maintenance",
-    repair: t.repair || "Repair",
-    documents: t.documents || "Documents",
-    availability: t.availability || "Availability",
-    finance: t.finance || "Finance",
-    overview: t.overview || "Overview",
-    uploadDocuments: t.uploadDocuments || "Upload Documents",
-    selectDays: t.selectDays || "Select days when the vehicle is booked or unavailable",
-    dailyRate: t.dailyRate || "Daily Rate",
-    totalRevenue: t.totalRevenue || "Total Revenue",
-    totalExpenses: t.totalExpenses || "Total Expenses",
-    netProfit: t.netProfit || "Net Profit",
-    editFinance: t.editFinance || "Edit Finance",
-    enterFinanceDetails: t.enterFinanceDetails || "Enter finance details for this vehicle",
-    financeUpdated: t.financeUpdated || "Finance Updated",
-    financeDetailsUpdated: t.financeDetailsUpdated || "Finance details have been updated",
-    documentUploaded: t.documentUploaded || "Document Uploaded",
-    documentSaved: t.documentSaved || "Your document has been saved",
-    rentalIncomeAdded: t.rentalIncomeAdded || "Rental Income Added",
-    addedIncome: t.addedIncome || "Added $",
-    toIncomeFor: t.toIncomeFor || " to income for ",
-    editStatus: t.editStatus || "Edit Status",
-    selectStatus: t.selectStatus || "Select a status for this vehicle",
-    statusUpdated: t.statusUpdated || "Status Updated",
-    vehicleStatusChanged: t.vehicleStatusChanged || "Vehicle status changed to ",
+    serviceReminders: getTransValue('serviceReminders', 'Service Reminders'),
+    fuelType: getTransValue('fuelType', 'Fuel Type'),
+    costPerMile: getTransValue('costPerMile', 'Cost Per Mile'),
+    fuelCosts: getTransValue('fuelCosts', 'Fuel Costs'),
+    totalServiceCost: getTransValue('totalServiceCost', 'Total Service Cost'),
+    milesPerDay: getTransValue('milesPerDay', 'Miles Per Day'),
+    lastServiceDate: getTransValue('lastServiceDate', 'Last Service Date'),
+    totalServices: getTransValue('totalServices', 'Total Services'),
+    performance: getTransValue('performance', 'Performance'),
+    fuelLevel: getTransValue('fuelLevel', 'Fuel Level'),
+    vehicleMaintenance: getTransValue('vehicleMaintenance', 'Vehicle Maintenance'),
+    repair: getTransValue('repair', 'Repair'),
+    documents: getTransValue('documents', 'Documents'),
+    availability: getTransValue('availability', 'Availability'),
+    finance: getTransValue('finance', 'Finance'),
+    overview: getTransValue('overview', 'Overview'),
+    uploadDocuments: getTransValue('uploadDocuments', 'Upload Documents'),
+    selectDays: getTransValue('selectDays', 'Select days when the vehicle is booked or unavailable'),
+    dailyRate: getTransValue('dailyRate', 'Daily Rate'),
+    totalRevenue: getTransValue('totalRevenue', 'Total Revenue'),
+    totalExpenses: getTransValue('totalExpenses', 'Total Expenses'),
+    netProfit: getTransValue('netProfit', 'Net Profit'),
+    editFinance: getTransValue('editFinance', 'Edit Finance'),
+    enterFinanceDetails: getTransValue('enterFinanceDetails', 'Enter finance details for this vehicle'),
+    financeUpdated: getTransValue('financeUpdated', 'Finance Updated'),
+    financeDetailsUpdated: getTransValue('financeDetailsUpdated', 'Finance details have been updated'),
+    documentUploaded: getTransValue('documentUploaded', 'Document Uploaded'),
+    documentSaved: getTransValue('documentSaved', 'Your document has been saved'),
+    rentalIncomeAdded: getTransValue('rentalIncomeAdded', 'Rental Income Added'),
+    addedIncome: getTransValue('addedIncome', 'Added $'),
+    toIncomeFor: getTransValue('toIncomeFor', ' to income for '),
+    editStatus: getTransValue('editStatus', 'Edit Status'),
+    selectStatus: getTransValue('selectStatus', 'Select a status for this vehicle'),
+    statusUpdated: getTransValue('statusUpdated', 'Status Updated'),
+    vehicleStatusChanged: getTransValue('vehicleStatusChanged', 'Vehicle status changed to '),
   };
 
   // Copy all remaining properties from t, preserving their structure
   Object.keys(t).forEach(key => {
     if (translations[key] === undefined) {
-      translations[key] = t[key as keyof typeof t];
+      translations[key] = t[key as keyof typeof t] as string | VehicleTranslations;
     }
   });
   
