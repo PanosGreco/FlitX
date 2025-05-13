@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { 
   Car, 
@@ -93,7 +94,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
     totalServices: "Total Services",
     performance: "Performance",
     fuelLevel: "Fuel Level",
-    vehicleMaintenance: "Vehicle Maintenance",
+    vehicleMaintenance: "Maintenance",
     repair: "Repair",
     documents: "Documents",
     availability: "Availability",
@@ -373,14 +374,14 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
           )}
           
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-7 w-full max-w-lg mb-6 overflow-x-auto">
-              <TabsTrigger value="details" className="px-3 py-2 whitespace-nowrap">{getTrans('overview', 'Overview')}</TabsTrigger>
-              <TabsTrigger value="maintenance" className="px-3 py-2 whitespace-nowrap">{getTrans('vehicleMaintenance', 'Vehicle Maintenance')}</TabsTrigger>
-              <TabsTrigger value="damage" className="px-3 py-2 whitespace-nowrap">{getTrans('repair', 'Repair')}</TabsTrigger>
-              <TabsTrigger value="documents" className="px-3 py-2 whitespace-nowrap">{getTrans('documents', 'Documents')}</TabsTrigger>
-              <TabsTrigger value="reminders" className="px-3 py-2 whitespace-nowrap">{getTrans('serviceReminders', 'Service Reminders')}</TabsTrigger>
-              <TabsTrigger value="availability" className="px-3 py-2 whitespace-nowrap">{getTrans('availability', 'Availability')}</TabsTrigger>
-              <TabsTrigger value="finance" className="px-3 py-2 whitespace-nowrap">{getTrans('finance', 'Finance')}</TabsTrigger>
+            <TabsList className="flex w-full max-w-5xl mb-6 overflow-x-auto scrollbar-hide">
+              <TabsTrigger value="details" className="px-4 py-2 flex-grow">{getTrans('overview', 'Overview')}</TabsTrigger>
+              <TabsTrigger value="maintenance" className="px-4 py-2 flex-grow">{getTrans('vehicleMaintenance', 'Maintenance')}</TabsTrigger>
+              <TabsTrigger value="damage" className="px-4 py-2 flex-grow">{getTrans('repair', 'Repair')}</TabsTrigger>
+              <TabsTrigger value="documents" className="px-4 py-2 flex-grow">{getTrans('documents', 'Documents')}</TabsTrigger>
+              <TabsTrigger value="reminders" className="px-4 py-2 flex-grow">{getTrans('serviceReminders', 'Reminders')}</TabsTrigger>
+              <TabsTrigger value="availability" className="px-4 py-2 flex-grow">{getTrans('availability', 'Availability')}</TabsTrigger>
+              <TabsTrigger value="finance" className="px-4 py-2 flex-grow">{getTrans('finance', 'Finance')}</TabsTrigger>
             </TabsList>
           
             <div className="container py-6">
@@ -457,7 +458,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                         <CardHeader className="pb-2">
                           <CardTitle className="text-lg flex items-center">
                             <Wrench className="h-5 w-5 mr-2 text-flitx-blue" />
-                            {getTrans('vehicleMaintenance', 'Vehicle Maintenance')}
+                            {getTrans('vehicleMaintenance', 'Maintenance')}
                           </CardTitle>
                         </CardHeader>
                         <CardContent>
