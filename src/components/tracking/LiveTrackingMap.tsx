@@ -1,3 +1,4 @@
+
 import { useState, useEffect, Suspense } from "react";
 import { 
   Card, 
@@ -84,10 +85,10 @@ export function LiveTrackingMap() {
             lastUpdate: '2 min ago',
             image: v.image,
             location: Math.random() > 0.3 ? {
-              // Generate random locations around San Francisco for demo
-              lat: 37.7749 + (Math.random() - 0.5) * 0.1,
-              lng: -122.4194 + (Math.random() - 0.5) * 0.1,
-              address: "123 Example St, San Francisco, CA"
+              // Generate random locations around Athens, Greece for demo
+              lat: 37.9838 + (Math.random() - 0.5) * 0.1,
+              lng: 23.7275 + (Math.random() - 0.5) * 0.1,
+              address: "123 Example St, Athens, Greece"
             } : undefined
           }));
           
@@ -96,7 +97,7 @@ export function LiveTrackingMap() {
       } catch (error) {
         console.error('Error fetching vehicles:', error);
         
-        // Fall back to sample data on error
+        // Fall back to sample data on error with Athens coordinates
         const sampleData = sampleVehicles.map(v => ({
           id: v.id,
           name: `${v.make} ${v.model}`,
@@ -105,9 +106,9 @@ export function LiveTrackingMap() {
           lastUpdate: '2 min ago',
           image: v.image,
           location: Math.random() > 0.3 ? {
-            lat: 37.7749 + (Math.random() - 0.5) * 0.1,
-            lng: -122.4194 + (Math.random() - 0.5) * 0.1,
-            address: "123 Example St, San Francisco, CA"
+            lat: 37.9838 + (Math.random() - 0.5) * 0.1,
+            lng: 23.7275 + (Math.random() - 0.5) * 0.1,
+            address: "123 Example St, Athens, Greece"
           } : undefined
         }));
         

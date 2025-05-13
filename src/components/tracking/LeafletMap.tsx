@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -31,8 +30,8 @@ export function LeafletMap({ selectedVehicle, vehicles, onVehiclePositionUpdate 
   useEffect(() => {
     if (!mapContainer.current || mapRef.current) return;
     
-    // Create map instance
-    const map = L.map(mapContainer.current).setView([37.7749, -122.4194], 12);
+    // Create map instance - updated to Athens, Greece coordinates
+    const map = L.map(mapContainer.current).setView([37.9838, 23.7275], 12);
     
     // Add OpenStreetMap tile layer
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
