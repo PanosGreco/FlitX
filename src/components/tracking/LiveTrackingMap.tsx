@@ -11,12 +11,11 @@ import {
   Filter, 
   AlertTriangle 
 } from "lucide-react";
-import { MapComponent } from "./MapComponent";
+import { LeafletMap } from "./LeafletMap";
 import { VehicleTrackingList } from "./VehicleTrackingList";
 import { updateVehicleLocation, getLatestVehicleLocation } from "@/services/vehicleTrackingService";
 import { supabase } from "@/integrations/supabase/client";
 import { sampleVehicles } from "@/lib/data";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Vehicle {
   id: string;
@@ -34,7 +33,6 @@ interface Vehicle {
 
 export function LiveTrackingMap() {
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
-  const [mapError, setMapError] = useState<boolean>(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   
@@ -208,26 +206,11 @@ export function LiveTrackingMap() {
                 <p className="text-flitx-gray-500">Loading map components...</p>
               </div>
             }>
-              {mapError ? (
-                <div className="flex flex-col items-center justify-center h-full bg-gray-50">
-                  <AlertTriangle className="h-12 w-12 text-yellow-500 mb-4" />
-                  <h3 className="text-lg font-medium mb-2">Map could not be loaded</h3>
-                  <p className="text-sm text-flitx-gray-500 text-center max-w-md mb-4">
-                    To view live vehicle tracking, please connect a Mapbox API key or other map provider.
-                  </p>
-                  <Button 
-                    className="bg-flitx-blue hover:bg-flitx-blue-600"
-                  >
-                    Connect Map API
-                  </Button>
-                </div>
-              ) : (
-                <MapComponent 
-                  selectedVehicle={selectedVehicle}
-                  vehicles={vehicles}
-                  onVehiclePositionUpdate={handleVehiclePositionUpdate}
-                />
-              )}
+              <LeafletMap 
+                selectedVehicle={selectedVehicle}
+                vehicles={vehicles}
+                onVehiclePositionUpdate={handleVehiclePositionUpdate}
+              />
             </Suspense>
           </CardContent>
         </Card>
