@@ -5,6 +5,7 @@ import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { toast } from "@/components/ui/use-toast";
 
 interface Vehicle {
   id: string;

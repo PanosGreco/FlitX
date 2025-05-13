@@ -9,6 +9,35 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      damage_report_images: {
+        Row: {
+          id: string
+          report_id: string
+          storage_path: string
+          uploaded_at: string | null
+        }
+        Insert: {
+          id?: string
+          report_id: string
+          storage_path: string
+          uploaded_at?: string | null
+        }
+        Update: {
+          id?: string
+          report_id?: string
+          storage_path?: string
+          uploaded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "damage_report_images_report_id_fkey"
+            columns: ["report_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_damage_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       financial_records: {
         Row: {
           amount: number
@@ -200,6 +229,53 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      vehicle_damage_reports: {
+        Row: {
+          created_at: string | null
+          damage_date: string | null
+          damage_description: string | null
+          damage_location: Json
+          damage_severity: string | null
+          id: string
+          status: string | null
+          updated_at: string | null
+          user_id: string
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          damage_date?: string | null
+          damage_description?: string | null
+          damage_location: Json
+          damage_severity?: string | null
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string | null
+          damage_date?: string | null
+          damage_description?: string | null
+          damage_location?: Json
+          damage_severity?: string | null
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_damage_reports_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vehicle_documents: {
         Row: {
