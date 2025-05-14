@@ -64,7 +64,7 @@ function Model({
       onClick={(event) => {
         if (isSelectingDamageLocation && onAddDamageMarker) {
           event.stopPropagation();
-          onAddDamageMarker(event.point.clone(), event.normal.clone());
+          onAddDamageMarker(event.point || event.pointer, new THREE.Vector3(0, 1, 0));
         }
       }}
     >

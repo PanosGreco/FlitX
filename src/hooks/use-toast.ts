@@ -1,7 +1,7 @@
 
-import { toast as sonnerToast, type Toast } from "sonner";
+import { toast as sonnerToast, type ToastT } from "sonner";
 
-type ToasterToast = Toast;
+type ToasterToast = ToastT;
 
 const actionTypes = {
   default: {
@@ -31,4 +31,9 @@ function toast({ variant = "default", ...props }: ToastProps) {
 }
 
 export { toast, type ToastProps as ToastParameters };
-export const useToast = () => ({ toast });
+export const useToast = () => {
+  return { 
+    toast,
+    toasts: [] // Add this to fix the toaster component expecting toasts property
+  };
+};
