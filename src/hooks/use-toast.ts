@@ -16,13 +16,19 @@ const actionTypes = {
 
 type ToastActionType = keyof typeof actionTypes;
 
-type ToastProps = ToasterToast & {
+// Create a type that omits the id from the ToastT type
+type ToastPropsWithoutId = Omit<ToastT, 'id'> & {
   variant?: ToastActionType;
 };
 
-function toast({ variant = "default", ...props }: ToastProps) {
+// Export this as ToastParameters for external use
+type ToastParameters = ToastPropsWithoutId;
+
+// Our toast function will accept props without requiring an id
+function toast({ variant = "default", ...props }: ToastPropsWithoutId) {
   const { style, descriptionStyle } = actionTypes[variant];
 
+  // The sonnerToast function will automatically generate an id if one isn't provided
   return sonnerToast(props.title, {
     ...props,
     style,
@@ -30,7 +36,7 @@ function toast({ variant = "default", ...props }: ToastProps) {
   });
 }
 
-export { toast, type ToastProps as ToastParameters };
+export { toast, type ToastParameters };
 export const useToast = () => {
   return { 
     toast,
