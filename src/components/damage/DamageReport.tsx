@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, Upload, Check } from 'lucide-react';
 import * as THREE from 'three';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '@/components/ui/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 
 interface DamageMarker {
@@ -45,7 +45,6 @@ export function DamageReport({ vehicleId, vehicleMake = 'Generic', vehicleModel 
   const fetchDamageReports = async () => {
     try {
       const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.user) return;
       
       const { data: reports, error } = await supabase
         .from('vehicle_damage_reports')
@@ -146,14 +145,6 @@ export function DamageReport({ vehicleId, vehicleMake = 'Generic', vehicleModel 
     
     try {
       const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.user) {
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to report damage.",
-          variant: "destructive"
-        });
-        return;
-      }
       
       // Save damage report to database
       const { data: reportData, error: reportError } = await supabase
@@ -161,7 +152,7 @@ export function DamageReport({ vehicleId, vehicleMake = 'Generic', vehicleModel 
         .insert({
           id: selectedDamageMarker.id,
           vehicle_id: vehicleId,
-          user_id: session.session.user.id,
+          user_id: session?.session?.user?.id || null,
           damage_location: {
             x: selectedDamageMarker.position.x,
             y: selectedDamageMarker.position.y,
@@ -291,6 +282,7 @@ export function DamageReport({ vehicleId, vehicleMake = 'Generic', vehicleModel 
             <DamageReportForm 
               onSubmit={handleSubmitReport}
               onCancel={handleCancelReporting}
+              isLoading={isLoading}
             />
           </CardContent>
         </Card>

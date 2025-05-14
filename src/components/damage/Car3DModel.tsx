@@ -7,6 +7,31 @@ import * as THREE from 'three';
 // Generic car model URL - in production we would have different models per car make/model
 const DEFAULT_CAR_MODEL = 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/car-muscle/model.gltf';
 
+// Car model mapping for common makes and models
+const CAR_MODELS: Record<string, string> = {
+  // Luxury
+  'BMW-3 Series': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/bmw/model.gltf',
+  'BMW-5 Series': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/bmw/model.gltf',
+  'Mercedes-E Class': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/mercedes-benz/model.gltf',
+  'Mercedes-C Class': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/mercedes-benz/model.gltf',
+  'Audi-A4': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/audi-r8/model.gltf',
+  'Audi-A6': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/audi-r8/model.gltf',
+  // Sedan
+  'Toyota-Corolla': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/toyota-ae86/model.gltf',
+  'Toyota-Camry': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/toyota-ae86/model.gltf',
+  'Honda-Civic': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/honda-civic-gen-6/model.gltf',
+  'Honda-Accord': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/honda-civic-gen-6/model.gltf',
+  // SUV
+  'Toyota-RAV4': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/toyota-land-cruiser/model.gltf',
+  'Honda-CR-V': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/suv-jeep/model.gltf',
+  'Jeep-Wrangler': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/jeep/model.gltf',
+  // Truck
+  'Ford-F-150': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/pickup/model.gltf',
+  'Chevrolet-Silverado': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/pickup/model.gltf',
+  // Default fallback
+  'default': DEFAULT_CAR_MODEL,
+};
+
 interface DamageMarker {
   id: string;
   position: THREE.Vector3;
@@ -28,7 +53,7 @@ function Model({
 }: ModelProps) {
   const group = useRef<THREE.Group>(null);
   const { scene } = useGLTF(modelUrl);
-  const { camera } = useThree();
+  const { camera, raycaster, mouse, gl } = useThree();
   const clonedScene = useRef<THREE.Group>();
 
   useEffect(() => {
@@ -64,7 +89,11 @@ function Model({
       onClick={(event) => {
         if (isSelectingDamageLocation && onAddDamageMarker) {
           event.stopPropagation();
-          onAddDamageMarker(event.point || event.pointer, new THREE.Vector3(0, 1, 0));
+          // Use pointer instead of point
+          const position = event.pointer || new THREE.Vector3();
+          // Calculate normal from the clicked point to the center of the scene as a fallback
+          const normal = new THREE.Vector3().copy(position).normalize();
+          onAddDamageMarker(event.point, normal);
         }
       }}
     >
@@ -100,8 +129,13 @@ export function Car3DModel({
   onAddDamageMarker,
   isSelectingDamageLocation 
 }: Car3DModelProps) {
-  // TODO: In a real implementation, we would map the make and model to specific 3D models
-  // For now, we'll use a generic model
+  // Determine which model to use based on make and model
+  let modelUrl = DEFAULT_CAR_MODEL;
+  
+  if (vehicleMake && vehicleModel) {
+    const key = `${vehicleMake}-${vehicleModel}`;
+    modelUrl = CAR_MODELS[key] || CAR_MODELS['default'];
+  }
   
   return (
     <div className="w-full h-[400px] bg-gray-900 rounded-lg">
@@ -116,6 +150,7 @@ export function Car3DModel({
           castShadow 
         />
         <Model 
+          modelUrl={modelUrl}
           damageMarkers={damageMarkers} 
           onAddDamageMarker={onAddDamageMarker}
           isSelectingDamageLocation={isSelectingDamageLocation} 

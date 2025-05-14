@@ -18,9 +18,10 @@ interface DamageReportFormProps {
     photos: File[];
   }) => void;
   onCancel: () => void;
+  isLoading?: boolean;
 }
 
-export function DamageReportForm({ onSubmit, onCancel }: DamageReportFormProps) {
+export function DamageReportForm({ onSubmit, onCancel, isLoading = false }: DamageReportFormProps) {
   const [description, setDescription] = useState('');
   const [severity, setSeverity] = useState('medium');
   const [photos, setPhotos] = useState<File[]>([]);
@@ -54,12 +55,13 @@ export function DamageReportForm({ onSubmit, onCancel }: DamageReportFormProps) 
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe the damage in detail..."
           required
+          disabled={isLoading}
         />
       </div>
       
       <div className="space-y-2">
         <label className="text-sm font-medium">Severity</label>
-        <Select value={severity} onValueChange={setSeverity}>
+        <Select value={severity} onValueChange={setSeverity} disabled={isLoading}>
           <SelectTrigger>
             <SelectValue placeholder="Select severity" />
           </SelectTrigger>
@@ -80,6 +82,7 @@ export function DamageReportForm({ onSubmit, onCancel }: DamageReportFormProps) 
           onChange={handlePhotoChange}
           multiple
           className="cursor-pointer"
+          disabled={isLoading}
         />
         
         {/* Preview photos */}
@@ -97,6 +100,7 @@ export function DamageReportForm({ onSubmit, onCancel }: DamageReportFormProps) 
                   onClick={() => handleRemovePhoto(index)}
                   className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 
                              opacity-0 group-hover:opacity-100 transition-opacity"
+                  disabled={isLoading}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M18 6L6 18M6 6l12 12"/>
@@ -109,11 +113,11 @@ export function DamageReportForm({ onSubmit, onCancel }: DamageReportFormProps) 
       </div>
       
       <div className="flex justify-end space-x-2 pt-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
           Cancel
         </Button>
-        <Button type="submit">
-          Submit Report
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? 'Submitting...' : 'Submit Report'}
         </Button>
       </div>
     </form>
