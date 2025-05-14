@@ -6,11 +6,11 @@ type ToasterToast = ToastT;
 const actionTypes = {
   default: {
     style: { backgroundColor: "hsl(var(--background))", color: "hsl(var(--foreground))" },
-    descriptionStyle: { color: "hsl(var(--muted-foreground))" },
+    className: "text-foreground bg-background", // Added className as a fallback
   },
   destructive: {
     style: { backgroundColor: "hsl(var(--destructive))", color: "hsl(var(--destructive-foreground))" },
-    descriptionStyle: { color: "hsl(var(--destructive-foreground))" },
+    className: "text-destructive-foreground bg-destructive", // Added className as a fallback
   },
 } as const;
 
@@ -26,13 +26,13 @@ type ToastParameters = ToastPropsWithoutId;
 
 // Our toast function will accept props without requiring an id
 function toast({ variant = "default", ...props }: ToastPropsWithoutId) {
-  const { style, descriptionStyle } = actionTypes[variant];
+  const { style, className } = actionTypes[variant];
 
   // The sonnerToast function will automatically generate an id if one isn't provided
   return sonnerToast(props.title, {
     ...props,
     style,
-    descriptionStyle,
+    className,
   });
 }
 
