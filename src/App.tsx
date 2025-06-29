@@ -12,6 +12,7 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import SignUpPage from "./pages/SignUp";
 import BoatsHome from "./pages/BoatsHome";
+import DailyProgram from "./pages/DailyProgram";
 import { LanguageProvider } from "./contexts/LanguageContext";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/finances" element={<Finance />} />
             <Route path="/tracking" element={<Tracking />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/daily-program" element={<DailyProgram />} />
             <Route path="/boats" element={<BoatsHome />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -6,6 +6,7 @@ import {
   BarChart3, 
   Map, 
   User, 
+  Calendar,
   X 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,11 @@ const navItems: NavItem[] = [
     titleKey: "tracking",
     href: "/tracking",
     icon: Map,
+  },
+  {
+    titleKey: "dailyProgram",
+    href: "/daily-program",
+    icon: Calendar,
   },
   {
     titleKey: "profile",
@@ -87,6 +93,10 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
     const value = t[key as keyof typeof t];
     if (typeof value === 'string') {
       return value;
+    }
+    // Add fallback for new dailyProgram key
+    if (key === 'dailyProgram') {
+      return 'Daily Program';
     }
     return key; // Fallback to the key if translation is not a string
   };
