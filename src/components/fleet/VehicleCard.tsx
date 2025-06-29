@@ -17,6 +17,7 @@ export interface VehicleData {
   licensePlate: string;
   fuelLevel: number;
   dailyRate: number;
+  rented_until?: string;
 }
 
 interface VehicleCardProps {
@@ -42,6 +43,14 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
   
   const statusIcons = {
     repair: <AlertTriangle className="h-3.5 w-3.5 mr-1" />
+  };
+
+  const formatRentedUntilDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString(language === 'el' ? 'el-GR' : 'en-US', {
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   return (
@@ -82,6 +91,12 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
         <div className="mt-1 text-sm text-flitx-gray-500">
           {vehicle.type} • {vehicle.licensePlate}
         </div>
+
+        {vehicle.status === 'rented' && vehicle.rented_until && (
+          <div className="mt-2 text-sm text-blue-600 font-medium">
+            Rented Until {formatRentedUntilDate(vehicle.rented_until)}
+          </div>
+        )}
         
         <div className="mt-3 flex justify-between items-center">
           <div className="text-xs text-flitx-gray-400">

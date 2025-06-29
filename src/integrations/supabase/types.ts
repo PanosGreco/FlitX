@@ -425,6 +425,7 @@ export type Database = {
           mileage: number
           model: string
           name: string | null
+          rented_until: string | null
           status: string
           type: string
           updated_at: string
@@ -446,6 +447,7 @@ export type Database = {
           mileage?: number
           model: string
           name?: string | null
+          rented_until?: string | null
           status?: string
           type: string
           updated_at?: string
@@ -467,6 +469,7 @@ export type Database = {
           mileage?: number
           model?: string
           name?: string | null
+          rented_until?: string | null
           status?: string
           type?: string
           updated_at?: string

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   Car, 
@@ -74,6 +73,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
   const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
   const [isEditFinanceOpen, setIsEditFinanceOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState("");
+  const [rentedUntilDate, setRentedUntilDate] = useState<Date | undefined>();
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [documentName, setDocumentName] = useState("");
   const [documents, setDocuments] = useState<{name: string; date: string}[]>([]);
@@ -84,7 +84,6 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
   
   // Use translations from props if provided, otherwise use translations from context
   const trans = translations || {
-    // Fallback translations if neither props nor context provides them
     serviceReminders: "Service Reminders",
     fuelType: "Fuel Type",
     costPerMile: "Cost Per Mile",
@@ -120,6 +119,8 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
     selectStatus: "Select a status for this vehicle",
     statusUpdated: "Status Updated",
     vehicleStatusChanged: "Vehicle status changed to ",
+    rentedUntil: "Rented Until",
+    selectRentalEndDate: "Select when the rental period ends"
   };
   
   const safeNumber = (value: any) => {
@@ -160,24 +161,67 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
     totalServiceCost: 0,
     fuelCosts: 0,
     milesPerDay: 0,
-    image: undefined
+    image: undefined,
+    rented_until: undefined
   };
   
   const handleEditStatus = () => {
     setCurrentStatus(vehicle.status);
+    // Set the current rented_until date if it exists
+    if (vehicle.rented_until) {
+      setRentedUntilDate(new Date(vehicle.rented_until));
+    }
     setIsEditStatusOpen(true);
   };
 
   const handleStatusChange = (newStatus: string) => {
     setCurrentStatus(newStatus);
+    // Clear the rented until date if status is not rented
+    if (newStatus !== 'rented') {
+      setRentedUntilDate(undefined);
+    }
   };
 
-  const handleSaveStatus = () => {
-    toast({
-      title: getTranslation(trans, 'statusUpdated', 'Status Updated'),
-      description: `${getTranslation(trans, 'vehicleStatusChanged', 'Vehicle status changed to ')} ${statusLabels[currentStatus] || currentStatus}`,
-    });
-    setIsEditStatusOpen(false);
+  const handleSaveStatus = async () => {
+    try {
+      const updateData: any = { status: currentStatus };
+      
+      // Add rented_until date if status is rented and date is selected
+      if (currentStatus === 'rented' && rentedUntilDate) {
+        updateData.rented_until = rentedUntilDate.toISOString();
+      } else if (currentStatus !== 'rented') {
+        // Clear rented_until if status is not rented
+        updateData.rented_until = null;
+      }
+
+      const { error } = await supabase
+        .from('vehicles')
+        .update(updateData)
+        .eq('id', vehicleId);
+
+      if (error) {
+        console.error('Error updating vehicle status:', error);
+        toast({
+          title: "Error",
+          description: "Failed to update vehicle status",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: getTranslation(trans, 'statusUpdated', 'Status Updated'),
+        description: `${getTranslation(trans, 'vehicleStatusChanged', 'Vehicle status changed to ')} ${statusLabels[currentStatus] || currentStatus}`,
+      });
+      setIsEditStatusOpen(false);
+    } catch (err) {
+      console.error('Error in handleSaveStatus:', err);
+      toast({
+        title: "Error",
+        description: "Failed to update vehicle status",
+        variant: "destructive"
+      });
+    }
   };
   
   const handleEditFinance = () => {
@@ -363,6 +407,12 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                   <span className="mx-2">•</span>
                   <span>{safeNumber(vehicle.mileage).toLocaleString()} km</span>
                 </div>
+
+                {vehicle.status === 'rented' && vehicle.rented_until && (
+                  <div className="mt-2 text-sm text-blue-600 font-medium">
+                    Rented Until {new Date(vehicle.rented_until).toLocaleDateString()}
+                  </div>
+                )}
               </div>
               
               <div className="flex-shrink-0 flex gap-2">
@@ -698,25 +748,50 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
             </DialogDescription>
           </DialogHeader>
           
-          <div className="py-4">
-            <Select value={currentStatus} onValueChange={handleStatusChange}>
-              <SelectTrigger>
-                <SelectValue placeholder={getTrans('selectStatus', 'Select a status for this vehicle')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="available">{typeof t.available === 'string' ? t.available : 'Available'}</SelectItem>
-                <SelectItem value="rented">{typeof t.rented === 'string' ? t.rented : 'Rented'}</SelectItem>
-                <SelectItem value="maintenance">{typeof t.maintenance === 'string' ? t.maintenance : 'Maintenance'}</SelectItem>
-                <SelectItem value="repair">{typeof t.repair === 'string' ? t.repair : 'Needs Repair'}</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={currentStatus} onValueChange={handleStatusChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder={getTrans('selectStatus', 'Select a status for this vehicle')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="available">{typeof t.available === 'string' ? t.available : 'Available'}</SelectItem>
+                  <SelectItem value="rented">{typeof t.rented === 'string' ? t.rented : 'Rented'}</SelectItem>
+                  <SelectItem value="maintenance">{typeof t.maintenance === 'string' ? t.maintenance : 'Maintenance'}</SelectItem>
+                  <SelectItem value="repair">{typeof t.repair === 'string' ? t.repair : 'Needs Repair'}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {currentStatus === 'rented' && (
+              <div className="space-y-2">
+                <Label>{getTrans('rentedUntil', 'Rented Until')}</Label>
+                <div className="flex flex-col items-center">
+                  <CalendarComponent
+                    mode="single"
+                    selected={rentedUntilDate}
+                    onSelect={setRentedUntilDate}
+                    className="rounded-md border p-3"
+                    disabled={(date) => date < new Date()}
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {getTrans('selectRentalEndDate', 'Select when the rental period ends')}
+                </p>
+              </div>
+            )}
           </div>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditStatusOpen(false)}>
               {typeof t.cancel === 'string' ? t.cancel : 'Cancel'}
             </Button>
-            <Button className="bg-flitx-blue hover:bg-flitx-blue-600" onClick={handleSaveStatus}>
+            <Button 
+              className="bg-flitx-blue hover:bg-flitx-blue-600" 
+              onClick={handleSaveStatus}
+              disabled={currentStatus === 'rented' && !rentedUntilDate}
+            >
               {typeof t.save === 'string' ? t.save : 'Save'}
             </Button>
           </DialogFooter>
