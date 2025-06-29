@@ -31,64 +31,65 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
 
   return (
     <Card className={`border ${task.completed ? 'opacity-75' : ''}`}>
-      <CardContent className="p-4">
-        <div className="space-y-3">
+      <CardContent className="p-3">
+        <div className="space-y-2">
           {/* Header */}
           <div className="flex items-start justify-between">
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-2 mb-1">
-                <Badge className={getTypeColor(task.type)}>
+                <Badge className={`${getTypeColor(task.type)} text-xs px-2 py-0.5`}>
                   {task.type.charAt(0).toUpperCase() + task.type.slice(1)}
                 </Badge>
                 {task.completed && (
-                  <Badge variant="secondary" className="text-green-600">
+                  <Badge variant="secondary" className="text-green-600 text-xs px-2 py-0.5">
                     <Check className="h-3 w-3 mr-1" />
-                    Completed
+                    Done
                   </Badge>
                 )}
               </div>
-              <h4 className={`font-medium ${task.completed ? 'line-through' : ''}`}>
+              <h4 className={`font-medium text-sm truncate ${task.completed ? 'line-through' : ''}`}>
                 {task.vehicleName} ({task.vehicleId})
               </h4>
             </div>
-            <div className="flex space-x-1">
+            <div className="flex space-x-1 flex-shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="h-7 w-7"
                 onClick={() => setIsEditDialogOpen(true)}
               >
-                <Edit className="h-4 w-4" />
+                <Edit className="h-3 w-3" />
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-red-500 hover:text-red-700"
+                className="h-7 w-7 text-red-500 hover:text-red-700"
                 onClick={() => onDelete(task.id)}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-3 w-3" />
               </Button>
             </div>
           </div>
 
           {/* Time */}
-          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4" />
+          <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+            <Clock className="h-3 w-3" />
             <span>{task.scheduledTime}</span>
           </div>
 
           {/* Notes */}
           {task.notes && (
-            <p className="text-sm text-muted-foreground bg-gray-50 p-2 rounded">
+            <p className="text-xs text-muted-foreground bg-gray-50 p-2 rounded line-clamp-2">
               {task.notes}
             </p>
           )}
 
           {/* Complete Button */}
-          <div className="flex justify-end pt-2 border-t">
+          <div className="flex justify-end pt-1">
             <Button
               variant={task.completed ? "secondary" : "default"}
               size="sm"
+              className="h-7 px-3 text-xs"
               onClick={handleToggleComplete}
             >
               {task.completed ? "Reopen" : "Complete"}
