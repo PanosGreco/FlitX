@@ -23,7 +23,6 @@ export function EditTaskDialog({ isOpen, onClose, task, onUpdate }: EditTaskDial
     vehicleName: task.vehicleName,
     scheduledTime: task.scheduledTime,
     notes: task.notes,
-    hasOutstandingBalance: task.hasOutstandingBalance,
     completed: task.completed
   });
 
@@ -34,7 +33,6 @@ export function EditTaskDialog({ isOpen, onClose, task, onUpdate }: EditTaskDial
       vehicleName: task.vehicleName,
       scheduledTime: task.scheduledTime,
       notes: task.notes,
-      hasOutstandingBalance: task.hasOutstandingBalance,
       completed: task.completed
     });
   }, [task]);
@@ -121,17 +119,6 @@ export function EditTaskDialog({ isOpen, onClose, task, onUpdate }: EditTaskDial
               placeholder="Additional notes or observations..."
               rows={3}
             />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="hasOutstandingBalance"
-              checked={formData.hasOutstandingBalance}
-              onCheckedChange={(checked) => 
-                setFormData({ ...formData, hasOutstandingBalance: checked })
-              }
-            />
-            <Label htmlFor="hasOutstandingBalance">Outstanding Balance</Label>
           </div>
 
           <div className="flex items-center space-x-2">
