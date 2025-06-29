@@ -1,5 +1,5 @@
 
-import { useToast as useToastHook, toast as sonnerToast, type ToastT } from "sonner";
+import { toast as sonnerToast, type ToastT } from "sonner";
 
 // Define variants for our toast types
 const actionTypes = {
@@ -37,4 +37,12 @@ function toast({ variant = "default", ...props }: ToastPropsWithoutId) {
   });
 }
 
-export { useToastHook as useToast, toast };
+export { toast };
+
+// Create a simple useToast hook that returns the toast function
+export const useToast = () => {
+  return { 
+    toast,
+    toasts: [] // Add this to fix the toaster component expecting toasts property
+  };
+};

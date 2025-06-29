@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { format, addDays, subDays } from "date-fns";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
@@ -6,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { DailyProgramSection } from "@/components/daily-program/DailyProgramSection";
 import { AddTaskDialog } from "@/components/daily-program/AddTaskDialog";
-import { usePageTitle } from "@/hooks/usePageTitle";
 
 export interface DailyTask {
   id: string;
@@ -21,7 +21,8 @@ export interface DailyTask {
 }
 
 export default function DailyProgram() {
-  usePageTitle("Daily Program - FlitX");
+  // Set page title directly without using the translation hook
+  document.title = "Daily Program - FlitX";
   
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);

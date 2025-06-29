@@ -89,11 +89,15 @@ function Model({
       onClick={(event) => {
         if (isSelectingDamageLocation && onAddDamageMarker) {
           event.stopPropagation();
-          // Use pointer instead of point
-          const position = event.pointer || new THREE.Vector3();
+          // Use the intersection point if available, otherwise create a Vector3 from pointer
+          const position = event.point || new THREE.Vector3(
+            event.pointer.x, 
+            event.pointer.y, 
+            0 // Default z value when point is not available
+          );
           // Calculate normal from the clicked point to the center of the scene as a fallback
           const normal = new THREE.Vector3().copy(position).normalize();
-          onAddDamageMarker(event.point, normal);
+          onAddDamageMarker(position, normal);
         }
       }}
     >
