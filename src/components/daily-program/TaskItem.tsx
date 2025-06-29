@@ -1,9 +1,8 @@
 
 import { useState } from "react";
-import { Clock, DollarSign, Edit, Trash2, Check } from "lucide-react";
+import { Clock, Edit, Trash2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { EditTaskDialog } from "./EditTaskDialog";
 import { DailyTask } from "@/pages/DailyProgram";
@@ -19,10 +18,6 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
 
   const handleToggleComplete = () => {
     onUpdate({ ...task, completed: !task.completed });
-  };
-
-  const handleToggleBalance = () => {
-    onUpdate({ ...task, hasOutstandingBalance: !task.hasOutstandingBalance });
   };
 
   const getTypeColor = (type: string) => {
@@ -89,17 +84,8 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
             </p>
           )}
 
-          {/* Controls */}
-          <div className="flex items-center justify-between pt-2 border-t">
-            <div className="flex items-center space-x-2">
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">Outstanding Balance</span>
-              <Switch
-                checked={task.hasOutstandingBalance}
-                onCheckedChange={handleToggleBalance}
-                disabled={task.completed}
-              />
-            </div>
+          {/* Complete Button */}
+          <div className="flex justify-end pt-2 border-t">
             <Button
               variant={task.completed ? "secondary" : "default"}
               size="sm"

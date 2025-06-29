@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { DailyTask } from "@/pages/DailyProgram";
@@ -22,7 +21,6 @@ export function AddTaskDialog({ isOpen, onClose, onAddTask }: AddTaskDialogProps
     vehicleName: '',
     scheduledTime: '',
     notes: '',
-    hasOutstandingBalance: false,
     completed: false
   });
 
@@ -39,7 +37,6 @@ export function AddTaskDialog({ isOpen, onClose, onAddTask }: AddTaskDialogProps
       vehicleName: '',
       scheduledTime: '',
       notes: '',
-      hasOutstandingBalance: false,
       completed: false
     });
     onClose();
@@ -52,7 +49,6 @@ export function AddTaskDialog({ isOpen, onClose, onAddTask }: AddTaskDialogProps
       vehicleName: '',
       scheduledTime: '',
       notes: '',
-      hasOutstandingBalance: false,
       completed: false
     });
     onClose();
@@ -127,17 +123,6 @@ export function AddTaskDialog({ isOpen, onClose, onAddTask }: AddTaskDialogProps
               placeholder="Additional notes or observations..."
               rows={3}
             />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="hasOutstandingBalance"
-              checked={formData.hasOutstandingBalance}
-              onCheckedChange={(checked) => 
-                setFormData({ ...formData, hasOutstandingBalance: checked })
-              }
-            />
-            <Label htmlFor="hasOutstandingBalance">Outstanding Balance</Label>
           </div>
 
           <DialogFooter>
