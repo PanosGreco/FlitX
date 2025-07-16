@@ -48,6 +48,7 @@ import { VehicleReminders } from "./VehicleReminders";
 import { DamageReport } from "@/components/damage/DamageReport";
 import { RentalBookingDialog } from "./RentalBookingDialog";
 import { RentalBookingsList } from "./RentalBookingsList";
+import { CalendarView } from "./CalendarView";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -349,8 +350,14 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
     }
   };
 
+  const handleNewBookingFromCalendar = (selectedDates: Date[]) => {
+    setSelectedDates(selectedDates);
+    setIsRentalBookingOpen(true);
+  };
+
   const handleBookingAdded = (booking: any) => {
     setRefreshBookings(prev => prev + 1);
+    setSelectedDates([]); // Clear selection after booking
     toast({
       title: "Booking Added",
       description: `New rental booking created for ${booking.customer_name}`,
@@ -448,7 +455,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
               <TabsTrigger value="damage" className="px-4 py-2 flex-grow">{getTrans('repair', 'Repair')}</TabsTrigger>
               <TabsTrigger value="documents" className="px-4 py-2 flex-grow">{getTrans('documents', 'Documents')}</TabsTrigger>
               <TabsTrigger value="reminders" className="px-4 py-2 flex-grow">{getTrans('serviceReminders', 'Reminders')}</TabsTrigger>
-              <TabsTrigger value="availability" className="px-4 py-2 flex-grow">{getTrans('availability', 'Availability')}</TabsTrigger>
+              <TabsTrigger value="availability" className="px-4 py-2 flex-grow">Calendar</TabsTrigger>
               <TabsTrigger value="finance" className="px-4 py-2 flex-grow">{getTrans('finance', 'Finance')}</TabsTrigger>
             </TabsList>
           
@@ -652,30 +659,20 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                   </TabsContent>
                   
                   <TabsContent value="availability" className="mt-6">
-                    <Card className="mb-6">
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-center">
-                          <CardTitle className="text-lg flex items-center">
-                            <Calendar className="h-5 w-5 mr-2 text-flitx-blue" />
-                            Rental Bookings
-                          </CardTitle>
-                          <Button 
-                            onClick={() => setIsRentalBookingOpen(true)}
-                            className="bg-flitx-blue hover:bg-flitx-blue-600"
-                          >
-                            <Plus className="h-4 w-4 mr-2" />
-                            New Booking
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <RentalBookingsList 
-                          vehicleId={vehicle.id}
-                          onBookingDeleted={handleBookingDeleted}
-                          key={refreshBookings}
-                        />
-                      </CardContent>
-                    </Card>
+                    <CalendarView
+                      vehicleId={vehicle.id}
+                      onNewBooking={handleNewBookingFromCalendar}
+                      refreshTrigger={refreshBookings}
+                    />
+                    
+                    <div className="mt-6">
+                      <h3 className="text-lg font-semibold mb-4">Booking History</h3>
+                      <RentalBookingsList 
+                        vehicleId={vehicle.id}
+                        onBookingDeleted={handleBookingDeleted}
+                        key={refreshBookings}
+                      />
+                    </div>
                   </TabsContent>
                   
                   <TabsContent value="finance" className="mt-6">
