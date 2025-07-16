@@ -14,7 +14,8 @@ import {
   Upload,
   PenLine,
   Edit,
-  Bell
+  Bell,
+  Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -45,6 +46,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { VehicleMaintenance } from "./VehicleMaintenance";
 import { VehicleReminders } from "./VehicleReminders";
 import { DamageReport } from "@/components/damage/DamageReport";
+import { RentalBookingDialog } from "./RentalBookingDialog";
+import { RentalBookingsList } from "./RentalBookingsList";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -72,6 +75,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
   const [activeTab, setActiveTab] = useState("details");
   const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
   const [isEditFinanceOpen, setIsEditFinanceOpen] = useState(false);
+  const [isRentalBookingOpen, setIsRentalBookingOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState("");
   const [rentedUntilDate, setRentedUntilDate] = useState<Date | undefined>();
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
@@ -79,6 +83,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
   const [documents, setDocuments] = useState<{name: string; date: string}[]>([]);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
+  const [refreshBookings, setRefreshBookings] = useState(0);
   const { toast } = useToast();
   const { t } = useLanguage();
   
@@ -342,6 +347,18 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
         console.error("Error in handleUpdateExpenses:", err);
       }
     }
+  };
+
+  const handleBookingAdded = (booking: any) => {
+    setRefreshBookings(prev => prev + 1);
+    toast({
+      title: "Booking Added",
+      description: `New rental booking created for ${booking.customer_name}`,
+    });
+  };
+
+  const handleBookingDeleted = (bookingId: string) => {
+    setRefreshBookings(prev => prev + 1);
   };
 
   // Safe access to translation strings
@@ -637,53 +654,26 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                   <TabsContent value="availability" className="mt-6">
                     <Card className="mb-6">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-lg flex items-center">
-                          <Calendar className="h-5 w-5 mr-2 text-flitx-blue" />
-                          {getTrans('availability', 'Availability')}
-                        </CardTitle>
+                        <div className="flex justify-between items-center">
+                          <CardTitle className="text-lg flex items-center">
+                            <Calendar className="h-5 w-5 mr-2 text-flitx-blue" />
+                            Rental Bookings
+                          </CardTitle>
+                          <Button 
+                            onClick={() => setIsRentalBookingOpen(true)}
+                            className="bg-flitx-blue hover:bg-flitx-blue-600"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            New Booking
+                          </Button>
+                        </div>
                       </CardHeader>
                       <CardContent>
-                        <div className="space-y-4">
-                          <p className="text-flitx-gray-500 text-sm">
-                            {getTrans('selectDays', 'Select days when the vehicle is booked or unavailable')}
-                          </p>
-                          
-                          <div className="flex flex-col items-center">
-                            <CalendarComponent
-                              mode="multiple"
-                              selected={selectedDates}
-                              onSelect={handleDateSelect}
-                              className="rounded-md border p-3"
-                              modifiersStyles={{
-                                selected: {
-                                  backgroundColor: "#1EAEDB",
-                                  color: "white",
-                                }
-                              }}
-                            />
-                          </div>
-                          
-                          <div className="mt-4 p-4 bg-blue-50 rounded-md">
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <div className="text-sm font-medium">{getTrans('dailyRate', 'Daily Rate')}</div>
-                                <div className="text-2xl font-bold">${vehicle.dailyRate || 0}</div>
-                              </div>
-                              
-                              <div>
-                                <div className="text-sm font-medium">Selected Days</div>
-                                <div className="text-2xl font-bold">{selectedDates.length}</div>
-                              </div>
-                              
-                              <div>
-                                <div className="text-sm font-medium">Estimated Revenue</div>
-                                <div className="text-2xl font-bold">
-                                  ${safeNumber(vehicle.dailyRate * selectedDates.length).toLocaleString()}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+                        <RentalBookingsList 
+                          vehicleId={vehicle.id}
+                          onBookingDeleted={handleBookingDeleted}
+                          key={refreshBookings}
+                        />
                       </CardContent>
                     </Card>
                   </TabsContent>
@@ -846,6 +836,14 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <RentalBookingDialog
+        isOpen={isRentalBookingOpen}
+        onClose={() => setIsRentalBookingOpen(false)}
+        vehicleId={vehicle.id}
+        vehicleName={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+        onBookingAdded={handleBookingAdded}
+      />
     </div>
   );
 }
