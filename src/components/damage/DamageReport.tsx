@@ -1,321 +1,240 @@
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertTriangle, Plus, FileText, Camera, MapPin, Calendar } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Car3DModel } from "./Car3DModel";
+import { DamageReportForm } from "./DamageReportForm";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
-import { useState, useEffect } from 'react';
-import { Car3DModel } from './Car3DModel';
-import { DamageReportForm } from './DamageReportForm';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertTriangle, Upload, Check } from 'lucide-react';
-import * as THREE from 'three';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
-import { v4 as uuidv4 } from 'uuid';
-
-interface DamageMarker {
+interface DamageReport {
   id: string;
-  position: THREE.Vector3;
-  normal: THREE.Vector3;
-}
-
-interface DamageReportImage {
-  id: string;
-  url: string;
-  uploaded_at: string;
+  damage_description: string;
+  damage_severity: string;
+  damage_location: {
+    position: [number, number, number];
+    category: string;
+  };
+  damage_date: string;
+  status: string;
+  images?: string[];
 }
 
 interface DamageReportProps {
   vehicleId: string;
-  vehicleMake?: string;
-  vehicleModel?: string;
 }
 
-export function DamageReport({ vehicleId, vehicleMake = 'Generic', vehicleModel = 'Car' }: DamageReportProps) {
-  const [isReporting, setIsReporting] = useState(false);
-  const [isSelectingDamageLocation, setIsSelectingDamageLocation] = useState(false);
-  const [damageMarkers, setDamageMarkers] = useState<DamageMarker[]>([]);
-  const [reportImages, setReportImages] = useState<DamageReportImage[]>([]);
-  const [selectedDamageMarker, setSelectedDamageMarker] = useState<DamageMarker | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+const DAMAGE_CATEGORIES = [
+  'Front of vehicle',
+  'Rear of vehicle', 
+  'Left side',
+  'Right side',
+  'Interior',
+  'Roof',
+  'Wheels'
+];
+
+export function DamageReport({ vehicleId }: DamageReportProps) {
+  const [showReportForm, setShowReportForm] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<{
+    position: [number, number, number];
+    category: string;
+  } | null>(null);
+  const [damageReports, setDamageReports] = useState<DamageReport[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [categoryPhotos, setCategoryPhotos] = useState<{[key: string]: string[]}>({});
   const { toast } = useToast();
-  
-  // Fetch existing damage reports on load
+
   useEffect(() => {
     fetchDamageReports();
   }, [vehicleId]);
 
   const fetchDamageReports = async () => {
     try {
-      const { data: session } = await supabase.auth.getSession();
+      setLoading(true);
       
       const { data: reports, error } = await supabase
         .from('vehicle_damage_reports')
         .select(`
-          id, 
-          damage_location,
+          *,
           damage_report_images (
-            id,
             storage_path
           )
         `)
-        .eq('vehicle_id', vehicleId);
-      
+        .eq('vehicle_id', vehicleId)
+        .order('damage_date', { ascending: false });
+
       if (error) throw error;
+
+      const processedReports = reports?.map(report => ({
+        ...report,
+        images: report.damage_report_images?.map((img: any) => 
+          supabase.storage.from('damage_reports').getPublicUrl(img.storage_path).data.publicUrl
+        ) || []
+      })) || [];
+
+      setDamageReports(processedReports);
       
-      if (reports && reports.length > 0) {
-        // Process damage markers
-        const markers: DamageMarker[] = reports.map(report => {
-          const location = report.damage_location;
-          return {
-            id: report.id,
-            position: new THREE.Vector3(location.x, location.y, location.z),
-            normal: new THREE.Vector3(location.nx || 0, location.ny || 0, location.nz || 0)
-          };
-        });
-        
-        setDamageMarkers(markers);
-        
-        // Process images
-        const allImages: DamageReportImage[] = [];
-        for (const report of reports) {
-          if (report.damage_report_images && report.damage_report_images.length > 0) {
-            for (const image of report.damage_report_images) {
-              const { data: publicUrl } = supabase.storage
-                .from('damage_reports')
-                .getPublicUrl(image.storage_path);
-                
-              if (publicUrl) {
-                allImages.push({
-                  id: image.id,
-                  url: publicUrl.publicUrl,
-                  uploaded_at: new Date().toISOString() // Fallback as we don't have this from the query
-                });
-              }
-            }
-          }
+      // Group photos by category
+      const photosByCategory: {[key: string]: string[]} = {};
+      processedReports.forEach(report => {
+        const category = report.damage_location?.category || 'Other';
+        if (!photosByCategory[category]) {
+          photosByCategory[category] = [];
         }
-        
-        setReportImages(allImages);
-      }
+        photosByCategory[category].push(...(report.images || []));
+      });
+      setCategoryPhotos(photosByCategory);
+      
     } catch (error) {
       console.error('Error fetching damage reports:', error);
       toast({
-        title: "Failed to load damage reports",
-        description: "There was an error loading existing damage reports.",
+        title: "Error",
+        description: "Failed to load damage reports",
         variant: "destructive"
       });
-    }
-  };
-
-  const handleAddDamageMarker = (position: THREE.Vector3, normal: THREE.Vector3) => {
-    if (isSelectingDamageLocation) {
-      const newMarker = {
-        id: uuidv4(),
-        position: position,
-        normal: normal
-      };
-      
-      setSelectedDamageMarker(newMarker);
-      setDamageMarkers([...damageMarkers, newMarker]);
-      setIsSelectingDamageLocation(false);
-      setIsReporting(true);
-    }
-  };
-
-  const handleStartReporting = () => {
-    setIsSelectingDamageLocation(true);
-    toast({
-      title: "Select Damage Location",
-      description: "Click on the car model to indicate where the damage occurred.",
-    });
-  };
-
-  const handleCancelReporting = () => {
-    setIsReporting(false);
-    setIsSelectingDamageLocation(false);
-    // Remove the temporary marker if cancelled
-    if (selectedDamageMarker) {
-      setDamageMarkers(damageMarkers.filter(marker => marker.id !== selectedDamageMarker.id));
-      setSelectedDamageMarker(null);
-    }
-  };
-
-  const handleSubmitReport = async (formData: { description: string; severity: string; photos: File[] }) => {
-    if (!selectedDamageMarker) return;
-    
-    setIsLoading(true);
-    
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      
-      // Save damage report to database
-      const { data: reportData, error: reportError } = await supabase
-        .from('vehicle_damage_reports')
-        .insert({
-          id: selectedDamageMarker.id,
-          vehicle_id: vehicleId,
-          user_id: session?.session?.user?.id || null,
-          damage_location: {
-            x: selectedDamageMarker.position.x,
-            y: selectedDamageMarker.position.y,
-            z: selectedDamageMarker.position.z,
-            nx: selectedDamageMarker.normal.x,
-            ny: selectedDamageMarker.normal.y,
-            nz: selectedDamageMarker.normal.z
-          },
-          damage_description: formData.description,
-          damage_severity: formData.severity
-        })
-        .select();
-      
-      if (reportError) throw reportError;
-      
-      // Upload photos
-      const uploadedImages: DamageReportImage[] = [];
-      
-      for (const photo of formData.photos) {
-        const fileExt = photo.name.split('.').pop();
-        const fileName = `${uuidv4()}.${fileExt}`;
-        const filePath = `${vehicleId}/${selectedDamageMarker.id}/${fileName}`;
-        
-        const { error: uploadError, data } = await supabase.storage
-          .from('damage_reports')
-          .upload(filePath, photo);
-          
-        if (uploadError) throw uploadError;
-        
-        // Save reference to database
-        const { data: imageData, error: imageError } = await supabase
-          .from('damage_report_images')
-          .insert({
-            report_id: selectedDamageMarker.id,
-            storage_path: filePath
-          })
-          .select();
-          
-        if (imageError) throw imageError;
-        
-        // Get public URL
-        const { data: publicUrl } = supabase.storage
-          .from('damage_reports')
-          .getPublicUrl(filePath);
-          
-        if (publicUrl && imageData) {
-          uploadedImages.push({
-            id: imageData[0].id,
-            url: publicUrl.publicUrl,
-            uploaded_at: new Date().toISOString()
-          });
-        }
-      }
-      
-      // Add new images to the state
-      setReportImages([...reportImages, ...uploadedImages]);
-      
-      toast({
-        title: "Damage Report Submitted",
-        description: "Your damage report has been successfully submitted.",
-      });
-      
-      setIsReporting(false);
-      setSelectedDamageMarker(null);
-    } catch (error) {
-      console.error('Error submitting damage report:', error);
-      toast({
-        title: "Error Submitting Report",
-        description: "There was a problem submitting your damage report.",
-        variant: "destructive"
-      });
-      
-      // Remove the marker if there was an error
-      if (selectedDamageMarker) {
-        setDamageMarkers(damageMarkers.filter(marker => marker.id !== selectedDamageMarker.id));
-        setSelectedDamageMarker(null);
-      }
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
+
+  const handle3DClick = (position: [number, number, number]) => {
+    // Determine category based on position
+    let category = 'Other';
+    if (position[0] > 1) category = 'Front of vehicle';
+    else if (position[0] < -1) category = 'Rear of vehicle';
+    else if (position[2] > 0.5) category = 'Right side';
+    else if (position[2] < -0.5) category = 'Left side';
+    else if (position[1] > 1) category = 'Roof';
+    
+    setSelectedLocation({ position, category });
+    setShowReportForm(true);
+  };
+
+  const handleReportSubmit = () => {
+    setShowReportForm(false);
+    setSelectedLocation(null);
+    fetchDamageReports();
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity.toLowerCase()) {
+      case "minor":
+        return "bg-yellow-100 text-yellow-800";
+      case "moderate":
+        return "bg-orange-100 text-orange-800";
+      case "severe":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "reported":
+        return "bg-blue-100 text-blue-800";
+      case "in repair":
+        return "bg-yellow-100 text-yellow-800";
+      case "repaired":
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const damageMarkers = damageReports.map(report => ({
+    id: report.id,
+    position: report.damage_location?.position || [0, 0, 0] as [number, number, number],
+    severity: report.damage_severity as 'minor' | 'moderate' | 'severe'
+  }));
+
+  if (showReportForm && selectedLocation) {
+    return (
+      <DamageReportForm
+        vehicleId={vehicleId}
+        damageLocation={selectedLocation}
+        onSubmit={handleReportSubmit}
+        onCancel={() => {
+          setShowReportForm(false);
+          setSelectedLocation(null);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">Vehicle Damage Report</h2>
-          <p className="text-sm text-gray-500">Rotate the model to inspect and report damage</p>
-        </div>
-        
-        {!isReporting && !isSelectingDamageLocation && (
-          <Button 
-            onClick={handleStartReporting} 
-            className="mt-3 md:mt-0 bg-red-600 hover:bg-red-700"
-          >
-            <AlertTriangle className="mr-2 h-4 w-4" /> 
-            Report Damage
-          </Button>
-        )}
-        
-        {isSelectingDamageLocation && (
-          <div className="mt-3 md:mt-0 flex items-center space-x-2">
-            <span className="text-sm font-medium text-amber-600">
-              Click on the vehicle to mark damage location
-            </span>
-            <Button variant="outline" size="sm" onClick={handleCancelReporting}>
-              Cancel
-            </Button>
-          </div>
-        )}
-      </div>
-      
-      <Car3DModel 
-        vehicleMake={vehicleMake}
-        vehicleModel={vehicleModel}
-        damageMarkers={damageMarkers}
-        onAddDamageMarker={handleAddDamageMarker}
-        isSelectingDamageLocation={isSelectingDamageLocation}
-      />
-      
-      {isReporting && selectedDamageMarker && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Report Vehicle Damage</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DamageReportForm 
-              onSubmit={handleSubmitReport}
-              onCancel={handleCancelReporting}
-              isLoading={isLoading}
-            />
-          </CardContent>
-        </Card>
-      )}
-      
-      {/* Damage history */}
       <Card>
         <CardHeader>
-          <CardTitle>Damage History</CardTitle>
+          <CardTitle className="flex items-center">
+            <MapPin className="h-5 w-5 mr-2 text-blue-500" />
+            Vehicle Damage Localization
+          </CardTitle>
+          <p className="text-sm text-gray-600">
+            Click on the 3D model to mark damage locations. Rotate and zoom to view all sides.
+          </p>
         </CardHeader>
         <CardContent>
-          {reportImages.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {reportImages.map((image) => (
-                <div key={image.id} className="bg-gray-100 rounded-md p-2">
-                  <img 
-                    src={image.url} 
-                    alt="Damage report" 
-                    className="w-full h-40 object-cover rounded-md"
-                  />
-                  <div className="mt-2 text-sm text-gray-500">
-                    Reported on {new Date(image.uploaded_at).toLocaleDateString()}
+          <Car3DModel 
+            onDamageClick={handle3DClick}
+            damageMarkers={damageMarkers}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center">
+            <AlertTriangle className="h-5 w-5 mr-2 text-red-500" />
+            Damage History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin h-6 w-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+              <p className="text-sm text-gray-500">Loading damage reports...</p>
+            </div>
+          ) : damageReports.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <AlertTriangle className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+              <h3 className="text-lg font-medium mb-1">No damage reports</h3>
+              <p className="text-sm">Click on the 3D model above to report damage</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {damageReports.map((report) => (
+                <div
+                  key={report.id}
+                  className="p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg">
+                        {report.damage_location?.category || 'Unknown Location'}
+                      </h3>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {report.damage_description}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Badge className={getSeverityColor(report.damage_severity)}>
+                        {report.damage_severity}
+                      </Badge>
+                      <Badge className={getStatusColor(report.status || 'reported')}>
+                        {report.status || 'Reported'}
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center text-sm text-gray-500">
+                    <Calendar className="h-4 w-4 mr-1" />
+                    <span>Reported on {new Date(report.damage_date || '').toLocaleDateString()}</span>
                   </div>
                 </div>
               ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <div className="mx-auto w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                <Check className="h-6 w-6 text-green-500" />
-              </div>
-              <h3 className="text-lg font-medium mb-1">No damage reported</h3>
-              <p className="text-sm">This vehicle has no damage reports.</p>
             </div>
           )}
         </CardContent>

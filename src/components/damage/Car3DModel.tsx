@@ -1,170 +1,105 @@
-
 import { useRef, useState, useEffect } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, useGLTF, PerspectiveCamera, Html } from '@react-three/drei';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, Box } from '@react-three/drei';
 import * as THREE from 'three';
-
-// Generic car model URL - in production we would have different models per car make/model
-const DEFAULT_CAR_MODEL = 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/car-muscle/model.gltf';
-
-// Car model mapping for common makes and models
-const CAR_MODELS: Record<string, string> = {
-  // Luxury
-  'BMW-3 Series': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/bmw/model.gltf',
-  'BMW-5 Series': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/bmw/model.gltf',
-  'Mercedes-E Class': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/mercedes-benz/model.gltf',
-  'Mercedes-C Class': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/mercedes-benz/model.gltf',
-  'Audi-A4': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/audi-r8/model.gltf',
-  'Audi-A6': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/audi-r8/model.gltf',
-  // Sedan
-  'Toyota-Corolla': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/toyota-ae86/model.gltf',
-  'Toyota-Camry': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/toyota-ae86/model.gltf',
-  'Honda-Civic': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/honda-civic-gen-6/model.gltf',
-  'Honda-Accord': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/honda-civic-gen-6/model.gltf',
-  // SUV
-  'Toyota-RAV4': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/toyota-land-cruiser/model.gltf',
-  'Honda-CR-V': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/suv-jeep/model.gltf',
-  'Jeep-Wrangler': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/jeep/model.gltf',
-  // Truck
-  'Ford-F-150': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/pickup/model.gltf',
-  'Chevrolet-Silverado': 'https://market-assets.fra1.cdn.digitaloceanspaces.com/market-assets/models/pickup/model.gltf',
-  // Default fallback
-  'default': DEFAULT_CAR_MODEL,
-};
 
 interface DamageMarker {
   id: string;
-  position: THREE.Vector3;
-  normal: THREE.Vector3;
+  position: [number, number, number];
+  severity: 'minor' | 'moderate' | 'severe';
 }
 
-interface ModelProps {
-  modelUrl?: string;
-  damageMarkers?: DamageMarker[];
-  onAddDamageMarker?: (position: THREE.Vector3, normal: THREE.Vector3) => void;
-  isSelectingDamageLocation: boolean;
+interface Car3DModelProps {
+  onDamageClick: (position: [number, number, number]) => void;
+  damageMarkers: DamageMarker[];
 }
 
-function Model({ 
-  modelUrl = DEFAULT_CAR_MODEL, 
-  damageMarkers = [], 
-  onAddDamageMarker,
-  isSelectingDamageLocation 
-}: ModelProps) {
-  const group = useRef<THREE.Group>(null);
-  const { scene } = useGLTF(modelUrl);
-  const { camera, raycaster, mouse, gl } = useThree();
-  const clonedScene = useRef<THREE.Group>();
+function CarMesh({ onDamageClick, damageMarkers }: Car3DModelProps) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const [hovered, setHovered] = useState(false);
 
-  useEffect(() => {
-    if (!clonedScene.current) {
-      // Clone the scene to avoid issues with the original
-      clonedScene.current = scene.clone();
-      if (group.current) {
-        group.current.add(clonedScene.current);
-
-        // Ensure the model is centered
-        const box = new THREE.Box3().setFromObject(clonedScene.current);
-        const center = box.getCenter(new THREE.Vector3());
-        clonedScene.current.position.x = -center.x;
-        clonedScene.current.position.y = -center.y;
-        clonedScene.current.position.z = -center.z;
-
-        // Set initial scale
-        const scale = 1.5;
-        clonedScene.current.scale.set(scale, scale, scale);
-      }
-    }
-  }, [scene]);
-
-  // Rotate slowly when not interacting
-  useFrame((state) => {
-    if (group.current && !isSelectingDamageLocation) {
-      group.current.rotation.y += 0.001;
+  useFrame((state, delta) => {
+    if (meshRef.current && !hovered) {
+      meshRef.current.rotation.y += delta * 0.1;
     }
   });
 
+  const handleClick = (event: any) => {
+    event.stopPropagation();
+    const point = event.point;
+    onDamageClick([point.x, point.y, point.z]);
+  };
+
+  const getMarkerColor = (severity: string) => {
+    switch (severity) {
+      case 'severe': return '#ef4444';
+      case 'moderate': return '#f59e0b';
+      default: return '#fbbf24';
+    }
+  };
+
   return (
-    <group ref={group} 
-      onClick={(event) => {
-        if (isSelectingDamageLocation && onAddDamageMarker) {
-          event.stopPropagation();
-          // Use the intersection point if available, otherwise create a Vector3 from pointer
-          const position = event.point || new THREE.Vector3(
-            event.pointer.x, 
-            event.pointer.y, 
-            0 // Default z value when point is not available
-          );
-          // Calculate normal from the clicked point to the center of the scene as a fallback
-          const normal = new THREE.Vector3().copy(position).normalize();
-          onAddDamageMarker(position, normal);
-        }
-      }}
-    >
-      {damageMarkers.map(marker => (
-        <group key={marker.id} position={marker.position}>
-          <mesh>
-            <sphereGeometry args={[0.07, 32, 32]} />
-            <meshStandardMaterial color="red" emissive="#ff0000" emissiveIntensity={0.5} />
-          </mesh>
-          <Html distanceFactor={10}>
-            <div className="bg-red-600 text-white text-xs px-1 py-0.5 rounded-full">
-              Damage
-            </div>
-          </Html>
-        </group>
+    <group>
+      {/* Car Body */}
+      <mesh
+        ref={meshRef}
+        onClick={handleClick}
+        onPointerOver={() => setHovered(true)}
+        onPointerOut={() => setHovered(false)}
+      >
+        <boxGeometry args={[4, 1.5, 2]} />
+        <meshStandardMaterial color={hovered ? '#60a5fa' : '#3b82f6'} />
+      </mesh>
+      
+      {/* Car Hood */}
+      <mesh position={[1.5, 0.2, 0]} onClick={handleClick}>
+        <boxGeometry args={[1, 0.3, 1.8]} />
+        <meshStandardMaterial color="#1e40af" />
+      </mesh>
+      
+      {/* Car Roof */}
+      <mesh position={[0, 1.2, 0]} onClick={handleClick}>
+        <boxGeometry args={[2.5, 0.4, 1.6]} />
+        <meshStandardMaterial color="#1e40af" />
+      </mesh>
+      
+      {/* Wheels */}
+      <mesh position={[1.3, -0.7, 1.2]}>
+        <cylinderGeometry args={[0.4, 0.4, 0.3, 16]} />
+        <meshStandardMaterial color="#1f2937" />
+      </mesh>
+      <mesh position={[1.3, -0.7, -1.2]}>
+        <cylinderGeometry args={[0.4, 0.4, 0.3, 16]} />
+        <meshStandardMaterial color="#1f2937" />
+      </mesh>
+      <mesh position={[-1.3, -0.7, 1.2]}>
+        <cylinderGeometry args={[0.4, 0.4, 0.3, 16]} />
+        <meshStandardMaterial color="#1f2937" />
+      </mesh>
+      <mesh position={[-1.3, -0.7, -1.2]}>
+        <cylinderGeometry args={[0.4, 0.4, 0.3, 16]} />
+        <meshStandardMaterial color="#1f2937" />
+      </mesh>
+      
+      {/* Damage Markers */}
+      {damageMarkers.map((marker) => (
+        <mesh key={marker.id} position={marker.position}>
+          <sphereGeometry args={[0.1, 8, 8]} />
+          <meshBasicMaterial color={getMarkerColor(marker.severity)} />
+        </mesh>
       ))}
     </group>
   );
 }
 
-interface Car3DModelProps {
-  vehicleMake?: string;
-  vehicleModel?: string;
-  damageMarkers?: DamageMarker[];
-  onAddDamageMarker?: (position: THREE.Vector3, normal: THREE.Vector3) => void;
-  isSelectingDamageLocation: boolean;
-}
-
-export function Car3DModel({ 
-  vehicleMake, 
-  vehicleModel, 
-  damageMarkers = [],
-  onAddDamageMarker,
-  isSelectingDamageLocation 
-}: Car3DModelProps) {
-  // Determine which model to use based on make and model
-  let modelUrl = DEFAULT_CAR_MODEL;
-  
-  if (vehicleMake && vehicleModel) {
-    const key = `${vehicleMake}-${vehicleModel}`;
-    modelUrl = CAR_MODELS[key] || CAR_MODELS['default'];
-  }
-  
+export function Car3DModel({ onDamageClick, damageMarkers }: Car3DModelProps) {
   return (
-    <div className="w-full h-[400px] bg-gray-900 rounded-lg">
-      <Canvas shadows>
-        <PerspectiveCamera makeDefault position={[3, 2, 5]} fov={45} />
-        <ambientLight intensity={0.5} />
-        <spotLight 
-          position={[10, 10, 10]} 
-          angle={0.3} 
-          penumbra={1} 
-          intensity={1} 
-          castShadow 
-        />
-        <Model 
-          modelUrl={modelUrl}
-          damageMarkers={damageMarkers} 
-          onAddDamageMarker={onAddDamageMarker}
-          isSelectingDamageLocation={isSelectingDamageLocation} 
-        />
-        <OrbitControls 
-          enablePan={true}
-          enableZoom={true}
-          enableRotate={true}
-          target={[0, 0, 0]}
-        />
+    <div className="h-64 w-full bg-gradient-to-b from-blue-50 to-white rounded-lg overflow-hidden">
+      <Canvas camera={{ position: [5, 3, 5], fov: 50 }}>
+        <ambientLight intensity={0.6} />
+        <directionalLight position={[10, 10, 5]} intensity={1} />
+        <CarMesh onDamageClick={onDamageClick} damageMarkers={damageMarkers} />
+        <OrbitControls enablePan={false} maxDistance={15} minDistance={3} />
       </Canvas>
     </div>
   );

@@ -452,9 +452,8 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
             <TabsList className="flex w-full max-w-5xl mb-6 overflow-x-auto scrollbar-hide">
               <TabsTrigger value="details" className="px-4 py-2 flex-grow">{getTrans('overview', 'Overview')}</TabsTrigger>
               <TabsTrigger value="maintenance" className="px-4 py-2 flex-grow">{getTrans('vehicleMaintenance', 'Maintenance')}</TabsTrigger>
-              <TabsTrigger value="damage" className="px-4 py-2 flex-grow">{getTrans('repair', 'Repair')}</TabsTrigger>
+              <TabsTrigger value="damage" className="px-4 py-2 flex-grow">Damages</TabsTrigger>
               <TabsTrigger value="documents" className="px-4 py-2 flex-grow">{getTrans('documents', 'Documents')}</TabsTrigger>
-              <TabsTrigger value="reminders" className="px-4 py-2 flex-grow">{getTrans('serviceReminders', 'Reminders')}</TabsTrigger>
               <TabsTrigger value="availability" className="px-4 py-2 flex-grow">Calendar</TabsTrigger>
               <TabsTrigger value="finance" className="px-4 py-2 flex-grow">{getTrans('finance', 'Finance')}</TabsTrigger>
             </TabsList>
@@ -580,87 +579,63 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                   </TabsContent>
                   
                   <TabsContent value="maintenance" className="mt-6">
-                    <VehicleMaintenance vehicleId={vehicle.id} updateExpenses={handleUpdateExpenses} />
+                    <VehicleMaintenance vehicleId={vehicleId || ""} updateExpenses={handleUpdateExpenses} />
+                    <div className="mt-8">
+                      <VehicleReminders vehicleId={vehicleId || ""} />
+                    </div>
                   </TabsContent>
                   
                   <TabsContent value="damage" className="mt-6">
-                    <Card className="mb-6">
-                      <CardContent className="pt-6">
-                        <div className="text-center py-8 text-flitx-gray-500">
-                          <AlertTriangle className="mx-auto h-12 w-12 text-flitx-gray-300 mb-3" />
-                          <h3 className="text-lg font-medium mb-1">No damage reports</h3>
-                          <p className="text-sm">
-                            This vehicle has no damage reports. You can add one by clicking the button below.
-                          </p>
-                          <Button className="mt-4 bg-flitx-blue hover:bg-flitx-blue-600">
-                            Report Damage
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <DamageReport vehicleId={vehicleId || ""} />
                   </TabsContent>
                   
-                  <TabsContent value="documents" className="mt-6">
-                    <Card className="mb-6">
-                      <CardContent className="pt-6">
-                        {documents.length === 0 ? (
-                          <div className="text-center py-8 text-flitx-gray-500">
-                            <FileText className="mx-auto h-12 w-12 text-flitx-gray-300 mb-3" />
-                            <h3 className="text-lg font-medium mb-1">{getTrans('uploadDocuments', 'Upload Documents')}</h3>
-                            <p className="text-sm">
-                              Upload important documents like registration, insurance, and service records.
+                  <TabsContent value="documents" className="mt-6 space-y-8">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center">
+                          <FileText className="h-5 w-5 mr-2" />
+                          {getTrans('documents', 'Documents')}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm text-flitx-gray-500">
+                              {getTrans('selectDays', 'Select days when the vehicle is booked or unavailable')}
                             </p>
+                            <Button variant="outline" size="sm">
+                              <Upload className="h-4 w-4 mr-2" />
+                              {getTrans('uploadDocuments', 'Upload Documents')}
+                            </Button>
                           </div>
-                        ) : (
-                          <div className="space-y-4 mb-6">
-                            <h3 className="text-lg font-medium">{getTrans('uploadDocuments', 'Upload Documents')}</h3>
-                            <div className="space-y-3">
+                          
+                          <input
+                            id="file-upload"
+                            type="file"
+                            className="hidden"
+                            onChange={handleFileUpload}
+                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                          />
+                          
+                          {documents.length > 0 && (
+                            <div className="space-y-2">
+                              <h3 className="text-sm font-medium">Uploaded Documents</h3>
                               {documents.map((doc, index) => (
-                                <div key={index} className="flex items-center justify-between border p-3 rounded-md">
-                                  <div className="flex items-center">
-                                    <FileText className="h-5 w-5 mr-2 text-flitx-blue" />
-                                    <div>
-                                      <div className="font-medium">{doc.name}</div>
-                                      <div className="text-xs text-flitx-gray-500">Uploaded on {doc.date}</div>
-                                    </div>
-                                  </div>
-                                  <Button variant="ghost" size="sm">
-                                    View
-                                  </Button>
+                                <div key={index} className="flex items-center justify-between p-2 border rounded">
+                                  <span className="text-sm">{doc.name}</span>
+                                  <span className="text-xs text-flitx-gray-500">{doc.date}</span>
                                 </div>
                               ))}
                             </div>
-                          </div>
-                        )}
-                        
-                        <div className="flex justify-center">
-                          <label htmlFor="document-upload" className="cursor-pointer">
-                            <input
-                              id="document-upload"
-                              type="file"
-                              className="hidden"
-                              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                              onChange={handleFileUpload}
-                            />
-                            <Button className="bg-flitx-blue hover:bg-flitx-blue-600" asChild>
-                              <span>
-                                <Upload className="h-4 w-4 mr-2" />
-                                {getTrans('uploadDocuments', 'Upload Documents')}
-                              </span>
-                            </Button>
-                          </label>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
-                  </TabsContent>
-                  
-                  <TabsContent value="reminders" className="mt-6">
-                    <VehicleReminders vehicleId={vehicle.id} />
                   </TabsContent>
                   
                   <TabsContent value="availability" className="mt-6">
                     <CalendarView
-                      vehicleId={vehicle.id}
+                      vehicleId={vehicleId || ""}
                       onNewBooking={handleNewBookingFromCalendar}
                       refreshTrigger={refreshBookings}
                     />
@@ -668,7 +643,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                     <div className="mt-6">
                       <h3 className="text-lg font-semibold mb-4">Booking History</h3>
                       <RentalBookingsList 
-                        vehicleId={vehicle.id}
+                        vehicleId={vehicleId || ""}
                         onBookingDeleted={handleBookingDeleted}
                         key={refreshBookings}
                       />
@@ -837,7 +812,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
       <RentalBookingDialog
         isOpen={isRentalBookingOpen}
         onClose={() => setIsRentalBookingOpen(false)}
-        vehicleId={vehicle.id}
+        vehicleId={vehicleId || ""}
         vehicleName={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
         onBookingAdded={handleBookingAdded}
       />
