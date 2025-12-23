@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { 
   Card, 
@@ -6,15 +5,6 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { BarChart, LineChart, PieChart } from "@/components/finances/charts";
 import { TrendingUp, TrendingDown, Plus, Filter, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
@@ -22,14 +12,24 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { enUS, el } from 'date-fns/locale';
+import { Button } from "@/components/ui/button";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { BarChart, LineChart, PieChart } from "@/components/finances/charts";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface FinancialRecord {
   id: string;
-  record_type: string;
+  type: string;
   category: string;
   amount: number;
   date: string;
-  description: string;
+  description: string | null;
 }
 
 interface FinanceDashboardProps {
@@ -44,47 +44,47 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
   const isBoats = isBoatBusiness();
   const { t, language, isLanguageLoading } = useLanguage();
+  const { user } = useAuth();
   
-  // Fetch recent transactions
   useEffect(() => {
-    const fetchRecentTransactions = async () => {
-      try {
-        setIsTransactionsLoading(true);
-        const { data: session } = await supabase.auth.getSession();
-        
-        if (!session?.session?.user) {
-          console.log("No authenticated user");
-          setIsTransactionsLoading(false);
-          return;
-        }
+    if (user) {
+      fetchRecentTransactions();
+    }
+  }, [user]);
 
-        const { data, error } = await supabase
-          .from('financial_records')
-          .select('*')
-          .order('date', { ascending: false })
-          .limit(5);
-
-        if (error) {
-          console.error("Error fetching recent transactions:", error);
-        } else {
-          setRecentTransactions(data || []);
-        }
-      } catch (error) {
-        console.error("Exception fetching recent transactions:", error);
-      } finally {
-        setIsTransactionsLoading(false);
-      }
-    };
-
-    fetchRecentTransactions();
+  const fetchRecentTransactions = async () => {
+    if (!user) return;
     
-    // Subscribe to real-time changes
+    try {
+      setIsTransactionsLoading(true);
+
+      const { data, error } = await supabase
+        .from('financial_records')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(5);
+
+      if (error) {
+        console.error("Error fetching recent transactions:", error);
+      } else {
+        setRecentTransactions(data || []);
+      }
+    } catch (error) {
+      console.error("Exception fetching recent transactions:", error);
+    } finally {
+      setIsTransactionsLoading(false);
+    }
+  };
+
+  // Set up realtime subscription
+  useEffect(() => {
+    if (!user) return;
+
     const channel = supabase
       .channel('financial_records_changes')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'financial_records' }, 
-        (payload) => {
-          console.log('Real-time update received:', payload);
+        () => {
           fetchRecentTransactions();
         }
       )
@@ -93,11 +93,9 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [user]);
   
-  // Calculate summary data from financial records
   const calculateSummaryData = () => {
-    // Get only records from the selected timeframe
     let filteredRecords = [...financialRecords];
     
     if (timeframe === "week") {
@@ -126,67 +124,30 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       );
     }
     
-    // Calculate totals
-    const incomeRecords = filteredRecords.filter(record => record.record_type === "income");
-    const expenseRecords = filteredRecords.filter(record => record.record_type === "expense");
+    const incomeRecords = filteredRecords.filter(record => record.type === "income");
+    const expenseRecords = filteredRecords.filter(record => record.type === "expense");
     
-    const totalIncome = incomeRecords.reduce((sum, record) => sum + record.amount, 0);
-    const totalExpenses = expenseRecords.reduce((sum, record) => sum + record.amount, 0);
+    const totalIncome = incomeRecords.reduce((sum, record) => sum + Number(record.amount), 0);
+    const totalExpenses = expenseRecords.reduce((sum, record) => sum + Number(record.amount), 0);
     const netProfit = totalIncome - totalExpenses;
-    
-    // Calculate previous period for comparison
-    let prevPeriodStart = new Date();
-    let currentPeriodStart = new Date();
-    
-    if (timeframe === "week") {
-      prevPeriodStart.setDate(prevPeriodStart.getDate() - 14);
-      currentPeriodStart.setDate(currentPeriodStart.getDate() - 7);
-    } else if (timeframe === "month") {
-      prevPeriodStart.setMonth(prevPeriodStart.getMonth() - 2);
-      currentPeriodStart.setMonth(currentPeriodStart.getMonth() - 1);
-    } else if (timeframe === "quarter") {
-      prevPeriodStart.setMonth(prevPeriodStart.getMonth() - 6);
-      currentPeriodStart.setMonth(currentPeriodStart.getMonth() - 3);
-    } else if (timeframe === "year") {
-      prevPeriodStart.setFullYear(prevPeriodStart.getFullYear() - 2);
-      currentPeriodStart.setFullYear(currentPeriodStart.getFullYear() - 1);
-    }
-    
-    const prevPeriodRecords = financialRecords.filter(record => 
-      new Date(record.date) >= prevPeriodStart && new Date(record.date) < currentPeriodStart
-    );
-    
-    const prevIncomeRecords = prevPeriodRecords.filter(record => record.record_type === "income");
-    const prevExpenseRecords = prevPeriodRecords.filter(record => record.record_type === "expense");
-    
-    const prevTotalIncome = prevIncomeRecords.reduce((sum, record) => sum + record.amount, 0);
-    const prevTotalExpenses = prevExpenseRecords.reduce((sum, record) => sum + record.amount, 0);
-    const prevNetProfit = prevTotalIncome - prevTotalExpenses;
-    
-    // Calculate percentage changes
-    const incomeChange = prevTotalIncome === 0 ? 100 : ((totalIncome - prevTotalIncome) / prevTotalIncome) * 100;
-    const expenseChange = prevTotalExpenses === 0 ? 100 : ((totalExpenses - prevTotalExpenses) / prevTotalExpenses) * 100;
-    const profitChange = prevNetProfit === 0 ? 100 : ((netProfit - prevNetProfit) / Math.abs(prevNetProfit)) * 100;
     
     return {
       totalIncome,
       totalExpenses,
       netProfit,
-      incomeChange: isNaN(incomeChange) ? 0 : parseFloat(incomeChange.toFixed(1)),
-      expenseChange: isNaN(expenseChange) ? 0 : parseFloat(expenseChange.toFixed(1)),
-      profitChange: isNaN(profitChange) ? 0 : parseFloat(profitChange.toFixed(1))
+      incomeChange: 0,
+      expenseChange: 0,
+      profitChange: 0
     };
   };
 
   const summaryData = calculateSummaryData();
   
-  // Format date with the appropriate locale
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
       return format(date, 'PPp', { locale: language === 'el' ? el : enUS });
     } catch (error) {
-      console.error("Error formatting date:", error);
       return dateString;
     }
   };
@@ -194,8 +155,8 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-96 gap-4">
-        <Loader2 className="h-12 w-12 animate-spin text-flitx-blue" />
-        <p className="text-flitx-gray-500">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-muted-foreground">
           {language === 'el' ? 'Φόρτωση οικονομικών δεδομένων...' : 'Loading financial data...'}
         </p>
       </div>
@@ -230,7 +191,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           </Button>
           
           <Button 
-            className="bg-flitx-blue hover:bg-flitx-blue-600"
+            className="bg-primary hover:bg-primary/90"
             onClick={onAddRecord}
             disabled={isLanguageLoading}
           >
@@ -306,7 +267,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg">{language === 'el' ? 'Πρόσφατες Συναλλαγές' : 'Recent Transactions'}</CardTitle>
-            {isTransactionsLoading && <Loader2 className="h-4 w-4 animate-spin text-flitx-gray-400" />}
+            {isTransactionsLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           </CardHeader>
           <CardContent>
             {recentTransactions.length > 0 ? (
@@ -314,16 +275,16 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
                 {recentTransactions.map(record => (
                   <TransactionItem 
                     key={record.id}
-                    description={record.description}
-                    amount={record.amount}
+                    description={record.description || record.category}
+                    amount={Number(record.amount)}
                     date={formatDate(record.date)}
-                    type={record.record_type}
+                    type={record.type}
                     lang={language}
                   />
                 ))}
               </div>
             ) : (
-              <p className="text-center text-flitx-gray-400 py-8">
+              <p className="text-center text-muted-foreground py-8">
                 {language === 'el' ? 'Δεν βρέθηκαν πρόσφατες συναλλαγές' : 'No recent transactions found'}
               </p>
             )}
@@ -334,7 +295,15 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   );
 }
 
-function SummaryCard({ title, value, change, trend, prefix = "", trendReversed = false, lang }) {
+function SummaryCard({ title, value, change, trend, prefix = "", trendReversed = false, lang }: {
+  title: string;
+  value: number;
+  change: number;
+  trend: string;
+  prefix?: string;
+  trendReversed?: boolean;
+  lang: string;
+}) {
   const trendIsPositive = trend === "up";
   const displayedTrend = trendReversed ? !trendIsPositive : trendIsPositive;
   
@@ -343,7 +312,7 @@ function SummaryCard({ title, value, change, trend, prefix = "", trendReversed =
       <CardContent className="p-6">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-sm text-flitx-gray-500">{title}</p>
+            <p className="text-sm text-muted-foreground">{title}</p>
             <h3 className="text-2xl font-semibold mt-1">
               {prefix}{value.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </h3>
@@ -366,11 +335,17 @@ function SummaryCard({ title, value, change, trend, prefix = "", trendReversed =
   );
 }
 
-function TransactionItem({ description, amount, date, type, lang }) {
+function TransactionItem({ description, amount, date, type, lang }: {
+  description: string;
+  amount: number;
+  date: string;
+  type: string;
+  lang: string;
+}) {
   const isIncome = type === "income";
   
   return (
-    <div className="flex items-center justify-between p-3 rounded-md hover:bg-gray-50 transition-colors">
+    <div className="flex items-center justify-between p-3 rounded-md hover:bg-accent/50 transition-colors">
       <div className="flex items-center">
         <div className={cn(
           "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
@@ -385,7 +360,7 @@ function TransactionItem({ description, amount, date, type, lang }) {
         
         <div className="ml-3">
           <div className="font-medium">{description}</div>
-          <div className="text-xs text-flitx-gray-400">{date}</div>
+          <div className="text-xs text-muted-foreground">{date}</div>
         </div>
       </div>
       

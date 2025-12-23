@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Camera, Upload, X } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DamageReportFormProps {
   vehicleId: string;
@@ -22,47 +21,9 @@ interface DamageReportFormProps {
 export function DamageReportForm({ vehicleId, damageLocation, onSubmit, onCancel }: DamageReportFormProps) {
   const [description, setDescription] = useState('');
   const [severity, setSeverity] = useState<'minor' | 'moderate' | 'severe'>('minor');
-  const [photos, setPhotos] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
-
-  const handlePhotoCapture = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files) {
-      setPhotos(prev => [...prev, ...Array.from(files)]);
-    }
-  };
-
-  const removePhoto = (index: number) => {
-    setPhotos(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const uploadPhotos = async (reportId: string) => {
-    const uploadPromises = photos.map(async (photo, index) => {
-      const fileExt = photo.name.split('.').pop();
-      const fileName = `${reportId}/photo_${index + 1}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('damage_reports')
-        .upload(fileName, photo);
-
-      if (uploadError) throw uploadError;
-
-      // Save image record to database
-      const { error: dbError } = await supabase
-        .from('damage_report_images')
-        .insert({
-          report_id: reportId,
-          storage_path: uploadData.path
-        });
-
-      if (dbError) throw dbError;
-
-      return uploadData.path;
-    });
-
-    return Promise.all(uploadPromises);
-  };
+  const { user } = useAuth();
 
   const handleSubmit = async () => {
     if (!description.trim()) {
@@ -74,42 +35,29 @@ export function DamageReportForm({ vehicleId, damageLocation, onSubmit, onCancel
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to submit damage reports",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setUploading(true);
 
     try {
-      const { data: session } = await supabase.auth.getSession();
-      
-      if (!session?.session?.user) {
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to submit damage reports",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Create damage report
-      const { data: report, error: reportError } = await supabase
-        .from('vehicle_damage_reports')
+      const { error } = await supabase
+        .from('damage_reports')
         .insert({
           vehicle_id: vehicleId,
-          user_id: session.session.user.id,
-          damage_description: description,
-          damage_severity: severity,
-          damage_location: {
-            position: damageLocation.position,
-            category: damageLocation.category
-          }
-        })
-        .select()
-        .single();
+          user_id: user.id,
+          description: description,
+          severity: severity,
+          location: damageLocation.category
+        });
 
-      if (reportError) throw reportError;
-
-      // Upload photos if any
-      if (photos.length > 0) {
-        await uploadPhotos(report.id);
-      }
+      if (error) throw error;
 
       toast({
         title: "Success",
@@ -158,54 +106,6 @@ export function DamageReportForm({ vehicleId, damageLocation, onSubmit, onCancel
               <SelectItem value="severe">Severe</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-
-        <div>
-          <Label>Photos</Label>
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <label htmlFor="photo-upload" className="flex-1">
-                <Button type="button" variant="outline" className="w-full" asChild>
-                  <span>
-                    <Camera className="h-4 w-4 mr-2" />
-                    Take Photo
-                  </span>
-                </Button>
-              </label>
-              <input
-                id="photo-upload"
-                type="file"
-                multiple
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handlePhotoCapture}
-              />
-            </div>
-            
-            {photos.length > 0 && (
-              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
-                {photos.map((photo, index) => (
-                  <div key={index} className="relative">
-                    <img
-                      src={URL.createObjectURL(photo)}
-                      alt={`Damage photo ${index + 1}`}
-                      className="w-full h-16 object-cover rounded border"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0"
-                      onClick={() => removePhoto(index)}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
 
         <div className="flex gap-2 pt-4">

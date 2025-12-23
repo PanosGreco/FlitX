@@ -185,10 +185,10 @@ export function RentalBookingDialog({
       await supabase.from('financial_records').insert({
         user_id: session.session.user.id,
         vehicle_id: vehicleId,
-        record_type: 'income',
+        type: 'income',
         category: 'rental',
         amount: totalAmount,
-        date: startDate.toISOString(),
+        date: startDate.toISOString().split('T')[0],
         description: `Rental booking for ${vehicleName} - ${customerName}`
       });
 

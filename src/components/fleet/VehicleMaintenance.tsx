@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -23,15 +22,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface MaintenanceRecord {
   id: string;
   vehicle_id: string;
-  service_date: string;
-  next_service_date?: string;
-  service_type: string;
+  type: string;
+  description: string | null;
   cost: number;
-  notes?: string;
+  date: string;
+  next_date: string | null;
+  mileage: number | null;
 }
 
 interface VehicleMaintenanceProps {
@@ -49,13 +50,14 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
   const [records, setRecords] = useState<MaintenanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const { t, language, isLanguageLoading } = useLanguage();
+  const { language, isLanguageLoading } = useLanguage();
+  const { user } = useAuth();
   
   useEffect(() => {
-    if (vehicleId) {
+    if (vehicleId && user) {
       fetchMaintenanceRecords();
     }
-  }, [vehicleId]);
+  }, [vehicleId, user]);
   
   const fetchMaintenanceRecords = async () => {
     try {
@@ -63,10 +65,10 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
       if (!vehicleId) return;
       
       const { data, error } = await supabase
-        .from("maintenance_records")
+        .from("vehicle_maintenance")
         .select("*")
         .eq("vehicle_id", vehicleId)
-        .order("service_date", { ascending: false });
+        .order("date", { ascending: false });
         
       if (error) {
         console.error("Error fetching maintenance records:", error);
@@ -94,33 +96,30 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
       });
       return;
     }
-    
+
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to add maintenance records",
+        variant: "destructive"
+      });
+      return;
+    }
+      
     try {
-      const { data: session } = await supabase.auth.getSession();
-      
-      if (!session?.session?.user) {
-        toast({
-          title: "Authentication Required",
-          description: "Please log in to add maintenance records",
-          variant: "destructive"
-        });
-        return;
-      }
-      
       const costValue = parseFloat(cost);
       
-      const { data, error } = await supabase
-        .from("maintenance_records")
+      const { error } = await supabase
+        .from("vehicle_maintenance")
         .insert([{
           vehicle_id: vehicleId,
-          user_id: session.session.user.id,
-          service_type: serviceType,
-          service_date: serviceDate,
-          next_service_date: nextServiceDate || null,
+          user_id: user.id,
+          type: serviceType,
+          date: serviceDate,
+          next_date: nextServiceDate || null,
           cost: costValue,
-          notes: notes
-        }])
-        .select();
+          description: notes
+        }]);
         
       if (error) {
         console.error("Error adding maintenance record:", error);
@@ -135,12 +134,10 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
           description: "Maintenance record added"
         });
         
-        // Call the updateExpenses function to register this as an expense
         if (updateExpenses && costValue > 0) {
           updateExpenses(costValue, getServiceTypeLabel(serviceType));
         }
         
-        // Reset form and refresh records
         setServiceType("oil_change");
         setServiceDate(new Date().toISOString().substring(0, 10));
         setNextServiceDate("");
@@ -177,12 +174,12 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
       <Card className="shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-lg flex items-center">
-            <Wrench className="h-5 w-5 mr-2 text-flitx-blue" />
+            <Wrench className="h-5 w-5 mr-2 text-primary" />
             {language === 'el' ? 'Ιστορικό Συντήρησης' : 'Maintenance History'}
           </CardTitle>
           <Button
             onClick={() => setIsDialogOpen(true)}
-            className="bg-flitx-blue hover:bg-flitx-blue-600"
+            className="bg-primary hover:bg-primary/90"
             disabled={isLanguageLoading}
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -192,25 +189,25 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
         <CardContent>
           {loading ? (
             <div className="py-8 text-center">
-              <div className="animate-spin h-6 w-6 border-2 border-flitx-blue border-t-transparent rounded-full mx-auto mb-2"></div>
-              <p className="text-sm text-flitx-gray-500">
+              <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
+              <p className="text-sm text-muted-foreground">
                 {language === 'el' ? 'Φόρτωση ιστορικού συντήρησης...' : 'Loading maintenance records...'}
               </p>
             </div>
           ) : records.length === 0 ? (
-            <div className="py-12 text-center text-flitx-gray-500">
-              <Settings2 className="h-12 w-12 mx-auto mb-3 text-flitx-gray-300" />
+            <div className="py-12 text-center text-muted-foreground">
+              <Settings2 className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
               <h3 className="text-lg font-medium mb-1">
                 {language === 'el' ? 'Κανένα αρχείο συντήρησης' : 'No maintenance records'}
               </h3>
               <p className="text-sm max-w-md mx-auto">
                 {language === 'el' 
-                  ? 'Καταγράψτε όλα τα σέρβις και τις επισκευές για αυτό το όχημα για να διατηρήσετε την απόδοση και την αξία του.'
-                  : 'Track all services and repairs for this vehicle to maintain its performance and value.'}
+                  ? 'Καταγράψτε όλα τα σέρβις και τις επισκευές για αυτό το όχημα.'
+                  : 'Track all services and repairs for this vehicle.'}
               </p>
               <Button
                 onClick={() => setIsDialogOpen(true)}
-                className="mt-4 bg-flitx-blue hover:bg-flitx-blue-600"
+                className="mt-4 bg-primary hover:bg-primary/90"
                 disabled={isLanguageLoading}
               >
                 {language === 'el' 
@@ -223,31 +220,31 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
               {records.map((record) => (
                 <div
                   key={record.id}
-                  className="p-4 border rounded-md hover:bg-gray-50"
+                  className="p-4 border rounded-md hover:bg-accent/50"
                 >
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="font-semibold">
-                        {getServiceTypeLabel(record.service_type)}
+                        {getServiceTypeLabel(record.type)}
                       </h3>
-                      <div className="text-sm text-flitx-gray-500 mt-1">
-                        Performed on {formatDate(record.service_date)}
+                      <div className="text-sm text-muted-foreground mt-1">
+                        Performed on {formatDate(record.date)}
                       </div>
-                      {record.next_service_date && (
-                        <div className="flex items-center text-sm text-flitx-blue mt-1">
+                      {record.next_date && (
+                        <div className="flex items-center text-sm text-primary mt-1">
                           <Calendar className="h-3.5 w-3.5 mr-1" />
-                          Next service: {formatDate(record.next_service_date)}
+                          Next service: {formatDate(record.next_date)}
                         </div>
                       )}
-                      {record.notes && (
-                        <p className="mt-2 text-sm text-flitx-gray-600">
-                          {record.notes}
+                      {record.description && (
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          {record.description}
                         </p>
                       )}
                     </div>
                     <div className="text-right">
                       <div className="text-lg font-semibold">
-                        ${record.cost.toFixed(2)}
+                        ${Number(record.cost).toFixed(2)}
                       </div>
                     </div>
                   </div>
@@ -351,7 +348,7 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
             </Button>
             <Button 
               onClick={handleAddRecord}
-              className="bg-flitx-blue hover:bg-flitx-blue-600"
+              className="bg-primary hover:bg-primary/90"
               disabled={isLanguageLoading}
             >
               {language === 'el' ? 'Προσθήκη Εγγραφής' : 'Add Record'}
