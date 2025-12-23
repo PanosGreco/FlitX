@@ -1,39 +1,25 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, Plus, FileText, Camera, MapPin, Calendar } from "lucide-react";
+import { AlertTriangle, MapPin, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Car3DModel } from "./Car3DModel";
 import { DamageReportForm } from "./DamageReportForm";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
-interface DamageReport {
+interface DamageReportData {
   id: string;
-  damage_description: string;
-  damage_severity: string;
-  damage_location: {
-    position: [number, number, number];
-    category: string;
-  };
-  damage_date: string;
-  status: string;
-  images?: string[];
+  description: string;
+  severity: string;
+  location: string | null;
+  reported_at: string;
 }
 
 interface DamageReportProps {
   vehicleId: string;
 }
-
-const DAMAGE_CATEGORIES = [
-  'Front of vehicle',
-  'Rear of vehicle', 
-  'Left side',
-  'Right side',
-  'Interior',
-  'Roof',
-  'Wheels'
-];
 
 export function DamageReport({ vehicleId }: DamageReportProps) {
   const [showReportForm, setShowReportForm] = useState(false);
@@ -41,52 +27,30 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
     position: [number, number, number];
     category: string;
   } | null>(null);
-  const [damageReports, setDamageReports] = useState<DamageReport[]>([]);
+  const [damageReports, setDamageReports] = useState<DamageReportData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [categoryPhotos, setCategoryPhotos] = useState<{[key: string]: string[]}>({});
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
-    fetchDamageReports();
-  }, [vehicleId]);
+    if (vehicleId && user) {
+      fetchDamageReports();
+    }
+  }, [vehicleId, user]);
 
   const fetchDamageReports = async () => {
     try {
       setLoading(true);
       
       const { data: reports, error } = await supabase
-        .from('vehicle_damage_reports')
-        .select(`
-          *,
-          damage_report_images (
-            storage_path
-          )
-        `)
+        .from('damage_reports')
+        .select('*')
         .eq('vehicle_id', vehicleId)
-        .order('damage_date', { ascending: false });
+        .order('reported_at', { ascending: false });
 
       if (error) throw error;
 
-      const processedReports = reports?.map(report => ({
-        ...report,
-        images: report.damage_report_images?.map((img: any) => 
-          supabase.storage.from('damage_reports').getPublicUrl(img.storage_path).data.publicUrl
-        ) || []
-      })) || [];
-
-      setDamageReports(processedReports);
-      
-      // Group photos by category
-      const photosByCategory: {[key: string]: string[]} = {};
-      processedReports.forEach(report => {
-        const category = report.damage_location?.category || 'Other';
-        if (!photosByCategory[category]) {
-          photosByCategory[category] = [];
-        }
-        photosByCategory[category].push(...(report.images || []));
-      });
-      setCategoryPhotos(photosByCategory);
-      
+      setDamageReports(reports || []);
     } catch (error) {
       console.error('Error fetching damage reports:', error);
       toast({
@@ -100,7 +64,6 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
   };
 
   const handle3DClick = (position: [number, number, number]) => {
-    // Determine category based on position
     let category = 'Other';
     if (position[0] > 1) category = 'Front of vehicle';
     else if (position[0] < -1) category = 'Rear of vehicle';
@@ -119,7 +82,7 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
   };
 
   const getSeverityColor = (severity: string) => {
-    switch (severity.toLowerCase()) {
+    switch (severity?.toLowerCase()) {
       case "minor":
         return "bg-yellow-100 text-yellow-800";
       case "moderate":
@@ -131,23 +94,10 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "reported":
-        return "bg-blue-100 text-blue-800";
-      case "in repair":
-        return "bg-yellow-100 text-yellow-800";
-      case "repaired":
-        return "bg-green-100 text-green-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
-
   const damageMarkers = damageReports.map(report => ({
     id: report.id,
-    position: report.damage_location?.position || [0, 0, 0] as [number, number, number],
-    severity: report.damage_severity as 'minor' | 'moderate' | 'severe'
+    position: [0, 0, 0] as [number, number, number],
+    severity: (report.severity || 'minor') as 'minor' | 'moderate' | 'severe'
   }));
 
   if (showReportForm && selectedLocation) {
@@ -173,7 +123,7 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
             Vehicle Damage Localization
           </CardTitle>
           <p className="text-sm text-gray-600">
-            Click on the 3D model to mark damage locations. Rotate and zoom to view all sides.
+            Click on the 3D model to mark damage locations.
           </p>
         </CardHeader>
         <CardContent>
@@ -213,25 +163,22 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex-1">
                       <h3 className="font-semibold text-lg">
-                        {report.damage_location?.category || 'Unknown Location'}
+                        {report.location || 'Unknown Location'}
                       </h3>
                       <p className="text-sm text-gray-600 mt-1">
-                        {report.damage_description}
+                        {report.description}
                       </p>
                     </div>
                     <div className="flex gap-2">
-                      <Badge className={getSeverityColor(report.damage_severity)}>
-                        {report.damage_severity}
-                      </Badge>
-                      <Badge className={getStatusColor(report.status || 'reported')}>
-                        {report.status || 'Reported'}
+                      <Badge className={getSeverityColor(report.severity)}>
+                        {report.severity || 'minor'}
                       </Badge>
                     </div>
                   </div>
                   
                   <div className="flex items-center text-sm text-gray-500">
                     <Calendar className="h-4 w-4 mr-1" />
-                    <span>Reported on {new Date(report.damage_date || '').toLocaleDateString()}</span>
+                    <span>Reported on {new Date(report.reported_at).toLocaleDateString()}</span>
                   </div>
                 </div>
               ))}

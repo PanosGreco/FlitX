@@ -1,42 +1,45 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { LanguageProvider } from "./contexts/LanguageContext";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import Fleet from "./pages/Fleet";
 import VehicleDetail from "./pages/VehicleDetail";
 import Finance from "./pages/Finance";
 import Tracking from "./pages/Tracking";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
-import SignUpPage from "./pages/SignUp";
+import Auth from "./pages/Auth";
 import BoatsHome from "./pages/BoatsHome";
 import DailyProgram from "./pages/DailyProgram";
-import { LanguageProvider } from "./contexts/LanguageContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <LanguageProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Fleet />} />
-            <Route path="/signup" element={<SignUpPage />} />
-            <Route path="/vehicle/:id" element={<VehicleDetail />} />
-            <Route path="/finances" element={<Finance />} />
-            <Route path="/tracking" element={<Tracking />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/daily-program" element={<DailyProgram />} />
-            <Route path="/boats" element={<BoatsHome />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </LanguageProvider>
+      <AuthProvider>
+        <LanguageProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/" element={<ProtectedRoute><Fleet /></ProtectedRoute>} />
+              <Route path="/vehicle/:id" element={<ProtectedRoute><VehicleDetail /></ProtectedRoute>} />
+              <Route path="/finances" element={<ProtectedRoute><Finance /></ProtectedRoute>} />
+              <Route path="/tracking" element={<ProtectedRoute><Tracking /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/daily-program" element={<ProtectedRoute><DailyProgram /></ProtectedRoute>} />
+              <Route path="/boats" element={<ProtectedRoute><BoatsHome /></ProtectedRoute>} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </LanguageProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
