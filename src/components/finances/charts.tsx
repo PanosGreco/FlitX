@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   BarChart as RechartsBarChart,
   LineChart as RechartsLineChart,
@@ -16,43 +16,125 @@ import {
   Sector
 } from "recharts";
 
-// Sample data for charts
-const barData = [
-  { name: "Jan", income: 4000, expenses: 2400 },
-  { name: "Feb", income: 3000, expenses: 1398 },
-  { name: "Mar", income: 2000, expenses: 3800 },
-  { name: "Apr", income: 2780, expenses: 3908 },
-  { name: "May", income: 1890, expenses: 4800 },
-  { name: "Jun", income: 2390, expenses: 3800 },
-  { name: "Jul", income: 3490, expenses: 4300 },
-];
+interface FinancialRecord {
+  id: string;
+  type: string;
+  category: string;
+  amount: number;
+  date: string;
+  description: string | null;
+}
 
-const lineData = [
-  { name: "Week 1", revenue: 4000 },
-  { name: "Week 2", revenue: 3000 },
-  { name: "Week 3", revenue: 5000 },
-  { name: "Week 4", revenue: 2780 },
-  { name: "Week 5", revenue: 3890 },
-  { name: "Week 6", revenue: 3390 },
-  { name: "Week 7", revenue: 4490 },
-];
+interface ChartProps {
+  financialRecords?: FinancialRecord[];
+  lang?: string;
+}
 
-const pieData = [
-  { name: "Fuel", value: 35 },
-  { name: "Maintenance", value: 25 },
-  { name: "Insurance", value: 20 },
-  { name: "Registration", value: 10 },
-  { name: "Other", value: 10 },
-];
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82ca9d"];
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
+// Helper function to aggregate data by month
+const aggregateByMonth = (records: FinancialRecord[]) => {
+  const monthlyData: Record<string, { income: number; expenses: number }> = {};
+  
+  records.forEach(record => {
+    const date = new Date(record.date);
+    const monthKey = date.toLocaleString('en-US', { month: 'short' });
+    
+    if (!monthlyData[monthKey]) {
+      monthlyData[monthKey] = { income: 0, expenses: 0 };
+    }
+    
+    if (record.type === 'income') {
+      monthlyData[monthKey].income += Number(record.amount);
+    } else {
+      monthlyData[monthKey].expenses += Number(record.amount);
+    }
+  });
+  
+  return Object.entries(monthlyData).map(([name, data]) => ({
+    name,
+    income: data.income,
+    expenses: data.expenses
+  }));
+};
 
-export function BarChart() {
+// Helper function to aggregate data by week for revenue growth
+const aggregateByWeek = (records: FinancialRecord[]) => {
+  const weeklyData: Record<string, number> = {};
+  
+  const incomeRecords = records.filter(r => r.type === 'income');
+  
+  incomeRecords.forEach((record, index) => {
+    const weekNum = Math.floor(index / 7) + 1;
+    const weekKey = `Week ${weekNum}`;
+    
+    if (!weeklyData[weekKey]) {
+      weeklyData[weekKey] = 0;
+    }
+    
+    weeklyData[weekKey] += Number(record.amount);
+  });
+  
+  // If we have no data, return some weeks with 0 revenue
+  if (Object.keys(weeklyData).length === 0) {
+    return [
+      { name: "Week 1", revenue: 0 },
+      { name: "Week 2", revenue: 0 },
+      { name: "Week 3", revenue: 0 },
+      { name: "Week 4", revenue: 0 },
+    ];
+  }
+  
+  return Object.entries(weeklyData).map(([name, revenue]) => ({
+    name,
+    revenue
+  }));
+};
+
+// Helper function to aggregate expenses by category
+const aggregateByCategory = (records: FinancialRecord[]) => {
+  const categoryData: Record<string, number> = {};
+  
+  const expenseRecords = records.filter(r => r.type === 'expense');
+  
+  expenseRecords.forEach(record => {
+    const category = record.category || 'Other';
+    if (!categoryData[category]) {
+      categoryData[category] = 0;
+    }
+    categoryData[category] += Number(record.amount);
+  });
+  
+  // If no data, show empty state
+  if (Object.keys(categoryData).length === 0) {
+    return [{ name: "No expenses", value: 100 }];
+  }
+  
+  const total = Object.values(categoryData).reduce((sum, val) => sum + val, 0);
+  
+  return Object.entries(categoryData).map(([name, value]) => ({
+    name: name.charAt(0).toUpperCase() + name.slice(1),
+    value: Math.round((value / total) * 100)
+  }));
+};
+
+export function BarChart({ financialRecords = [], lang = 'en' }: ChartProps) {
+  const chartData = useMemo(() => {
+    if (financialRecords.length === 0) {
+      return [
+        { name: "No data", income: 0, expenses: 0 }
+      ];
+    }
+    return aggregateByMonth(financialRecords);
+  }, [financialRecords]);
+
+  const currencySymbol = lang === 'el' ? '€' : '$';
+
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
         <RechartsBarChart
-          data={barData}
+          data={chartData}
           margin={{
             top: 5,
             right: 30,
@@ -64,7 +146,7 @@ export function BarChart() {
           <XAxis dataKey="name" />
           <YAxis />
           <Tooltip 
-            formatter={(value) => [`$${value}`, undefined]}
+            formatter={(value) => [`${currencySymbol}${value}`, undefined]}
             labelStyle={{ color: "#333" }}
             contentStyle={{
               borderRadius: 8,
@@ -81,12 +163,18 @@ export function BarChart() {
   );
 }
 
-export function LineChart() {
+export function LineChart({ financialRecords = [], lang = 'en' }: ChartProps) {
+  const chartData = useMemo(() => {
+    return aggregateByWeek(financialRecords);
+  }, [financialRecords]);
+
+  const currencySymbol = lang === 'el' ? '€' : '$';
+
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
         <RechartsLineChart
-          data={lineData}
+          data={chartData}
           margin={{
             top: 5,
             right: 30,
@@ -98,7 +186,7 @@ export function LineChart() {
           <XAxis dataKey="name" />
           <YAxis />
           <Tooltip 
-            formatter={(value) => [`$${value}`, "Revenue"]}
+            formatter={(value) => [`${currencySymbol}${value}`, "Revenue"]}
             labelStyle={{ color: "#333" }}
             contentStyle={{
               borderRadius: 8,
@@ -120,8 +208,8 @@ export function LineChart() {
   );
 }
 
-// Custom label renderer for the pie chart to improve readability
-const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index, name }) => {
+// Custom label renderer for the pie chart
+const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }: any) => {
   const radius = innerRadius + (outerRadius - innerRadius) * 1.1;
   const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
   const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
@@ -142,7 +230,7 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 };
 
 // Active shape for the pie chart when hovering
-const renderActiveShape = (props) => {
+const renderActiveShape = (props: any) => {
   const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
   const sin = Math.sin(-midAngle * Math.PI / 180);
   const cos = Math.cos(-midAngle * Math.PI / 180);
@@ -186,10 +274,14 @@ const renderActiveShape = (props) => {
   );
 };
 
-export function PieChart() {
+export function PieChart({ financialRecords = [] }: ChartProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const onPieEnter = (_, index) => {
+  const chartData = useMemo(() => {
+    return aggregateByCategory(financialRecords);
+  }, [financialRecords]);
+
+  const onPieEnter = (_: any, index: number) => {
     setActiveIndex(index);
   };
 
@@ -200,7 +292,7 @@ export function PieChart() {
           <Pie
             activeIndex={activeIndex}
             activeShape={renderActiveShape}
-            data={pieData}
+            data={chartData}
             cx="50%"
             cy="50%"
             innerRadius={40}
@@ -209,7 +301,7 @@ export function PieChart() {
             dataKey="value"
             onMouseEnter={onPieEnter}
           >
-            {pieData.map((entry, index) => (
+            {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
