@@ -50,27 +50,23 @@ export function LiveTrackingMap() {
 
         if (error) throw error;
 
-        // Process vehicles and fetch their locations
-        const processedVehicles = await Promise.all((supabaseVehicles || []).map(async (vehicle) => {
-          // Get latest location from the tracking table
-          const locationData = await getLatestVehicleLocation(vehicle.id);
-          
+        // Process vehicles - no tracking table exists yet, so use mock locations
+        const processedVehicles = (supabaseVehicles || []).map((vehicle) => {
           return {
             id: vehicle.id,
             name: `${vehicle.make} ${vehicle.model}`,
-            licensePlate: vehicle.license_plate,
+            licensePlate: vehicle.license_plate || 'N/A',
             status: vehicle.status || 'inactive',
-            lastUpdate: locationData ? 
-              new Date(locationData.timestamp).toLocaleString() : 
-              'No data',
-            image: vehicle.image_url,
-            location: locationData ? {
-              lat: parseFloat(locationData.latitude),
-              lng: parseFloat(locationData.longitude),
-              address: "Last recorded location"
-            } : undefined
+            lastUpdate: 'No tracking data',
+            image: vehicle.image,
+            location: {
+              // Generate random locations around Athens, Greece for demo
+              lat: 37.9838 + (Math.random() - 0.5) * 0.1,
+              lng: 23.7275 + (Math.random() - 0.5) * 0.1,
+              address: "Demo location"
+            }
           };
-        }));
+        });
         
         // If we have vehicles from Supabase, use them
         if (processedVehicles.length > 0) {

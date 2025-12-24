@@ -279,10 +279,10 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
             const { error } = await supabase.from('financial_records').insert({
               user_id: session.session.user.id,
               vehicle_id: vehicleId,
-              record_type: 'income',
+              type: 'income',
               category: 'sales',
               amount: vehicle.dailyRate,
-              date: lastSelectedDate.toISOString(),
+              date: lastSelectedDate.toISOString().split('T')[0],
               description: `Booking for ${vehicle.make} ${vehicle.model}`
             });
             
@@ -321,10 +321,10 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
           const { error } = await supabase.from('financial_records').insert({
             user_id: session.session.user.id,
             vehicle_id: vehicleId,
-            record_type: 'expense',
+            type: 'expense',
             category: 'maintenance',
             amount: amount,
-            date: new Date().toISOString(),
+            date: new Date().toISOString().split('T')[0],
             description: `Maintenance: ${serviceType} for ${vehicle.make} ${vehicle.model}`
           });
           

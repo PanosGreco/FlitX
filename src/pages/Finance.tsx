@@ -133,10 +133,10 @@ const Finance = () => {
       
       const newRecord = {
         user_id: session.session.user.id,
-        record_type: recordType,
+        type: recordType as 'income' | 'expense',
         category: recordType === "income" ? "sales" : expenseCategory,
         amount: parseFloat(amount),
-        date: new Date(date).toISOString(),
+        date: date,
         description: notes || `${recordType === "income" ? 
           (language === 'el' ? "Έσοδο" : "Income") : 
           (language === 'el' ? "Έξοδο" : "Expense")} record`,
