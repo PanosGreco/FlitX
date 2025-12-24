@@ -157,7 +157,7 @@ const VehicleDetail = () => {
               totalServiceCost: 0,
               fuelCosts: 0,
               milesPerDay: 0,
-              image: data.image_url || undefined
+              image: data.image || undefined
             };
             setVehicle(vehicleData);
           }

@@ -486,25 +486,8 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
         
         if (sessionData?.session?.user) {
           // User is logged in, get their language preference from profiles table
-          const { data: profileData, error } = await supabase
-            .from('profiles')
-            .select('language_preference')
-            .eq('id', sessionData.session.user.id)
-            .single();
-          
-          if (error) {
-            console.error("Error fetching language preference:", error);
-            // Fallback to localStorage if there's an error
-            fallbackToLocalStorage();
-            return;
-          }
-          
-          if (profileData?.language_preference === 'el' || profileData?.language_preference === 'en') {
-            setLanguageState(profileData.language_preference);
-          } else {
-            // If no preference is set in profile, use localStorage as fallback
-            fallbackToLocalStorage();
-          }
+        // language_preference column doesn't exist, use localStorage
+        fallbackToLocalStorage();
         } else {
           // Not authenticated, use localStorage
           fallbackToLocalStorage();
@@ -549,25 +532,6 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
       setLanguageState(lang);
       // Always update localStorage for fallback
       localStorage.setItem("language", lang);
-      
-      // If user is authenticated, update their profile in Supabase
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData?.session?.user) {
-        const { error } = await supabase
-          .from('profiles')
-          .update({ language_preference: lang })
-          .eq('id', sessionData.session.user.id);
-          
-        if (error) {
-          console.error("Failed to update language preference in Supabase:", error);
-          // Show error toast only if Supabase update fails
-          toast.error(
-            lang === "en" 
-              ? "Failed to save language preference" 
-              : "Αποτυχία αποθήκευσης προτίμησης γλώσσας"
-          );
-        }
-      }
     } catch (error) {
       console.error("Error setting language:", error);
     } finally {
