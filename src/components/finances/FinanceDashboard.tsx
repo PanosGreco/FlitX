@@ -191,7 +191,6 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           </Button>
           
           <Button 
-            className="bg-primary hover:bg-primary/90"
             onClick={onAddRecord}
             disabled={isLanguageLoading}
           >
@@ -232,14 +231,14 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         />
       </div>
       
-      {/* Charts */}
+      {/* Charts - Now using real backend data */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">{language === 'el' ? 'Έσοδα έναντι Εξόδων' : 'Income vs Expenses'}</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <BarChart />
+            <BarChart financialRecords={financialRecords} lang={language} />
           </CardContent>
         </Card>
         
@@ -248,7 +247,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
             <CardTitle className="text-lg">{language === 'el' ? 'Αύξηση Εσόδων' : 'Revenue Growth'}</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <LineChart />
+            <LineChart financialRecords={financialRecords} lang={language} />
           </CardContent>
         </Card>
       </div>
@@ -260,7 +259,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
             <CardTitle className="text-lg">{language === 'el' ? 'Ανάλυση Εξόδων' : 'Expense Breakdown'}</CardTitle>
           </CardHeader>
           <CardContent>
-            <PieChart />
+            <PieChart financialRecords={financialRecords} lang={language} />
           </CardContent>
         </Card>
         

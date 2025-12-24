@@ -1,11 +1,11 @@
 import { VehicleDetails } from "@/components/fleet/VehicleDetails";
 import { MobileLayout } from "@/components/layout/MobileLayout";
-import { sampleVehicles } from "@/lib/data";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { toast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { Loader2 } from "lucide-react";
 
 interface Vehicle {
   id: string;
@@ -30,27 +30,24 @@ interface Vehicle {
   image?: string;
 }
 
-// Define a custom interface for our translations that handles both strings and nested objects
 interface VehicleTranslations {
   [key: string]: string | VehicleTranslations;
 }
 
 const VehicleDetail = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
+  const { user } = useAuth();
   
-  // Helper function to safely get translation values with fallbacks
   const getTransValue = (key: string, fallback: string): string => {
     const value = t[key as keyof typeof t];
     return typeof value === 'string' ? value : fallback;
   };
   
-  // Create a translations object that includes both the translations from context
-  // and our fallback translations for missing keys
   const translations: VehicleTranslations = {
-    // Vehicle detail specific translations with fallbacks
     serviceReminders: getTransValue('serviceReminders', 'Service Reminders'),
     fuelType: getTransValue('fuelType', 'Fuel Type'),
     costPerMile: getTransValue('costPerMile', 'Cost Per Mile'),
@@ -88,103 +85,98 @@ const VehicleDetail = () => {
     vehicleStatusChanged: getTransValue('vehicleStatusChanged', 'Vehicle status changed to '),
   };
 
-  // Copy all remaining properties from t, preserving their structure
   Object.keys(t).forEach(key => {
     if (translations[key] === undefined) {
       translations[key] = t[key as keyof typeof t] as string | VehicleTranslations;
     }
   });
+
+  const fetchVehicle = useCallback(async () => {
+    if (!id || !user) return;
+    
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error fetching vehicle:', error);
+        navigate('/');
+        return;
+      }
+      
+      if (!data) {
+        // Vehicle not found - redirect to fleet
+        navigate('/');
+        return;
+      }
+      
+      // Transform backend data to component format
+      const vehicleData: Vehicle = {
+        id: data.id,
+        make: data.make || 'Unknown',
+        model: data.model || 'Unknown',
+        year: data.year || 2023,
+        type: data.type || 'Unknown',
+        mileage: data.mileage || 0,
+        status: data.status || 'available',
+        licensePlate: data.license_plate || 'N/A',
+        fuelLevel: data.fuel_level || 0,
+        fuelType: 'Unknown',
+        mpg: 0,
+        lastServiceDate: new Date().toISOString(),
+        costPerMile: 0,
+        dailyRate: data.daily_rate || 0,
+        totalServices: 0,
+        serviceReminders: 0,
+        totalServiceCost: 0,
+        fuelCosts: 0,
+        milesPerDay: 0,
+        image: data.image || undefined
+      };
+      setVehicle(vehicleData);
+    } catch (error) {
+      console.error('Error fetching vehicle:', error);
+      navigate('/');
+    } finally {
+      setLoading(false);
+    }
+  }, [id, user, navigate]);
   
   useEffect(() => {
-    const fetchVehicle = async () => {
-      if (id) {
-        try {
-          // Try fetching from Supabase first
-          const { data, error } = await supabase
-            .from('vehicles')
-            .select('*')
-            .eq('id', id)
-            .maybeSingle(); // Using maybeSingle instead of single to handle not found cases better
-          
-          if (error) {
-            console.error('Error fetching vehicle:', error);
-            // If there's an error (like using a numeric ID from sample data), fall back to sample data
-            const sampleVehicle = sampleVehicles.find(v => v.id === id);
-            if (sampleVehicle) {
-              // Convert sample vehicle to match our expected format
-              setVehicle({
-                id: sampleVehicle.id,
-                make: sampleVehicle.make,
-                model: sampleVehicle.model,
-                year: sampleVehicle.year,
-                type: sampleVehicle.type,
-                mileage: sampleVehicle.mileage,
-                status: sampleVehicle.status,
-                licensePlate: sampleVehicle.licensePlate,
-                fuelLevel: sampleVehicle.fuelLevel,
-                dailyRate: sampleVehicle.dailyRate,
-                fuelType: 'Unknown',
-                mpg: 0,
-                lastServiceDate: new Date().toISOString(),
-                costPerMile: 0,
-                totalServices: 0,
-                serviceReminders: 0,
-                totalServiceCost: 0,
-                fuelCosts: 0,
-                milesPerDay: 0,
-                image: sampleVehicle.image
-              });
-            }
-          } else if (data) {
-            // Transform Supabase data to match the component's expected format
-            const vehicleData: Vehicle = {
-              id: data.id,
-              make: data.make || 'Unknown',
-              model: data.model || 'Unknown',
-              year: data.year || 2023,
-              type: data.type || 'Unknown',
-              mileage: data.mileage || 0,
-              status: data.status || 'available',
-              licensePlate: data.license_plate || 'N/A',
-              fuelLevel: data.fuel_level || 0,
-              fuelType: 'Unknown', // Add default value
-              mpg: 0, // Add default value
-              lastServiceDate: new Date().toISOString(),
-              costPerMile: 0,
-              dailyRate: data.daily_rate || 0,
-              totalServices: 0,
-              serviceReminders: 0,
-              totalServiceCost: 0,
-              fuelCosts: 0,
-              milesPerDay: 0,
-              image: data.image || undefined
-            };
-            setVehicle(vehicleData);
-          }
-        } catch (error) {
-          console.error('Error fetching vehicle:', error);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
     fetchVehicle();
-  }, [id]);
+  }, [fetchVehicle]);
   
-  // Find the matching sample vehicle to get the image if not available from Supabase
-  const sampleVehicle = id ? sampleVehicles.find(v => v.id === id) : null;
-  const vehicleWithImage = vehicle ? {
-    ...vehicle,
-    image: vehicle.image || (sampleVehicle ? sampleVehicle.image : undefined)
-  } : null;
+  if (loading) {
+    return (
+      <MobileLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading vehicle...</p>
+        </div>
+      </MobileLayout>
+    );
+  }
+  
+  if (!vehicle) {
+    return (
+      <MobileLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+          <p className="text-muted-foreground">Vehicle not found</p>
+        </div>
+      </MobileLayout>
+    );
+  }
   
   return (
     <MobileLayout>
       <VehicleDetails 
         vehicleId={id} 
-        vehicles={vehicleWithImage ? [vehicleWithImage] : sampleVehicles} 
-        loading={loading}
+        vehicles={[vehicle]} 
+        loading={false}
         translations={translations}
       />
     </MobileLayout>
