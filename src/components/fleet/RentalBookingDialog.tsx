@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { format } from "date-fns";
+import { useState, useRef, useEffect } from "react";
+import { format, differenceInDays } from "date-fns";
 import { CalendarIcon, Camera, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,9 @@ interface RentalBookingDialogProps {
   vehicleId: string;
   vehicleName: string;
   onBookingAdded: (booking: any) => void;
+  vehicleDailyRate?: number;
+  preselectedStartDate?: Date;
+  preselectedEndDate?: Date;
 }
 
 export function RentalBookingDialog({ 
@@ -26,18 +30,42 @@ export function RentalBookingDialog({
   onClose, 
   vehicleId, 
   vehicleName, 
-  onBookingAdded 
+  onBookingAdded,
+  vehicleDailyRate = 0,
+  preselectedStartDate,
+  preselectedEndDate
 }: RentalBookingDialogProps) {
-  const [startDate, setStartDate] = useState<Date | undefined>();
-  const [endDate, setEndDate] = useState<Date | undefined>();
+  const [startDate, setStartDate] = useState<Date | undefined>(preselectedStartDate);
+  const [endDate, setEndDate] = useState<Date | undefined>(preselectedEndDate);
   const [customerName, setCustomerName] = useState("");
   const [notes, setNotes] = useState("");
   const [contractPhoto, setContractPhoto] = useState<File | null>(null);
   const [contractPhotoPreview, setContractPhotoPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [pricingMode, setPricingMode] = useState<'fixed' | 'adjusted'>('fixed');
+  const [adjustedRate, setAdjustedRate] = useState(vehicleDailyRate);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Update preselected dates when props change
+  useEffect(() => {
+    if (preselectedStartDate) setStartDate(preselectedStartDate);
+    if (preselectedEndDate) setEndDate(preselectedEndDate);
+  }, [preselectedStartDate, preselectedEndDate]);
+
+  // Reset adjusted rate when vehicle rate changes
+  useEffect(() => {
+    setAdjustedRate(vehicleDailyRate);
+  }, [vehicleDailyRate]);
+
+  // Calculate rental days and total amount
+  const rentalDays = startDate && endDate 
+    ? Math.max(1, differenceInDays(endDate, startDate) + 1)
+    : 0;
+  
+  const effectiveRate = pricingMode === 'fixed' ? vehicleDailyRate : adjustedRate;
+  const totalAmount = rentalDays * effectiveRate;
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -78,51 +106,6 @@ export function RentalBookingDialog({
     return data.path;
   };
 
-  const createDailyProgramEntries = async (booking: any) => {
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.user) return;
-
-      // Create delivery entry for start date
-      const deliveryTask = {
-        id: crypto.randomUUID(),
-        type: 'delivery',
-        vehicleId: vehicleId,
-        vehicleName: vehicleName,
-        scheduledTime: '09:00',
-        notes: `Rental delivery to ${customerName}. ${notes}`,
-        completed: false,
-        date: format(booking.start_date, 'yyyy-MM-dd'),
-        rental_booking_id: booking.id
-      };
-
-      // Create return entry for end date
-      const returnTask = {
-        id: crypto.randomUUID(),
-        type: 'return',
-        vehicleId: vehicleId,
-        vehicleName: vehicleName,
-        scheduledTime: '17:00',
-        notes: `Rental return from ${customerName}. ${notes}`,
-        completed: false,
-        date: format(booking.end_date, 'yyyy-MM-dd'),
-        rental_booking_id: booking.id
-      };
-
-      // Store in localStorage for now (would be better to have a proper daily_tasks table)
-      const existingTasks = JSON.parse(localStorage.getItem('dailyTasks') || '[]');
-      const updatedTasks = [...existingTasks, deliveryTask, returnTask];
-      localStorage.setItem('dailyTasks', JSON.stringify(updatedTasks));
-
-      toast({
-        title: "Daily Program Updated",
-        description: "Rental entries added to Daily Program",
-      });
-    } catch (error) {
-      console.error('Error creating daily program entries:', error);
-    }
-  };
-
   const handleSaveBooking = async () => {
     if (!startDate || !endDate) {
       toast({
@@ -137,6 +120,15 @@ export function RentalBookingDialog({
       toast({
         title: "Error",
         description: "Please enter customer name",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (effectiveRate <= 0) {
+      toast({
+        title: "Error",
+        description: "Please set a valid daily rate",
         variant: "destructive"
       });
       return;
@@ -162,42 +154,49 @@ export function RentalBookingDialog({
         end_date: format(endDate, 'yyyy-MM-dd'),
         customer_name: customerName,
         notes: notes,
-        contract_photo_path: contractPhotoPath
+        total_amount: totalAmount,
+        status: 'confirmed' as const
       };
 
-      const { data, error } = await supabase
+      const { data: booking, error: bookingError } = await supabase
         .from('rental_bookings')
         .insert(bookingData)
         .select()
         .single();
 
-      if (error) {
-        throw error;
+      if (bookingError) {
+        throw bookingError;
       }
 
-      // Create daily program entries
-      await createDailyProgramEntries(data);
-
-      // Record rental income
-      const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      const totalAmount = days * 50; // Default daily rate - should get from vehicle data
-
-      await supabase.from('financial_records').insert({
+      // Automatically create income record for this booking
+      const { error: incomeError } = await supabase.from('financial_records').insert({
         user_id: session.session.user.id,
         vehicle_id: vehicleId,
+        booking_id: booking.id,
         type: 'income',
         category: 'rental',
         amount: totalAmount,
-        date: startDate.toISOString().split('T')[0],
-        description: `Rental booking for ${vehicleName} - ${customerName}`
+        date: format(startDate, 'yyyy-MM-dd'),
+        description: `Rental: ${vehicleName} - ${customerName} (${rentalDays} days @ $${effectiveRate}/day)`
       });
+
+      if (incomeError) {
+        console.error('Error creating income record:', incomeError);
+        // Don't fail the booking, just log the error
+      }
+
+      // Update vehicle status to rented
+      await supabase
+        .from('vehicles')
+        .update({ status: 'rented' })
+        .eq('id', vehicleId);
 
       toast({
         title: "Booking Created",
-        description: `Rental booking created for ${format(startDate, 'MMM dd')} - ${format(endDate, 'MMM dd')}`,
+        description: `Rental booked: $${totalAmount.toFixed(2)} (${rentalDays} days @ $${effectiveRate}/day)`,
       });
 
-      onBookingAdded(data);
+      onBookingAdded(booking);
       onClose();
       
       // Reset form
@@ -207,6 +206,8 @@ export function RentalBookingDialog({
       setNotes("");
       setContractPhoto(null);
       setContractPhotoPreview(null);
+      setPricingMode('fixed');
+      setAdjustedRate(vehicleDailyRate);
       
     } catch (error) {
       console.error('Error creating booking:', error);
@@ -294,6 +295,56 @@ export function RentalBookingDialog({
             </div>
           </div>
 
+          {/* Pricing Section */}
+          <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
+            <Label className="text-base font-semibold">Pricing</Label>
+            
+            <RadioGroup 
+              value={pricingMode} 
+              onValueChange={(v) => setPricingMode(v as 'fixed' | 'adjusted')}
+              className="space-y-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="fixed" id="fixed" />
+                <Label htmlFor="fixed" className="font-normal cursor-pointer">
+                  Use vehicle rate (${vehicleDailyRate}/day)
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="adjusted" id="adjusted" />
+                <Label htmlFor="adjusted" className="font-normal cursor-pointer">
+                  Custom rate
+                </Label>
+              </div>
+            </RadioGroup>
+
+            {pricingMode === 'adjusted' && (
+              <div className="pl-6">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">$</span>
+                  <Input
+                    type="number"
+                    value={adjustedRate}
+                    onChange={(e) => setAdjustedRate(Number(e.target.value))}
+                    min={0}
+                    step="0.01"
+                    className="w-24"
+                  />
+                  <span className="text-muted-foreground">/day</span>
+                </div>
+              </div>
+            )}
+
+            {rentalDays > 0 && (
+              <div className="pt-3 border-t">
+                <div className="flex justify-between text-sm">
+                  <span>{rentalDays} day{rentalDays > 1 ? 's' : ''} × ${effectiveRate}/day</span>
+                  <span className="font-semibold text-green-600">${totalAmount.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
           <div>
             <Label htmlFor="notes">Notes</Label>
             <Textarea
@@ -378,7 +429,7 @@ export function RentalBookingDialog({
             Cancel
           </Button>
           <Button onClick={handleSaveBooking} disabled={isLoading}>
-            {isLoading ? "Creating..." : "Create Booking"}
+            {isLoading ? "Creating..." : `Create Booking ($${totalAmount.toFixed(2)})`}
           </Button>
         </DialogFooter>
       </DialogContent>

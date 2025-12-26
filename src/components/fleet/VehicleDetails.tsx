@@ -49,6 +49,8 @@ import { DamageReport } from "@/components/damage/DamageReport";
 import { RentalBookingDialog } from "./RentalBookingDialog";
 import { RentalBookingsList } from "./RentalBookingsList";
 import { CalendarView } from "./CalendarView";
+import { VehicleFinanceTab } from "./VehicleFinanceTab";
+import { EditVehicleDialog } from "./EditVehicleDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -75,16 +77,15 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("details");
   const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
-  const [isEditFinanceOpen, setIsEditFinanceOpen] = useState(false);
+  const [isEditVehicleOpen, setIsEditVehicleOpen] = useState(false);
   const [isRentalBookingOpen, setIsRentalBookingOpen] = useState(false);
   const [currentStatus, setCurrentStatus] = useState("");
   const [rentedUntilDate, setRentedUntilDate] = useState<Date | undefined>();
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [documentName, setDocumentName] = useState("");
   const [documents, setDocuments] = useState<{name: string; date: string}[]>([]);
-  const [totalRevenue, setTotalRevenue] = useState(0);
-  const [totalExpenses, setTotalExpenses] = useState(0);
   const [refreshBookings, setRefreshBookings] = useState(0);
+  const [refreshVehicle, setRefreshVehicle] = useState(0);
   const { toast } = useToast();
   const { t } = useLanguage();
   
@@ -230,18 +231,12 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
     }
   };
   
-  const handleEditFinance = () => {
-    setTotalRevenue(safeNumber(vehicle.dailyRate * 15));
-    setTotalExpenses(safeNumber(vehicle.fuelCosts + vehicle.totalServiceCost));
-    setIsEditFinanceOpen(true);
+  const handleEditVehicle = () => {
+    setIsEditVehicleOpen(true);
   };
   
-  const handleSaveFinance = () => {
-    toast({
-      title: getTranslation(trans, 'financeUpdated', 'Finance Updated'),
-      description: getTranslation(trans, 'financeDetailsUpdated', 'Finance details have been updated'),
-    });
-    setIsEditFinanceOpen(false);
+  const handleVehicleSaved = () => {
+    setRefreshVehicle(prev => prev + 1);
   };
   
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -310,8 +305,6 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
   };
 
   const handleUpdateExpenses = async (amount: number, serviceType: string) => {
-    setTotalExpenses(prev => prev + amount);
-    
     // Record this maintenance cost as expense in the financial_records table
     if (vehicleId && amount > 0) {
       try {
@@ -332,17 +325,10 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
             console.error("Error recording maintenance expense:", error);
           } else {
             toast({
-              title: amount > 0 ? "Expense Added" : "Expense Removed",
-              description: `${amount > 0 ? 'Added' : 'Removed'} $${Math.abs(amount).toFixed(2)} ${amount > 0 ? 'to' : 'from'} total expenses.`,
+              title: "Expense Added",
+              description: `Added $${Math.abs(amount).toFixed(2)} to expenses.`,
             });
           }
-        } else {
-          console.log("User not authenticated");
-          toast({
-            title: "Authentication Required",
-            description: "Please log in to record expenses",
-            variant: "destructive"
-          });
         }
       } catch (err) {
         console.error("Error in handleUpdateExpenses:", err);
@@ -651,48 +637,10 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                   </TabsContent>
                   
                   <TabsContent value="finance" className="mt-6">
-                    <Card className="mb-6">
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-center">
-                          <CardTitle className="text-lg flex items-center">
-                            <BarChart3 className="h-5 w-5 mr-2 text-flitx-blue" />
-                            {getTrans('finance', 'Finance')}
-                          </CardTitle>
-                          <Button variant="outline" size="sm" onClick={handleEditFinance} className="flex items-center">
-                            <Edit className="h-4 w-4 mr-1" />
-                            {getTrans('editFinance', 'Edit Finance')}
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="bg-green-50 p-4 rounded-md">
-                              <div className="text-sm text-flitx-gray-500">{getTrans('totalRevenue', 'Total Revenue')}</div>
-                              <div className="text-2xl font-bold">${safeNumber(totalRevenue || vehicle.dailyRate * 15).toLocaleString()}</div>
-                              <div className="text-xs text-green-600">From {selectedDates.length} booked days</div>
-                            </div>
-                            
-                            <div className="bg-red-50 p-4 rounded-md">
-                              <div className="text-sm text-flitx-gray-500">{getTrans('totalExpenses', 'Total Expenses')}</div>
-                              <div className="text-2xl font-bold">${safeNumber(totalExpenses || vehicle.fuelCosts + vehicle.totalServiceCost).toLocaleString()}</div>
-                              <div className="text-xs text-flitx-gray-500">Fuel, maintenance, repairs</div>
-                            </div>
-                            
-                            <div className="bg-blue-50 p-4 rounded-md">
-                              <div className="text-sm text-flitx-gray-500">{getTrans('netProfit', 'Net Profit')}</div>
-                              <div className="text-2xl font-bold">
-                                ${safeNumber((totalRevenue || vehicle.dailyRate * 15) - (totalExpenses || vehicle.fuelCosts + vehicle.totalServiceCost)).toLocaleString()}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <Button className="w-full mt-4 bg-flitx-blue hover:bg-flitx-blue-600">
-                            View Detailed Financial Report
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <VehicleFinanceTab 
+                      vehicleId={vehicleId || ""} 
+                      vehicleName={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+                    />
                   </TabsContent>
                 </>
               )}
@@ -760,54 +708,17 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
         </DialogContent>
       </Dialog>
       
-      <Dialog open={isEditFinanceOpen} onOpenChange={setIsEditFinanceOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{getTrans('editFinance', 'Edit Finance')}</DialogTitle>
-            <DialogDescription>
-              {getTrans('enterFinanceDetails', 'Enter finance details for this vehicle')}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="total-revenue">{getTrans('totalRevenue', 'Total Revenue')} ($)</Label>
-              <Input 
-                id="total-revenue" 
-                type="number"
-                value={totalRevenue}
-                onChange={(e) => setTotalRevenue(Number(e.target.value))}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="total-expenses">{getTrans('totalExpenses', 'Total Expenses')} ($)</Label>
-              <Input 
-                id="total-expenses" 
-                type="number"
-                value={totalExpenses}
-                onChange={(e) => setTotalExpenses(Number(e.target.value))}
-              />
-            </div>
-            
-            <div className="bg-blue-50 p-3 rounded-md">
-              <div className="text-sm font-medium">{getTrans('netProfit', 'Net Profit')}</div>
-              <div className="text-xl font-semibold mt-1">
-                ${(totalRevenue - totalExpenses).toLocaleString()}
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditFinanceOpen(false)}>
-              {typeof t.cancel === 'string' ? t.cancel : 'Cancel'}
-            </Button>
-            <Button className="bg-flitx-blue hover:bg-flitx-blue-600" onClick={handleSaveFinance}>
-              {typeof t.save === 'string' ? t.save : 'Save'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <EditVehicleDialog
+        isOpen={isEditVehicleOpen}
+        onClose={() => setIsEditVehicleOpen(false)}
+        vehicle={{
+          id: vehicleId || "",
+          mileage: vehicle.mileage || 0,
+          daily_rate: vehicle.daily_rate || vehicle.dailyRate || 0,
+          fuel_level: vehicle.fuel_level || vehicle.fuelLevel || 100,
+        }}
+        onSaved={handleVehicleSaved}
+      />
 
       <RentalBookingDialog
         isOpen={isRentalBookingOpen}
@@ -815,6 +726,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
         vehicleId={vehicleId || ""}
         vehicleName={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
         onBookingAdded={handleBookingAdded}
+        vehicleDailyRate={vehicle.daily_rate || vehicle.dailyRate || 0}
       />
     </div>
   );
