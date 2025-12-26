@@ -36,6 +36,8 @@ const Finance = () => {
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(new Date().toISOString().substring(0, 10));
   const [notes, setNotes] = useState("");
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
+  const [vehicles, setVehicles] = useState<Array<{id: string; make: string; model: string; year: number}>>([]);
   const [financialRecords, setFinancialRecords] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -45,9 +47,10 @@ const Finance = () => {
   // Use the page title hook
   usePageTitle("finances");
 
-  // Fetch financial records when component mounts or language changes
+  // Fetch financial records and vehicles when component mounts
   useEffect(() => {
     fetchFinancialRecords();
+    fetchVehicles();
     
     // Subscribe to real-time changes
     const channel = supabase
@@ -65,6 +68,24 @@ const Finance = () => {
       supabase.removeChannel(channel);
     };
   }, [language]);
+
+  const fetchVehicles = async () => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user) return;
+
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('id, make, model, year')
+        .order('make');
+
+      if (!error && data) {
+        setVehicles(data);
+      }
+    } catch (error) {
+      console.error("Error fetching vehicles:", error);
+    }
+  };
 
   const fetchFinancialRecords = async () => {
     try {
@@ -109,6 +130,7 @@ const Finance = () => {
     setAmount("");
     setDate(new Date().toISOString().substring(0, 10));
     setNotes("");
+    setSelectedVehicleId("");
   };
   
   const handleSubmitFinanceRecord = async (e: React.FormEvent) => {
@@ -131,7 +153,15 @@ const Finance = () => {
         return;
       }
       
-      const newRecord = {
+      const newRecord: {
+        user_id: string;
+        type: 'income' | 'expense';
+        category: string;
+        amount: number;
+        date: string;
+        description: string;
+        vehicle_id?: string;
+      } = {
         user_id: session.session.user.id,
         type: recordType as 'income' | 'expense',
         category: recordType === "income" ? "sales" : expenseCategory,
@@ -141,6 +171,11 @@ const Finance = () => {
           (language === 'el' ? "Έσοδο" : "Income") : 
           (language === 'el' ? "Έξοδο" : "Expense")} record`,
       };
+      
+      // Link to vehicle if selected
+      if (selectedVehicleId) {
+        newRecord.vehicle_id = selectedVehicleId;
+      }
       
       const { error } = await supabase
         .from('financial_records')
@@ -242,7 +277,35 @@ const Finance = () => {
                             <SelectItem value="salary">{t.employeeSalaries}</SelectItem>
                             <SelectItem value="other">{t.other}</SelectItem>
                           </>
-                        )}
+              )}
+              
+              {/* Vehicle Selector - Optional link to vehicle */}
+              <div className="space-y-2">
+                <Label htmlFor="vehicle">
+                  {language === 'el' ? 'Σύνδεση με Όχημα' : 'Link to Vehicle'} 
+                  <span className="text-muted-foreground text-xs ml-1">(optional)</span>
+                </Label>
+                <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId} disabled={isLanguageLoading}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={language === 'el' ? 'Επιλέξτε όχημα...' : 'Select vehicle...'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">
+                      {language === 'el' ? 'Κανένα όχημα' : 'No vehicle (global)'}
+                    </SelectItem>
+                    {vehicles.map((vehicle) => (
+                      <SelectItem key={vehicle.id} value={vehicle.id}>
+                        {vehicle.year} {vehicle.make} {vehicle.model}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {language === 'el' 
+                    ? 'Αν επιλέξετε όχημα, αυτή η εγγραφή θα εμφανίζεται στα οικονομικά του οχήματος' 
+                    : 'If selected, this record will appear in the vehicle\'s finance section'}
+                </p>
+              </div>
                       </SelectGroup>
                     </SelectContent>
                   </Select>
