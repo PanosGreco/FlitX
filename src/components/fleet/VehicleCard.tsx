@@ -1,9 +1,9 @@
-
-import { Car, Calendar, AlertTriangle } from "lucide-react";
+import { Car, Calendar, AlertTriangle, Wrench } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ComputedStatus } from "@/hooks/useVehicleStatus";
 
 export interface VehicleData {
   id: string;
@@ -22,16 +22,20 @@ export interface VehicleData {
 
 interface VehicleCardProps {
   vehicle: VehicleData;
+  computedStatus?: ComputedStatus;
 }
 
-export function VehicleCard({ vehicle }: VehicleCardProps) {
+export function VehicleCard({ vehicle, computedStatus }: VehicleCardProps) {
   const { t, language } = useLanguage();
 
+  // Use computed status if provided, otherwise fall back to stored status
+  const displayStatus = computedStatus || vehicle.status;
+
   const statusColors = {
-    available: "bg-green-100 text-green-800",
-    rented: "bg-blue-100 text-blue-800",
-    maintenance: "bg-yellow-100 text-yellow-800",
-    repair: "bg-red-100 text-red-800"
+    available: "bg-green-100 text-green-800 border-green-200",
+    rented: "bg-red-100 text-red-800 border-red-200",
+    maintenance: "bg-orange-100 text-orange-800 border-orange-200",
+    repair: "bg-orange-100 text-orange-800 border-orange-200"
   };
   
   const statusLabels = {
@@ -42,15 +46,8 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
   };
   
   const statusIcons = {
-    repair: <AlertTriangle className="h-3.5 w-3.5 mr-1" />
-  };
-
-  const formatRentedUntilDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(language === 'el' ? 'el-GR' : 'en-US', {
-      month: 'short',
-      day: 'numeric'
-    });
+    repair: <AlertTriangle className="h-3.5 w-3.5 mr-1" />,
+    maintenance: <Wrench className="h-3.5 w-3.5 mr-1" />
   };
 
   return (
@@ -74,12 +71,12 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
         <Badge
           className={cn(
             "absolute top-3 right-3 flex items-center",
-            statusColors[vehicle.status]
+            statusColors[displayStatus]
           )}
           variant="outline"
         >
-          {statusIcons[vehicle.status as keyof typeof statusIcons]}
-          {statusLabels[vehicle.status]}
+          {statusIcons[displayStatus as keyof typeof statusIcons]}
+          {statusLabels[displayStatus]}
         </Badge>
       </div>
       
@@ -91,12 +88,6 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
         <div className="mt-1 text-sm text-flitx-gray-500">
           {vehicle.type} • {vehicle.licensePlate}
         </div>
-
-        {vehicle.status === 'rented' && vehicle.rented_until && (
-          <div className="mt-2 text-sm text-blue-600 font-medium">
-            Rented Until {formatRentedUntilDate(vehicle.rented_until)}
-          </div>
-        )}
         
         <div className="mt-3 flex justify-between items-center">
           <div className="text-xs text-flitx-gray-400">

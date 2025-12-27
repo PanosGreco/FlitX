@@ -185,11 +185,9 @@ export function RentalBookingDialog({
         // Don't fail the booking, just log the error
       }
 
-      // Update vehicle status to rented
-      await supabase
-        .from('vehicles')
-        .update({ status: 'rented' })
-        .eq('id', vehicleId);
+      // NOTE: We do NOT update vehicle.status here
+      // Vehicle status is now computed dynamically from calendar data (bookings + maintenance blocks)
+      // The booking dates alone determine when the vehicle is "rented"
 
       toast({
         title: "Booking Created",
