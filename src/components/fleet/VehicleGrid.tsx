@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { VehicleCard, VehicleData } from "./VehicleCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PlusCircle, Search, Filter, Loader2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { useFleetStatuses } from "@/hooks/useVehicleStatus";
 
 interface VehicleGridProps {
   vehicles: VehicleData[];
@@ -17,6 +18,12 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
   const { t, isLanguageLoading } = useLanguage();
   
   usePageTitle("fleet");
+
+  // Get all vehicle IDs for status computation
+  const vehicleIds = useMemo(() => vehicles.map(v => v.id), [vehicles]);
+  
+  // Compute statuses for all vehicles based on calendar data
+  const { statuses: computedStatuses, isLoading: statusesLoading } = useFleetStatuses(vehicleIds);
   
   const filteredVehicles = vehicles.filter((vehicle) => {
     const searchTerms = searchQuery.toLowerCase().trim().split(" ");
@@ -24,6 +31,8 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
     
     return searchTerms.every((term) => vehicleText.includes(term));
   });
+
+  const showLoading = isLoading || statusesLoading;
 
   return (
     <div className="space-y-4">
@@ -47,20 +56,20 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
-            disabled={isLanguageLoading || isLoading}
+            disabled={isLanguageLoading || showLoading}
           />
         </div>
         <Button 
           variant="outline" 
           size="icon" 
           aria-label="Filter"
-          disabled={isLanguageLoading || isLoading}
+          disabled={isLanguageLoading || showLoading}
         >
           <Filter className="h-4 w-4" />
         </Button>
       </div>
       
-      {isLoading ? (
+      {showLoading ? (
         <div className="flex flex-col items-center justify-center py-12 gap-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Loading...</p>
@@ -69,7 +78,11 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {filteredVehicles.length > 0 ? (
             filteredVehicles.map((vehicle) => (
-              <VehicleCard key={vehicle.id} vehicle={vehicle} />
+              <VehicleCard 
+                key={vehicle.id} 
+                vehicle={vehicle} 
+                computedStatus={computedStatuses.get(vehicle.id)}
+              />
             ))
           ) : (
             <div className="col-span-full py-8 text-center text-muted-foreground">

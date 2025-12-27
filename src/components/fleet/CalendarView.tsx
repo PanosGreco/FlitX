@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { format, eachDayOfInterval, startOfMonth, endOfMonth, addDays, subDays } from "date-fns";
+import { format, eachDayOfInterval } from "date-fns";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface RentalBooking {
   id: string;
@@ -13,6 +14,13 @@ interface RentalBooking {
   end_date: string;
   customer_name: string;
   notes: string;
+}
+
+interface MaintenanceBlock {
+  id: string;
+  start_date: string;
+  end_date: string;
+  description: string | null;
 }
 
 interface CalendarViewProps {
@@ -25,39 +33,67 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [bookings, setBookings] = useState<RentalBooking[]>([]);
+  const [maintenanceBlocks, setMaintenanceBlocks] = useState<MaintenanceBlock[]>([]);
   const [bookedDates, setBookedDates] = useState<Set<string>>(new Set());
+  const [maintenanceDates, setMaintenanceDates] = useState<Set<string>>(new Set());
+  const { language } = useLanguage();
 
   useEffect(() => {
-    fetchBookings();
+    fetchData();
   }, [vehicleId, refreshTrigger]);
 
-  const fetchBookings = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await supabase
-        .from('rental_bookings')
-        .select('*')
-        .eq('vehicle_id', vehicleId);
+      // Fetch bookings and maintenance blocks in parallel
+      const [bookingsResult, maintenanceResult] = await Promise.all([
+        supabase
+          .from('rental_bookings')
+          .select('*')
+          .eq('vehicle_id', vehicleId)
+          .in('status', ['confirmed', 'active', 'pending']),
+        supabase
+          .from('maintenance_blocks')
+          .select('*')
+          .eq('vehicle_id', vehicleId)
+      ]);
 
-      if (error) {
-        console.error('Error fetching bookings:', error);
-        return;
+      if (bookingsResult.error) {
+        console.error('Error fetching bookings:', bookingsResult.error);
+      } else {
+        setBookings(bookingsResult.data || []);
+        
+        // Calculate booked dates
+        const booked = new Set<string>();
+        (bookingsResult.data || []).forEach(booking => {
+          const start = new Date(booking.start_date);
+          const end = new Date(booking.end_date);
+          const dates = eachDayOfInterval({ start, end });
+          dates.forEach(date => {
+            booked.add(format(date, 'yyyy-MM-dd'));
+          });
+        });
+        setBookedDates(booked);
       }
 
-      setBookings(data || []);
-      
-      // Calculate booked dates
-      const booked = new Set<string>();
-      (data || []).forEach(booking => {
-        const start = new Date(booking.start_date);
-        const end = new Date(booking.end_date);
-        const dates = eachDayOfInterval({ start, end });
-        dates.forEach(date => {
-          booked.add(format(date, 'yyyy-MM-dd'));
+      if (maintenanceResult.error) {
+        console.error('Error fetching maintenance blocks:', maintenanceResult.error);
+      } else {
+        setMaintenanceBlocks(maintenanceResult.data || []);
+        
+        // Calculate maintenance dates
+        const maintenance = new Set<string>();
+        (maintenanceResult.data || []).forEach(block => {
+          const start = new Date(block.start_date);
+          const end = new Date(block.end_date);
+          const dates = eachDayOfInterval({ start, end });
+          dates.forEach(date => {
+            maintenance.add(format(date, 'yyyy-MM-dd'));
+          });
         });
-      });
-      setBookedDates(booked);
+        setMaintenanceDates(maintenance);
+      }
     } catch (error) {
-      console.error('Error fetching bookings:', error);
+      console.error('Error fetching calendar data:', error);
     }
   };
 
@@ -65,16 +101,18 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
     setSelectedDates(dates || []);
   };
 
+  // New Booking button is always enabled - dates selected inside the modal
   const handleNewBooking = () => {
-    if (selectedDates.length === 0) {
-      return;
-    }
     onNewBooking(selectedDates);
     setSelectedDates([]);
   };
 
   const isDateBooked = (date: Date) => {
     return bookedDates.has(format(date, 'yyyy-MM-dd'));
+  };
+
+  const isDateMaintenance = (date: Date) => {
+    return maintenanceDates.has(format(date, 'yyyy-MM-dd'));
   };
 
   const previousMonth = () => {
@@ -101,13 +139,13 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
           </Button>
         </div>
         
+        {/* New Booking button is always enabled */}
         <Button 
           onClick={handleNewBooking}
-          disabled={selectedDates.length === 0}
           className="bg-flitx-blue hover:bg-flitx-blue-600"
         >
           <Plus className="h-4 w-4 mr-2" />
-          New Booking
+          {language === 'el' ? 'Νέα Κράτηση' : 'New Booking'}
         </Button>
       </div>
 
@@ -145,13 +183,14 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
               day_range_end: "day-range-end",
               day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
               day_today: "bg-accent text-accent-foreground",
-              day_outside: "day-outside text-muted-foreground opacity-50  aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
+              day_outside: "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
               day_disabled: "text-muted-foreground opacity-50",
               day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
               day_hidden: "invisible",
             }}
             modifiers={{
               booked: (date) => isDateBooked(date),
+              maintenance: (date) => isDateMaintenance(date),
             }}
             modifiersStyles={{
               booked: {
@@ -159,22 +198,31 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
                 color: 'white',
                 fontWeight: 'bold',
               },
+              maintenance: {
+                backgroundColor: '#f97316',
+                color: 'white',
+                fontWeight: 'bold',
+              },
             }}
           />
           
           {/* Legend */}
-          <div className="flex items-center gap-4 mt-4 text-sm">
+          <div className="flex flex-wrap items-center gap-4 mt-4 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-primary rounded"></div>
-              <span>Selected</span>
+              <span>{language === 'el' ? 'Επιλεγμένα' : 'Selected'}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-red-600 rounded"></div>
-              <span>Booked</span>
+              <span>{language === 'el' ? 'Κρατημένα' : 'Booked'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-orange-500 rounded"></div>
+              <span>{language === 'el' ? 'Συντήρηση' : 'Maintenance'}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-accent rounded"></div>
-              <span>Today</span>
+              <span>{language === 'el' ? 'Σήμερα' : 'Today'}</span>
             </div>
           </div>
         </CardContent>
@@ -186,9 +234,11 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="font-medium text-blue-900">Selected Dates</h4>
+                <h4 className="font-medium text-blue-900">
+                  {language === 'el' ? 'Επιλεγμένες Ημερομηνίες' : 'Selected Dates'}
+                </h4>
                 <p className="text-sm text-blue-700">
-                  {selectedDates.length} day{selectedDates.length === 1 ? '' : 's'} selected
+                  {selectedDates.length} {language === 'el' ? 'ημέρες' : 'day'}{selectedDates.length === 1 ? '' : 's'} {language === 'el' ? 'επιλεγμένες' : 'selected'}
                 </p>
               </div>
               <div className="text-right">

@@ -1,21 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Car, 
   Calendar, 
   AlertTriangle, 
   FileText, 
-  Droplet, 
   ChevronLeft,
-  BarChart3,
   Gauge,
   Settings,
   RefreshCcw,
   Wrench,
-  Upload,
-  PenLine,
-  Edit,
-  Bell,
-  Plus
+  Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,7 +18,6 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { 
   Dialog,
   DialogContent,
@@ -33,15 +26,8 @@ import {
   DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
 import { VehicleMaintenance } from "./VehicleMaintenance";
 import { VehicleReminders } from "./VehicleReminders";
@@ -51,15 +37,15 @@ import { RentalBookingsList } from "./RentalBookingsList";
 import { CalendarView } from "./CalendarView";
 import { VehicleFinanceTab } from "./VehicleFinanceTab";
 import { EditVehicleDialog } from "./EditVehicleDialog";
+import { MaintenanceBlockDialog } from "./MaintenanceBlockDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useVehicleStatus, ComputedStatus } from "@/hooks/useVehicleStatus";
 
-// Define a custom interface for our translations that handles both strings and nested objects
 interface VehicleTranslations {
   [key: string]: string | VehicleTranslations;
 }
 
-// Helper function to safely access translation strings
 function getTranslation(translations: VehicleTranslations | undefined, key: string, fallback: string): string {
   if (!translations) return fallback;
   const value = translations[key];
@@ -79,17 +65,51 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
   const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
   const [isEditVehicleOpen, setIsEditVehicleOpen] = useState(false);
   const [isRentalBookingOpen, setIsRentalBookingOpen] = useState(false);
-  const [currentStatus, setCurrentStatus] = useState("");
-  const [rentedUntilDate, setRentedUntilDate] = useState<Date | undefined>();
+  const [isMaintenanceBlockOpen, setIsMaintenanceBlockOpen] = useState(false);
+  const [needsRepair, setNeedsRepair] = useState(false);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [documentName, setDocumentName] = useState("");
   const [documents, setDocuments] = useState<{name: string; date: string}[]>([]);
   const [refreshBookings, setRefreshBookings] = useState(0);
   const [refreshVehicle, setRefreshVehicle] = useState(0);
   const { toast } = useToast();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   
-  // Use translations from props if provided, otherwise use translations from context
+  const vehicle = vehicles.find(v => v.id === vehicleId) || {
+    id: "default",
+    make: "Vehicle",
+    model: "Not Found",
+    year: 2023,
+    type: "Unknown",
+    mileage: 0,
+    status: "available",
+    licensePlate: "N/A",
+    fuelLevel: 0,
+    fuelType: "Unknown",
+    mpg: 0,
+    lastServiceDate: new Date().toISOString(),
+    costPerMile: 0,
+    dailyRate: 0,
+    totalServices: 0,
+    serviceReminders: 0,
+    totalServiceCost: 0,
+    fuelCosts: 0,
+    milesPerDay: 0,
+    image: undefined
+  };
+
+  // Use computed status from calendar data
+  const { 
+    computedStatus, 
+    isLoading: statusLoading, 
+    refetch: refetchStatus 
+  } = useVehicleStatus(vehicleId, vehicle.status === 'repair' ? 'repair' : undefined);
+
+  // Sync needsRepair state with vehicle status
+  useEffect(() => {
+    setNeedsRepair(vehicle.status === 'repair');
+  }, [vehicle.status]);
+  
   const trans = translations || {
     serviceReminders: "Service Reminders",
     fuelType: "Fuel Type",
@@ -125,92 +145,48 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
     editStatus: "Edit Status",
     selectStatus: "Select a status for this vehicle",
     statusUpdated: "Status Updated",
-    vehicleStatusChanged: "Vehicle status changed to ",
-    rentedUntil: "Rented Until",
-    selectRentalEndDate: "Select when the rental period ends"
+    vehicleStatusChanged: "Vehicle status changed to "
   };
   
   const safeNumber = (value: any) => {
     return typeof value === 'number' ? value : 0;
   };
-  
-  const statusColors = {
-    available: "bg-green-100 text-green-800",
-    rented: "bg-blue-100 text-blue-800",
-    maintenance: "bg-yellow-100 text-yellow-800",
-    repair: "bg-red-100 text-red-800"
+
+  // Status colors based on computed status
+  const statusColors: Record<ComputedStatus, string> = {
+    available: "bg-green-100 text-green-800 border-green-200",
+    rented: "bg-red-100 text-red-800 border-red-200",
+    maintenance: "bg-orange-100 text-orange-800 border-orange-200",
+    repair: "bg-orange-100 text-orange-800 border-orange-200"
   };
   
-  const statusLabels: Record<string, string> = {
+  const statusLabels: Record<ComputedStatus, string> = {
     available: typeof t.available === 'string' ? t.available : 'Available',
     rented: typeof t.rented === 'string' ? t.rented : 'Rented',
     maintenance: typeof t.maintenance === 'string' ? t.maintenance : 'Maintenance',
     repair: typeof t.repair === 'string' ? t.repair : 'Needs Repair'
   };
 
-  const vehicle = vehicles.find(v => v.id === vehicleId) || {
-    id: "default",
-    make: "Vehicle",
-    model: "Not Found",
-    year: 2023,
-    type: "Unknown",
-    mileage: 0,
-    status: "available",
-    licensePlate: "N/A",
-    fuelLevel: 0,
-    fuelType: "Unknown",
-    mpg: 0,
-    lastServiceDate: new Date().toISOString(),
-    costPerMile: 0,
-    dailyRate: 0,
-    totalServices: 0,
-    serviceReminders: 0,
-    totalServiceCost: 0,
-    fuelCosts: 0,
-    milesPerDay: 0,
-    image: undefined,
-    rented_until: undefined
-  };
-  
   const handleEditStatus = () => {
-    setCurrentStatus(vehicle.status);
-    // Set the current rented_until date if it exists
-    if (vehicle.rented_until) {
-      setRentedUntilDate(new Date(vehicle.rented_until));
-    }
+    setNeedsRepair(vehicle.status === 'repair');
     setIsEditStatusOpen(true);
-  };
-
-  const handleStatusChange = (newStatus: string) => {
-    setCurrentStatus(newStatus);
-    // Clear the rented until date if status is not rented
-    if (newStatus !== 'rented') {
-      setRentedUntilDate(undefined);
-    }
   };
 
   const handleSaveStatus = async () => {
     try {
-      const updateData: any = { status: currentStatus };
+      // Only save the base_status (repair toggle)
+      const newStatus = needsRepair ? 'repair' : 'available';
       
-      // Add rented_until date if status is rented and date is selected
-      if (currentStatus === 'rented' && rentedUntilDate) {
-        updateData.rented_until = rentedUntilDate.toISOString();
-      } else if (currentStatus !== 'rented') {
-        // Clear rented_until if status is not rented
-        updateData.rented_until = null;
-      }
-
       const { error } = await supabase
         .from('vehicles')
-        .update(updateData)
+        .update({ status: newStatus })
         .eq('id', vehicleId);
 
       if (error) {
         console.error('Error updating vehicle status:', error);
         toast({
-          title: "Error",
-          description: "Failed to update vehicle status",
+          title: language === 'el' ? 'Σφάλμα' : "Error",
+          description: language === 'el' ? 'Αποτυχία ενημέρωσης κατάστασης' : "Failed to update vehicle status",
           variant: "destructive"
         });
         return;
@@ -218,8 +194,13 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
 
       toast({
         title: getTranslation(trans, 'statusUpdated', 'Status Updated'),
-        description: `${getTranslation(trans, 'vehicleStatusChanged', 'Vehicle status changed to ')} ${statusLabels[currentStatus] || currentStatus}`,
+        description: needsRepair 
+          ? (language === 'el' ? 'Το όχημα σημειώθηκε ως χρειάζεται επισκευή' : 'Vehicle marked as needs repair')
+          : (language === 'el' ? 'Το όχημα είναι διαθέσιμο' : 'Vehicle is available'),
       });
+      
+      setRefreshVehicle(prev => prev + 1);
+      refetchStatus();
       setIsEditStatusOpen(false);
     } catch (err) {
       console.error('Error in handleSaveStatus:', err);
@@ -229,6 +210,16 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
         variant: "destructive"
       });
     }
+  };
+
+  const handleScheduleMaintenance = () => {
+    setIsEditStatusOpen(false);
+    setIsMaintenanceBlockOpen(true);
+  };
+
+  const handleMaintenanceBlockAdded = () => {
+    setRefreshBookings(prev => prev + 1);
+    refetchStatus();
   };
   
   const handleEditVehicle = () => {
@@ -258,54 +249,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
     }
   };
 
-  const handleDateSelect = async (dates: Date[] | undefined) => {
-    if (!dates) return;
-    
-    setSelectedDates(dates);
-
-    const lastSelectedDate = dates[dates.length - 1];
-    if (vehicle.dailyRate && lastSelectedDate) {
-      // Record this booking as income in the financial_records table
-      if (vehicleId) {
-        try {
-          const { data: session } = await supabase.auth.getSession();
-          
-          if (session?.session?.user) {
-            const { error } = await supabase.from('financial_records').insert({
-              user_id: session.session.user.id,
-              vehicle_id: vehicleId,
-              type: 'income',
-              category: 'sales',
-              amount: vehicle.dailyRate,
-              date: lastSelectedDate.toISOString().split('T')[0],
-              description: `Booking for ${vehicle.make} ${vehicle.model}`
-            });
-            
-            if (error) {
-              console.error("Error recording booking income:", error);
-            } else {
-              toast({
-                title: getTranslation(trans, 'rentalIncomeAdded', 'Rental Income Added'),
-                description: `${getTranslation(trans, 'addedIncome', 'Added $')}${vehicle.dailyRate} ${getTranslation(trans, 'toIncomeFor', ' to income for ')} ${lastSelectedDate.toLocaleDateString()}`,
-              });
-            }
-          } else {
-            console.log("User not authenticated");
-            toast({
-              title: "Authentication Required",
-              description: "Please log in to record bookings",
-              variant: "destructive"
-            });
-          }
-        } catch (err) {
-          console.error("Error in handleDateSelect:", err);
-        }
-      }
-    }
-  };
-
   const handleUpdateExpenses = async (amount: number, serviceType: string) => {
-    // Record this maintenance cost as expense in the financial_records table
     if (vehicleId && amount > 0) {
       try {
         const { data: session } = await supabase.auth.getSession();
@@ -325,8 +269,8 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
             console.error("Error recording maintenance expense:", error);
           } else {
             toast({
-              title: "Expense Added",
-              description: `Added $${Math.abs(amount).toFixed(2)} to expenses.`,
+              title: language === 'el' ? "Έξοδο Προστέθηκε" : "Expense Added",
+              description: `${language === 'el' ? 'Προστέθηκαν €' : 'Added $'}${Math.abs(amount).toFixed(2)} ${language === 'el' ? 'στα έξοδα' : 'to expenses'}.`,
             });
           }
         }
@@ -336,25 +280,26 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
     }
   };
 
-  const handleNewBookingFromCalendar = (selectedDates: Date[]) => {
-    setSelectedDates(selectedDates);
+  const handleNewBookingFromCalendar = (calendarSelectedDates: Date[]) => {
+    setSelectedDates(calendarSelectedDates);
     setIsRentalBookingOpen(true);
   };
 
   const handleBookingAdded = (booking: any) => {
     setRefreshBookings(prev => prev + 1);
-    setSelectedDates([]); // Clear selection after booking
+    refetchStatus();
+    setSelectedDates([]);
     toast({
-      title: "Booking Added",
-      description: `New rental booking created for ${booking.customer_name}`,
+      title: language === 'el' ? "Κράτηση Προστέθηκε" : "Booking Added",
+      description: `${language === 'el' ? 'Νέα κράτηση δημιουργήθηκε για' : 'New rental booking created for'} ${booking.customer_name}`,
     });
   };
 
   const handleBookingDeleted = (bookingId: string) => {
     setRefreshBookings(prev => prev + 1);
+    refetchStatus();
   };
 
-  // Safe access to translation strings
   const getTrans = (key: string, fallback: string): string => {
     return getTranslation(trans, key, fallback);
   };
@@ -403,10 +348,12 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                 <h1 className="text-2xl font-bold flex items-center">
                   {vehicle.year} {vehicle.make} {vehicle.model}
                   <Badge
-                    className={`ml-3 ${statusColors[vehicle.status as keyof typeof statusColors] || "bg-gray-100 text-gray-800"}`}
+                    className={`ml-3 flex items-center ${statusColors[computedStatus]}`}
                     variant="outline"
                   >
-                    {statusLabels[vehicle.status as keyof typeof statusLabels] || "Unknown"}
+                    {computedStatus === 'repair' && <AlertTriangle className="h-3.5 w-3.5 mr-1" />}
+                    {computedStatus === 'maintenance' && <Wrench className="h-3.5 w-3.5 mr-1" />}
+                    {statusLabels[computedStatus]}
                   </Badge>
                 </h1>
                 
@@ -417,12 +364,6 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                   <span className="mx-2">•</span>
                   <span>{safeNumber(vehicle.mileage).toLocaleString()} km</span>
                 </div>
-
-                {vehicle.status === 'rented' && vehicle.rented_until && (
-                  <div className="mt-2 text-sm text-blue-600 font-medium">
-                    Rented Until {new Date(vehicle.rented_until).toLocaleDateString()}
-                  </div>
-                )}
               </div>
               
               <div className="flex-shrink-0 flex gap-2">
@@ -438,16 +379,16 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
             <TabsList className="flex w-full max-w-5xl mb-6 overflow-x-auto scrollbar-hide">
               <TabsTrigger value="details" className="px-4 py-2 flex-grow">{getTrans('overview', 'Overview')}</TabsTrigger>
               <TabsTrigger value="maintenance" className="px-4 py-2 flex-grow">{getTrans('vehicleMaintenance', 'Maintenance')}</TabsTrigger>
-              <TabsTrigger value="damage" className="px-4 py-2 flex-grow">Damages</TabsTrigger>
+              <TabsTrigger value="damage" className="px-4 py-2 flex-grow">{language === 'el' ? 'Ζημιές' : 'Damages'}</TabsTrigger>
               <TabsTrigger value="documents" className="px-4 py-2 flex-grow">{getTrans('documents', 'Documents')}</TabsTrigger>
-              <TabsTrigger value="availability" className="px-4 py-2 flex-grow">Calendar</TabsTrigger>
+              <TabsTrigger value="availability" className="px-4 py-2 flex-grow">{language === 'el' ? 'Ημερολόγιο' : 'Calendar'}</TabsTrigger>
               <TabsTrigger value="finance" className="px-4 py-2 flex-grow">{getTrans('finance', 'Finance')}</TabsTrigger>
             </TabsList>
           
             <div className="container py-6">
               {loading ? (
                 <div className="flex justify-center py-12">
-                  <div className="text-flitx-gray-500">Loading vehicle data...</div>
+                  <div className="text-flitx-gray-500">{language === 'el' ? 'Φόρτωση δεδομένων...' : 'Loading vehicle data...'}</div>
                 </div>
               ) : (
                 <>
@@ -506,7 +447,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                               </div>
                               
                               <div className="flex-1">
-                                <div className="text-sm text-flitx-gray-500 mb-1">Estimated Range</div>
+                                <div className="text-sm text-flitx-gray-500 mb-1">{language === 'el' ? 'Εκτιμώμενη Εμβέλεια' : 'Estimated Range'}</div>
                                 <div className="font-medium">670 km</div>
                               </div>
                             </div>
@@ -528,8 +469,8 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                                 <RefreshCcw className="h-5 w-5" />
                               </div>
                               <div className="ml-3">
-                                <div className="text-sm text-flitx-gray-500">Next Service</div>
-                                <div className="font-semibold">In 4,000 km</div>
+                                <div className="text-sm text-flitx-gray-500">{language === 'el' ? 'Επόμενο Σέρβις' : 'Next Service'}</div>
+                                <div className="font-semibold">{language === 'el' ? 'Σε 4,000 χλμ' : 'In 4,000 km'}</div>
                               </div>
                             </div>
                             
@@ -544,7 +485,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                               <span>{getTrans('serviceReminders', 'Service Reminders')}</span>
                               <div>
                                 <span className="text-red-500 font-bold">{vehicle.serviceReminders || 0}</span>
-                                <span className="text-flitx-gray-400"> active</span>
+                                <span className="text-flitx-gray-400"> {language === 'el' ? 'ενεργές' : 'active'}</span>
                               </div>
                             </div>
                             
@@ -555,9 +496,9 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                             
                             <Separator className="my-3" />
                             
-                            <div className="text-sm text-flitx-gray-500">Oil Change Status</div>
+                            <div className="text-sm text-flitx-gray-500">{language === 'el' ? 'Κατάσταση Αλλαγής Λαδιών' : 'Oil Change Status'}</div>
                             <Progress value={65} className="h-2" />
-                            <div className="text-xs text-right text-flitx-gray-400">4,000 km remaining</div>
+                            <div className="text-xs text-right text-flitx-gray-400">{language === 'el' ? '4,000 χλμ υπόλοιπο' : '4,000 km remaining'}</div>
                           </div>
                         </CardContent>
                       </Card>
@@ -587,7 +528,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                         <div className="space-y-4">
                           <div className="flex items-center justify-between">
                             <p className="text-sm text-flitx-gray-500">
-                              {getTrans('selectDays', 'Select days when the vehicle is booked or unavailable')}
+                              {language === 'el' ? 'Ανεβάστε έγγραφα για το όχημα' : 'Upload documents for this vehicle'}
                             </p>
                             <Button variant="outline" size="sm">
                               <Upload className="h-4 w-4 mr-2" />
@@ -605,7 +546,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                           
                           {documents.length > 0 && (
                             <div className="space-y-2">
-                              <h3 className="text-sm font-medium">Uploaded Documents</h3>
+                              <h3 className="text-sm font-medium">{language === 'el' ? 'Ανεβασμένα Έγγραφα' : 'Uploaded Documents'}</h3>
                               {documents.map((doc, index) => (
                                 <div key={index} className="flex items-center justify-between p-2 border rounded">
                                   <span className="text-sm">{doc.name}</span>
@@ -627,7 +568,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                     />
                     
                     <div className="mt-6">
-                      <h3 className="text-lg font-semibold mb-4">Booking History</h3>
+                      <h3 className="text-lg font-semibold mb-4">{language === 'el' ? 'Ιστορικό Κρατήσεων' : 'Booking History'}</h3>
                       <RentalBookingsList 
                         vehicleId={vehicleId || ""}
                         onBookingDeleted={handleBookingDeleted}
@@ -649,48 +590,74 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
         </div>
       </div>
 
+      {/* Edit Status Dialog - Now simplified */}
       <Dialog open={isEditStatusOpen} onOpenChange={setIsEditStatusOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{getTrans('editStatus', 'Edit Status')}</DialogTitle>
             <DialogDescription>
-              {getTrans('selectStatus', 'Select a status for this vehicle')}
+              {language === 'el' 
+                ? 'Η διαθεσιμότητα υπολογίζεται αυτόματα από τις κρατήσεις και τα προγράμματα συντήρησης.' 
+                : 'Availability is computed automatically from bookings and maintenance schedules.'}
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <Select value={currentStatus} onValueChange={handleStatusChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder={getTrans('selectStatus', 'Select a status for this vehicle')} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="available">{typeof t.available === 'string' ? t.available : 'Available'}</SelectItem>
-                  <SelectItem value="rented">{typeof t.rented === 'string' ? t.rented : 'Rented'}</SelectItem>
-                  <SelectItem value="maintenance">{typeof t.maintenance === 'string' ? t.maintenance : 'Maintenance'}</SelectItem>
-                  <SelectItem value="repair">{typeof t.repair === 'string' ? t.repair : 'Needs Repair'}</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="space-y-6 py-4">
+            {/* Current computed status display */}
+            <div className="p-4 bg-muted/50 rounded-lg">
+              <Label className="text-sm text-muted-foreground">
+                {language === 'el' ? 'Τρέχουσα Κατάσταση (υπολογισμένη)' : 'Current Status (computed)'}
+              </Label>
+              <div className="mt-2 flex items-center gap-2">
+                <Badge className={statusColors[computedStatus]} variant="outline">
+                  {computedStatus === 'repair' && <AlertTriangle className="h-3.5 w-3.5 mr-1" />}
+                  {computedStatus === 'maintenance' && <Wrench className="h-3.5 w-3.5 mr-1" />}
+                  {statusLabels[computedStatus]}
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  {computedStatus === 'rented' && (language === 'el' ? '(από ενεργή κράτηση)' : '(from active booking)')}
+                  {computedStatus === 'maintenance' && (language === 'el' ? '(από πρόγραμμα συντήρησης)' : '(from maintenance schedule)')}
+                </span>
+              </div>
             </div>
 
-            {currentStatus === 'rented' && (
-              <div className="space-y-2">
-                <Label>{getTrans('rentedUntil', 'Rented Until')}</Label>
-                <div className="flex flex-col items-center">
-                  <CalendarComponent
-                    mode="single"
-                    selected={rentedUntilDate}
-                    onSelect={setRentedUntilDate}
-                    className="rounded-md border p-3"
-                    disabled={(date) => date < new Date()}
-                  />
-                </div>
+            {/* Needs Repair toggle */}
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="space-y-1">
+                <Label className="text-base font-medium flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-orange-500" />
+                  {language === 'el' ? 'Χρειάζεται Επισκευή' : 'Needs Repair'}
+                </Label>
                 <p className="text-sm text-muted-foreground">
-                  {getTrans('selectRentalEndDate', 'Select when the rental period ends')}
+                  {language === 'el' 
+                    ? 'Επισημαίνει το όχημα ως μη διαθέσιμο μέχρι να επισκευαστεί' 
+                    : 'Marks the vehicle as unavailable until repaired'}
                 </p>
               </div>
-            )}
+              <Switch
+                checked={needsRepair}
+                onCheckedChange={setNeedsRepair}
+              />
+            </div>
+
+            {/* Schedule Maintenance button */}
+            <div className="flex items-center justify-between p-4 border rounded-lg">
+              <div className="space-y-1">
+                <Label className="text-base font-medium flex items-center gap-2">
+                  <Wrench className="h-4 w-4 text-orange-500" />
+                  {language === 'el' ? 'Προγραμματισμός Συντήρησης' : 'Schedule Maintenance'}
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  {language === 'el' 
+                    ? 'Δημιουργήστε ένα μπλοκ συντήρησης με ημερομηνίες' 
+                    : 'Create a maintenance block with specific dates'}
+                </p>
+              </div>
+              <Button variant="outline" onClick={handleScheduleMaintenance}>
+                <Calendar className="h-4 w-4 mr-2" />
+                {language === 'el' ? 'Προγραμματισμός' : 'Schedule'}
+              </Button>
+            </div>
           </div>
           
           <DialogFooter>
@@ -700,7 +667,6 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
             <Button 
               className="bg-flitx-blue hover:bg-flitx-blue-600" 
               onClick={handleSaveStatus}
-              disabled={currentStatus === 'rented' && !rentedUntilDate}
             >
               {typeof t.save === 'string' ? t.save : 'Save'}
             </Button>
@@ -727,6 +693,16 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
         vehicleName={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
         onBookingAdded={handleBookingAdded}
         vehicleDailyRate={vehicle.daily_rate || vehicle.dailyRate || 0}
+        preselectedStartDate={selectedDates.length > 0 ? selectedDates[0] : undefined}
+        preselectedEndDate={selectedDates.length > 1 ? selectedDates[selectedDates.length - 1] : undefined}
+      />
+
+      <MaintenanceBlockDialog
+        isOpen={isMaintenanceBlockOpen}
+        onClose={() => setIsMaintenanceBlockOpen(false)}
+        vehicleId={vehicleId || ""}
+        vehicleName={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+        onBlockAdded={handleMaintenanceBlockAdded}
       />
     </div>
   );
