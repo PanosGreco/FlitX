@@ -285,12 +285,12 @@ const Finance = () => {
                   {language === 'el' ? 'Σύνδεση με Όχημα' : 'Link to Vehicle'} 
                   <span className="text-muted-foreground text-xs ml-1">(optional)</span>
                 </Label>
-                <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId} disabled={isLanguageLoading}>
+                <Select value={selectedVehicleId || "none"} onValueChange={(val) => setSelectedVehicleId(val === "none" ? "" : val)} disabled={isLanguageLoading}>
                   <SelectTrigger>
                     <SelectValue placeholder={language === 'el' ? 'Επιλέξτε όχημα...' : 'Select vehicle...'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">
+                    <SelectItem value="none">
                       {language === 'el' ? 'Κανένα όχημα' : 'No vehicle (global)'}
                     </SelectItem>
                     {vehicles.map((vehicle) => (
