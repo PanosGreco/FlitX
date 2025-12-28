@@ -23,11 +23,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogFooter
 } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
 import { VehicleMaintenance } from "./VehicleMaintenance";
 import { VehicleReminders } from "./VehicleReminders";
@@ -590,73 +587,87 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
         </div>
       </div>
 
-      {/* Edit Status Dialog - Now simplified */}
+      {/* Edit Status Dialog - Simplified */}
       <Dialog open={isEditStatusOpen} onOpenChange={setIsEditStatusOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{getTrans('editStatus', 'Edit Status')}</DialogTitle>
-            <DialogDescription>
-              {language === 'el' 
-                ? 'Η διαθεσιμότητα υπολογίζεται αυτόματα από τις κρατήσεις και τα προγράμματα συντήρησης.' 
-                : 'Availability is computed automatically from bookings and maintenance schedules.'}
-            </DialogDescription>
+            <DialogTitle>
+              {getTrans('editStatus', 'Edit Status')}
+            </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-6 py-4">
-            {/* Current computed status display */}
-            <div className="p-4 bg-muted/50 rounded-lg">
-              <Label className="text-sm text-muted-foreground">
-                {language === 'el' ? 'Τρέχουσα Κατάσταση (υπολογισμένη)' : 'Current Status (computed)'}
-              </Label>
-              <div className="mt-2 flex items-center gap-2">
-                <Badge className={statusColors[computedStatus]} variant="outline">
-                  {computedStatus === 'repair' && <AlertTriangle className="h-3.5 w-3.5 mr-1" />}
-                  {computedStatus === 'maintenance' && <Wrench className="h-3.5 w-3.5 mr-1" />}
-                  {statusLabels[computedStatus]}
-                </Badge>
-                <span className="text-sm text-muted-foreground">
-                  {computedStatus === 'rented' && (language === 'el' ? '(από ενεργή κράτηση)' : '(from active booking)')}
-                  {computedStatus === 'maintenance' && (language === 'el' ? '(από πρόγραμμα συντήρησης)' : '(from maintenance schedule)')}
-                </span>
-              </div>
+          <div className="space-y-4 py-4">
+            {/* Current Status Display */}
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <span className="text-sm font-medium">{language === 'el' ? 'Κατάσταση:' : 'Status:'}</span>
+              <Badge className={statusColors[computedStatus]} variant="outline">
+                {computedStatus === 'repair' && <AlertTriangle className="h-3.5 w-3.5 mr-1" />}
+                {computedStatus === 'maintenance' && <Wrench className="h-3.5 w-3.5 mr-1" />}
+                {statusLabels[computedStatus]}
+              </Badge>
             </div>
 
-            {/* Needs Repair toggle */}
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="space-y-1">
-                <Label className="text-base font-medium flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-orange-500" />
-                  {language === 'el' ? 'Χρειάζεται Επισκευή' : 'Needs Repair'}
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  {language === 'el' 
-                    ? 'Επισημαίνει το όχημα ως μη διαθέσιμο μέχρι να επισκευαστεί' 
-                    : 'Marks the vehicle as unavailable until repaired'}
-                </p>
-              </div>
-              <Switch
-                checked={needsRepair}
-                onCheckedChange={setNeedsRepair}
-              />
-            </div>
+            {/* Status Options */}
+            <div className="space-y-3">
+              {/* Available Option */}
+              <button
+                type="button"
+                onClick={() => setNeedsRepair(false)}
+                className={`w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-colors ${
+                  !needsRepair && computedStatus !== 'rented' && computedStatus !== 'maintenance'
+                    ? 'border-green-500 bg-green-50'
+                    : 'border-border hover:border-green-300 hover:bg-green-50/50'
+                }`}
+              >
+                <div className="h-3 w-3 rounded-full bg-green-500" />
+                <span className="font-medium">{language === 'el' ? 'Διαθέσιμο' : 'Available'}</span>
+              </button>
 
-            {/* Schedule Maintenance button */}
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="space-y-1">
-                <Label className="text-base font-medium flex items-center gap-2">
-                  <Wrench className="h-4 w-4 text-orange-500" />
-                  {language === 'el' ? 'Προγραμματισμός Συντήρησης' : 'Schedule Maintenance'}
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  {language === 'el' 
-                    ? 'Δημιουργήστε ένα μπλοκ συντήρησης με ημερομηνίες' 
-                    : 'Create a maintenance block with specific dates'}
-                </p>
-              </div>
-              <Button variant="outline" onClick={handleScheduleMaintenance}>
-                <Calendar className="h-4 w-4 mr-2" />
-                {language === 'el' ? 'Προγραμματισμός' : 'Schedule'}
-              </Button>
+              {/* Needs Repair Option */}
+              <button
+                type="button"
+                onClick={() => setNeedsRepair(true)}
+                className={`w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-colors ${
+                  needsRepair
+                    ? 'border-orange-500 bg-orange-50'
+                    : 'border-border hover:border-orange-300 hover:bg-orange-50/50'
+                }`}
+              >
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                <span className="font-medium">{language === 'el' ? 'Χρειάζεται Επισκευή' : 'Needs Repair'}</span>
+              </button>
+
+              {/* Under Maintenance Option */}
+              <button
+                type="button"
+                onClick={handleScheduleMaintenance}
+                className={`w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-colors ${
+                  computedStatus === 'maintenance'
+                    ? 'border-orange-500 bg-orange-50'
+                    : 'border-border hover:border-orange-300 hover:bg-orange-50/50'
+                }`}
+              >
+                <Wrench className="h-4 w-4 text-orange-500" />
+                <div className="flex-1 text-left">
+                  <span className="font-medium">{language === 'el' ? 'Σε Συντήρηση' : 'Under Maintenance'}</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {language === 'el' ? 'Επιλέξτε ημερομηνίες' : 'Select dates'}
+                  </p>
+                </div>
+              </button>
+
+              {/* Rented Status (Read-only, shown if currently rented) */}
+              {computedStatus === 'rented' && (
+                <div className="w-full flex items-center gap-3 p-4 rounded-lg border-2 border-red-500 bg-red-50 opacity-75">
+                  <div className="h-3 w-3 rounded-full bg-red-500" />
+                  <div className="flex-1">
+                    <span className="font-medium">{language === 'el' ? 'Ενοικιασμένο' : 'Rented'}</span>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {language === 'el' ? 'Ελέγχεται από κρατήσεις' : 'Controlled by bookings'}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           
