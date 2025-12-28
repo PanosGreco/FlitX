@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Upload, Image } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +22,9 @@ interface EditVehicleDialogProps {
     mileage: number;
     daily_rate: number;
     fuel_level: number;
+    license_plate?: string;
+    image?: string;
+    purchase_price?: number | null;
   };
   onSaved: () => void;
 }
@@ -29,8 +33,34 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
   const [mileage, setMileage] = useState(vehicle.mileage || 0);
   const [dailyRate, setDailyRate] = useState(vehicle.daily_rate || 0);
   const [fuelLevel, setFuelLevel] = useState(vehicle.fuel_level || 100);
+  const [licensePlate, setLicensePlate] = useState(vehicle.license_plate || '');
+  const [purchasePrice, setPurchasePrice] = useState<string>(vehicle.purchase_price?.toString() || '');
+  const [vehicleImage, setVehicleImage] = useState<string | null>(vehicle.image || null);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  // Reset form values when vehicle changes
+  useEffect(() => {
+    setMileage(vehicle.mileage || 0);
+    setDailyRate(vehicle.daily_rate || 0);
+    setFuelLevel(vehicle.fuel_level || 100);
+    setLicensePlate(vehicle.license_plate || '');
+    setPurchasePrice(vehicle.purchase_price?.toString() || '');
+    setVehicleImage(vehicle.image || null);
+  }, [vehicle]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setVehicleImage(event.target.result.toString());
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSave = async () => {
     setIsLoading(true);
@@ -42,6 +72,9 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
           mileage: mileage,
           daily_rate: dailyRate,
           fuel_level: fuelLevel,
+          license_plate: licensePlate,
+          purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
+          image: vehicleImage,
         })
         .eq('id', vehicle.id);
 
@@ -76,15 +109,57 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Vehicle Details</DialogTitle>
+          <DialogTitle>Edit Vehicle</DialogTitle>
           <DialogDescription>
-            Update the operational details for this vehicle
+            Update vehicle details and information
           </DialogDescription>
         </DialogHeader>
         
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
+          {/* Vehicle Image */}
+          <div className="space-y-2">
+            <Label>Vehicle Photo</Label>
+            <div className="flex items-center gap-4">
+              <div className="h-20 w-28 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                {vehicleImage ? (
+                  <img 
+                    src={vehicleImage} 
+                    alt="Vehicle" 
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <Image className="h-8 w-8 text-muted-foreground" />
+                )}
+              </div>
+              <label 
+                htmlFor="edit-vehicle-photo" 
+                className="flex items-center px-3 py-2 text-sm border border-input rounded-md bg-background hover:bg-accent cursor-pointer"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Change Photo
+                <input
+                  id="edit-vehicle-photo"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="license-plate">License Plate</Label>
+            <Input
+              id="license-plate"
+              value={licensePlate}
+              onChange={(e) => setLicensePlate(e.target.value)}
+              placeholder="e.g. ABC-1234"
+            />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="mileage">Current Mileage (km)</Label>
             <Input
@@ -107,7 +182,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
               step="0.01"
             />
             <p className="text-xs text-muted-foreground">
-              This rate will be used as the default for new bookings
+              Default rate for new bookings
             </p>
           </div>
           
@@ -121,6 +196,22 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
               min={0}
               max={100}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="purchase-price">Purchase Price ($)</Label>
+            <Input
+              id="purchase-price"
+              type="number"
+              value={purchasePrice}
+              onChange={(e) => setPurchasePrice(e.target.value)}
+              min={0}
+              step="0.01"
+              placeholder="Optional"
+            />
+            <p className="text-xs text-muted-foreground">
+              Used to calculate break-even and profit
+            </p>
           </div>
         </div>
         
