@@ -6,7 +6,7 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { Calendar, Plus, Settings2, Wrench } from "lucide-react";
+import { Calendar, Plus, Settings2, Wrench, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { 
   Dialog,
   DialogContent,
@@ -40,8 +40,13 @@ interface VehicleMaintenanceProps {
   updateExpenses?: (amount: number, serviceType: string) => void;
 }
 
+const ITEMS_PER_PAGE = 10;
+const DEFAULT_VISIBLE_ITEMS = 4;
+
 export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMaintenanceProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showAllRecords, setShowAllRecords] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const [serviceType, setServiceType] = useState("oil_change");
   const [serviceDate, setServiceDate] = useState(new Date().toISOString().substring(0, 10));
   const [nextServiceDate, setNextServiceDate] = useState("");
@@ -169,6 +174,43 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
     return new Date(dateString).toLocaleDateString(language === 'el' ? 'el-GR' : 'en-US');
   };
 
+  const totalPages = Math.ceil(records.length / ITEMS_PER_PAGE);
+  const paginatedRecords = records.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  const MaintenanceRecordItem = ({ record }: { record: MaintenanceRecord }) => (
+    <div className="p-4 border rounded-md hover:bg-accent/50">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="font-semibold">
+            {getServiceTypeLabel(record.type)}
+          </h3>
+          <div className="text-sm text-muted-foreground mt-1">
+            {language === 'el' ? 'Εκτελέστηκε στις' : 'Performed on'} {formatDate(record.date)}
+          </div>
+          {record.next_date && (
+            <div className="flex items-center text-sm text-primary mt-1">
+              <Calendar className="h-3.5 w-3.5 mr-1" />
+              {language === 'el' ? 'Επόμενο σέρβις:' : 'Next service:'} {formatDate(record.next_date)}
+            </div>
+          )}
+          {record.description && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              {record.description}
+            </p>
+          )}
+        </div>
+        <div className="text-right">
+          <div className="text-lg font-semibold">
+            ${Number(record.cost).toFixed(2)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <Card className="shadow-sm">
@@ -177,14 +219,27 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
             <Wrench className="h-5 w-5 mr-2 text-primary" />
             {language === 'el' ? 'Ιστορικό Συντήρησης' : 'Maintenance History'}
           </CardTitle>
-          <Button
-            onClick={() => setIsDialogOpen(true)}
-            className="bg-primary hover:bg-primary/90"
-            disabled={isLanguageLoading}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            {language === 'el' ? 'Προσθήκη Σέρβις' : 'Add Service'}
-          </Button>
+          <div className="flex gap-2">
+            {records.length > DEFAULT_VISIBLE_ITEMS && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAllRecords(true)}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                {language === 'el' ? 'Όλα' : 'View All'} ({records.length})
+              </Button>
+            )}
+            <Button
+              onClick={() => setIsDialogOpen(true)}
+              className="bg-primary hover:bg-primary/90"
+              disabled={isLanguageLoading}
+              size="sm"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {language === 'el' ? 'Προσθήκη' : 'Add'}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -217,44 +272,70 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
             </div>
           ) : (
             <div className="space-y-4">
-              {records.map((record) => (
-                <div
-                  key={record.id}
-                  className="p-4 border rounded-md hover:bg-accent/50"
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-semibold">
-                        {getServiceTypeLabel(record.type)}
-                      </h3>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        Performed on {formatDate(record.date)}
-                      </div>
-                      {record.next_date && (
-                        <div className="flex items-center text-sm text-primary mt-1">
-                          <Calendar className="h-3.5 w-3.5 mr-1" />
-                          Next service: {formatDate(record.next_date)}
-                        </div>
-                      )}
-                      {record.description && (
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          {record.description}
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <div className="text-lg font-semibold">
-                        ${Number(record.cost).toFixed(2)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              {records.slice(0, DEFAULT_VISIBLE_ITEMS).map((record) => (
+                <MaintenanceRecordItem key={record.id} record={record} />
               ))}
+              
+              {records.length > DEFAULT_VISIBLE_ITEMS && (
+                <div className="text-center py-2 text-sm text-muted-foreground">
+                  {language === 'el' 
+                    ? `Εμφάνιση ${DEFAULT_VISIBLE_ITEMS} από ${records.length} εγγραφές`
+                    : `Showing ${DEFAULT_VISIBLE_ITEMS} of ${records.length} records`}
+                </div>
+              )}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* View All Dialog with Pagination */}
+      <Dialog open={showAllRecords} onOpenChange={setShowAllRecords}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wrench className="h-5 w-5" />
+              {language === 'el' ? 'Όλες οι Εγγραφές Συντήρησης' : 'All Maintenance Records'}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 max-h-[50vh] overflow-y-auto">
+            {paginatedRecords.map((record) => (
+              <MaintenanceRecordItem key={record.id} record={record} />
+            ))}
+          </div>
+          
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                {language === 'el' ? 'Σελίδα' : 'Page'} {currentPage} {language === 'el' ? 'από' : 'of'} {totalPages}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  {language === 'el' ? 'Προηγ.' : 'Previous'}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  {language === 'el' ? 'Επόμ.' : 'Next'}
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
       
+      {/* Add Maintenance Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>

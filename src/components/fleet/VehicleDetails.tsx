@@ -364,6 +364,10 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
               </div>
               
               <div className="flex-shrink-0 flex gap-2">
+                <Button variant="outline" size="sm" onClick={handleEditVehicle}>
+                  <Car className="h-4 w-4 mr-2" />
+                  {language === 'el' ? 'Επεξεργασία' : 'Edit Vehicle'}
+                </Button>
                 <Button variant="outline" size="sm" onClick={handleEditStatus}>
                   <Settings className="h-4 w-4 mr-2" />
                   {getTrans('editStatus', 'Edit Status')}
@@ -578,6 +582,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                     <VehicleFinanceTab 
                       vehicleId={vehicleId || ""} 
                       vehicleName={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+                      purchasePrice={vehicle.purchase_price}
                     />
                   </TabsContent>
                 </>
@@ -693,6 +698,9 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
           mileage: vehicle.mileage || 0,
           daily_rate: vehicle.daily_rate || vehicle.dailyRate || 0,
           fuel_level: vehicle.fuel_level || vehicle.fuelLevel || 100,
+          license_plate: vehicle.license_plate || vehicle.licensePlate || '',
+          image: vehicle.image,
+          purchase_price: vehicle.purchase_price,
         }}
         onSaved={handleVehicleSaved}
       />

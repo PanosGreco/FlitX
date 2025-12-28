@@ -47,6 +47,7 @@ const Fleet = () => {
   const [licensePlate, setLicensePlate] = useState("");
   const [dailyRate, setDailyRate] = useState("");
   const [mileage, setMileage] = useState("");
+  const [purchasePrice, setPurchasePrice] = useState("");
   
   usePageTitle("fleet");
 
@@ -143,6 +144,7 @@ const Fleet = () => {
     setLicensePlate("");
     setDailyRate("");
     setMileage("");
+    setPurchasePrice("");
     setVehicleImage(null);
   };
   
@@ -172,6 +174,7 @@ const Fleet = () => {
           license_plate: licensePlate,
           daily_rate: parseFloat(dailyRate),
           mileage: parseInt(mileage),
+          purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
           image: vehicleImage,
           status: 'available',
           fuel_level: 100,
@@ -375,6 +378,23 @@ const Fleet = () => {
                   value={mileage}
                   onChange={(e) => setMileage(e.target.value)}
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="purchasePrice">{language === 'el' ? 'Τιμή Αγοράς' : 'Purchase Price'}</Label>
+                <Input 
+                  id="purchasePrice" 
+                  type="number" 
+                  placeholder={language === 'el' ? 'Προαιρετικό' : 'Optional'}
+                  min={0}
+                  step="0.01"
+                  disabled={isLanguageLoading || isSubmitting}
+                  value={purchasePrice}
+                  onChange={(e) => setPurchasePrice(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {language === 'el' ? 'Χρησιμοποιείται για τον υπολογισμό κέρδους' : 'Used for profit calculation'}
+                </p>
               </div>
               
               <DialogFooter>

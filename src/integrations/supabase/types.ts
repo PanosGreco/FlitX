@@ -432,6 +432,7 @@ export type Database = {
           make: string
           mileage: number | null
           model: string
+          purchase_price: number | null
           status: Database["public"]["Enums"]["vehicle_status"]
           type: string
           updated_at: string
@@ -448,6 +449,7 @@ export type Database = {
           make: string
           mileage?: number | null
           model: string
+          purchase_price?: number | null
           status?: Database["public"]["Enums"]["vehicle_status"]
           type: string
           updated_at?: string
@@ -464,6 +466,7 @@ export type Database = {
           make?: string
           mileage?: number | null
           model?: string
+          purchase_price?: number | null
           status?: Database["public"]["Enums"]["vehicle_status"]
           type?: string
           updated_at?: string
