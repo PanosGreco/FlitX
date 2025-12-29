@@ -37,13 +37,12 @@ interface MaintenanceRecord {
 
 interface VehicleMaintenanceProps {
   vehicleId: string;
-  updateExpenses?: (amount: number, serviceType: string) => void;
 }
 
 const ITEMS_PER_PAGE = 10;
 const DEFAULT_VISIBLE_ITEMS = 4;
 
-export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMaintenanceProps) {
+export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showAllRecords, setShowAllRecords] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -114,7 +113,8 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
     try {
       const costValue = parseFloat(cost);
       
-      const { error } = await supabase
+      // Insert maintenance record
+      const { data: maintenanceData, error } = await supabase
         .from("vehicle_maintenance")
         .insert([{
           vehicle_id: vehicleId,
@@ -124,7 +124,9 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
           next_date: nextServiceDate || null,
           cost: costValue,
           description: notes
-        }]);
+        }])
+        .select()
+        .single();
         
       if (error) {
         console.error("Error adding maintenance record:", error);
@@ -133,24 +135,40 @@ export function VehicleMaintenance({ vehicleId, updateExpenses }: VehicleMainten
           description: "Failed to add maintenance record",
           variant: "destructive"
         });
-      } else {
-        toast({
-          title: "Success",
-          description: "Maintenance record added"
-        });
-        
-        if (updateExpenses && costValue > 0) {
-          updateExpenses(costValue, getServiceTypeLabel(serviceType));
-        }
-        
-        setServiceType("oil_change");
-        setServiceDate(new Date().toISOString().substring(0, 10));
-        setNextServiceDate("");
-        setCost("");
-        setNotes("");
-        setIsDialogOpen(false);
-        fetchMaintenanceRecords();
+        return;
       }
+      
+      // Auto-create expense in financial_records for maintenance cost
+      if (costValue > 0) {
+        const { error: financeError } = await supabase
+          .from("financial_records")
+          .insert({
+            user_id: user.id,
+            vehicle_id: vehicleId,
+            type: 'expense',
+            category: 'maintenance',
+            amount: costValue,
+            date: serviceDate,
+            description: `${getServiceTypeLabel(serviceType)}${notes ? ': ' + notes : ''}`
+          });
+          
+        if (financeError) {
+          console.error("Error creating financial record for maintenance:", financeError);
+        }
+      }
+      
+      toast({
+        title: language === 'el' ? "Επιτυχία" : "Success",
+        description: language === 'el' ? "Η εγγραφή συντήρησης προστέθηκε" : "Maintenance record added"
+      });
+      
+      setServiceType("oil_change");
+      setServiceDate(new Date().toISOString().substring(0, 10));
+      setNextServiceDate("");
+      setCost("");
+      setNotes("");
+      setIsDialogOpen(false);
+      fetchMaintenanceRecords();
     } catch (error) {
       console.error("Exception adding maintenance record:", error);
     }

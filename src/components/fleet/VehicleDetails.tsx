@@ -246,37 +246,6 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
     }
   };
 
-  const handleUpdateExpenses = async (amount: number, serviceType: string) => {
-    if (vehicleId && amount > 0) {
-      try {
-        const { data: session } = await supabase.auth.getSession();
-        
-        if (session?.session?.user) {
-          const { error } = await supabase.from('financial_records').insert({
-            user_id: session.session.user.id,
-            vehicle_id: vehicleId,
-            type: 'expense',
-            category: 'maintenance',
-            amount: amount,
-            date: new Date().toISOString().split('T')[0],
-            description: `Maintenance: ${serviceType} for ${vehicle.make} ${vehicle.model}`
-          });
-          
-          if (error) {
-            console.error("Error recording maintenance expense:", error);
-          } else {
-            toast({
-              title: language === 'el' ? "Έξοδο Προστέθηκε" : "Expense Added",
-              description: `${language === 'el' ? 'Προστέθηκαν €' : 'Added $'}${Math.abs(amount).toFixed(2)} ${language === 'el' ? 'στα έξοδα' : 'to expenses'}.`,
-            });
-          }
-        }
-      } catch (err) {
-        console.error("Error in handleUpdateExpenses:", err);
-      }
-    }
-  };
-
   const handleNewBookingFromCalendar = (calendarSelectedDates: Date[]) => {
     setSelectedDates(calendarSelectedDates);
     setIsRentalBookingOpen(true);
@@ -507,7 +476,7 @@ export function VehicleDetails({ vehicleId, vehicles = [], loading = false, tran
                   </TabsContent>
                   
                   <TabsContent value="maintenance" className="mt-6">
-                    <VehicleMaintenance vehicleId={vehicleId || ""} updateExpenses={handleUpdateExpenses} />
+                    <VehicleMaintenance vehicleId={vehicleId || ""} />
                     <div className="mt-8">
                       <VehicleReminders vehicleId={vehicleId || ""} />
                     </div>

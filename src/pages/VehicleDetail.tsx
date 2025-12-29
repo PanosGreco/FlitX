@@ -17,17 +17,21 @@ interface Vehicle {
   status: string;
   licensePlate: string;
   fuelLevel: number;
+  fuel_level: number;
   fuelType: string;
   mpg: number;
   lastServiceDate: string;
   costPerMile: number;
   dailyRate: number;
+  daily_rate: number;
   totalServices: number;
   serviceReminders: number;
   totalServiceCost: number;
   fuelCosts: number;
   milesPerDay: number;
   image?: string;
+  license_plate?: string;
+  purchase_price?: number | null;
 }
 
 interface VehicleTranslations {
@@ -124,18 +128,22 @@ const VehicleDetail = () => {
         mileage: data.mileage || 0,
         status: data.status || 'available',
         licensePlate: data.license_plate || 'N/A',
+        license_plate: data.license_plate || '',
         fuelLevel: data.fuel_level || 0,
+        fuel_level: data.fuel_level || 0,
         fuelType: 'Unknown',
         mpg: 0,
         lastServiceDate: new Date().toISOString(),
         costPerMile: 0,
         dailyRate: data.daily_rate || 0,
+        daily_rate: data.daily_rate || 0,
         totalServices: 0,
         serviceReminders: 0,
         totalServiceCost: 0,
         fuelCosts: 0,
         milesPerDay: 0,
-        image: data.image || undefined
+        image: data.image || undefined,
+        purchase_price: data.purchase_price || null
       };
       setVehicle(vehicleData);
     } catch (error) {
