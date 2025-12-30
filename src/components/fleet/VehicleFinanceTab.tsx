@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BarChart3, TrendingUp, TrendingDown, DollarSign, Target, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { BarChart3, TrendingUp, TrendingDown, DollarSign, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -134,22 +134,7 @@ export function VehicleFinanceTab({ vehicleId, vehicleName, purchasePrice }: Veh
   }
 
   return (
-    <div className="space-y-6">
-      {/* Purchase Value Card */}
-      {purchasePrice && purchasePrice > 0 && (
-        <Card className="bg-slate-50 border-slate-200">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-slate-600 mb-1">
-              <Target className="h-4 w-4" />
-              <span className="text-sm font-medium">Vehicle Purchase Value</span>
-            </div>
-            <div className="text-2xl font-bold text-slate-700">
-              ${purchasePrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
+    <div className="space-y-4">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-green-50 border-green-200">
@@ -195,36 +180,21 @@ export function VehicleFinanceTab({ vehicleId, vehicleName, purchasePrice }: Veh
         </Card>
       </div>
 
-      {/* Break-even / Profit Status */}
-      {breakEvenStatus && (
-        <Card className={breakEvenStatus.type === 'profit' ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className={`flex items-center gap-2 ${breakEvenStatus.type === 'profit' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                <Target className="h-4 w-4" />
-                <span className="text-sm font-medium">
-                  {breakEvenStatus.type === 'profit' ? 'Vehicle Profit' : 'Break-even Progress'}
-                </span>
+      {/* Merged Vehicle Value & Profitability Card */}
+      {purchasePrice && purchasePrice > 0 && (
+        <Card className="border-muted">
+          <CardContent className="py-3 px-4">
+            <div className="text-sm text-muted-foreground">
+              Vehicle purchase value: <span className="font-medium text-foreground">${purchasePrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            </div>
+            {breakEvenStatus && (
+              <div className={`text-sm mt-1 ${breakEvenStatus.type === 'profit' ? 'text-green-600' : 'text-amber-600'}`}>
+                {breakEvenStatus.type === 'profit' 
+                  ? <>Profit: <span className="font-semibold">${breakEvenStatus.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></>
+                  : <>Remaining for depreciation: <span className="font-semibold">${breakEvenStatus.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></>
+                }
               </div>
-              <span className={`text-sm font-medium ${breakEvenStatus.type === 'profit' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                {breakEvenStatus.percentage.toFixed(1)}%
-              </span>
-            </div>
-            
-            {/* Progress bar */}
-            <div className="w-full bg-gray-200 rounded-full h-2.5 mb-3">
-              <div 
-                className={`h-2.5 rounded-full transition-all ${breakEvenStatus.type === 'profit' ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                style={{ width: `${breakEvenStatus.percentage}%` }}
-              />
-            </div>
-            
-            <div className={`text-lg font-bold ${breakEvenStatus.type === 'profit' ? 'text-emerald-700' : 'text-amber-700'}`}>
-              {breakEvenStatus.type === 'profit' 
-                ? `Profit: $${breakEvenStatus.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-                : `Remaining to break even: $${breakEvenStatus.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-              }
-            </div>
+            )}
           </CardContent>
         </Card>
       )}
