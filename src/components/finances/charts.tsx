@@ -13,8 +13,9 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Sector
 } from "recharts";
+import { format, startOfWeek, startOfMonth, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, subDays, subMonths, subYears } from "date-fns";
+import { el, enUS } from "date-fns/locale";
 
 interface FinancialRecord {
   id: string;
@@ -28,77 +29,125 @@ interface FinancialRecord {
 interface ChartProps {
   financialRecords?: FinancialRecord[];
   lang?: string;
+  timeframe?: string;
 }
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82ca9d"];
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82ca9d", "#ffc658", "#ff7c43"];
 
-// Helper function to aggregate data by month
-const aggregateByMonth = (records: FinancialRecord[]) => {
-  const monthlyData: Record<string, { income: number; expenses: number }> = {};
+// Get date range based on timeframe
+const getDateRange = (timeframe: string) => {
+  const now = new Date();
+  let startDate: Date;
   
-  records.forEach(record => {
-    const date = new Date(record.date);
-    const monthKey = date.toLocaleString('en-US', { month: 'short' });
-    
-    if (!monthlyData[monthKey]) {
-      monthlyData[monthKey] = { income: 0, expenses: 0 };
-    }
-    
-    if (record.type === 'income') {
-      monthlyData[monthKey].income += Number(record.amount);
-    } else {
-      monthlyData[monthKey].expenses += Number(record.amount);
-    }
-  });
-  
-  return Object.entries(monthlyData).map(([name, data]) => ({
-    name,
-    income: data.income,
-    expenses: data.expenses
-  }));
-};
-
-// Helper function to aggregate data by week for revenue growth
-const aggregateByWeek = (records: FinancialRecord[]) => {
-  const weeklyData: Record<string, number> = {};
-  
-  const incomeRecords = records.filter(r => r.type === 'income');
-  
-  incomeRecords.forEach((record, index) => {
-    const weekNum = Math.floor(index / 7) + 1;
-    const weekKey = `Week ${weekNum}`;
-    
-    if (!weeklyData[weekKey]) {
-      weeklyData[weekKey] = 0;
-    }
-    
-    weeklyData[weekKey] += Number(record.amount);
-  });
-  
-  // If we have no data, return some weeks with 0 revenue
-  if (Object.keys(weeklyData).length === 0) {
-    return [
-      { name: "Week 1", revenue: 0 },
-      { name: "Week 2", revenue: 0 },
-      { name: "Week 3", revenue: 0 },
-      { name: "Week 4", revenue: 0 },
-    ];
+  switch (timeframe) {
+    case 'week':
+      startDate = subDays(now, 7);
+      break;
+    case 'month':
+      startDate = subMonths(now, 1);
+      break;
+    case 'quarter':
+      startDate = subMonths(now, 3);
+      break;
+    case 'year':
+      startDate = subYears(now, 1);
+      break;
+    default:
+      startDate = subMonths(now, 1);
   }
   
-  return Object.entries(weeklyData).map(([name, revenue]) => ({
-    name,
-    revenue
-  }));
+  return { startDate, endDate: now };
+};
+
+// Filter records by timeframe
+const filterByTimeframe = (records: FinancialRecord[], timeframe: string) => {
+  const { startDate } = getDateRange(timeframe);
+  return records.filter(record => new Date(record.date) >= startDate);
+};
+
+// Generate time buckets based on timeframe
+const getTimeBuckets = (timeframe: string, lang: string) => {
+  const { startDate, endDate } = getDateRange(timeframe);
+  const locale = lang === 'el' ? el : enUS;
+  
+  switch (timeframe) {
+    case 'week':
+      // Daily buckets for week
+      return eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
+        key: format(date, 'yyyy-MM-dd'),
+        label: format(date, 'EEE', { locale }),
+        date
+      }));
+    case 'month':
+      // Daily buckets for month (show date number)
+      return eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
+        key: format(date, 'yyyy-MM-dd'),
+        label: format(date, 'd', { locale }),
+        date
+      }));
+    case 'quarter':
+      // Monthly buckets for quarter
+      return eachMonthOfInterval({ start: startDate, end: endDate }).map(date => ({
+        key: format(date, 'yyyy-MM'),
+        label: format(date, 'MMM', { locale }),
+        date
+      }));
+    case 'year':
+      // Monthly buckets for year
+      return eachMonthOfInterval({ start: startDate, end: endDate }).map(date => ({
+        key: format(date, 'yyyy-MM'),
+        label: format(date, 'MMM', { locale }),
+        date
+      }));
+    default:
+      return eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
+        key: format(date, 'yyyy-MM-dd'),
+        label: format(date, 'd', { locale }),
+        date
+      }));
+  }
+};
+
+// Aggregate income and expenses by time buckets
+const aggregateByTimeBuckets = (records: FinancialRecord[], timeframe: string, lang: string) => {
+  const buckets = getTimeBuckets(timeframe, lang);
+  const isMonthly = timeframe === 'quarter' || timeframe === 'year';
+  
+  const data = buckets.map(bucket => {
+    const bucketRecords = records.filter(record => {
+      const recordDate = new Date(record.date);
+      if (isMonthly) {
+        return format(recordDate, 'yyyy-MM') === bucket.key;
+      }
+      return format(recordDate, 'yyyy-MM-dd') === bucket.key;
+    });
+    
+    const income = bucketRecords
+      .filter(r => r.type === 'income')
+      .reduce((sum, r) => sum + Number(r.amount), 0);
+    
+    const expenses = bucketRecords
+      .filter(r => r.type === 'expense')
+      .reduce((sum, r) => sum + Number(r.amount), 0);
+    
+    return {
+      name: bucket.label,
+      income,
+      expenses
+    };
+  });
+  
+  return data;
 };
 
 // Helper function to aggregate expenses by category
-const aggregateByCategory = (records: FinancialRecord[]) => {
+const aggregateByCategory = (records: FinancialRecord[], lang: string) => {
   const categoryData: Record<string, number> = {};
   
   const expenseRecords = records.filter(r => r.type === 'expense');
   
   expenseRecords.forEach(record => {
-    const category = record.category || 'Other';
+    const category = record.category || 'other';
     if (!categoryData[category]) {
       categoryData[category] = 0;
     }
@@ -107,26 +156,61 @@ const aggregateByCategory = (records: FinancialRecord[]) => {
   
   // If no data, show empty state
   if (Object.keys(categoryData).length === 0) {
-    return [{ name: "No expenses", value: 100 }];
+    return [];
   }
   
   const total = Object.values(categoryData).reduce((sum, val) => sum + val, 0);
   
-  return Object.entries(categoryData).map(([name, value]) => ({
-    name: name.charAt(0).toUpperCase() + name.slice(1),
-    value: Math.round((value / total) * 100)
-  }));
+  // Category label translations
+  const categoryLabels: Record<string, { en: string; el: string }> = {
+    fuel: { en: 'Fuel', el: 'Καύσιμα' },
+    maintenance: { en: 'Maintenance', el: 'Συντήρηση' },
+    carwash: { en: 'Car Wash', el: 'Πλύσιμο' },
+    insurance: { en: 'Insurance', el: 'Ασφάλεια' },
+    tax: { en: 'Taxes', el: 'Φόροι' },
+    salary: { en: 'Salaries', el: 'Μισθοί' },
+    cleaning: { en: 'Cleaning', el: 'Καθαρισμός' },
+    docking: { en: 'Docking', el: 'Ελλιμενισμός' },
+    licensing: { en: 'Licensing', el: 'Αδειοδότηση' },
+    other: { en: 'Other', el: 'Άλλο' },
+    sales: { en: 'Sales', el: 'Πωλήσεις' }
+  };
+  
+  return Object.entries(categoryData)
+    .map(([name, value]) => ({
+      name: categoryLabels[name]?.[lang === 'el' ? 'el' : 'en'] || name.charAt(0).toUpperCase() + name.slice(1),
+      value: Math.round((value / total) * 100),
+      amount: value,
+      rawName: name
+    }))
+    .sort((a, b) => b.amount - a.amount);
 };
 
-export function BarChart({ financialRecords = [], lang = 'en' }: ChartProps) {
+// Format currency for Y-axis
+const formatYAxis = (value: number, lang: string) => {
+  const symbol = lang === 'el' ? '€' : '$';
+  if (value >= 1000) {
+    return `${symbol}${(value / 1000).toFixed(0)}k`;
+  }
+  return `${symbol}${value}`;
+};
+
+export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'month' }: ChartProps) {
   const chartData = useMemo(() => {
-    if (financialRecords.length === 0) {
-      return [
-        { name: "No data", income: 0, expenses: 0 }
-      ];
+    const filtered = filterByTimeframe(financialRecords, timeframe);
+    const data = aggregateByTimeBuckets(filtered, timeframe, lang);
+    
+    if (data.length === 0 || data.every(d => d.income === 0 && d.expenses === 0)) {
+      return [{ name: lang === 'el' ? 'Δεν υπάρχουν δεδομένα' : 'No data', income: 0, expenses: 0 }];
     }
-    return aggregateByMonth(financialRecords);
-  }, [financialRecords]);
+    
+    // For month view, sample every 3rd day to avoid crowding
+    if (timeframe === 'month' && data.length > 15) {
+      return data.filter((_, i) => i % 3 === 0 || i === data.length - 1);
+    }
+    
+    return data;
+  }, [financialRecords, timeframe, lang]);
 
   const currencySymbol = lang === 'el' ? '€' : '$';
 
@@ -143,10 +227,19 @@ export function BarChart({ financialRecords = [], lang = 'en' }: ChartProps) {
           }}
         >
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="name" />
-          <YAxis />
+          <XAxis 
+            dataKey="name" 
+            tick={{ fontSize: 11 }}
+            tickLine={false}
+          />
+          <YAxis 
+            tickFormatter={(value) => formatYAxis(value, lang)}
+            tick={{ fontSize: 11 }}
+            tickLine={false}
+            axisLine={false}
+          />
           <Tooltip 
-            formatter={(value) => [`${currencySymbol}${value}`, undefined]}
+            formatter={(value: number) => [`${currencySymbol}${value.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, undefined]}
             labelStyle={{ color: "#333" }}
             contentStyle={{
               borderRadius: 8,
@@ -154,19 +247,33 @@ export function BarChart({ financialRecords = [], lang = 'en' }: ChartProps) {
               boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
             }}
           />
-          <Legend />
-          <Bar dataKey="income" fill="#0F56B3" radius={[4, 4, 0, 0]} barSize={20} />
-          <Bar dataKey="expenses" fill="#FF8042" radius={[4, 4, 0, 0]} barSize={20} />
+          <Legend 
+            formatter={(value) => value === 'income' ? (lang === 'el' ? 'Έσοδα' : 'Income') : (lang === 'el' ? 'Έξοδα' : 'Expenses')}
+          />
+          <Bar dataKey="income" name="income" fill="#22c55e" radius={[4, 4, 0, 0]} barSize={timeframe === 'week' ? 30 : 15} />
+          <Bar dataKey="expenses" name="expenses" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={timeframe === 'week' ? 30 : 15} />
         </RechartsBarChart>
       </ResponsiveContainer>
     </div>
   );
 }
 
-export function LineChart({ financialRecords = [], lang = 'en' }: ChartProps) {
+export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'month' }: ChartProps) {
   const chartData = useMemo(() => {
-    return aggregateByWeek(financialRecords);
-  }, [financialRecords]);
+    const filtered = filterByTimeframe(financialRecords, timeframe);
+    const data = aggregateByTimeBuckets(filtered, timeframe, lang);
+    
+    if (data.length === 0 || data.every(d => d.income === 0 && d.expenses === 0)) {
+      return [{ name: lang === 'el' ? 'Δεν υπάρχουν δεδομένα' : 'No data', income: 0, expenses: 0 }];
+    }
+    
+    // For month view, sample every 3rd day to avoid crowding
+    if (timeframe === 'month' && data.length > 15) {
+      return data.filter((_, i) => i % 3 === 0 || i === data.length - 1);
+    }
+    
+    return data;
+  }, [financialRecords, timeframe, lang]);
 
   const currencySymbol = lang === 'el' ? '€' : '$';
 
@@ -183,10 +290,22 @@ export function LineChart({ financialRecords = [], lang = 'en' }: ChartProps) {
           }}
         >
           <CartesianGrid strokeDasharray="3 3" vertical={false} />
-          <XAxis dataKey="name" />
-          <YAxis />
+          <XAxis 
+            dataKey="name" 
+            tick={{ fontSize: 11 }}
+            tickLine={false}
+          />
+          <YAxis 
+            tickFormatter={(value) => formatYAxis(value, lang)}
+            tick={{ fontSize: 11 }}
+            tickLine={false}
+            axisLine={false}
+          />
           <Tooltip 
-            formatter={(value) => [`${currencySymbol}${value}`, "Revenue"]}
+            formatter={(value: number, name: string) => [
+              `${currencySymbol}${value.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              name === 'income' ? (lang === 'el' ? 'Έσοδα' : 'Income') : (lang === 'el' ? 'Έξοδα' : 'Expenses')
+            ]}
             labelStyle={{ color: "#333" }}
             contentStyle={{
               borderRadius: 8,
@@ -194,13 +313,26 @@ export function LineChart({ financialRecords = [], lang = 'en' }: ChartProps) {
               boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
             }}
           />
-          <Legend />
+          <Legend 
+            formatter={(value) => value === 'income' ? (lang === 'el' ? 'Έσοδα' : 'Income') : (lang === 'el' ? 'Έξοδα' : 'Expenses')}
+          />
           <Line
             type="monotone"
-            dataKey="revenue"
-            stroke="#0F56B3"
-            activeDot={{ r: 8 }}
+            dataKey="income"
+            name="income"
+            stroke="#22c55e"
+            activeDot={{ r: 6 }}
             strokeWidth={2}
+            dot={{ r: 3 }}
+          />
+          <Line
+            type="monotone"
+            dataKey="expenses"
+            name="expenses"
+            stroke="#ef4444"
+            activeDot={{ r: 6 }}
+            strokeWidth={2}
+            dot={{ r: 3 }}
           />
         </RechartsLineChart>
       </ResponsiveContainer>
@@ -208,98 +340,48 @@ export function LineChart({ financialRecords = [], lang = 'en' }: ChartProps) {
   );
 }
 
-// Custom label renderer for the pie chart
-const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }: any) => {
-  const radius = innerRadius + (outerRadius - innerRadius) * 1.1;
-  const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
-  const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
+interface PieChartProps extends ChartProps {
+  onCategoryData?: (data: Array<{ name: string; value: number; amount: number }>) => void;
+}
 
-  return (
-    <text 
-      x={x} 
-      y={y} 
-      fill="#333"
-      textAnchor={x > cx ? 'start' : 'end'} 
-      dominantBaseline="central"
-      fontSize="12px"
-      fontWeight="500"
-    >
-      {`${name} (${(percent * 100).toFixed(0)}%)`}
-    </text>
-  );
-};
-
-// Active shape for the pie chart when hovering
-const renderActiveShape = (props: any) => {
-  const { cx, cy, midAngle, innerRadius, outerRadius, startAngle, endAngle, fill, payload, percent, value } = props;
-  const sin = Math.sin(-midAngle * Math.PI / 180);
-  const cos = Math.cos(-midAngle * Math.PI / 180);
-  const sx = cx + (outerRadius + 10) * cos;
-  const sy = cy + (outerRadius + 10) * sin;
-  const mx = cx + (outerRadius + 30) * cos;
-  const my = cy + (outerRadius + 30) * sin;
-  const ex = mx + (cos >= 0 ? 1 : -1) * 22;
-  const ey = my;
-  const textAnchor = cos >= 0 ? 'start' : 'end';
-
-  return (
-    <g>
-      <Sector
-        cx={cx}
-        cy={cy}
-        innerRadius={innerRadius}
-        outerRadius={outerRadius}
-        startAngle={startAngle}
-        endAngle={endAngle}
-        fill={fill}
-      />
-      <Sector
-        cx={cx}
-        cy={cy}
-        startAngle={startAngle}
-        endAngle={endAngle}
-        innerRadius={outerRadius + 6}
-        outerRadius={outerRadius + 10}
-        fill={fill}
-      />
-      <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
-      <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
-      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#333" fontSize={12}>
-        {`${payload.name}: ${value}%`}
-      </text>
-      <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#999" fontSize={11}>
-        {`(${(percent * 100).toFixed(2)}%)`}
-      </text>
-    </g>
-  );
-};
-
-export function PieChart({ financialRecords = [] }: ChartProps) {
-  const [activeIndex, setActiveIndex] = useState(0);
-
+export function PieChart({ financialRecords = [], lang = 'en', timeframe = 'month', onCategoryData }: PieChartProps) {
   const chartData = useMemo(() => {
-    return aggregateByCategory(financialRecords);
-  }, [financialRecords]);
+    const filtered = filterByTimeframe(financialRecords, timeframe);
+    const data = aggregateByCategory(filtered, lang);
+    
+    // Notify parent of category data for breakdown list
+    if (onCategoryData) {
+      onCategoryData(data);
+    }
+    
+    return data;
+  }, [financialRecords, timeframe, lang, onCategoryData]);
 
-  const onPieEnter = (_: any, index: number) => {
-    setActiveIndex(index);
-  };
+  const currencySymbol = lang === 'el' ? '€' : '$';
+
+  if (chartData.length === 0) {
+    return (
+      <div className="h-64 flex items-center justify-center text-muted-foreground">
+        {lang === 'el' ? 'Δεν υπάρχουν έξοδα' : 'No expenses'}
+      </div>
+    );
+  }
 
   return (
-    <div className="h-72">
+    <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
-        <RechartsPieChart>
+        <RechartsPieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
           <Pie
-            activeIndex={activeIndex}
-            activeShape={renderActiveShape}
             data={chartData}
             cx="50%"
             cy="50%"
-            innerRadius={40}
-            outerRadius={60}
+            innerRadius={45}
+            outerRadius={75}
             fill="#8884d8"
             dataKey="value"
-            onMouseEnter={onPieEnter}
+            paddingAngle={2}
+            label={({ name, value }) => `${value}%`}
+            labelLine={{ strokeWidth: 1 }}
           >
             {chartData.map((entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -309,10 +391,20 @@ export function PieChart({ financialRecords = [] }: ChartProps) {
             layout="vertical"
             verticalAlign="middle"
             align="right"
-            wrapperStyle={{ fontSize: '12px', paddingLeft: '10px' }}
+            wrapperStyle={{ 
+              fontSize: '11px', 
+              paddingLeft: '5px',
+              maxWidth: '120px'
+            }}
+            formatter={(value, entry: any) => (
+              <span className="text-xs truncate">{value}</span>
+            )}
           />
           <Tooltip 
-            formatter={(value) => [`${value}%`, undefined]}
+            formatter={(value: number, name: string, props: any) => [
+              `${value}% (${currencySymbol}${props.payload.amount.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`,
+              name
+            ]}
             contentStyle={{
               borderRadius: 8,
               border: "none",
@@ -322,6 +414,39 @@ export function PieChart({ financialRecords = [] }: ChartProps) {
           />
         </RechartsPieChart>
       </ResponsiveContainer>
+    </div>
+  );
+}
+
+// Category breakdown component to display below pie chart
+export function CategoryBreakdown({ data, lang = 'en' }: { data: Array<{ name: string; value: number; amount: number }>; lang?: string }) {
+  const currencySymbol = lang === 'el' ? '€' : '$';
+  
+  if (data.length === 0) {
+    return null;
+  }
+  
+  return (
+    <div className="space-y-2 mt-4 pt-4 border-t">
+      <h4 className="text-sm font-medium text-muted-foreground mb-3">
+        {lang === 'el' ? 'Κατανομή ανά κατηγορία' : 'Category Breakdown'}
+      </h4>
+      <div className="space-y-2">
+        {data.map((item, index) => (
+          <div key={item.name} className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-3 h-3 rounded-full flex-shrink-0" 
+                style={{ backgroundColor: COLORS[index % COLORS.length] }}
+              />
+              <span className="truncate">{item.name}</span>
+            </div>
+            <span className="font-medium">
+              {currencySymbol}{item.amount.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
