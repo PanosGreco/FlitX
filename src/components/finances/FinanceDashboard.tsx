@@ -20,7 +20,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { BarChart, LineChart, PieChart } from "@/components/finances/charts";
+import { BarChart, LineChart, PieChart, CategoryBreakdown } from "@/components/finances/charts";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface FinancialRecord {
@@ -42,6 +42,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   const [timeframe, setTimeframe] = useState("month");
   const [recentTransactions, setRecentTransactions] = useState<FinancialRecord[]>([]);
   const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
+  const [categoryData, setCategoryData] = useState<Array<{ name: string; value: number; amount: number }>>([]);
   const isBoats = isBoatBusiness();
   const { t, language, isLanguageLoading } = useLanguage();
   const { user } = useAuth();
@@ -231,23 +232,23 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         />
       </div>
       
-      {/* Charts - Now using real backend data */}
+      {/* Charts - Now using real backend data with timeframe sync */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">{language === 'el' ? 'Έσοδα έναντι Εξόδων' : 'Income vs Expenses'}</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <BarChart financialRecords={financialRecords} lang={language} />
+            <BarChart financialRecords={financialRecords} lang={language} timeframe={timeframe} />
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">{language === 'el' ? 'Αύξηση Εσόδων' : 'Revenue Growth'}</CardTitle>
+            <CardTitle className="text-lg">{language === 'el' ? 'Τάση Χρόνου' : 'Trend Over Time'}</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <LineChart financialRecords={financialRecords} lang={language} />
+            <LineChart financialRecords={financialRecords} lang={language} timeframe={timeframe} />
           </CardContent>
         </Card>
       </div>
@@ -259,7 +260,13 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
             <CardTitle className="text-lg">{language === 'el' ? 'Ανάλυση Εξόδων' : 'Expense Breakdown'}</CardTitle>
           </CardHeader>
           <CardContent>
-            <PieChart financialRecords={financialRecords} lang={language} />
+            <PieChart 
+              financialRecords={financialRecords} 
+              lang={language} 
+              timeframe={timeframe}
+              onCategoryData={setCategoryData}
+            />
+            <CategoryBreakdown data={categoryData} lang={language} />
           </CardContent>
         </Card>
         
