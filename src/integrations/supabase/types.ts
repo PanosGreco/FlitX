@@ -24,9 +24,11 @@ export type Database = {
           id: string
           priority: Database["public"]["Enums"]["task_priority"]
           status: Database["public"]["Enums"]["task_status"]
+          task_type: string
           title: string
           updated_at: string
           user_id: string
+          vehicle_id: string | null
         }
         Insert: {
           assigned_to?: string | null
@@ -37,9 +39,11 @@ export type Database = {
           id?: string
           priority?: Database["public"]["Enums"]["task_priority"]
           status?: Database["public"]["Enums"]["task_status"]
+          task_type?: string
           title: string
           updated_at?: string
           user_id: string
+          vehicle_id?: string | null
         }
         Update: {
           assigned_to?: string | null
@@ -50,11 +54,21 @@ export type Database = {
           id?: string
           priority?: Database["public"]["Enums"]["task_priority"]
           status?: Database["public"]["Enums"]["task_status"]
+          task_type?: string
           title?: string
           updated_at?: string
           user_id?: string
+          vehicle_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "daily_tasks_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       damage_reports: {
         Row: {

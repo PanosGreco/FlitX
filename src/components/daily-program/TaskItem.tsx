@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { Clock, Edit, Trash2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EditTaskDialog } from "./EditTaskDialog";
-import { DailyTask } from "@/pages/DailyProgram";
+import { DailyTask } from "@/hooks/useDailyTasks";
 
 interface TaskItemProps {
   task: DailyTask;
@@ -15,9 +14,12 @@ interface TaskItemProps {
 
 export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const handleToggleComplete = () => {
-    onUpdate({ ...task, completed: !task.completed });
+  const handleToggleComplete = async () => {
+    setIsUpdating(true);
+    await onUpdate({ ...task, completed: !task.completed });
+    setIsUpdating(false);
   };
 
   const getTypeColor = (type: string) => {
@@ -30,7 +32,7 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
   };
 
   return (
-    <Card className={`border ${task.completed ? 'opacity-75' : ''}`}>
+    <Card className={`border ${task.completed ? 'opacity-60 bg-muted/30' : ''}`}>
       <CardContent className="p-3">
         <div className="space-y-2">
           {/* Header */}
@@ -47,9 +49,15 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
                   </Badge>
                 )}
               </div>
-              <h4 className={`font-medium text-sm truncate ${task.completed ? 'line-through' : ''}`}>
-                {task.vehicleName} ({task.vehicleId})
-              </h4>
+              {task.vehicleName ? (
+                <h4 className={`font-medium text-sm truncate ${task.completed ? 'line-through' : ''}`}>
+                  {task.vehicleName}
+                </h4>
+              ) : (
+                <h4 className={`font-medium text-sm text-muted-foreground ${task.completed ? 'line-through' : ''}`}>
+                  General Task
+                </h4>
+              )}
             </div>
             <div className="flex space-x-1 flex-shrink-0">
               <Button
@@ -63,7 +71,7 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 text-red-500 hover:text-red-700"
+                className="h-7 w-7 text-destructive hover:text-destructive"
                 onClick={() => onDelete(task.id)}
               >
                 <Trash2 className="h-3 w-3" />
@@ -79,7 +87,7 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
 
           {/* Notes */}
           {task.notes && (
-            <p className="text-xs text-muted-foreground bg-gray-50 p-2 rounded line-clamp-2">
+            <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded line-clamp-2">
               {task.notes}
             </p>
           )}
@@ -91,8 +99,9 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
               size="sm"
               className="h-7 px-3 text-xs"
               onClick={handleToggleComplete}
+              disabled={isUpdating}
             >
-              {task.completed ? "Reopen" : "Complete"}
+              {isUpdating ? '...' : task.completed ? "Reopen" : "Complete"}
             </Button>
           </div>
         </div>

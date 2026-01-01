@@ -1,13 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { DailyTask } from "@/pages/DailyProgram";
+import { DailyTask } from "@/hooks/useDailyTasks";
 
 interface EditTaskDialogProps {
   isOpen: boolean;
@@ -18,35 +16,34 @@ interface EditTaskDialogProps {
 
 export function EditTaskDialog({ isOpen, onClose, task, onUpdate }: EditTaskDialogProps) {
   const [formData, setFormData] = useState({
-    type: task.type,
-    vehicleId: task.vehicleId,
-    vehicleName: task.vehicleName,
     scheduledTime: task.scheduledTime,
     notes: task.notes,
     completed: task.completed
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setFormData({
-      type: task.type,
-      vehicleId: task.vehicleId,
-      vehicleName: task.vehicleName,
       scheduledTime: task.scheduledTime,
       notes: task.notes,
       completed: task.completed
     });
   }, [task]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.vehicleId || !formData.vehicleName || !formData.scheduledTime) {
+    if (!formData.scheduledTime) {
       return;
     }
     
-    onUpdate({
+    setIsSubmitting(true);
+    await onUpdate({
       ...task,
-      ...formData
+      scheduledTime: formData.scheduledTime,
+      notes: formData.notes,
+      completed: formData.completed
     });
+    setIsSubmitting(false);
     onClose();
   };
 
@@ -58,45 +55,18 @@ export function EditTaskDialog({ isOpen, onClose, task, onUpdate }: EditTaskDial
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="type">Task Type</Label>
-            <Select
-              value={formData.type}
-              onValueChange={(value: 'return' | 'delivery' | 'other') => 
-                setFormData({ ...formData, type: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="return">Return</SelectItem>
-                <SelectItem value="delivery">Delivery</SelectItem>
-                <SelectItem value="other">Other Task</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="vehicleId">Vehicle ID</Label>
-            <Input
-              id="vehicleId"
-              value={formData.vehicleId}
-              onChange={(e) => setFormData({ ...formData, vehicleId: e.target.value })}
-              placeholder="e.g., FL-001"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="vehicleName">Vehicle Name</Label>
-            <Input
-              id="vehicleName"
-              value={formData.vehicleName}
-              onChange={(e) => setFormData({ ...formData, vehicleName: e.target.value })}
-              placeholder="e.g., Toyota Corolla"
-              required
-            />
+          {/* Read-only task info */}
+          <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+            <div className="text-sm">
+              <span className="text-muted-foreground">Type: </span>
+              <span className="font-medium capitalize">{task.type}</span>
+            </div>
+            {task.vehicleName && (
+              <div className="text-sm">
+                <span className="text-muted-foreground">Vehicle: </span>
+                <span className="font-medium">{task.vehicleName}</span>
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -133,10 +103,12 @@ export function EditTaskDialog({ isOpen, onClose, task, onUpdate }: EditTaskDial
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit">Update Task</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Saving...' : 'Save Changes'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
