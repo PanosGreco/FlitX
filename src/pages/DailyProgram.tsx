@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { format, addDays, subDays } from "date-fns";
-import { CalendarIcon, Plus } from "lucide-react";
+import { format } from "date-fns";
+import { CalendarIcon, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
@@ -9,70 +9,45 @@ import { MobileLayout } from "@/components/layout/MobileLayout";
 import { DailyProgramSection } from "@/components/daily-program/DailyProgramSection";
 import { AddTaskDialog } from "@/components/daily-program/AddTaskDialog";
 import { cn } from "@/lib/utils";
+import { useDailyTasks, DailyTask } from "@/hooks/useDailyTasks";
 
-export interface DailyTask {
-  id: string;
-  type: 'return' | 'delivery' | 'other';
-  vehicleId: string;
-  vehicleName: string;
-  scheduledTime: string;
-  notes: string;
-  completed: boolean;
-  date: string;
-}
+export type { DailyTask } from "@/hooks/useDailyTasks";
 
 export default function DailyProgram() {
-  // Set page title directly without using the translation hook
   document.title = "Daily Program - FlitX";
   
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [tasks, setTasks] = useState<DailyTask[]>([
-    // Sample data
-    {
-      id: '1',
-      type: 'return',
-      vehicleId: 'FL-001',
-      vehicleName: 'Toyota Corolla',
-      scheduledTime: '09:00',
-      notes: 'Check for damage on rear bumper',
-      completed: false,
-      date: format(new Date(), 'yyyy-MM-dd')
-    },
-    {
-      id: '2',
-      type: 'delivery',
-      vehicleId: 'FL-003',
-      vehicleName: 'Honda Civic',
-      scheduledTime: '14:30',
-      notes: 'Customer requested full tank',
-      completed: false,
-      date: format(new Date(), 'yyyy-MM-dd')
-    }
-  ]);
+  
+  const { 
+    tasks, 
+    loading, 
+    vehicles, 
+    addTask, 
+    updateTask, 
+    deleteTask 
+  } = useDailyTasks(selectedDate);
 
   const selectedDateString = format(selectedDate, 'yyyy-MM-dd');
-  const todaysTasks = tasks.filter(task => task.date === selectedDateString);
 
-  const returns = todaysTasks.filter(task => task.type === 'return');
-  const deliveries = todaysTasks.filter(task => task.type === 'delivery');
-  const otherTasks = todaysTasks.filter(task => task.type === 'other');
+  // Filter tasks by type
+  const returns = tasks.filter(task => task.type === 'return');
+  const deliveries = tasks.filter(task => task.type === 'delivery');
+  const otherTasks = tasks.filter(task => task.type === 'other');
 
-  const handleAddTask = (newTask: Omit<DailyTask, 'id' | 'date'>) => {
-    const task: DailyTask = {
-      ...newTask,
-      id: Date.now().toString(),
-      date: selectedDateString
-    };
-    setTasks([...tasks, task]);
+  const handleAddTask = async (newTask: Omit<DailyTask, 'id' | 'date'>) => {
+    const success = await addTask(newTask);
+    if (success) {
+      setIsAddDialogOpen(false);
+    }
   };
 
-  const handleUpdateTask = (updatedTask: DailyTask) => {
-    setTasks(tasks.map(task => task.id === updatedTask.id ? updatedTask : task));
+  const handleUpdateTask = async (updatedTask: DailyTask) => {
+    await updateTask(updatedTask);
   };
 
-  const handleDeleteTask = (taskId: string) => {
-    setTasks(tasks.filter(task => task.id !== taskId));
+  const handleDeleteTask = async (taskId: string) => {
+    await deleteTask(taskId);
   };
 
   return (
@@ -82,7 +57,7 @@ export default function DailyProgram() {
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Daily Program</CardTitle>
+              <CardTitle className="text-lg text-center flex-1">Daily Program</CardTitle>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
@@ -119,38 +94,47 @@ export default function DailyProgram() {
           Add New Task
         </Button>
 
-        {/* Three Column Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Returns Column */}
-          <DailyProgramSection
-            title="Returns"
-            tasks={returns}
-            onUpdateTask={handleUpdateTask}
-            onDeleteTask={handleDeleteTask}
-          />
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          /* Three Column Layout */
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Returns Column */}
+            <DailyProgramSection
+              title="Returns"
+              tasks={returns}
+              onUpdateTask={handleUpdateTask}
+              onDeleteTask={handleDeleteTask}
+            />
 
-          {/* Deliveries Column */}
-          <DailyProgramSection
-            title="Deliveries"
-            tasks={deliveries}
-            onUpdateTask={handleUpdateTask}
-            onDeleteTask={handleDeleteTask}
-          />
+            {/* Deliveries Column */}
+            <DailyProgramSection
+              title="Deliveries"
+              tasks={deliveries}
+              onUpdateTask={handleUpdateTask}
+              onDeleteTask={handleDeleteTask}
+            />
 
-          {/* Other Tasks Column */}
-          <DailyProgramSection
-            title="Other Tasks"
-            tasks={otherTasks}
-            onUpdateTask={handleUpdateTask}
-            onDeleteTask={handleDeleteTask}
-          />
-        </div>
+            {/* Other Tasks Column */}
+            <DailyProgramSection
+              title="Other Tasks"
+              tasks={otherTasks}
+              onUpdateTask={handleUpdateTask}
+              onDeleteTask={handleDeleteTask}
+            />
+          </div>
+        )}
 
         {/* Add Task Dialog */}
         <AddTaskDialog
           isOpen={isAddDialogOpen}
           onClose={() => setIsAddDialogOpen(false)}
           onAddTask={handleAddTask}
+          vehicles={vehicles}
+          selectedDate={selectedDate}
         />
       </div>
     </MobileLayout>

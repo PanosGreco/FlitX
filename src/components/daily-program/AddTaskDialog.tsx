@@ -1,36 +1,53 @@
-
 import { useState } from "react";
+import { format } from "date-fns";
+import { CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { DailyTask } from "@/pages/DailyProgram";
+import { DailyTask } from "@/hooks/useDailyTasks";
 
 interface AddTaskDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onAddTask: (task: Omit<DailyTask, 'id' | 'date'>) => void;
+  vehicles: { id: string; name: string; licensePlate: string | null }[];
+  selectedDate: Date;
 }
 
-export function AddTaskDialog({ isOpen, onClose, onAddTask }: AddTaskDialogProps) {
+export function AddTaskDialog({ isOpen, onClose, onAddTask, vehicles, selectedDate }: AddTaskDialogProps) {
   const [formData, setFormData] = useState({
     type: 'return' as 'return' | 'delivery' | 'other',
-    vehicleId: '',
-    vehicleName: '',
+    vehicleId: '' as string | null,
+    vehicleName: '' as string | null,
     scheduledTime: '',
     notes: '',
     completed: false
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const isVehicleRequired = formData.type === 'return' || formData.type === 'delivery';
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.vehicleId || !formData.vehicleName || !formData.scheduledTime) {
+    
+    // Validate required fields
+    if (!formData.scheduledTime) {
       return;
     }
     
-    onAddTask(formData);
+    // Vehicle required for return/delivery
+    if (isVehicleRequired && !formData.vehicleId) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    await onAddTask(formData);
+    setIsSubmitting(false);
+    
+    // Reset form
     setFormData({
       type: 'return',
       vehicleId: '',
@@ -39,7 +56,6 @@ export function AddTaskDialog({ isOpen, onClose, onAddTask }: AddTaskDialogProps
       notes: '',
       completed: false
     });
-    onClose();
   };
 
   const handleClose = () => {
@@ -54,6 +70,15 @@ export function AddTaskDialog({ isOpen, onClose, onAddTask }: AddTaskDialogProps
     onClose();
   };
 
+  const handleVehicleChange = (vehicleId: string) => {
+    const vehicle = vehicles.find(v => v.id === vehicleId);
+    setFormData({
+      ...formData,
+      vehicleId,
+      vehicleName: vehicle ? `${vehicle.name}${vehicle.licensePlate ? ` (${vehicle.licensePlate})` : ''}` : ''
+    });
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
@@ -62,13 +87,20 @@ export function AddTaskDialog({ isOpen, onClose, onAddTask }: AddTaskDialogProps
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Task Date Display */}
+          <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg text-sm">
+            <CalendarDays className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">Task date:</span>
+            <span className="font-medium">{format(selectedDate, 'MMMM d, yyyy')}</span>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="type">Task Type</Label>
             <Select
               value={formData.type}
-              onValueChange={(value: 'return' | 'delivery' | 'other') => 
-                setFormData({ ...formData, type: value })
-              }
+              onValueChange={(value: 'return' | 'delivery' | 'other') => {
+                setFormData({ ...formData, type: value, vehicleId: '', vehicleName: '' });
+              }}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -81,26 +113,32 @@ export function AddTaskDialog({ isOpen, onClose, onAddTask }: AddTaskDialogProps
             </Select>
           </div>
 
+          {/* Vehicle Selection - Required for return/delivery, optional for other */}
           <div className="space-y-2">
-            <Label htmlFor="vehicleId">Vehicle ID</Label>
-            <Input
-              id="vehicleId"
-              value={formData.vehicleId}
-              onChange={(e) => setFormData({ ...formData, vehicleId: e.target.value })}
-              placeholder="e.g., FL-001"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="vehicleName">Vehicle Name</Label>
-            <Input
-              id="vehicleName"
-              value={formData.vehicleName}
-              onChange={(e) => setFormData({ ...formData, vehicleName: e.target.value })}
-              placeholder="e.g., Toyota Corolla"
-              required
-            />
+            <Label htmlFor="vehicle">
+              Vehicle {isVehicleRequired ? '' : '(optional)'}
+            </Label>
+            <Select
+              value={formData.vehicleId || ''}
+              onValueChange={handleVehicleChange}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={isVehicleRequired ? "Select a vehicle" : "Select a vehicle (optional)"} />
+              </SelectTrigger>
+              <SelectContent>
+                {!isVehicleRequired && (
+                  <SelectItem value="none">No vehicle</SelectItem>
+                )}
+                {vehicles.map((vehicle) => (
+                  <SelectItem key={vehicle.id} value={vehicle.id}>
+                    {vehicle.name} {vehicle.licensePlate ? `(${vehicle.licensePlate})` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {vehicles.length === 0 && (
+              <p className="text-xs text-muted-foreground">No vehicles found. Add vehicles in Fleet first.</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -126,10 +164,12 @@ export function AddTaskDialog({ isOpen, onClose, onAddTask }: AddTaskDialogProps
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose}>
+            <Button type="button" variant="outline" onClick={handleClose} disabled={isSubmitting}>
               Cancel
             </Button>
-            <Button type="submit">Add Task</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Adding...' : 'Add Task'}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
