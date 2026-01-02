@@ -334,6 +334,8 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
             activeDot={{ r: 6 }}
             strokeWidth={2}
             dot={{ r: 3 }}
+            connectNulls={false}
+            isAnimationActive={false}
           />
           <Line
             type="linear"
@@ -343,6 +345,8 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
             activeDot={{ r: 6 }}
             strokeWidth={2}
             dot={{ r: 3 }}
+            connectNulls={false}
+            isAnimationActive={false}
           />
           <Line
             type="linear"
@@ -352,6 +356,8 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
             activeDot={{ r: 6 }}
             strokeWidth={2}
             dot={{ r: 3 }}
+            connectNulls={false}
+            isAnimationActive={false}
           />
         </RechartsLineChart>
       </ResponsiveContainer>
