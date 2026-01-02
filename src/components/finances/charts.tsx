@@ -130,10 +130,13 @@ const aggregateByTimeBuckets = (records: FinancialRecord[], timeframe: string, l
       .filter(r => r.type === 'expense')
       .reduce((sum, r) => sum + Number(r.amount), 0);
     
+    const revenue = income - expenses;
+    
     return {
       name: bucket.label,
       income,
-      expenses
+      expenses,
+      revenue
     };
   });
   
@@ -264,7 +267,7 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
     const data = aggregateByTimeBuckets(filtered, timeframe, lang);
     
     if (data.length === 0 || data.every(d => d.income === 0 && d.expenses === 0)) {
-      return [{ name: lang === 'el' ? 'Δεν υπάρχουν δεδομένα' : 'No data', income: 0, expenses: 0 }];
+      return [{ name: lang === 'el' ? 'Δεν υπάρχουν δεδομένα' : 'No data', income: 0, expenses: 0, revenue: 0 }];
     }
     
     // For month view, sample every 3rd day to avoid crowding
@@ -276,6 +279,13 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
   }, [financialRecords, timeframe, lang]);
 
   const currencySymbol = lang === 'el' ? '€' : '$';
+
+  const getLineName = (name: string) => {
+    if (name === 'income') return lang === 'el' ? 'Έσοδα' : 'Income';
+    if (name === 'expenses') return lang === 'el' ? 'Έξοδα' : 'Expenses';
+    if (name === 'revenue') return lang === 'el' ? 'Καθαρά' : 'Revenue';
+    return name;
+  };
 
   return (
     <div className="h-80">
@@ -304,7 +314,7 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
           <Tooltip 
             formatter={(value: number, name: string) => [
               `${currencySymbol}${value.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-              name === 'income' ? (lang === 'el' ? 'Έσοδα' : 'Income') : (lang === 'el' ? 'Έξοδα' : 'Expenses')
+              getLineName(name)
             ]}
             labelStyle={{ color: "#333" }}
             contentStyle={{
@@ -314,22 +324,31 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
             }}
           />
           <Legend 
-            formatter={(value) => value === 'income' ? (lang === 'el' ? 'Έσοδα' : 'Income') : (lang === 'el' ? 'Έξοδα' : 'Expenses')}
+            formatter={(value) => getLineName(value)}
           />
           <Line
-            type="monotone"
+            type="linear"
             dataKey="income"
             name="income"
-            stroke="#22c55e"
+            stroke="#f59e0b"
             activeDot={{ r: 6 }}
             strokeWidth={2}
             dot={{ r: 3 }}
           />
           <Line
-            type="monotone"
+            type="linear"
             dataKey="expenses"
             name="expenses"
             stroke="#ef4444"
+            activeDot={{ r: 6 }}
+            strokeWidth={2}
+            dot={{ r: 3 }}
+          />
+          <Line
+            type="linear"
+            dataKey="revenue"
+            name="revenue"
+            stroke="#3b82f6"
             activeDot={{ r: 6 }}
             strokeWidth={2}
             dot={{ r: 3 }}
