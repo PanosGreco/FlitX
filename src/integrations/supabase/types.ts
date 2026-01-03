@@ -17,11 +17,14 @@ export type Database = {
       daily_tasks: {
         Row: {
           assigned_to: string | null
+          booking_id: string | null
+          contract_path: string | null
           created_at: string
           description: string | null
           due_date: string | null
           due_time: string | null
           id: string
+          location: string | null
           priority: Database["public"]["Enums"]["task_priority"]
           status: Database["public"]["Enums"]["task_status"]
           task_type: string
@@ -32,11 +35,14 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          booking_id?: string | null
+          contract_path?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
           due_time?: string | null
           id?: string
+          location?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           status?: Database["public"]["Enums"]["task_status"]
           task_type?: string
@@ -47,11 +53,14 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          booking_id?: string | null
+          contract_path?: string | null
           created_at?: string
           description?: string | null
           due_date?: string | null
           due_time?: string | null
           id?: string
+          location?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           status?: Database["public"]["Enums"]["task_status"]
           task_type?: string
@@ -61,6 +70,13 @@ export type Database = {
           vehicle_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "daily_tasks_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "rental_bookings"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "daily_tasks_vehicle_id_fkey"
             columns: ["vehicle_id"]
@@ -266,13 +282,18 @@ export type Database = {
       }
       rental_bookings: {
         Row: {
+          contract_photo_path: string | null
           created_at: string
           customer_email: string | null
           customer_name: string
           customer_phone: string | null
+          dropoff_location: string | null
           end_date: string
           id: string
           notes: string | null
+          pickup_location: string | null
+          pickup_time: string | null
+          return_time: string | null
           start_date: string
           status: Database["public"]["Enums"]["booking_status"]
           total_amount: number | null
@@ -281,13 +302,18 @@ export type Database = {
           vehicle_id: string
         }
         Insert: {
+          contract_photo_path?: string | null
           created_at?: string
           customer_email?: string | null
           customer_name: string
           customer_phone?: string | null
+          dropoff_location?: string | null
           end_date: string
           id?: string
           notes?: string | null
+          pickup_location?: string | null
+          pickup_time?: string | null
+          return_time?: string | null
           start_date: string
           status?: Database["public"]["Enums"]["booking_status"]
           total_amount?: number | null
@@ -296,13 +322,18 @@ export type Database = {
           vehicle_id: string
         }
         Update: {
+          contract_photo_path?: string | null
           created_at?: string
           customer_email?: string | null
           customer_name?: string
           customer_phone?: string | null
+          dropoff_location?: string | null
           end_date?: string
           id?: string
           notes?: string | null
+          pickup_location?: string | null
+          pickup_time?: string | null
+          return_time?: string | null
           start_date?: string
           status?: Database["public"]["Enums"]["booking_status"]
           total_amount?: number | null
