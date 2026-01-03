@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,15 +19,19 @@ export function EditTaskDialog({ isOpen, onClose, task, onUpdate }: EditTaskDial
   const [formData, setFormData] = useState({
     scheduledTime: task.scheduledTime,
     notes: task.notes,
-    completed: task.completed
+    completed: task.completed,
+    location: task.location || ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const showLocationField = task.type === 'return' || task.type === 'delivery';
 
   useEffect(() => {
     setFormData({
       scheduledTime: task.scheduledTime,
       notes: task.notes,
-      completed: task.completed
+      completed: task.completed,
+      location: task.location || ''
     });
   }, [task]);
 
@@ -41,7 +46,8 @@ export function EditTaskDialog({ isOpen, onClose, task, onUpdate }: EditTaskDial
       ...task,
       scheduledTime: formData.scheduledTime,
       notes: formData.notes,
-      completed: formData.completed
+      completed: formData.completed,
+      location: formData.location || null
     });
     setIsSubmitting(false);
     onClose();
@@ -79,6 +85,22 @@ export function EditTaskDialog({ isOpen, onClose, task, onUpdate }: EditTaskDial
               required
             />
           </div>
+
+          {/* Location field - only for deliveries and returns */}
+          {showLocationField && (
+            <div className="space-y-2">
+              <Label htmlFor="location" className="flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                Location
+              </Label>
+              <Input
+                id="location"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                placeholder={task.type === 'delivery' ? "Pick-up location" : "Drop-off location"}
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>

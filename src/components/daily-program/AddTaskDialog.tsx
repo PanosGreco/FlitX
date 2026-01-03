@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,11 +24,15 @@ export function AddTaskDialog({ isOpen, onClose, onAddTask, vehicles, selectedDa
     vehicleName: '' as string | null,
     scheduledTime: '',
     notes: '',
-    completed: false
+    completed: false,
+    location: '' as string | null,
+    bookingId: null as string | null,
+    contractPath: null as string | null
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isVehicleRequired = formData.type === 'return' || formData.type === 'delivery';
+  const showLocationField = formData.type === 'return' || formData.type === 'delivery';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +58,10 @@ export function AddTaskDialog({ isOpen, onClose, onAddTask, vehicles, selectedDa
       vehicleName: '',
       scheduledTime: '',
       notes: '',
-      completed: false
+      completed: false,
+      location: '',
+      bookingId: null,
+      contractPath: null
     });
   };
 
@@ -65,7 +72,10 @@ export function AddTaskDialog({ isOpen, onClose, onAddTask, vehicles, selectedDa
       vehicleName: '',
       scheduledTime: '',
       notes: '',
-      completed: false
+      completed: false,
+      location: '',
+      bookingId: null,
+      contractPath: null
     });
     onClose();
   };
@@ -99,7 +109,7 @@ export function AddTaskDialog({ isOpen, onClose, onAddTask, vehicles, selectedDa
             <Select
               value={formData.type}
               onValueChange={(value: 'return' | 'delivery' | 'other') => {
-                setFormData({ ...formData, type: value, vehicleId: '', vehicleName: '' });
+                setFormData({ ...formData, type: value, vehicleId: '', vehicleName: '', location: '' });
               }}
             >
               <SelectTrigger>
@@ -151,6 +161,22 @@ export function AddTaskDialog({ isOpen, onClose, onAddTask, vehicles, selectedDa
               required
             />
           </div>
+
+          {/* Location field - only for deliveries and returns */}
+          {showLocationField && (
+            <div className="space-y-2">
+              <Label htmlFor="location" className="flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                Location (optional)
+              </Label>
+              <Input
+                id="location"
+                value={formData.location || ''}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                placeholder={formData.type === 'delivery' ? "Pick-up location" : "Drop-off location"}
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>

@@ -13,6 +13,9 @@ export interface DailyTask {
   notes: string;
   completed: boolean;
   date: string;
+  location: string | null;
+  bookingId: string | null;
+  contractPath: string | null;
 }
 
 interface DbTask {
@@ -25,6 +28,9 @@ interface DbTask {
   title: string;
   status: string;
   user_id: string;
+  location: string | null;
+  booking_id: string | null;
+  contract_path: string | null;
   vehicles?: {
     make: string;
     model: string;
@@ -85,6 +91,9 @@ export function useDailyTasks(selectedDate: Date) {
         title,
         status,
         user_id,
+        location,
+        booking_id,
+        contract_path,
         vehicles (
           make,
           model,
@@ -111,7 +120,10 @@ export function useDailyTasks(selectedDate: Date) {
       scheduledTime: task.due_time || '',
       notes: task.description || '',
       completed: task.status === 'completed',
-      date: task.due_date || selectedDateString
+      date: task.due_date || selectedDateString,
+      location: task.location || null,
+      bookingId: task.booking_id || null,
+      contractPath: task.contract_path || null
     }));
 
     setTasks(mappedTasks);
@@ -145,7 +157,10 @@ export function useDailyTasks(selectedDate: Date) {
         due_time: newTask.scheduledTime || null,
         description: newTask.notes || null,
         title: newTask.vehicleName || newTask.type.charAt(0).toUpperCase() + newTask.type.slice(1),
-        status: newTask.completed ? 'completed' : 'pending'
+        status: newTask.completed ? 'completed' : 'pending',
+        location: newTask.location || null,
+        booking_id: newTask.bookingId || null,
+        contract_path: newTask.contractPath || null
       });
 
     if (error) {
@@ -173,7 +188,8 @@ export function useDailyTasks(selectedDate: Date) {
         due_time: updatedTask.scheduledTime || null,
         description: updatedTask.notes || null,
         title: updatedTask.vehicleName || updatedTask.type.charAt(0).toUpperCase() + updatedTask.type.slice(1),
-        status: updatedTask.completed ? 'completed' : 'pending'
+        status: updatedTask.completed ? 'completed' : 'pending',
+        location: updatedTask.location || null
       })
       .eq('id', updatedTask.id)
       .eq('user_id', user.id);

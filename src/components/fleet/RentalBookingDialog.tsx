@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { format, differenceInDays } from "date-fns";
-import { CalendarIcon, Camera, Upload, X } from "lucide-react";
+import { CalendarIcon, Camera, Upload, X, MapPin, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -37,6 +37,10 @@ export function RentalBookingDialog({
 }: RentalBookingDialogProps) {
   const [startDate, setStartDate] = useState<Date | undefined>(preselectedStartDate);
   const [endDate, setEndDate] = useState<Date | undefined>(preselectedEndDate);
+  const [pickupTime, setPickupTime] = useState("");
+  const [returnTime, setReturnTime] = useState("");
+  const [pickupLocation, setPickupLocation] = useState("");
+  const [dropoffLocation, setDropoffLocation] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [notes, setNotes] = useState("");
   const [contractPhoto, setContractPhoto] = useState<File | null>(null);
@@ -106,6 +110,63 @@ export function RentalBookingDialog({
     return data.path;
   };
 
+  const createDailyTasks = async (
+    userId: string,
+    bookingId: string,
+    contractPath: string | null
+  ) => {
+    if (!startDate || !endDate) return;
+
+    const startDateStr = format(startDate, 'yyyy-MM-dd');
+    const endDateStr = format(endDate, 'yyyy-MM-dd');
+
+    // Create Delivery task (on pickup date)
+    const deliveryTask = {
+      user_id: userId,
+      task_type: 'delivery',
+      vehicle_id: vehicleId,
+      due_date: startDateStr,
+      due_time: pickupTime || null,
+      description: notes || null,
+      title: `${vehicleName} - ${customerName}`,
+      status: 'pending' as const,
+      location: pickupLocation || null,
+      booking_id: bookingId,
+      contract_path: contractPath
+    };
+
+    // Create Return task (on return date)
+    const returnTask = {
+      user_id: userId,
+      task_type: 'return',
+      vehicle_id: vehicleId,
+      due_date: endDateStr,
+      due_time: returnTime || null,
+      description: notes || null,
+      title: `${vehicleName} - ${customerName}`,
+      status: 'pending' as const,
+      location: dropoffLocation || null,
+      booking_id: bookingId,
+      contract_path: contractPath
+    };
+
+    const { error: deliveryError } = await supabase
+      .from('daily_tasks')
+      .insert([deliveryTask]);
+
+    if (deliveryError) {
+      console.error('Error creating delivery task:', deliveryError);
+    }
+
+    const { error: returnError } = await supabase
+      .from('daily_tasks')
+      .insert([returnTask]);
+
+    if (returnError) {
+      console.error('Error creating return task:', returnError);
+    }
+  };
+
   const handleSaveBooking = async () => {
     if (!startDate || !endDate) {
       toast({
@@ -152,10 +213,15 @@ export function RentalBookingDialog({
         user_id: session.session.user.id,
         start_date: format(startDate, 'yyyy-MM-dd'),
         end_date: format(endDate, 'yyyy-MM-dd'),
+        pickup_time: pickupTime || null,
+        return_time: returnTime || null,
+        pickup_location: pickupLocation || null,
+        dropoff_location: dropoffLocation || null,
         customer_name: customerName,
         notes: notes,
         total_amount: totalAmount,
-        status: 'confirmed' as const
+        status: 'confirmed' as const,
+        contract_photo_path: contractPhotoPath
       };
 
       const { data: booking, error: bookingError } = await supabase
@@ -167,6 +233,9 @@ export function RentalBookingDialog({
       if (bookingError) {
         throw bookingError;
       }
+
+      // Create Daily Program tasks
+      await createDailyTasks(session.session.user.id, booking.id, contractPhotoPath);
 
       // Automatically create income record for this booking
       const { error: incomeError } = await supabase.from('financial_records').insert({
@@ -182,16 +251,11 @@ export function RentalBookingDialog({
 
       if (incomeError) {
         console.error('Error creating income record:', incomeError);
-        // Don't fail the booking, just log the error
       }
-
-      // NOTE: We do NOT update vehicle.status here
-      // Vehicle status is now computed dynamically from calendar data (bookings + maintenance blocks)
-      // The booking dates alone determine when the vehicle is "rented"
 
       toast({
         title: "Booking Created",
-        description: `Rental booked: $${totalAmount.toFixed(2)} (${rentalDays} days @ $${effectiveRate}/day)`,
+        description: `Rental booked: $${totalAmount.toFixed(2)} (${rentalDays} days @ $${effectiveRate}/day). Tasks added to Daily Program.`,
       });
 
       onBookingAdded(booking);
@@ -200,6 +264,10 @@ export function RentalBookingDialog({
       // Reset form
       setStartDate(undefined);
       setEndDate(undefined);
+      setPickupTime("");
+      setReturnTime("");
+      setPickupLocation("");
+      setDropoffLocation("");
       setCustomerName("");
       setNotes("");
       setContractPhoto(null);
@@ -237,59 +305,118 @@ export function RentalBookingDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Start Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !startDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "MMM dd") : <span>Pick date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={setStartDate}
-                    initialFocus
-                    className="p-3 pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
+          {/* Date and Time Selection */}
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">Pickup</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !startDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDate ? format(startDate, "MMM dd") : <span>Pick date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={startDate}
+                      onSelect={setStartDate}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Time
+                </Label>
+                <Input
+                  type="time"
+                  value={pickupTime}
+                  onChange={(e) => setPickupTime(e.target.value)}
+                  className="w-full"
+                />
+              </div>
             </div>
+          </div>
 
-            <div>
-              <Label>End Date</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !endDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, "MMM dd") : <span>Pick date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={endDate}
-                    onSelect={setEndDate}
-                    initialFocus
-                    className="p-3 pointer-events-auto"
-                  />
-                </PopoverContent>
-              </Popover>
+          <div className="space-y-3">
+            <Label className="text-base font-semibold">Return</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !endDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {endDate ? format(endDate, "MMM dd") : <span>Pick date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={endDate}
+                      onSelect={setEndDate}
+                      initialFocus
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Time
+                </Label>
+                <Input
+                  type="time"
+                  value={returnTime}
+                  onChange={(e) => setReturnTime(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Location Fields */}
+          <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+            <Label className="text-sm font-medium flex items-center gap-1">
+              <MapPin className="h-3.5 w-3.5" />
+              Locations
+            </Label>
+            <div className="space-y-2">
+              <div>
+                <Label className="text-xs text-muted-foreground">Pick-up Location</Label>
+                <Input
+                  value={pickupLocation}
+                  onChange={(e) => setPickupLocation(e.target.value)}
+                  placeholder="Where to pick up"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Drop-off Location</Label>
+                <Input
+                  value={dropoffLocation}
+                  onChange={(e) => setDropoffLocation(e.target.value)}
+                  placeholder="Where to return"
+                />
+              </div>
             </div>
           </div>
 
