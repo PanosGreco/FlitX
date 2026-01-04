@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Calendar, User, FileText, Trash2, MapPin, Clock } from "lucide-react";
+import { Calendar, User, FileText, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -195,42 +195,37 @@ export function RentalBookingsList({ vehicleId, onBookingDeleted }: RentalBookin
                 </div>
 
                 <div className="space-y-2 mb-3">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Calendar className="h-4 w-4" />
+                  {/* Pickup Info - all on one line */}
+                  <div className="flex items-start gap-2 text-sm text-gray-600">
+                    <span className="font-medium text-muted-foreground min-w-[60px]">Pickup:</span>
                     <span>
                       {format(new Date(booking.start_date), 'MMM dd, yyyy')}
                       {booking.pickup_time && (
-                        <span className="text-muted-foreground ml-1">
-                          at {formatTime(booking.pickup_time)}
-                        </span>
+                        <span className="ml-1">• {formatTime(booking.pickup_time)}</span>
                       )}
-                      {' → '}
-                      {format(new Date(booking.end_date), 'MMM dd, yyyy')}
-                      {booking.return_time && (
-                        <span className="text-muted-foreground ml-1">
-                          at {formatTime(booking.return_time)}
-                        </span>
+                      {booking.pickup_location && (
+                        <span className="ml-1">• {booking.pickup_location}</span>
                       )}
                     </span>
                   </div>
 
-                  {(booking.pickup_location || booking.dropoff_location) && (
-                    <div className="flex items-start gap-2 text-sm text-gray-600">
-                      <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                      <div className="space-y-0.5">
-                        {booking.pickup_location && (
-                          <div><span className="text-muted-foreground">From:</span> {booking.pickup_location}</div>
-                        )}
-                        {booking.dropoff_location && (
-                          <div><span className="text-muted-foreground">To:</span> {booking.dropoff_location}</div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  {/* Drop-off Info - all on one line */}
+                  <div className="flex items-start gap-2 text-sm text-gray-600">
+                    <span className="font-medium text-muted-foreground min-w-[60px]">Return:</span>
+                    <span>
+                      {format(new Date(booking.end_date), 'MMM dd, yyyy')}
+                      {booking.return_time && (
+                        <span className="ml-1">• {formatTime(booking.return_time)}</span>
+                      )}
+                      {booking.dropoff_location && (
+                        <span className="ml-1">• {booking.dropoff_location}</span>
+                      )}
+                    </span>
+                  </div>
                   
                   {booking.notes && (
                     <div className="flex items-start gap-2 text-sm text-gray-600">
-                      <FileText className="h-4 w-4 mt-0.5" />
+                      <span className="font-medium text-muted-foreground min-w-[60px]">Notes:</span>
                       <span>{booking.notes}</span>
                     </div>
                   )}
