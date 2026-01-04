@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { format, eachDayOfInterval } from "date-fns";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { format, eachDayOfInterval, isSameDay } from "date-fns";
+import { ChevronLeft, ChevronRight, Plus, Clock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -14,6 +15,10 @@ interface RentalBooking {
   end_date: string;
   customer_name: string;
   notes: string;
+  pickup_time: string | null;
+  return_time: string | null;
+  pickup_location: string | null;
+  dropoff_location: string | null;
 }
 
 interface MaintenanceBlock {
@@ -21,6 +26,13 @@ interface MaintenanceBlock {
   start_date: string;
   end_date: string;
   description: string | null;
+}
+
+interface DateInfo {
+  type: 'pickup' | 'return';
+  time: string | null;
+  location: string | null;
+  customerName: string;
 }
 
 interface CalendarViewProps {
@@ -36,6 +48,7 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
   const [maintenanceBlocks, setMaintenanceBlocks] = useState<MaintenanceBlock[]>([]);
   const [bookedDates, setBookedDates] = useState<Set<string>>(new Set());
   const [maintenanceDates, setMaintenanceDates] = useState<Set<string>>(new Set());
+  const [dateInfoMap, setDateInfoMap] = useState<Map<string, DateInfo[]>>(new Map());
   const { language } = useLanguage();
 
   useEffect(() => {
@@ -62,8 +75,10 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
       } else {
         setBookings(bookingsResult.data || []);
         
-        // Calculate booked dates
+        // Calculate booked dates and date info
         const booked = new Set<string>();
+        const infoMap = new Map<string, DateInfo[]>();
+        
         (bookingsResult.data || []).forEach(booking => {
           const start = new Date(booking.start_date);
           const end = new Date(booking.end_date);
@@ -71,8 +86,38 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
           dates.forEach(date => {
             booked.add(format(date, 'yyyy-MM-dd'));
           });
+          
+          // Add pickup info for start date
+          const startKey = format(start, 'yyyy-MM-dd');
+          const startInfo: DateInfo = {
+            type: 'pickup',
+            time: booking.pickup_time,
+            location: booking.pickup_location,
+            customerName: booking.customer_name
+          };
+          if (infoMap.has(startKey)) {
+            infoMap.get(startKey)!.push(startInfo);
+          } else {
+            infoMap.set(startKey, [startInfo]);
+          }
+          
+          // Add return info for end date
+          const endKey = format(end, 'yyyy-MM-dd');
+          const endInfo: DateInfo = {
+            type: 'return',
+            time: booking.return_time,
+            location: booking.dropoff_location,
+            customerName: booking.customer_name
+          };
+          if (infoMap.has(endKey)) {
+            infoMap.get(endKey)!.push(endInfo);
+          } else {
+            infoMap.set(endKey, [endInfo]);
+          }
         });
+        
         setBookedDates(booked);
+        setDateInfoMap(infoMap);
       }
 
       if (maintenanceResult.error) {
@@ -115,12 +160,87 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
     return maintenanceDates.has(format(date, 'yyyy-MM-dd'));
   };
 
+  const getDateInfo = (date: Date): DateInfo[] | undefined => {
+    return dateInfoMap.get(format(date, 'yyyy-MM-dd'));
+  };
+
   const previousMonth = () => {
     setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
   };
 
   const nextMonth = () => {
     setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+
+  // Custom day component with popover for pickup/return info
+  const DayWithPopover = ({ date, ...props }: { date: Date } & React.HTMLAttributes<HTMLButtonElement>) => {
+    const dateInfo = getDateInfo(date);
+    const hasInfo = dateInfo && dateInfo.length > 0;
+    const isBooked = isDateBooked(date);
+    const isMaintenance = isDateMaintenance(date);
+    const isSelected = selectedDates.some(d => isSameDay(d, date));
+    const isToday = isSameDay(date, new Date());
+    
+    const dayContent = (
+      <button
+        {...props}
+        className={cn(
+          "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground relative rounded-md",
+          isBooked && "bg-red-600 text-white font-bold hover:bg-red-700",
+          isMaintenance && !isBooked && "bg-orange-500 text-white font-bold hover:bg-orange-600",
+          isSelected && "bg-primary text-primary-foreground hover:bg-primary",
+          isToday && !isBooked && !isMaintenance && !isSelected && "bg-accent text-accent-foreground"
+        )}
+      >
+        {format(date, 'd')}
+      </button>
+    );
+
+    if (!hasInfo) {
+      return dayContent;
+    }
+
+    return (
+      <Popover>
+        <PopoverTrigger asChild>
+          {dayContent}
+        </PopoverTrigger>
+        <PopoverContent 
+          className="w-auto p-3 pointer-events-auto" 
+          align="center" 
+          side="top"
+          sideOffset={8}
+        >
+          <div className="space-y-2">
+            {dateInfo.map((info, idx) => (
+              <div key={idx} className={cn("text-sm", idx > 0 && "pt-2 border-t border-border")}>
+                <div className="font-medium text-foreground mb-1">
+                  {info.type === 'pickup' 
+                    ? (language === 'el' ? 'Παραλαβή' : 'Pickup')
+                    : (language === 'el' ? 'Επιστροφή' : 'Return')
+                  }
+                </div>
+                <div className="text-xs text-muted-foreground mb-1">
+                  {info.customerName}
+                </div>
+                {info.time && (
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    <span>{info.time}</span>
+                  </div>
+                )}
+                {info.location && (
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                    <MapPin className="h-3 w-3" />
+                    <span>{info.location}</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+    );
   };
 
   return (
@@ -173,7 +293,7 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
               head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] text-center",
               row: "flex w-full mt-2",
               cell: cn(
-                "relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected].day-range-end)]:rounded-r-md",
+                "relative p-0 text-center text-sm focus-within:relative focus-within:z-20",
                 "h-9 w-9"
               ),
               day: cn(
@@ -188,21 +308,8 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
               day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
               day_hidden: "invisible",
             }}
-            modifiers={{
-              booked: (date) => isDateBooked(date),
-              maintenance: (date) => isDateMaintenance(date),
-            }}
-            modifiersStyles={{
-              booked: {
-                backgroundColor: '#dc2626',
-                color: 'white',
-                fontWeight: 'bold',
-              },
-              maintenance: {
-                backgroundColor: '#f97316',
-                color: 'white',
-                fontWeight: 'bold',
-              },
+            components={{
+              Day: ({ date, ...props }) => <DayWithPopover date={date} {...props} />
             }}
           />
           
