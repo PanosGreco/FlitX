@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { format, differenceInDays } from "date-fns";
-import { CalendarIcon, Camera, Upload, X, MapPin, Clock } from "lucide-react";
+import { CalendarIcon, Camera, Upload, X, MapPin, Clock, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+
+interface AdditionalCost {
+  id: string;
+  amount: number;
+  note: string;
+}
 
 interface RentalBookingDialogProps {
   isOpen: boolean;
@@ -46,8 +52,10 @@ export function RentalBookingDialog({
   const [contractPhoto, setContractPhoto] = useState<File | null>(null);
   const [contractPhotoPreview, setContractPhotoPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [pricingMode, setPricingMode] = useState<'fixed' | 'adjusted'>('fixed');
+  const [pricingMode, setPricingMode] = useState<'fixed' | 'adjusted' | 'custom'>('fixed');
   const [adjustedRate, setAdjustedRate] = useState(vehicleDailyRate);
+  const [customTotalPrice, setCustomTotalPrice] = useState(0);
+  const [additionalCosts, setAdditionalCosts] = useState<AdditionalCost[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -69,7 +77,9 @@ export function RentalBookingDialog({
     : 0;
   
   const effectiveRate = pricingMode === 'fixed' ? vehicleDailyRate : adjustedRate;
-  const totalAmount = rentalDays * effectiveRate;
+  const baseAmount = rentalDays * effectiveRate;
+  const additionalCostsTotal = additionalCosts.reduce((sum, cost) => sum + cost.amount, 0);
+  const totalAmount = pricingMode === 'custom' ? customTotalPrice : (baseAmount + additionalCostsTotal);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -237,25 +247,48 @@ export function RentalBookingDialog({
       // Create Daily Program tasks
       await createDailyTasks(session.session.user.id, booking.id, contractPhotoPath);
 
-      // Automatically create income record for this booking
+      // Automatically create income record for base rental amount
+      const baseAmountToRecord = pricingMode === 'custom' ? customTotalPrice : baseAmount;
       const { error: incomeError } = await supabase.from('financial_records').insert({
         user_id: session.session.user.id,
         vehicle_id: vehicleId,
         booking_id: booking.id,
         type: 'income',
         category: 'rental',
-        amount: totalAmount,
+        amount: baseAmountToRecord,
         date: format(startDate, 'yyyy-MM-dd'),
-        description: `Rental: ${vehicleName} - ${customerName} (${rentalDays} days @ $${effectiveRate}/day)`
+        description: pricingMode === 'custom' 
+          ? `Rental: ${vehicleName} - ${customerName} (Custom price)`
+          : `Rental: ${vehicleName} - ${customerName} (${rentalDays} days @ $${effectiveRate}/day)`
       });
 
       if (incomeError) {
         console.error('Error creating income record:', incomeError);
       }
 
+      // Create separate income records for additional costs
+      if (pricingMode !== 'custom' && additionalCosts.length > 0) {
+        for (const cost of additionalCosts) {
+          const { error: additionalIncomeError } = await supabase.from('financial_records').insert({
+            user_id: session.session.user.id,
+            vehicle_id: vehicleId,
+            booking_id: booking.id,
+            type: 'income',
+            category: 'additional',
+            amount: cost.amount,
+            date: format(startDate, 'yyyy-MM-dd'),
+            description: cost.note ? `Additional: ${cost.note}` : `Additional charge - ${vehicleName}`
+          });
+
+          if (additionalIncomeError) {
+            console.error('Error creating additional income record:', additionalIncomeError);
+          }
+        }
+      }
+
       toast({
         title: "Booking Created",
-        description: `Rental booked: $${totalAmount.toFixed(2)} (${rentalDays} days @ $${effectiveRate}/day). Tasks added to Daily Program.`,
+        description: `Rental booked: $${totalAmount.toFixed(2)}. Tasks added to Daily Program.`,
       });
 
       onBookingAdded(booking);
@@ -274,6 +307,8 @@ export function RentalBookingDialog({
       setContractPhotoPreview(null);
       setPricingMode('fixed');
       setAdjustedRate(vehicleDailyRate);
+      setCustomTotalPrice(0);
+      setAdditionalCosts([]);
       
     } catch (error) {
       console.error('Error creating booking:', error);
@@ -305,8 +340,8 @@ export function RentalBookingDialog({
             />
           </div>
 
-          {/* Date and Time Selection */}
-          <div className="space-y-3">
+          {/* Pickup Section */}
+          <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
             <Label className="text-base font-semibold">Pickup</Label>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -348,9 +383,21 @@ export function RentalBookingDialog({
                 />
               </div>
             </div>
+            <div>
+              <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                Location
+              </Label>
+              <Input
+                value={pickupLocation}
+                onChange={(e) => setPickupLocation(e.target.value)}
+                placeholder="Pick-up location"
+              />
+            </div>
           </div>
 
-          <div className="space-y-3">
+          {/* Return Section */}
+          <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
             <Label className="text-base font-semibold">Return</Label>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -392,31 +439,16 @@ export function RentalBookingDialog({
                 />
               </div>
             </div>
-          </div>
-
-          {/* Location Fields */}
-          <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
-            <Label className="text-sm font-medium flex items-center gap-1">
-              <MapPin className="h-3.5 w-3.5" />
-              Locations
-            </Label>
-            <div className="space-y-2">
-              <div>
-                <Label className="text-xs text-muted-foreground">Pick-up Location</Label>
-                <Input
-                  value={pickupLocation}
-                  onChange={(e) => setPickupLocation(e.target.value)}
-                  placeholder="Where to pick up"
-                />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Drop-off Location</Label>
-                <Input
-                  value={dropoffLocation}
-                  onChange={(e) => setDropoffLocation(e.target.value)}
-                  placeholder="Where to return"
-                />
-              </div>
+            <div>
+              <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                Location
+              </Label>
+              <Input
+                value={dropoffLocation}
+                onChange={(e) => setDropoffLocation(e.target.value)}
+                placeholder="Drop-off location"
+              />
             </div>
           </div>
 
@@ -426,7 +458,7 @@ export function RentalBookingDialog({
             
             <RadioGroup 
               value={pricingMode} 
-              onValueChange={(v) => setPricingMode(v as 'fixed' | 'adjusted')}
+              onValueChange={(v) => setPricingMode(v as 'fixed' | 'adjusted' | 'custom')}
               className="space-y-2"
             >
               <div className="flex items-center space-x-2">
@@ -439,6 +471,12 @@ export function RentalBookingDialog({
                 <RadioGroupItem value="adjusted" id="adjusted" />
                 <Label htmlFor="adjusted" className="font-normal cursor-pointer">
                   Custom rate
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="custom" id="custom" />
+                <Label htmlFor="custom" className="font-normal cursor-pointer">
+                  Custom total price
                 </Label>
               </div>
             </RadioGroup>
@@ -460,11 +498,105 @@ export function RentalBookingDialog({
               </div>
             )}
 
+            {pricingMode === 'custom' && (
+              <div className="pl-6">
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground">$</span>
+                  <Input
+                    type="number"
+                    value={customTotalPrice}
+                    onChange={(e) => setCustomTotalPrice(Number(e.target.value))}
+                    min={0}
+                    step="0.01"
+                    className="w-32"
+                    placeholder="Total price"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Overrides all calculations
+                </p>
+              </div>
+            )}
+
+            {/* Additional Costs (only shown when not using custom total) */}
+            {pricingMode !== 'custom' && (
+              <div className="pt-3 border-t space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium">Additional Costs</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAdditionalCosts([...additionalCosts, { id: crypto.randomUUID(), amount: 0, note: '' }])}
+                    className="h-7 px-2"
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    Add
+                  </Button>
+                </div>
+                
+                {additionalCosts.map((cost, index) => (
+                  <div key={cost.id} className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <span className="text-muted-foreground text-sm">$</span>
+                      <Input
+                        type="number"
+                        value={cost.amount || ''}
+                        onChange={(e) => {
+                          const updated = [...additionalCosts];
+                          updated[index].amount = Number(e.target.value);
+                          setAdditionalCosts(updated);
+                        }}
+                        min={0}
+                        step="0.01"
+                        className="w-20 h-8"
+                        placeholder="0"
+                      />
+                    </div>
+                    <Input
+                      value={cost.note}
+                      onChange={(e) => {
+                        const updated = [...additionalCosts];
+                        updated[index].note = e.target.value;
+                        setAdditionalCosts(updated);
+                      }}
+                      placeholder="Note (optional)"
+                      className="h-8 flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setAdditionalCosts(additionalCosts.filter(c => c.id !== cost.id))}
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Total Summary */}
             {rentalDays > 0 && (
-              <div className="pt-3 border-t">
-                <div className="flex justify-between text-sm">
-                  <span>{rentalDays} day{rentalDays > 1 ? 's' : ''} × ${effectiveRate}/day</span>
-                  <span className="font-semibold text-green-600">${totalAmount.toFixed(2)}</span>
+              <div className="pt-3 border-t space-y-1">
+                {pricingMode !== 'custom' && (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span>{rentalDays} day{rentalDays > 1 ? 's' : ''} × ${effectiveRate}/day</span>
+                      <span>${baseAmount.toFixed(2)}</span>
+                    </div>
+                    {additionalCostsTotal > 0 && (
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>Additional costs</span>
+                        <span>+${additionalCostsTotal.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+                <div className="flex justify-between text-sm font-semibold pt-1">
+                  <span>Total</span>
+                  <span className="text-green-600">${totalAmount.toFixed(2)}</span>
                 </div>
               </div>
             )}
