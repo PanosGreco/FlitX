@@ -21,7 +21,7 @@
     --secondary-foreground: 222.2 47.4% 11.2%;
 
     --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted-foreground: 230 23% 5%;
 
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
@@ -29,9 +29,9 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 0 0% 75%;
+    --input: 180 1% 50%;
+    --ring: 223 84% 5%;
 
     --radius: 0.5rem;
 
@@ -47,6 +47,8 @@
     --shadow: 0px 1px 3px 0px hsla(0, 0%, 0%, 0.1);
     --shadow-md: 0px 1px 4.5px 0px hsla(0, 0%, 0%, 0.1);
     --shadow-lg: 0px 1px 7.5px 0px hsla(0, 0%, 0%, 0.1);
+    --font-sans: Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+    --font-serif: "Playfair Display", ui-serif, Georgia, Cambria, Times New Roman, Times, serif;
   }
 
   .dark {
@@ -91,6 +93,8 @@
     --shadow: 0px 1px 3px 0px hsla(0, 0%, 0%, 0.1);
     --shadow-md: 0px 1px 4.5px 0px hsla(0, 0%, 0%, 0.1);
     --shadow-lg: 0px 1px 7.5px 0px hsla(0, 0%, 0%, 0.1);
+    --font-sans: Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+    --font-serif: "Playfair Display", ui-serif, Georgia, Cambria, Times New Roman, Times, serif;
   }
 }
 
