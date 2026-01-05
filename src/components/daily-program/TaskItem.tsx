@@ -3,10 +3,12 @@ import { Clock, Edit, Trash2, Check, MapPin, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { EditTaskDialog } from "./EditTaskDialog";
 import { DailyTask } from "@/hooks/useDailyTasks";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 interface TaskItemProps {
   task: DailyTask;
@@ -18,7 +20,9 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isContractOpen, setIsContractOpen] = useState(false);
+  const [isDeleteContractDialogOpen, setIsDeleteContractDialogOpen] = useState(false);
   const [contractUrl, setContractUrl] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const handleToggleComplete = async () => {
     setIsUpdating(true);
@@ -38,6 +42,63 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
       setIsContractOpen(true);
     } catch (error) {
       console.error('Error loading contract:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load contract",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteContract = async () => {
+    if (!task.contractPath) return;
+
+    try {
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('rental-contracts')
+        .remove([task.contractPath]);
+
+      if (storageError) {
+        console.error('Error deleting contract from storage:', storageError);
+      }
+
+      // Update task to remove contract reference
+      const { error: taskError } = await supabase
+        .from('daily_tasks')
+        .update({ contract_path: null })
+        .eq('id', task.id);
+
+      if (taskError) {
+        throw taskError;
+      }
+
+      // Also update related booking if exists
+      if (task.bookingId) {
+        await supabase
+          .from('rental_bookings')
+          .update({ contract_photo_path: null })
+          .eq('id', task.bookingId);
+      }
+
+      // Update local task state
+      onUpdate({ ...task, contractPath: null });
+
+      setIsContractOpen(false);
+      setIsDeleteContractDialogOpen(false);
+      setContractUrl(null);
+
+      toast({
+        title: "Contract Deleted",
+        description: "Contract has been permanently removed",
+      });
+    } catch (error) {
+      console.error('Error deleting contract:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete contract",
+        variant: "destructive"
+      });
     }
   };
 
@@ -75,7 +136,7 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
                       className="h-5 w-5 p-0 text-blue-600 hover:text-blue-800"
                       onClick={handleViewContract}
                       onDoubleClick={handleViewContract}
-                      title="View Contract"
+                      title="View Contract (double-click for large view)"
                     >
                       <FileText className="h-3.5 w-3.5" />
                     </Button>
@@ -155,23 +216,58 @@ export function TaskItem({ task, onUpdate, onDelete }: TaskItemProps) {
         </CardContent>
       </Card>
 
-      {/* Contract Viewer Dialog */}
+      {/* Large Contract Viewer Dialog */}
       <Dialog open={isContractOpen} onOpenChange={setIsContractOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>Contract Photo</DialogTitle>
+            <DialogTitle>Contract Document</DialogTitle>
           </DialogHeader>
           {contractUrl && (
-            <div className="flex justify-center">
-              <img 
-                src={contractUrl} 
-                alt="Contract" 
-                className="max-w-full max-h-96 object-contain rounded"
-              />
+            <div className="flex flex-col items-center">
+              <div className="overflow-auto max-h-[70vh] w-full flex justify-center">
+                <img 
+                  src={contractUrl} 
+                  alt="Contract" 
+                  className="max-w-full object-contain rounded"
+                  style={{ maxHeight: '65vh' }}
+                />
+              </div>
             </div>
           )}
+          <DialogFooter className="flex justify-between sm:justify-between">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setIsDeleteContractDialogOpen(true)}
+              className="gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Contract
+            </Button>
+            <Button variant="outline" onClick={() => setIsContractOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Contract Confirmation */}
+      <AlertDialog open={isDeleteContractDialogOpen} onOpenChange={setIsDeleteContractDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Contract?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the contract file. The task will remain intact.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteContract} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

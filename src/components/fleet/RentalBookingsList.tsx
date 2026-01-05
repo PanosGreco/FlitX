@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Calendar, User, FileText, Trash2 } from "lucide-react";
+import { Calendar, User, FileText, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -31,7 +32,10 @@ export function RentalBookingsList({ vehicleId, onBookingDeleted }: RentalBookin
   const [bookings, setBookings] = useState<RentalBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+  const [selectedContractPath, setSelectedContractPath] = useState<string | null>(null);
   const [isPhotoDialogOpen, setIsPhotoDialogOpen] = useState(false);
+  const [isDeleteContractDialogOpen, setIsDeleteContractDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -59,13 +63,15 @@ export function RentalBookingsList({ vehicleId, onBookingDeleted }: RentalBookin
     }
   };
 
-  const handleViewPhoto = async (photoPath: string) => {
+  const handleViewPhoto = async (photoPath: string, bookingId: string) => {
     try {
       const { data } = await supabase.storage
         .from('rental-contracts')
         .getPublicUrl(photoPath);
       
       setSelectedPhoto(data.publicUrl);
+      setSelectedBookingId(bookingId);
+      setSelectedContractPath(photoPath);
       setIsPhotoDialogOpen(true);
     } catch (error) {
       console.error('Error loading photo:', error);
@@ -77,14 +83,111 @@ export function RentalBookingsList({ vehicleId, onBookingDeleted }: RentalBookin
     }
   };
 
+  const handleDeleteContract = async () => {
+    if (!selectedContractPath || !selectedBookingId) return;
+
+    try {
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('rental-contracts')
+        .remove([selectedContractPath]);
+
+      if (storageError) {
+        console.error('Error deleting contract from storage:', storageError);
+      }
+
+      // Update booking to remove contract reference
+      const { error: dbError } = await supabase
+        .from('rental_bookings')
+        .update({ contract_photo_path: null })
+        .eq('id', selectedBookingId);
+
+      if (dbError) {
+        throw dbError;
+      }
+
+      // Also update any related daily tasks
+      await supabase
+        .from('daily_tasks')
+        .update({ contract_path: null })
+        .eq('booking_id', selectedBookingId);
+
+      // Update local state
+      setBookings(bookings.map(b => 
+        b.id === selectedBookingId 
+          ? { ...b, contract_photo_path: undefined }
+          : b
+      ));
+
+      setIsPhotoDialogOpen(false);
+      setIsDeleteContractDialogOpen(false);
+      setSelectedPhoto(null);
+      setSelectedBookingId(null);
+      setSelectedContractPath(null);
+
+      toast({
+        title: "Contract Deleted",
+        description: "Contract has been permanently removed",
+      });
+    } catch (error) {
+      console.error('Error deleting contract:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete contract",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleDeleteBooking = async (bookingId: string) => {
     try {
-      // Also delete related daily tasks
+      // First, get the booking to find the contract path
+      const booking = bookings.find(b => b.id === bookingId);
+      
+      // Delete contract file from storage if exists
+      if (booking?.contract_photo_path) {
+        const { error: storageError } = await supabase.storage
+          .from('rental-contracts')
+          .remove([booking.contract_photo_path]);
+        
+        if (storageError) {
+          console.error('Error deleting contract from storage:', storageError);
+        }
+      }
+
+      // Get daily tasks with contract paths to clean up
+      const { data: tasksWithContracts } = await supabase
+        .from('daily_tasks')
+        .select('contract_path')
+        .eq('booking_id', bookingId)
+        .not('contract_path', 'is', null);
+
+      // Delete task contract files from storage
+      if (tasksWithContracts && tasksWithContracts.length > 0) {
+        const contractPaths = tasksWithContracts
+          .map(t => t.contract_path)
+          .filter(Boolean) as string[];
+        
+        if (contractPaths.length > 0) {
+          await supabase.storage
+            .from('rental-contracts')
+            .remove(contractPaths);
+        }
+      }
+
+      // Delete related daily tasks
       await supabase
         .from('daily_tasks')
         .delete()
         .eq('booking_id', bookingId);
 
+      // Delete related financial records
+      await supabase
+        .from('financial_records')
+        .delete()
+        .eq('booking_id', bookingId);
+
+      // Delete the booking
       const { error } = await supabase
         .from('rental_bookings')
         .delete()
@@ -99,7 +202,7 @@ export function RentalBookingsList({ vehicleId, onBookingDeleted }: RentalBookin
       
       toast({
         title: "Booking Deleted",
-        description: "Rental booking and related tasks have been removed",
+        description: "Booking, contracts, tasks, and financial records have been permanently removed",
       });
     } catch (error) {
       console.error('Error deleting booking:', error);
@@ -173,9 +276,10 @@ export function RentalBookingsList({ vehicleId, onBookingDeleted }: RentalBookin
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleViewPhoto(booking.contract_photo_path!)}
+                        onClick={() => handleViewPhoto(booking.contract_photo_path!, booking.id)}
+                        onDoubleClick={() => handleViewPhoto(booking.contract_photo_path!, booking.id)}
                         className="text-blue-600 hover:text-blue-800 h-8 w-8 p-0"
-                        title="View Contract"
+                        title="View Contract (double-click for large view)"
                       >
                         <FileText className="h-4 w-4" />
                       </Button>
@@ -236,22 +340,60 @@ export function RentalBookingsList({ vehicleId, onBookingDeleted }: RentalBookin
         })}
       </div>
 
+      {/* Large Contract Viewer Dialog */}
       <Dialog open={isPhotoDialogOpen} onOpenChange={setIsPhotoDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>Contract Photo</DialogTitle>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Contract Document</span>
+            </DialogTitle>
           </DialogHeader>
           {selectedPhoto && (
-            <div className="flex justify-center">
-              <img 
-                src={selectedPhoto} 
-                alt="Contract" 
-                className="max-w-full max-h-96 object-contain rounded"
-              />
+            <div className="flex flex-col items-center">
+              <div className="overflow-auto max-h-[70vh] w-full flex justify-center">
+                <img 
+                  src={selectedPhoto} 
+                  alt="Contract" 
+                  className="max-w-full object-contain rounded"
+                  style={{ maxHeight: '65vh' }}
+                />
+              </div>
             </div>
           )}
+          <DialogFooter className="flex justify-between sm:justify-between">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setIsDeleteContractDialogOpen(true)}
+              className="gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Contract
+            </Button>
+            <Button variant="outline" onClick={() => setIsPhotoDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Contract Confirmation */}
+      <AlertDialog open={isDeleteContractDialogOpen} onOpenChange={setIsDeleteContractDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Contract?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the contract file. The booking will remain intact, and you can upload a new contract later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteContract} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
