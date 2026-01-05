@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ComputedStatus } from "@/hooks/useVehicleStatus";
-
 export interface VehicleData {
   id: string;
   make: string;
@@ -19,62 +18,44 @@ export interface VehicleData {
   dailyRate: number;
   rented_until?: string;
 }
-
 interface VehicleCardProps {
   vehicle: VehicleData;
   computedStatus?: ComputedStatus;
 }
-
-export function VehicleCard({ vehicle, computedStatus }: VehicleCardProps) {
-  const { t, language } = useLanguage();
+export function VehicleCard({
+  vehicle,
+  computedStatus
+}: VehicleCardProps) {
+  const {
+    t,
+    language
+  } = useLanguage();
 
   // Use computed status if provided, otherwise fall back to stored status
   const displayStatus = computedStatus || vehicle.status;
-
   const statusColors = {
     available: "bg-green-100 text-green-800 border-green-200",
     rented: "bg-red-100 text-red-800 border-red-200",
     maintenance: "bg-orange-100 text-orange-800 border-orange-200",
     repair: "bg-orange-100 text-orange-800 border-orange-200"
   };
-  
   const statusLabels = {
     available: t.available,
     rented: t.rented,
     maintenance: t.maintenance,
     repair: t.repair
   };
-  
   const statusIcons = {
     repair: <AlertTriangle className="h-3.5 w-3.5 mr-1" />,
     maintenance: <Wrench className="h-3.5 w-3.5 mr-1" />
   };
-
-  return (
-    <Link 
-      to={`/vehicle/${vehicle.id}`} 
-      className="block bg-white rounded-lg shadow-card overflow-hidden transition-all hover:shadow-md active:shadow-sm focus:outline-none focus:ring-2 focus:ring-flitx-blue-200"
-    >
+  return <Link to={`/vehicle/${vehicle.id}`} className="block bg-white rounded-lg shadow-card overflow-hidden transition-all hover:shadow-md active:shadow-sm focus:outline-none focus:ring-2 focus:ring-flitx-blue-200">
       <div className="relative">
-        {vehicle.image ? (
-          <img 
-            src={vehicle.image} 
-            alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
-            className="h-40 w-full object-cover"
-          />
-        ) : (
-          <div className="h-40 w-full bg-flitx-gray-100 flex items-center justify-center">
+        {vehicle.image ? <img src={vehicle.image} alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`} className="h-40 w-full object-scale-down" /> : <div className="h-40 w-full bg-flitx-gray-100 flex items-center justify-center">
             <Car className="h-16 w-16 text-flitx-gray-300" />
-          </div>
-        )}
+          </div>}
         
-        <Badge
-          className={cn(
-            "absolute top-3 right-3 flex items-center",
-            statusColors[displayStatus]
-          )}
-          variant="outline"
-        >
+        <Badge className={cn("absolute top-3 right-3 flex items-center", statusColors[displayStatus])} variant="outline">
           {statusIcons[displayStatus as keyof typeof statusIcons]}
           {statusLabels[displayStatus]}
         </Badge>
@@ -100,6 +81,5 @@ export function VehicleCard({ vehicle, computedStatus }: VehicleCardProps) {
           </div>
         </div>
       </div>
-    </Link>
-  );
+    </Link>;
 }
