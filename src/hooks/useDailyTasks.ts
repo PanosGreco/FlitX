@@ -189,7 +189,8 @@ export function useDailyTasks(selectedDate: Date) {
         description: updatedTask.notes || null,
         title: updatedTask.vehicleName || updatedTask.type.charAt(0).toUpperCase() + updatedTask.type.slice(1),
         status: updatedTask.completed ? 'completed' : 'pending',
-        location: updatedTask.location || null
+        location: updatedTask.location || null,
+        contract_path: updatedTask.contractPath
       })
       .eq('id', updatedTask.id)
       .eq('user_id', user.id);
@@ -208,6 +209,20 @@ export function useDailyTasks(selectedDate: Date) {
     if (!user) {
       toast.error('Please log in to delete tasks');
       return false;
+    }
+
+    // First get the task to check for contract files
+    const task = tasks.find(t => t.id === taskId);
+    
+    // Delete contract file from storage if exists
+    if (task?.contractPath) {
+      const { error: storageError } = await supabase.storage
+        .from('rental-contracts')
+        .remove([task.contractPath]);
+      
+      if (storageError) {
+        console.error('Error deleting contract from storage:', storageError);
+      }
     }
 
     const { error } = await supabase
