@@ -6,6 +6,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+/**
+ * Contract Attachment Cleanup Function
+ * 
+ * STRICT DATA RETENTION POLICY:
+ * - ONLY deletes booking contract ATTACHMENTS (files in storage)
+ * - NEVER deletes: bookings, daily tasks, financial records, vehicles, maintenance, damages
+ * - Contract files are deleted 30 days AFTER the booking end_date
+ * - Booking records remain intact, only the contract_photo_path reference is cleared
+ */
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -18,31 +27,33 @@ serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Calculate the date 30 days ago
+    // Calculate the date 30 days ago (for bookings that ended 30+ days ago)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const cutoffDate = thirtyDaysAgo.toISOString();
+    const cutoffDate = thirtyDaysAgo.toISOString().split('T')[0]; // YYYY-MM-DD format
 
-    console.log(`Cleaning up completed tasks older than: ${cutoffDate}`);
+    console.log(`Cleaning up contract attachments for bookings ended before: ${cutoffDate}`);
 
-    // First, get completed tasks with contract files that need cleanup
-    const { data: tasksToDelete, error: fetchError } = await supabase
-      .from("daily_tasks")
-      .select("id, contract_path")
-      .eq("status", "completed")
-      .lt("updated_at", cutoffDate);
+    // Find bookings with contract files where end_date is older than 30 days
+    const { data: bookingsWithContracts, error: fetchError } = await supabase
+      .from("rental_bookings")
+      .select("id, contract_photo_path")
+      .not("contract_photo_path", "is", null)
+      .lt("end_date", cutoffDate);
 
     if (fetchError) {
-      throw new Error(`Failed to fetch tasks: ${fetchError.message}`);
+      throw new Error(`Failed to fetch bookings: ${fetchError.message}`);
     }
 
-    let deletedCount = 0;
     let filesDeleted = 0;
+    let bookingsUpdated = 0;
 
-    if (tasksToDelete && tasksToDelete.length > 0) {
+    if (bookingsWithContracts && bookingsWithContracts.length > 0) {
+      console.log(`Found ${bookingsWithContracts.length} bookings with contract files to clean up`);
+
       // Collect contract paths for deletion
-      const contractPaths = tasksToDelete
-        .map((task) => task.contract_path)
+      const contractPaths = bookingsWithContracts
+        .map((booking) => booking.contract_photo_path)
         .filter(Boolean) as string[];
 
       // Delete contract files from storage
@@ -59,28 +70,31 @@ serve(async (req) => {
         }
       }
 
-      // Delete the tasks from database
-      const taskIds = tasksToDelete.map((task) => task.id);
-      const { error: deleteError, count } = await supabase
-        .from("daily_tasks")
-        .delete()
-        .in("id", taskIds);
+      // Clear contract_photo_path references in bookings (but keep the bookings!)
+      const bookingIds = bookingsWithContracts.map((booking) => booking.id);
+      const { error: updateError } = await supabase
+        .from("rental_bookings")
+        .update({ contract_photo_path: null })
+        .in("id", bookingIds);
 
-      if (deleteError) {
-        throw new Error(`Failed to delete tasks: ${deleteError.message}`);
+      if (updateError) {
+        console.error("Error clearing contract references:", updateError);
+      } else {
+        bookingsUpdated = bookingIds.length;
+        console.log(`Cleared contract references from ${bookingsUpdated} bookings`);
       }
-
-      deletedCount = taskIds.length;
-      console.log(`Deleted ${deletedCount} completed tasks from database`);
+    } else {
+      console.log("No contract files found for cleanup");
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Cleanup complete`,
-        tasksDeleted: deletedCount,
+        message: `Contract attachment cleanup complete`,
         filesDeleted: filesDeleted,
+        bookingsUpdated: bookingsUpdated,
         cutoffDate: cutoffDate,
+        note: "Only contract files were deleted. All bookings, tasks, and records remain intact."
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
