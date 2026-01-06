@@ -21,6 +21,8 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { BarChart, LineChart, PieChart, CategoryBreakdown } from "@/components/finances/charts";
+import { IncomeBreakdown } from "@/components/finances/IncomeBreakdown";
+import { ExpenseBreakdown } from "@/components/finances/ExpenseBreakdown";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface FinancialRecord {
@@ -30,6 +32,17 @@ interface FinancialRecord {
   amount: number;
   date: string;
   description: string | null;
+  income_source_type?: string | null;
+  income_source_specification?: string | null;
+  expense_subcategory?: string | null;
+  vehicle_id?: string | null;
+}
+
+interface Vehicle {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
 }
 
 interface FinanceDashboardProps {
@@ -43,6 +56,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   const [recentTransactions, setRecentTransactions] = useState<FinancialRecord[]>([]);
   const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
   const [categoryData, setCategoryData] = useState<Array<{ name: string; value: number; amount: number }>>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const isBoats = isBoatBusiness();
   const { t, language, isLanguageLoading } = useLanguage();
   const { user } = useAuth();
@@ -50,6 +64,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   useEffect(() => {
     if (user) {
       fetchRecentTransactions();
+      fetchVehicles();
     }
   }, [user]);
 
@@ -74,6 +89,23 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       console.error("Exception fetching recent transactions:", error);
     } finally {
       setIsTransactionsLoading(false);
+    }
+  };
+
+  const fetchVehicles = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('vehicles')
+        .select('id, make, model, year')
+        .order('make');
+
+      if (!error && data) {
+        setVehicles(data);
+      }
+    } catch (error) {
+      console.error("Error fetching vehicles:", error);
     }
   };
 
@@ -253,11 +285,11 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         </Card>
       </div>
       
-      {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-1">
+      {/* Bottom Row - Expense Pie Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-lg">{language === 'el' ? 'Ανάλυση Εξόδων' : 'Expense Breakdown'}</CardTitle>
+            <CardTitle className="text-lg">{language === 'el' ? 'Κατανομή Εξόδων' : 'Expense Distribution'}</CardTitle>
           </CardHeader>
           <CardContent>
             <PieChart 
@@ -269,34 +301,51 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
             <CategoryBreakdown data={categoryData} lang={language} />
           </CardContent>
         </Card>
-        
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">{language === 'el' ? 'Πρόσφατες Συναλλαγές' : 'Recent Transactions'}</CardTitle>
-            {isTransactionsLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
-          </CardHeader>
-          <CardContent>
-            {recentTransactions.length > 0 ? (
-              <div className="space-y-4">
-                {recentTransactions.map(record => (
-                  <TransactionItem 
-                    key={record.id}
-                    description={record.description || record.category}
-                    amount={Number(record.amount)}
-                    date={formatDate(record.date)}
-                    type={record.type}
-                    lang={language}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-center text-muted-foreground py-8">
-                {language === 'el' ? 'Δεν βρέθηκαν πρόσφατες συναλλαγές' : 'No recent transactions found'}
-              </p>
-            )}
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Income Breakdown Section */}
+      <IncomeBreakdown 
+        financialRecords={financialRecords}
+        vehicles={vehicles}
+        lang={language}
+        timeframe={timeframe}
+      />
+
+      {/* Expense Breakdown Section */}
+      <ExpenseBreakdown 
+        financialRecords={financialRecords}
+        vehicles={vehicles}
+        lang={language}
+        timeframe={timeframe}
+      />
+        
+      {/* Recent Transactions - Moved to bottom */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-lg">{language === 'el' ? 'Πρόσφατες Συναλλαγές' : 'Recent Transactions'}</CardTitle>
+          {isTransactionsLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+        </CardHeader>
+        <CardContent>
+          {recentTransactions.length > 0 ? (
+            <div className="space-y-4">
+              {recentTransactions.map(record => (
+                <TransactionItem 
+                  key={record.id}
+                  description={record.description || record.category}
+                  amount={Number(record.amount)}
+                  date={formatDate(record.date)}
+                  type={record.type}
+                  lang={language}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-muted-foreground py-8">
+              {language === 'el' ? 'Δεν βρέθηκαν πρόσφατες συναλλαγές' : 'No recent transactions found'}
+            </p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

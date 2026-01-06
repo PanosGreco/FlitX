@@ -149,7 +149,9 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
             category: 'maintenance',
             amount: costValue,
             date: serviceDate,
-            description: `${getServiceTypeLabel(serviceType)}${notes ? ': ' + notes : ''}`
+            description: `${getServiceTypeLabel(serviceType)}${notes ? ': ' + notes : ''}`,
+            expense_subcategory: getServiceTypeLabel(serviceType),
+            source_section: 'vehicle_maintenance'
           });
           
         if (financeError) {

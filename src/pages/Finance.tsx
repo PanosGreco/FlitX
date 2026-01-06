@@ -33,6 +33,9 @@ const Finance = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recordType, setRecordType] = useState("income");
   const [expenseCategory, setExpenseCategory] = useState("fuel");
+  const [expenseSubcategory, setExpenseSubcategory] = useState("");
+  const [incomeSourceType, setIncomeSourceType] = useState("walk_in");
+  const [incomeSourceSpecification, setIncomeSourceSpecification] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(new Date().toISOString().substring(0, 10));
   const [notes, setNotes] = useState("");
@@ -127,6 +130,9 @@ const Finance = () => {
     // Reset form fields
     setRecordType("income");
     setExpenseCategory("fuel");
+    setExpenseSubcategory("");
+    setIncomeSourceType("walk_in");
+    setIncomeSourceSpecification("");
     setAmount("");
     setDate(new Date().toISOString().substring(0, 10));
     setNotes("");
@@ -161,6 +167,10 @@ const Finance = () => {
         date: string;
         description: string;
         vehicle_id?: string;
+        income_source_type?: string;
+        income_source_specification?: string;
+        expense_subcategory?: string;
+        source_section: string;
       } = {
         user_id: session.session.user.id,
         type: recordType as 'income' | 'expense',
@@ -170,7 +180,23 @@ const Finance = () => {
         description: notes || `${recordType === "income" ? 
           (language === 'el' ? "Έσοδο" : "Income") : 
           (language === 'el' ? "Έξοδο" : "Expense")} record`,
+        source_section: 'manual',
       };
+      
+      // Add income source tracking
+      if (recordType === "income") {
+        newRecord.income_source_type = incomeSourceType;
+        if (incomeSourceType === 'collaboration' || incomeSourceType === 'other') {
+          newRecord.income_source_specification = incomeSourceSpecification;
+        }
+      }
+      
+      // Add expense subcategory
+      if (recordType === "expense") {
+        if (expenseCategory === 'maintenance' || expenseCategory === 'other') {
+          newRecord.expense_subcategory = expenseSubcategory;
+        }
+      }
       
       // Link to vehicle if selected
       if (selectedVehicleId) {
@@ -248,6 +274,44 @@ const Finance = () => {
                 </Select>
               </div>
               
+              {/* Income Source Type - for income records */}
+              {recordType === "income" && (
+                <div className="space-y-2">
+                  <Label htmlFor="incomeSource">{language === 'el' ? 'Πηγή Εσόδου' : 'Income Source'}</Label>
+                  <Select value={incomeSourceType} onValueChange={setIncomeSourceType} disabled={isLanguageLoading}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={language === 'el' ? 'Επιλέξτε πηγή...' : 'Select source...'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="walk_in">{language === 'el' ? 'Επιτόπια' : 'Walk-in'}</SelectItem>
+                      <SelectItem value="internet">{language === 'el' ? 'Διαδίκτυο' : 'Internet'}</SelectItem>
+                      <SelectItem value="phone">{language === 'el' ? 'Τηλέφωνο' : 'Phone'}</SelectItem>
+                      <SelectItem value="collaboration">{language === 'el' ? 'Συνεργασία' : 'Collaboration'}</SelectItem>
+                      <SelectItem value="other">{language === 'el' ? 'Άλλο' : 'Other'}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Income Source Specification - for collaboration/other */}
+              {recordType === "income" && (incomeSourceType === 'collaboration' || incomeSourceType === 'other') && (
+                <div className="space-y-2">
+                  <Label htmlFor="incomeSpec">
+                    {language === 'el' ? 'Προσδιορισμός Πηγής' : 'Source Specification'} *
+                  </Label>
+                  <Input 
+                    id="incomeSpec"
+                    placeholder={incomeSourceType === 'collaboration' 
+                      ? (language === 'el' ? 'π.χ. Hotel Blue Bay' : 'e.g. Hotel Blue Bay')
+                      : (language === 'el' ? 'Περιγράψτε την πηγή...' : 'Describe the source...')}
+                    value={incomeSourceSpecification}
+                    onChange={(e) => setIncomeSourceSpecification(e.target.value)}
+                    required
+                    disabled={isLanguageLoading}
+                  />
+                </div>
+              )}
+
               {recordType === "expense" && (
                 <div className="space-y-2">
                   <Label htmlFor="expenseType">{t.category}</Label>
@@ -277,6 +341,30 @@ const Finance = () => {
                             <SelectItem value="salary">{t.employeeSalaries}</SelectItem>
                             <SelectItem value="other">{t.other}</SelectItem>
                           </>
+                        )}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Expense Subcategory - for maintenance/other */}
+              {recordType === "expense" && (expenseCategory === 'maintenance' || expenseCategory === 'other') && (
+                <div className="space-y-2">
+                  <Label htmlFor="expenseSubcat">
+                    {language === 'el' ? 'Προσδιορισμός' : 'Specification'} *
+                  </Label>
+                  <Input 
+                    id="expenseSubcat"
+                    placeholder={expenseCategory === 'maintenance' 
+                      ? (language === 'el' ? 'π.χ. Αλλαγή Λαδιών, Φρένα' : 'e.g. Oil Change, Brakes')
+                      : (language === 'el' ? 'Περιγράψτε το έξοδο...' : 'Describe the expense...')}
+                    value={expenseSubcategory}
+                    onChange={(e) => setExpenseSubcategory(e.target.value)}
+                    required
+                    disabled={isLanguageLoading}
+                  />
+                </div>
               )}
               
               {/* Vehicle Selector - Optional link to vehicle */}
@@ -306,11 +394,6 @@ const Finance = () => {
                     : 'If selected, this record will appear in the vehicle\'s finance section'}
                 </p>
               </div>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
               
               <div className="space-y-2">
                 <Label htmlFor="amount">{t.amount} ({language === 'el' ? '€' : '$'})</Label>

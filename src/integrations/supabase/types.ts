@@ -154,7 +154,11 @@ export type Database = {
           created_at: string
           date: string
           description: string | null
+          expense_subcategory: string | null
           id: string
+          income_source_specification: string | null
+          income_source_type: string | null
+          source_section: string | null
           type: Database["public"]["Enums"]["finance_type"]
           updated_at: string
           user_id: string
@@ -167,7 +171,11 @@ export type Database = {
           created_at?: string
           date?: string
           description?: string | null
+          expense_subcategory?: string | null
           id?: string
+          income_source_specification?: string | null
+          income_source_type?: string | null
+          source_section?: string | null
           type: Database["public"]["Enums"]["finance_type"]
           updated_at?: string
           user_id: string
@@ -180,7 +188,11 @@ export type Database = {
           created_at?: string
           date?: string
           description?: string | null
+          expense_subcategory?: string | null
           id?: string
+          income_source_specification?: string | null
+          income_source_type?: string | null
+          source_section?: string | null
           type?: Database["public"]["Enums"]["finance_type"]
           updated_at?: string
           user_id?: string
