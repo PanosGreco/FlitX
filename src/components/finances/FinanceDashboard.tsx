@@ -20,7 +20,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { BarChart, LineChart, PieChart, CategoryBreakdown } from "@/components/finances/charts";
+import { BarChart, LineChart } from "@/components/finances/charts";
 import { IncomeBreakdown } from "@/components/finances/IncomeBreakdown";
 import { ExpenseBreakdown } from "@/components/finances/ExpenseBreakdown";
 import { useAuth } from "@/contexts/AuthContext";
@@ -55,7 +55,6 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   const [timeframe, setTimeframe] = useState("month");
   const [recentTransactions, setRecentTransactions] = useState<FinancialRecord[]>([]);
   const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
-  const [categoryData, setCategoryData] = useState<Array<{ name: string; value: number; amount: number }>>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const isBoats = isBoatBusiness();
   const { t, language, isLanguageLoading } = useLanguage();
@@ -285,24 +284,6 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         </Card>
       </div>
       
-      {/* Bottom Row - Expense Pie Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">{language === 'el' ? 'Κατανομή Εξόδων' : 'Expense Distribution'}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PieChart 
-              financialRecords={financialRecords} 
-              lang={language} 
-              timeframe={timeframe}
-              onCategoryData={setCategoryData}
-            />
-            <CategoryBreakdown data={categoryData} lang={language} />
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Income Breakdown Section */}
       <IncomeBreakdown 
         financialRecords={financialRecords}
