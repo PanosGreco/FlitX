@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { format, differenceInDays } from "date-fns";
+import { format, differenceInDays, differenceInHours } from "date-fns";
 import { CalendarIcon, Camera, Upload, X, MapPin, Clock, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,8 @@ export function RentalBookingDialog({
   const [dropoffLocation, setDropoffLocation] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [notes, setNotes] = useState("");
+  const [incomeSourceType, setIncomeSourceType] = useState("walk_in");
+  const [incomeSourceSpecification, setIncomeSourceSpecification] = useState("");
   const [contractPhoto, setContractPhoto] = useState<File | null>(null);
   const [contractPhotoPreview, setContractPhotoPreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -71,10 +74,36 @@ export function RentalBookingDialog({
     setAdjustedRate(vehicleDailyRate);
   }, [vehicleDailyRate]);
 
-  // Calculate rental days and total amount
-  const rentalDays = startDate && endDate 
-    ? Math.max(1, differenceInDays(endDate, startDate) + 1)
-    : 0;
+  // Calculate rental days with 25-hour rule (24h = 1 day, +1 hour grace)
+  const calculateRentalDays = () => {
+    if (!startDate || !endDate) return 0;
+    
+    // If times are provided, calculate based on hours
+    if (pickupTime && returnTime) {
+      const pickupDateTime = new Date(startDate);
+      const [pickupHours, pickupMinutes] = pickupTime.split(':').map(Number);
+      pickupDateTime.setHours(pickupHours, pickupMinutes, 0, 0);
+      
+      const returnDateTime = new Date(endDate);
+      const [returnHours, returnMinutes] = returnTime.split(':').map(Number);
+      returnDateTime.setHours(returnHours, returnMinutes, 0, 0);
+      
+      const totalHours = differenceInHours(returnDateTime, pickupDateTime);
+      // Apply 25-hour rule: charge extra day only after 25 hours
+      const days = Math.ceil(totalHours / 24);
+      const remainder = totalHours % 24;
+      // If within 1 hour grace period (25th hour), don't charge extra
+      if (remainder <= 1 && days > 1) {
+        return days - 1;
+      }
+      return Math.max(1, days);
+    }
+    
+    // Fallback to date-based calculation
+    return Math.max(1, differenceInDays(endDate, startDate) + 1);
+  };
+
+  const rentalDays = calculateRentalDays();
   
   const effectiveRate = pricingMode === 'fixed' ? vehicleDailyRate : adjustedRate;
   const baseAmount = rentalDays * effectiveRate;
@@ -259,7 +288,10 @@ export function RentalBookingDialog({
         date: format(startDate, 'yyyy-MM-dd'),
         description: pricingMode === 'custom' 
           ? `Rental: ${vehicleName} - ${customerName} (Custom price)`
-          : `Rental: ${vehicleName} - ${customerName} (${rentalDays} days @ $${effectiveRate}/day)`
+          : `Rental: ${vehicleName} - ${customerName} (${rentalDays} days @ $${effectiveRate}/day)`,
+        income_source_type: incomeSourceType,
+        income_source_specification: incomeSourceSpecification || null,
+        source_section: 'booking'
       });
 
       if (incomeError) {
@@ -277,7 +309,10 @@ export function RentalBookingDialog({
             category: 'additional',
             amount: cost.amount,
             date: format(startDate, 'yyyy-MM-dd'),
-            description: cost.note ? `Additional: ${cost.note}` : `Additional charge - ${vehicleName}`
+            description: cost.note ? `Additional: ${cost.note}` : `Additional charge - ${vehicleName}`,
+            income_source_type: incomeSourceType,
+            income_source_specification: incomeSourceSpecification || null,
+            source_section: 'booking'
           });
 
           if (additionalIncomeError) {
@@ -309,6 +344,8 @@ export function RentalBookingDialog({
       setAdjustedRate(vehicleDailyRate);
       setCustomTotalPrice(0);
       setAdditionalCosts([]);
+      setIncomeSourceType('walk_in');
+      setIncomeSourceSpecification('');
       
     } catch (error) {
       console.error('Error creating booking:', error);
@@ -612,6 +649,36 @@ export function RentalBookingDialog({
               className="resize-none"
               rows={3}
             />
+          </div>
+
+          {/* Source Field */}
+          <div className="space-y-3">
+            <Label>Source</Label>
+            <Select value={incomeSourceType} onValueChange={(value) => {
+              setIncomeSourceType(value);
+              if (value !== 'collaboration' && value !== 'other') {
+                setIncomeSourceSpecification('');
+              }
+            }}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="walk_in">Walk-in</SelectItem>
+                <SelectItem value="internet">Internet</SelectItem>
+                <SelectItem value="phone">Phone</SelectItem>
+                <SelectItem value="collaboration">Collaboration</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {(incomeSourceType === 'collaboration' || incomeSourceType === 'other') && (
+              <Input
+                value={incomeSourceSpecification}
+                onChange={(e) => setIncomeSourceSpecification(e.target.value)}
+                placeholder={incomeSourceType === 'collaboration' ? 'Partner name...' : 'Specify source...'}
+              />
+            )}
           </div>
 
           <div>

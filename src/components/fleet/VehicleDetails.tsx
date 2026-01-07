@@ -315,7 +315,7 @@ export function VehicleDetails({
               <TabsTrigger value="maintenance" className="px-4 py-2 flex-grow">{getTrans('vehicleMaintenance', 'Maintenance')}</TabsTrigger>
               <TabsTrigger value="damage" className="px-4 py-2 flex-grow">{language === 'el' ? 'Ζημιές' : 'Damages'}</TabsTrigger>
               <TabsTrigger value="documents" className="px-4 py-2 flex-grow">{getTrans('documents', 'Documents')}</TabsTrigger>
-              <TabsTrigger value="availability" className="px-4 py-2 flex-grow">{language === 'el' ? 'Ημερολόγιο' : 'Calendar'}</TabsTrigger>
+              <TabsTrigger value="availability" className="px-4 py-2 flex-grow">{language === 'el' ? 'Κρατήσεις' : 'Reservations'}</TabsTrigger>
               <TabsTrigger value="finance" className="px-4 py-2 flex-grow">{getTrans('finance', 'Finance')}</TabsTrigger>
             </TabsList>
           
