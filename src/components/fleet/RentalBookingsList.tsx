@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
-import { Calendar, User, FileText, Trash2, X } from "lucide-react";
+import { Calendar, User, FileText, Trash2, X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
@@ -31,12 +32,22 @@ interface RentalBookingsListProps {
 export function RentalBookingsList({ vehicleId, onBookingDeleted }: RentalBookingsListProps) {
   const [bookings, setBookings] = useState<RentalBooking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [selectedContractPath, setSelectedContractPath] = useState<string | null>(null);
   const [isPhotoDialogOpen, setIsPhotoDialogOpen] = useState(false);
   const [isDeleteContractDialogOpen, setIsDeleteContractDialogOpen] = useState(false);
   const { toast } = useToast();
+
+  // Filter bookings based on search query
+  const filteredBookings = useMemo(() => {
+    if (!searchQuery.trim()) return bookings;
+    const query = searchQuery.toLowerCase();
+    return bookings.filter(booking => 
+      booking.customer_name.toLowerCase().includes(query)
+    );
+  }, [bookings, searchQuery]);
 
   useEffect(() => {
     fetchBookings();
@@ -260,7 +271,24 @@ export function RentalBookingsList({ vehicleId, onBookingDeleted }: RentalBookin
   return (
     <>
       <div className="space-y-4">
-        {bookings.map((booking) => {
+        {/* Customer Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by customer name..."
+            className="pl-9"
+          />
+        </div>
+
+        {filteredBookings.length === 0 && searchQuery && (
+          <div className="text-center py-4 text-muted-foreground">
+            No bookings found for "{searchQuery}"
+          </div>
+        )}
+
+        {filteredBookings.map((booking) => {
           const { status, color } = getBookingStatus(booking.start_date, booking.end_date);
           
           return (

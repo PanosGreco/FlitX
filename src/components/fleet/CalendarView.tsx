@@ -269,9 +269,8 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
         </Button>
       </div>
 
-      {/* Calendar */}
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-4">
           <Calendar
             mode="multiple"
             selected={selectedDates}
@@ -281,13 +280,13 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
             className="w-full"
             classNames={{
               months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-              month: "space-y-4 w-full",
-              caption: "flex justify-center pt-1 relative items-center",
-              caption_label: "text-sm font-medium",
-              nav: "space-x-1 flex items-center",
-              nav_button: cn("h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100"),
-              nav_button_previous: "absolute left-1",
-              nav_button_next: "absolute right-1",
+              month: "space-y-2 w-full",
+              caption: "hidden",
+              caption_label: "hidden",
+              nav: "hidden",
+              nav_button: "hidden",
+              nav_button_previous: "hidden",
+              nav_button_next: "hidden",
               table: "w-full border-collapse space-y-1",
               head_row: "flex",
               head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] text-center",
