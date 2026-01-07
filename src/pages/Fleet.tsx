@@ -44,6 +44,7 @@ const Fleet = () => {
   const [model, setModel] = useState("");
   const [year, setYear] = useState("");
   const [type, setType] = useState("");
+  const [fuelType, setFuelType] = useState("petrol");
   const [licensePlate, setLicensePlate] = useState("");
   const [dailyRate, setDailyRate] = useState("");
   const [mileage, setMileage] = useState("");
@@ -84,6 +85,7 @@ const Fleet = () => {
         licensePlate: v.license_plate || '',
         fuelLevel: v.fuel_level || 0,
         dailyRate: v.daily_rate || 0,
+        fuelType: v.fuel_type || 'petrol',
       }));
 
       setVehicles(transformedVehicles);
@@ -141,6 +143,7 @@ const Fleet = () => {
     setModel("");
     setYear("");
     setType("");
+    setFuelType("petrol");
     setLicensePlate("");
     setDailyRate("");
     setMileage("");
@@ -171,6 +174,7 @@ const Fleet = () => {
           model,
           year: parseInt(year),
           type,
+          fuel_type: fuelType,
           license_plate: licensePlate,
           daily_rate: parseFloat(dailyRate),
           mileage: parseInt(mileage),
@@ -331,6 +335,27 @@ const Fleet = () => {
                         <SelectItem value="economy">{t.economy}</SelectItem>
                         <SelectItem value="luxury">{t.luxury}</SelectItem>
                         <SelectItem value="van">{t.van}</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="fuelType">{language === 'el' ? 'Τύπος Καυσίμου' : 'Fuel Type'}</Label>
+                  <Select 
+                    disabled={isLanguageLoading || isSubmitting}
+                    value={fuelType}
+                    onValueChange={setFuelType}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={language === 'el' ? 'Επιλέξτε...' : 'Select...'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="petrol">{language === 'el' ? 'Βενζίνη' : 'Petrol'}</SelectItem>
+                        <SelectItem value="diesel">{language === 'el' ? 'Diesel' : 'Diesel'}</SelectItem>
+                        <SelectItem value="electric">{language === 'el' ? 'Ηλεκτρικό' : 'Electric'}</SelectItem>
+                        <SelectItem value="hybrid">{language === 'el' ? 'Υβριδικό' : 'Hybrid'}</SelectItem>
                       </SelectGroup>
                     </SelectContent>
                   </Select>

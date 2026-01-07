@@ -1,9 +1,20 @@
-import { Car, Calendar, AlertTriangle, Wrench } from "lucide-react";
+import { Car, Calendar, AlertTriangle, Wrench, Fuel } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ComputedStatus } from "@/hooks/useVehicleStatus";
+
+const FUEL_TYPE_LABELS: Record<string, { en: string; el: string }> = {
+  petrol: { en: "Petrol", el: "Βενζίνη" },
+  diesel: { en: "Diesel", el: "Diesel" },
+  electric: { en: "Electric", el: "Ηλεκτρικό" },
+  hybrid: { en: "Hybrid", el: "Υβριδικό" },
+};
+
+const getFuelTypeLabel = (fuelType: string, lang: string) => {
+  return FUEL_TYPE_LABELS[fuelType]?.[lang === 'el' ? 'el' : 'en'] || fuelType;
+};
 export interface VehicleData {
   id: string;
   make: string;
@@ -17,6 +28,7 @@ export interface VehicleData {
   fuelLevel: number;
   dailyRate: number;
   rented_until?: string;
+  fuelType?: string;
 }
 interface VehicleCardProps {
   vehicle: VehicleData;
@@ -67,7 +79,7 @@ export function VehicleCard({
         </h3>
         
         <div className="mt-1 text-sm text-flitx-gray-500">
-          {vehicle.type} • {vehicle.licensePlate}
+          {vehicle.type} • {vehicle.licensePlate}{vehicle.fuelType ? ` • ${getFuelTypeLabel(vehicle.fuelType, language)}` : ''}
         </div>
         
         <div className="mt-3 flex justify-between items-center">

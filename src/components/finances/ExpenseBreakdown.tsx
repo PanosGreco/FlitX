@@ -29,6 +29,8 @@ interface FinancialRecord {
   description: string | null;
   expense_subcategory?: string | null;
   vehicle_id?: string | null;
+  vehicle_fuel_type?: string | null;
+  vehicle_year?: number | null;
 }
 
 interface Vehicle {
@@ -36,7 +38,20 @@ interface Vehicle {
   make: string;
   model: string;
   year: number;
+  fuel_type?: string;
 }
+
+const FUEL_TYPE_LABELS: Record<string, { en: string; el: string }> = {
+  petrol: { en: "Petrol", el: "Βενζίνη" },
+  diesel: { en: "Diesel", el: "Diesel" },
+  electric: { en: "Electric", el: "Ηλεκτρικό" },
+  hybrid: { en: "Hybrid", el: "Υβριδικό" },
+};
+
+const getFuelTypeLabel = (fuelType: string | null | undefined, lang: string) => {
+  if (!fuelType) return '–';
+  return FUEL_TYPE_LABELS[fuelType]?.[lang === 'el' ? 'el' : 'en'] || fuelType;
+};
 
 interface ExpenseBreakdownProps {
   financialRecords: FinancialRecord[];
@@ -118,16 +133,22 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
     return filtered.filter(r => r.type === 'expense');
   }, [financialRecords, timeframe]);
 
-  // Aggregate expenses by category
+  // Aggregate expenses by category with fuel type and year tracking
   const expensesByCategory = useMemo(() => {
-    const categoryData: Record<string, { total: number; months: Record<number, number>; subcategory?: string }> = {};
+    const categoryData: Record<string, { 
+      total: number; 
+      months: Record<number, number>; 
+      subcategory?: string;
+      fuelTypes: Set<string>;
+      years: Set<number>;
+    }> = {};
 
     filteredRecords.forEach(record => {
       const category = record.category || 'other';
       const month = getMonth(new Date(record.date));
       
       if (!categoryData[category]) {
-        categoryData[category] = { total: 0, months: {} };
+        categoryData[category] = { total: 0, months: {}, fuelTypes: new Set(), years: new Set() };
       }
       
       categoryData[category].total += Number(record.amount);
@@ -135,6 +156,14 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
       
       if ((category === 'maintenance' || category === 'other') && record.expense_subcategory) {
         categoryData[category].subcategory = record.expense_subcategory;
+      }
+
+      // Track fuel types and years from vehicle-linked expenses
+      if (record.vehicle_fuel_type) {
+        categoryData[category].fuelTypes.add(record.vehicle_fuel_type);
+      }
+      if (record.vehicle_year) {
+        categoryData[category].years.add(record.vehicle_year);
       }
     });
 
@@ -145,12 +174,18 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
           .slice(0, 3)
           .map(([month]) => MONTH_NAMES[month]?.[lang === 'el' ? 'el' : 'en'] || month);
 
+        // Format fuel types and years for display
+        const fuelTypesArray = Array.from(data.fuelTypes);
+        const yearsArray = Array.from(data.years).sort((a, b) => b - a);
+
         return {
           category,
           label: EXPENSE_CATEGORY_LABELS[category]?.[lang === 'el' ? 'el' : 'en'] || category,
           total: data.total,
           topMonths: sortedMonths.join(", "),
           subcategory: data.subcategory,
+          fuelTypes: fuelTypesArray.length > 0 ? fuelTypesArray.map(ft => getFuelTypeLabel(ft, lang)).join(', ') : null,
+          years: yearsArray.length > 0 ? yearsArray.join(', ') : null,
         };
       })
       .sort((a, b) => b.total - a.total);
@@ -229,7 +264,13 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
                   <TableHead className="text-right text-primary-foreground font-semibold">
                     {lang === 'el' ? 'Σύνολο' : 'Total'}
                   </TableHead>
-                  <TableHead className="text-right text-primary-foreground font-semibold hidden sm:table-cell">
+                  <TableHead className="text-center text-primary-foreground font-semibold hidden md:table-cell">
+                    {lang === 'el' ? 'Καύσιμο' : 'Fuel Type'}
+                  </TableHead>
+                  <TableHead className="text-center text-primary-foreground font-semibold hidden md:table-cell">
+                    {lang === 'el' ? 'Έτος' : 'Year'}
+                  </TableHead>
+                  <TableHead className="text-right text-primary-foreground font-semibold hidden lg:table-cell">
                     {lang === 'el' ? 'Κορυφαίοι Μήνες' : 'Top Months'}
                   </TableHead>
                 </TableRow>
@@ -251,7 +292,13 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
                     <TableCell className="text-right font-medium text-red-600 text-sm">
                       {currencySymbol}{item.total.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2 })}
                     </TableCell>
-                    <TableCell className="text-right text-muted-foreground text-sm hidden sm:table-cell">
+                    <TableCell className="text-center text-muted-foreground text-sm hidden md:table-cell">
+                      {item.fuelTypes || '–'}
+                    </TableCell>
+                    <TableCell className="text-center text-muted-foreground text-sm hidden md:table-cell">
+                      {item.years || '–'}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground text-sm hidden lg:table-cell">
                       {item.topMonths || '-'}
                     </TableCell>
                   </TableRow>

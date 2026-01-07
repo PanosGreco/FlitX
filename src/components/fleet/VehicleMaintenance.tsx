@@ -140,6 +140,13 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
       
       // Auto-create expense in financial_records for maintenance cost
       if (costValue > 0) {
+        // Fetch vehicle fuel_type and year for expense enrichment
+        const { data: vehicleData } = await supabase
+          .from('vehicles')
+          .select('fuel_type, year')
+          .eq('id', vehicleId)
+          .single();
+
         const { error: financeError } = await supabase
           .from("financial_records")
           .insert({
@@ -151,7 +158,9 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
             date: serviceDate,
             description: `${getServiceTypeLabel(serviceType)}${notes ? ': ' + notes : ''}`,
             expense_subcategory: getServiceTypeLabel(serviceType),
-            source_section: 'vehicle_maintenance'
+            source_section: 'vehicle_maintenance',
+            vehicle_fuel_type: vehicleData?.fuel_type || null,
+            vehicle_year: vehicleData?.year || null
           });
           
         if (financeError) {
