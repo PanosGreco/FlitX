@@ -14,7 +14,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { format, startOfWeek, startOfMonth, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, subDays, subMonths, subYears } from "date-fns";
+import { format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, startOfWeek, startOfMonth, startOfYear, subDays, subMonths, endOfDay, min, max } from "date-fns";
 import { el, enUS } from "date-fns/locale";
 
 interface FinancialRecord {
@@ -34,44 +34,17 @@ interface ChartProps {
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82ca9d", "#ffc658", "#ff7c43"];
 
-// Get date range based on timeframe
-const getDateRange = (timeframe: string) => {
+// Generate time buckets based on timeframe - now using calendar-based logic
+const getTimeBuckets = (timeframe: string, lang: string, records: FinancialRecord[]) => {
   const now = new Date();
-  let startDate: Date;
-  
-  switch (timeframe) {
-    case 'week':
-      startDate = subDays(now, 7);
-      break;
-    case 'month':
-      startDate = subMonths(now, 1);
-      break;
-    case 'quarter':
-      startDate = subMonths(now, 3);
-      break;
-    case 'year':
-      startDate = subYears(now, 1);
-      break;
-    default:
-      startDate = subMonths(now, 1);
-  }
-  
-  return { startDate, endDate: now };
-};
-
-// Filter records by timeframe
-const filterByTimeframe = (records: FinancialRecord[], timeframe: string) => {
-  const { startDate } = getDateRange(timeframe);
-  return records.filter(record => new Date(record.date) >= startDate);
-};
-
-// Generate time buckets based on timeframe
-const getTimeBuckets = (timeframe: string, lang: string) => {
-  const { startDate, endDate } = getDateRange(timeframe);
   const locale = lang === 'el' ? el : enUS;
   
+  let startDate: Date;
+  let endDate = endOfDay(now);
+  
   switch (timeframe) {
     case 'week':
+      startDate = startOfWeek(now, { weekStartsOn: 1 });
       // Daily buckets for week
       return eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
         key: format(date, 'yyyy-MM-dd'),
@@ -79,27 +52,56 @@ const getTimeBuckets = (timeframe: string, lang: string) => {
         date
       }));
     case 'month':
+      startDate = startOfMonth(now);
       // Daily buckets for month (show date number)
       return eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
         key: format(date, 'yyyy-MM-dd'),
         label: format(date, 'd', { locale }),
         date
       }));
-    case 'quarter':
-      // Monthly buckets for quarter
-      return eachMonthOfInterval({ start: startDate, end: endDate }).map(date => ({
-        key: format(date, 'yyyy-MM'),
-        label: format(date, 'MMM', { locale }),
-        date
-      }));
     case 'year':
+      startDate = startOfYear(now);
       // Monthly buckets for year
       return eachMonthOfInterval({ start: startDate, end: endDate }).map(date => ({
         key: format(date, 'yyyy-MM'),
         label: format(date, 'MMM', { locale }),
         date
       }));
+    case 'all':
+    case 'custom':
+      // For all time or custom range, use the actual data range
+      if (records.length === 0) {
+        startDate = subMonths(now, 1);
+        return eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
+          key: format(date, 'yyyy-MM-dd'),
+          label: format(date, 'd', { locale }),
+          date
+        }));
+      }
+      const dates = records.map(r => new Date(r.date));
+      startDate = min(dates);
+      endDate = max(dates);
+      
+      // Determine granularity based on date range
+      const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff <= 31) {
+        // Daily for up to a month
+        return eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
+          key: format(date, 'yyyy-MM-dd'),
+          label: format(date, 'd MMM', { locale }),
+          date
+        }));
+      } else {
+        // Monthly for longer periods
+        return eachMonthOfInterval({ start: startDate, end: endDate }).map(date => ({
+          key: format(date, 'yyyy-MM'),
+          label: format(date, 'MMM yy', { locale }),
+          date
+        }));
+      }
     default:
+      startDate = startOfMonth(now);
       return eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
         key: format(date, 'yyyy-MM-dd'),
         label: format(date, 'd', { locale }),
@@ -110,8 +112,10 @@ const getTimeBuckets = (timeframe: string, lang: string) => {
 
 // Aggregate income and expenses by time buckets
 const aggregateByTimeBuckets = (records: FinancialRecord[], timeframe: string, lang: string) => {
-  const buckets = getTimeBuckets(timeframe, lang);
-  const isMonthly = timeframe === 'quarter' || timeframe === 'year';
+  const buckets = getTimeBuckets(timeframe, lang, records);
+  const isMonthly = timeframe === 'year' || 
+    (timeframe === 'all' && records.length > 0 && buckets.length > 0 && buckets[0].key.length === 7) ||
+    (timeframe === 'custom' && records.length > 0 && buckets.length > 0 && buckets[0].key.length === 7);
   
   const data = buckets.map(bucket => {
     const bucketRecords = records.filter(record => {
@@ -200,8 +204,8 @@ const formatYAxis = (value: number, lang: string) => {
 
 export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'month' }: ChartProps) {
   const chartData = useMemo(() => {
-    const filtered = filterByTimeframe(financialRecords, timeframe);
-    const data = aggregateByTimeBuckets(filtered, timeframe, lang);
+    // Records are already pre-filtered by parent component
+    const data = aggregateByTimeBuckets(financialRecords, timeframe, lang);
     
     if (data.length === 0 || data.every(d => d.income === 0 && d.expenses === 0)) {
       return [{ name: lang === 'el' ? 'Δεν υπάρχουν δεδομένα' : 'No data', income: 0, expenses: 0 }];
@@ -210,6 +214,12 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
     // For month view, sample every 3rd day to avoid crowding
     if (timeframe === 'month' && data.length > 15) {
       return data.filter((_, i) => i % 3 === 0 || i === data.length - 1);
+    }
+    
+    // For all time or custom with many data points, sample appropriately
+    if ((timeframe === 'all' || timeframe === 'custom') && data.length > 20) {
+      const step = Math.ceil(data.length / 15);
+      return data.filter((_, i) => i % step === 0 || i === data.length - 1);
     }
     
     return data;
@@ -263,8 +273,8 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
 
 export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'month' }: ChartProps) {
   const chartData = useMemo(() => {
-    const filtered = filterByTimeframe(financialRecords, timeframe);
-    const data = aggregateByTimeBuckets(filtered, timeframe, lang);
+    // Records are already pre-filtered by parent component
+    const data = aggregateByTimeBuckets(financialRecords, timeframe, lang);
     
     if (data.length === 0 || data.every(d => d.income === 0 && d.expenses === 0)) {
       return [{ name: lang === 'el' ? 'Δεν υπάρχουν δεδομένα' : 'No data', income: 0, expenses: 0, revenue: 0 }];
@@ -273,6 +283,12 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
     // For month view, sample every 3rd day to avoid crowding
     if (timeframe === 'month' && data.length > 15) {
       return data.filter((_, i) => i % 3 === 0 || i === data.length - 1);
+    }
+
+    // For all time or custom with many data points, sample appropriately
+    if ((timeframe === 'all' || timeframe === 'custom') && data.length > 20) {
+      const step = Math.ceil(data.length / 15);
+      return data.filter((_, i) => i % step === 0 || i === data.length - 1);
     }
     
     return data;
@@ -371,8 +387,8 @@ interface PieChartProps extends ChartProps {
 
 export function PieChart({ financialRecords = [], lang = 'en', timeframe = 'month', onCategoryData }: PieChartProps) {
   const chartData = useMemo(() => {
-    const filtered = filterByTimeframe(financialRecords, timeframe);
-    const data = aggregateByCategory(filtered, lang);
+    // Records are already pre-filtered by parent component
+    const data = aggregateByCategory(financialRecords, lang);
     
     // Notify parent of category data for breakdown list
     if (onCategoryData) {
@@ -380,7 +396,7 @@ export function PieChart({ financialRecords = [], lang = 'en', timeframe = 'mont
     }
     
     return data;
-  }, [financialRecords, timeframe, lang, onCategoryData]);
+  }, [financialRecords, lang, onCategoryData]);
 
   const currencySymbol = lang === 'el' ? '€' : '$';
 

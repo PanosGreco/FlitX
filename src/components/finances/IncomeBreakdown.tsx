@@ -73,48 +73,14 @@ const MONTH_NAMES: Record<string, { en: string; el: string }> = {
   "11": { en: "Dec", el: "Δεκ" },
 };
 
-const getDateRange = (timeframe: string) => {
-  const now = new Date();
-  let startDate: Date;
-  
-  switch (timeframe) {
-    case 'week':
-      startDate = new Date(now);
-      startDate.setDate(startDate.getDate() - 7);
-      break;
-    case 'month':
-      startDate = new Date(now);
-      startDate.setMonth(startDate.getMonth() - 1);
-      break;
-    case 'quarter':
-      startDate = new Date(now);
-      startDate.setMonth(startDate.getMonth() - 3);
-      break;
-    case 'year':
-      startDate = new Date(now);
-      startDate.setFullYear(startDate.getFullYear() - 1);
-      break;
-    default:
-      startDate = new Date(now);
-      startDate.setMonth(startDate.getMonth() - 1);
-  }
-  
-  return { startDate, endDate: now };
-};
-
-const filterByTimeframe = (records: FinancialRecord[], timeframe: string) => {
-  const { startDate } = getDateRange(timeframe);
-  return records.filter(record => new Date(record.date) >= startDate);
-};
-
 export function IncomeBreakdown({ financialRecords, vehicles = [], lang = 'en', timeframe = 'month' }: IncomeBreakdownProps) {
   const isBoats = isBoatBusiness();
   const currencySymbol = lang === 'el' ? '€' : '$';
 
+  // Records are already filtered by the parent component using calendar-based timeframes
   const filteredRecords = useMemo(() => {
-    const filtered = filterByTimeframe(financialRecords, timeframe);
-    return filtered.filter(r => r.type === 'income');
-  }, [financialRecords, timeframe]);
+    return financialRecords.filter(r => r.type === 'income');
+  }, [financialRecords]);
 
   // Aggregate income by source type
   const incomeBySource = useMemo(() => {
