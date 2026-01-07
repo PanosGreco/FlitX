@@ -211,9 +211,11 @@ const Finance = () => {
         }
       }
       
-      const { error } = await supabase
+      const { data: insertedRecord, error } = await supabase
         .from('financial_records')
-        .insert([newRecord]);
+        .insert([newRecord])
+        .select()
+        .single();
       
       if (error) {
         console.error("Error adding financial record:", error);
@@ -225,6 +227,33 @@ const Finance = () => {
           variant: "destructive",
         });
       } else {
+        // BI-DIRECTIONAL SYNC: If this is a maintenance expense with a vehicle, 
+        // also create a vehicle_maintenance record
+        if (recordType === "expense" && expenseCategory === 'maintenance' && selectedVehicleId) {
+          const maintenanceType = expenseSubcategory?.toLowerCase().includes('oil') ? 'oil_change' :
+            expenseSubcategory?.toLowerCase().includes('tire') ? 'tire_rotation' :
+            expenseSubcategory?.toLowerCase().includes('brake') ? 'brake_service' :
+            expenseSubcategory?.toLowerCase().includes('filter') ? 'filter_replacement' :
+            expenseSubcategory?.toLowerCase().includes('battery') ? 'battery_replacement' :
+            expenseSubcategory?.toLowerCase().includes('service') ? 'full_service' : 'other';
+
+          const { error: maintenanceError } = await supabase
+            .from('vehicle_maintenance')
+            .insert({
+              user_id: session.session.user.id,
+              vehicle_id: selectedVehicleId,
+              type: maintenanceType,
+              date: date,
+              cost: parseFloat(amount),
+              description: expenseSubcategory || notes || 'Maintenance from Income & Expenses'
+            });
+
+          if (maintenanceError) {
+            console.error("Error creating vehicle maintenance record:", maintenanceError);
+            // Don't fail the whole operation, just log the error
+          }
+        }
+
         toast({
           title: language === 'el' ? "Επιτυχία" : "Record Added",
           description: language === 'el'

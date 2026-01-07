@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
   Card, 
   CardContent, 
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Plus, Filter, Loader2 } from "lucide-react";
+import { TrendingUp, TrendingDown, Plus, Filter, Loader2, Eye, CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -20,10 +20,18 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BarChart, LineChart } from "@/components/finances/charts";
 import { IncomeBreakdown } from "@/components/finances/IncomeBreakdown";
 import { ExpenseBreakdown } from "@/components/finances/ExpenseBreakdown";
 import { useAuth } from "@/contexts/AuthContext";
+import { 
+  TimeframeType, 
+  filterByCalendarTimeframe,
+  TIMEFRAME_LABELS,
+  DateRange
+} from "@/utils/dateRangeUtils";
 
 interface FinancialRecord {
   id: string;
@@ -52,9 +60,11 @@ interface FinanceDashboardProps {
 }
 
 export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading = false }: FinanceDashboardProps) {
-  const [timeframe, setTimeframe] = useState("month");
-  const [recentTransactions, setRecentTransactions] = useState<FinancialRecord[]>([]);
-  const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
+  const [timeframe, setTimeframe] = useState<TimeframeType>("month");
+  const [customRange, setCustomRange] = useState<DateRange | undefined>();
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+  const [showAllTransactions, setShowAllTransactions] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const isBoats = isBoatBusiness();
   const { t, language, isLanguageLoading } = useLanguage();
@@ -62,34 +72,9 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   
   useEffect(() => {
     if (user) {
-      fetchRecentTransactions();
       fetchVehicles();
     }
   }, [user]);
-
-  const fetchRecentTransactions = async () => {
-    if (!user) return;
-    
-    try {
-      setIsTransactionsLoading(true);
-
-      const { data, error } = await supabase
-        .from('financial_records')
-        .select('*')
-        .order('date', { ascending: false })
-        .limit(5);
-
-      if (error) {
-        console.error("Error fetching recent transactions:", error);
-      } else {
-        setRecentTransactions(data || []);
-      }
-    } catch (error) {
-      console.error("Exception fetching recent transactions:", error);
-    } finally {
-      setIsTransactionsLoading(false);
-    }
-  };
 
   const fetchVehicles = async () => {
     if (!user) return;
@@ -108,54 +93,33 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     }
   };
 
-  // Set up realtime subscription
+  // Apply custom range when dates change
   useEffect(() => {
-    if (!user) return;
+    if (timeframe === 'custom' && customStartDate && customEndDate) {
+      setCustomRange({
+        startDate: new Date(customStartDate),
+        endDate: new Date(customEndDate)
+      });
+    }
+  }, [timeframe, customStartDate, customEndDate]);
 
-    const channel = supabase
-      .channel('financial_records_changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'financial_records' }, 
-        () => {
-          fetchRecentTransactions();
-        }
-      )
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
+  // Filter records using calendar-based timeframes
+  const filteredRecords = useMemo(() => {
+    return filterByCalendarTimeframe(financialRecords, timeframe, customRange);
+  }, [financialRecords, timeframe, customRange]);
+
+  // Recent transactions (filtered by timeframe, sorted by date)
+  const recentTransactions = useMemo(() => {
+    return [...filteredRecords].sort((a, b) => 
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [filteredRecords]);
+
+  const visibleTransactions = showAllTransactions 
+    ? recentTransactions 
+    : recentTransactions.slice(0, 5);
   
   const calculateSummaryData = () => {
-    let filteredRecords = [...financialRecords];
-    
-    if (timeframe === "week") {
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      filteredRecords = financialRecords.filter(record => 
-        new Date(record.date) >= oneWeekAgo
-      );
-    } else if (timeframe === "month") {
-      const oneMonthAgo = new Date();
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-      filteredRecords = financialRecords.filter(record => 
-        new Date(record.date) >= oneMonthAgo
-      );
-    } else if (timeframe === "quarter") {
-      const oneQuarterAgo = new Date();
-      oneQuarterAgo.setMonth(oneQuarterAgo.getMonth() - 3);
-      filteredRecords = financialRecords.filter(record => 
-        new Date(record.date) >= oneQuarterAgo
-      );
-    } else if (timeframe === "year") {
-      const oneYearAgo = new Date();
-      oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-      filteredRecords = financialRecords.filter(record => 
-        new Date(record.date) >= oneYearAgo
-      );
-    }
-    
     const incomeRecords = filteredRecords.filter(record => record.type === "income");
     const expenseRecords = filteredRecords.filter(record => record.type === "expense");
     
@@ -178,9 +142,18 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      return format(date, 'PPp', { locale: language === 'el' ? el : enUS });
+      return format(date, 'PP', { locale: language === 'el' ? el : enUS });
     } catch (error) {
       return dateString;
+    }
+  };
+
+  const handleTimeframeChange = (value: string) => {
+    setTimeframe(value as TimeframeType);
+    if (value !== 'custom') {
+      setCustomRange(undefined);
+      setCustomStartDate("");
+      setCustomEndDate("");
     }
   };
   
@@ -200,27 +173,40 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">{t.finances}</h1>
         
-        <div className="flex items-center gap-2">
-          <Select value={timeframe} onValueChange={setTimeframe} disabled={isLanguageLoading}>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={timeframe} onValueChange={handleTimeframeChange} disabled={isLanguageLoading}>
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder={t.selectTimeframe} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="week">{t.thisWeek}</SelectItem>
-              <SelectItem value="month">{t.thisMonth}</SelectItem>
-              <SelectItem value="quarter">{t.thisQuarter}</SelectItem>
-              <SelectItem value="year">{t.thisYear}</SelectItem>
+              <SelectItem value="week">{TIMEFRAME_LABELS.week[language === 'el' ? 'el' : 'en']}</SelectItem>
+              <SelectItem value="month">{TIMEFRAME_LABELS.month[language === 'el' ? 'el' : 'en']}</SelectItem>
+              <SelectItem value="year">{TIMEFRAME_LABELS.year[language === 'el' ? 'el' : 'en']}</SelectItem>
+              <SelectItem value="all">{TIMEFRAME_LABELS.all[language === 'el' ? 'el' : 'en']}</SelectItem>
+              <SelectItem value="custom">{TIMEFRAME_LABELS.custom[language === 'el' ? 'el' : 'en']}</SelectItem>
             </SelectContent>
           </Select>
-          
-          <Button 
-            size="icon" 
-            variant="outline" 
-            aria-label={t.filter}
-            disabled={isLanguageLoading}
-          >
-            <Filter className="h-4 w-4" />
-          </Button>
+
+          {/* Custom Date Range Inputs */}
+          {timeframe === 'custom' && (
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="w-[140px]"
+                placeholder="Start"
+              />
+              <span className="text-muted-foreground">-</span>
+              <Input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="w-[140px]"
+                placeholder="End"
+              />
+            </div>
+          )}
           
           <Button 
             onClick={onAddRecord}
@@ -270,7 +256,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
             <CardTitle className="text-lg">{language === 'el' ? 'Έσοδα έναντι Εξόδων' : 'Income vs Expenses'}</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <BarChart financialRecords={financialRecords} lang={language} timeframe={timeframe} />
+            <BarChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} />
           </CardContent>
         </Card>
         
@@ -279,14 +265,14 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
             <CardTitle className="text-lg">{language === 'el' ? 'Τάση Χρόνου' : 'Trend Over Time'}</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            <LineChart financialRecords={financialRecords} lang={language} timeframe={timeframe} />
+            <LineChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} />
           </CardContent>
         </Card>
       </div>
       
       {/* Income Breakdown Section */}
       <IncomeBreakdown 
-        financialRecords={financialRecords}
+        financialRecords={filteredRecords}
         vehicles={vehicles}
         lang={language}
         timeframe={timeframe}
@@ -294,22 +280,31 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
 
       {/* Expense Breakdown Section */}
       <ExpenseBreakdown 
-        financialRecords={financialRecords}
+        financialRecords={filteredRecords}
         vehicles={vehicles}
         lang={language}
         timeframe={timeframe}
       />
         
-      {/* Recent Transactions - Moved to bottom */}
+      {/* Recent Transactions - Complete & Filterable */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">{language === 'el' ? 'Πρόσφατες Συναλλαγές' : 'Recent Transactions'}</CardTitle>
-          {isTransactionsLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+          {recentTransactions.length > 5 && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowAllTransactions(true)}
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              {language === 'el' ? 'Όλες' : 'View All'} ({recentTransactions.length})
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {recentTransactions.length > 0 ? (
             <div className="space-y-4">
-              {recentTransactions.map(record => (
+              {visibleTransactions.slice(0, 5).map(record => (
                 <TransactionItem 
                   key={record.id}
                   description={record.description || record.category}
@@ -319,14 +314,49 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
                   lang={language}
                 />
               ))}
+              {recentTransactions.length > 5 && !showAllTransactions && (
+                <div className="text-center text-sm text-muted-foreground pt-2">
+                  {language === 'el' 
+                    ? `Εμφάνιση 5 από ${recentTransactions.length} συναλλαγές`
+                    : `Showing 5 of ${recentTransactions.length} transactions`}
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-center text-muted-foreground py-8">
-              {language === 'el' ? 'Δεν βρέθηκαν πρόσφατες συναλλαγές' : 'No recent transactions found'}
+              {language === 'el' ? 'Δεν βρέθηκαν συναλλαγές για αυτήν την περίοδο' : 'No transactions found for this period'}
             </p>
           )}
         </CardContent>
       </Card>
+
+      {/* View All Transactions Dialog */}
+      <Dialog open={showAllTransactions} onOpenChange={setShowAllTransactions}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarIcon className="h-5 w-5" />
+              {language === 'el' ? 'Όλες οι Συναλλαγές' : 'All Transactions'}
+              <span className="text-muted-foreground font-normal text-sm">
+                ({recentTransactions.length})
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+            {recentTransactions.map(record => (
+              <TransactionItem 
+                key={record.id}
+                description={record.description || record.category}
+                amount={Number(record.amount)}
+                date={formatDate(record.date)}
+                type={record.type}
+                lang={language}
+              />
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
