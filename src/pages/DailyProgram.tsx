@@ -47,7 +47,7 @@ export default function DailyProgram() {
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg text-center flex-1 text-primary">Daily Program</CardTitle>
+              <CardTitle className="text-center flex-1 text-primary text-xl font-extrabold">                                Daily Program</CardTitle>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className={cn("justify-start text-left font-normal", "text-muted-foreground")}>
