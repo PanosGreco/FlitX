@@ -40,7 +40,7 @@ const Finance = () => {
   const [date, setDate] = useState(new Date().toISOString().substring(0, 10));
   const [notes, setNotes] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
-  const [vehicles, setVehicles] = useState<Array<{id: string; make: string; model: string; year: number}>>([]);
+  const [vehicles, setVehicles] = useState<Array<{id: string; make: string; model: string; year: number; fuel_type?: string}>>([]);
   const [financialRecords, setFinancialRecords] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -79,7 +79,7 @@ const Finance = () => {
 
       const { data, error } = await supabase
         .from('vehicles')
-        .select('id, make, model, year')
+        .select('id, make, model, year, fuel_type')
         .order('make');
 
       if (!error && data) {
@@ -167,6 +167,8 @@ const Finance = () => {
         date: string;
         description: string;
         vehicle_id?: string;
+        vehicle_fuel_type?: string;
+        vehicle_year?: number;
         income_source_type?: string;
         income_source_specification?: string;
         expense_subcategory?: string;
@@ -198,9 +200,15 @@ const Finance = () => {
         }
       }
       
-      // Link to vehicle if selected
+      // Link to vehicle if selected and auto-populate vehicle data
       if (selectedVehicleId) {
         newRecord.vehicle_id = selectedVehicleId;
+        // Auto-populate vehicle fuel type and year
+        const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
+        if (selectedVehicle) {
+          newRecord.vehicle_fuel_type = selectedVehicle.fuel_type || 'petrol';
+          newRecord.vehicle_year = selectedVehicle.year;
+        }
       }
       
       const { error } = await supabase

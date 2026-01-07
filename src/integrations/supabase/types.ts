@@ -162,7 +162,9 @@ export type Database = {
           type: Database["public"]["Enums"]["finance_type"]
           updated_at: string
           user_id: string
+          vehicle_fuel_type: string | null
           vehicle_id: string | null
+          vehicle_year: number | null
         }
         Insert: {
           amount: number
@@ -179,7 +181,9 @@ export type Database = {
           type: Database["public"]["Enums"]["finance_type"]
           updated_at?: string
           user_id: string
+          vehicle_fuel_type?: string | null
           vehicle_id?: string | null
+          vehicle_year?: number | null
         }
         Update: {
           amount?: number
@@ -196,7 +200,9 @@ export type Database = {
           type?: Database["public"]["Enums"]["finance_type"]
           updated_at?: string
           user_id?: string
+          vehicle_fuel_type?: string | null
           vehicle_id?: string | null
+          vehicle_year?: number | null
         }
         Relationships: [
           {
@@ -483,6 +489,7 @@ export type Database = {
           created_at: string
           daily_rate: number | null
           fuel_level: number | null
+          fuel_type: string | null
           id: string
           image: string | null
           license_plate: string | null
@@ -500,6 +507,7 @@ export type Database = {
           created_at?: string
           daily_rate?: number | null
           fuel_level?: number | null
+          fuel_type?: string | null
           id?: string
           image?: string | null
           license_plate?: string | null
@@ -517,6 +525,7 @@ export type Database = {
           created_at?: string
           daily_rate?: number | null
           fuel_level?: number | null
+          fuel_type?: string | null
           id?: string
           image?: string | null
           license_plate?: string | null

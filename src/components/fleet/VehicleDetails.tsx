@@ -1,5 +1,16 @@
 import { useState, useEffect } from "react";
-import { Car, Calendar, AlertTriangle, FileText, ChevronLeft, Gauge, Settings, RefreshCcw, Wrench, Upload } from "lucide-react";
+import { Car, Calendar, AlertTriangle, FileText, ChevronLeft, Gauge, Settings, RefreshCcw, Wrench, Upload, Fuel } from "lucide-react";
+
+const FUEL_TYPE_LABELS: Record<string, { en: string; el: string }> = {
+  petrol: { en: "Petrol", el: "Βενζίνη" },
+  diesel: { en: "Diesel", el: "Diesel" },
+  electric: { en: "Electric", el: "Ηλεκτρικό" },
+  hybrid: { en: "Hybrid", el: "Υβριδικό" },
+};
+
+const getFuelTypeLabel = (fuelType: string, lang: string) => {
+  return FUEL_TYPE_LABELS[fuelType]?.[lang === 'el' ? 'el' : 'en'] || fuelType;
+};
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -277,6 +288,12 @@ export function VehicleDetails({
                   <span>{vehicle.licensePlate}</span>
                   <span className="mx-2">•</span>
                   <span>{safeNumber(vehicle.mileage).toLocaleString()} km</span>
+                  {vehicle.fuelType && (
+                    <>
+                      <span className="mx-2">•</span>
+                      <span>{getFuelTypeLabel(vehicle.fuelType, language)}</span>
+                    </>
+                  )}
                 </div>
               </div>
               

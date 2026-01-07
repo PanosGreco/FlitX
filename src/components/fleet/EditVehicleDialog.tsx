@@ -11,6 +11,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -25,6 +32,7 @@ interface EditVehicleDialogProps {
     license_plate?: string;
     image?: string;
     purchase_price?: number | null;
+    fuel_type?: string;
   };
   onSaved: () => void;
 }
@@ -36,6 +44,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
   const [licensePlate, setLicensePlate] = useState(vehicle.license_plate || '');
   const [purchasePrice, setPurchasePrice] = useState<string>(vehicle.purchase_price?.toString() || '');
   const [vehicleImage, setVehicleImage] = useState<string | null>(vehicle.image || null);
+  const [fuelType, setFuelType] = useState(vehicle.fuel_type || 'petrol');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -47,6 +56,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     setLicensePlate(vehicle.license_plate || '');
     setPurchasePrice(vehicle.purchase_price?.toString() || '');
     setVehicleImage(vehicle.image || null);
+    setFuelType(vehicle.fuel_type || 'petrol');
   }, [vehicle]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,6 +85,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
           license_plate: licensePlate,
           purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
           image: vehicleImage,
+          fuel_type: fuelType,
         })
         .eq('id', vehicle.id);
 
@@ -148,6 +159,21 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
                 />
               </label>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="fuel-type">Fuel Type</Label>
+            <Select value={fuelType} onValueChange={setFuelType}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select fuel type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="petrol">Petrol</SelectItem>
+                <SelectItem value="diesel">Diesel</SelectItem>
+                <SelectItem value="electric">Electric</SelectItem>
+                <SelectItem value="hybrid">Hybrid</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
