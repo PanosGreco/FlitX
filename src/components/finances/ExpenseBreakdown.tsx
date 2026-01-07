@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -8,6 +8,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+} from "recharts";
 import { TrendingDown, Car, Ship } from "lucide-react";
 import { getMonth } from "date-fns";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
@@ -37,6 +45,8 @@ interface ExpenseBreakdownProps {
   timeframe?: string;
 }
 
+const COLORS = ["#ef4444", "#f97316", "#f59e0b", "#eab308", "#dc2626", "#ea580c", "#d97706", "#ca8a04"];
+
 const EXPENSE_CATEGORY_LABELS: Record<string, { en: string; el: string }> = {
   maintenance: { en: "Vehicle Maintenance", el: "Συντήρηση Οχήματος" },
   fuel: { en: "Fuel", el: "Καύσιμα" },
@@ -65,7 +75,6 @@ const MONTH_NAMES: Record<string, { en: string; el: string }> = {
   "11": { en: "Dec", el: "Δεκ" },
 };
 
-// Get date range based on timeframe
 const getDateRange = (timeframe: string) => {
   const now = new Date();
   let startDate: Date;
@@ -124,7 +133,6 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
       categoryData[category].total += Number(record.amount);
       categoryData[category].months[month] = (categoryData[category].months[month] || 0) + Number(record.amount);
       
-      // Store subcategory for maintenance/other
       if ((category === 'maintenance' || category === 'other') && record.expense_subcategory) {
         categoryData[category].subcategory = record.expense_subcategory;
       }
@@ -132,7 +140,6 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
 
     return Object.entries(categoryData)
       .map(([category, data]) => {
-        // Find top 3 months
         const sortedMonths = Object.entries(data.months)
           .sort((a, b) => b[1] - a[1])
           .slice(0, 3)
@@ -148,6 +155,16 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
       })
       .sort((a, b) => b.total - a.total);
   }, [filteredRecords, lang]);
+
+  // Prepare pie chart data
+  const pieData = useMemo(() => {
+    const total = expensesByCategory.reduce((sum, item) => sum + item.total, 0);
+    return expensesByCategory.map(item => ({
+      name: item.subcategory ? `${item.label} (${item.subcategory})` : item.label,
+      value: Math.round((item.total / total) * 100) || 0,
+      amount: item.total,
+    }));
+  }, [expensesByCategory]);
 
   // Most costly vehicles
   const costlyVehicles = useMemo(() => {
@@ -174,93 +191,150 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
 
   if (filteredRecords.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <TrendingDown className="h-5 w-5 text-red-600" />
+      <Card className="p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingDown className="h-5 w-5 text-red-600" />
+          <h2 className="text-lg font-semibold">
             {lang === 'el' ? 'Ανάλυση Εξόδων' : 'Expense Breakdown'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-center text-muted-foreground py-8">
-            {lang === 'el' ? 'Δεν υπάρχουν έξοδα για αυτή την περίοδο' : 'No expense records for this period'}
-          </p>
-        </CardContent>
+          </h2>
+        </div>
+        <p className="text-center text-muted-foreground py-6">
+          {lang === 'el' ? 'Δεν υπάρχουν έξοδα για αυτή την περίοδο' : 'No expense records for this period'}
+        </p>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Expense Breakdown Header */}
-      <h2 className="text-xl font-semibold flex items-center gap-2">
+    <Card className="p-4">
+      {/* Section Header */}
+      <div className="flex items-center gap-2 mb-4">
         <TrendingDown className="h-5 w-5 text-red-600" />
-        {lang === 'el' ? 'Ανάλυση Εξόδων' : 'Expense Breakdown'}
-      </h2>
+        <h2 className="text-lg font-semibold">
+          {lang === 'el' ? 'Ανάλυση Εξόδων' : 'Expense Breakdown'}
+        </h2>
+      </div>
 
-      {/* Expense Category Table */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">
-            {lang === 'el' ? 'Έξοδα ανά Κατηγορία' : 'Expenses by Category'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{lang === 'el' ? 'Κατηγορία' : 'Category'}</TableHead>
-                <TableHead className="text-right">{lang === 'el' ? 'Σύνολο' : 'Total'}</TableHead>
-                <TableHead className="text-right hidden sm:table-cell">{lang === 'el' ? 'Κορυφαίοι Μήνες' : 'Top Months'}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {expensesByCategory.map((item) => (
-                <TableRow key={item.category}>
-                  <TableCell>
-                    <span className="truncate">
-                      {item.subcategory ? `${item.label} (${item.subcategory})` : item.label}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right font-medium text-red-600">
-                    {currencySymbol}{item.total.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2 })}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground hidden sm:table-cell">
-                    {item.topMonths || '-'}
-                  </TableCell>
+      {/* Unified Layout: Table Left, Pie + Vehicles Right */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        {/* Left: Table (takes 3 columns) */}
+        <div className="lg:col-span-3">
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-primary hover:bg-primary">
+                  <TableHead className="text-primary-foreground font-semibold">
+                    {lang === 'el' ? 'Κατηγορία' : 'Category'}
+                  </TableHead>
+                  <TableHead className="text-right text-primary-foreground font-semibold">
+                    {lang === 'el' ? 'Σύνολο' : 'Total'}
+                  </TableHead>
+                  <TableHead className="text-right text-primary-foreground font-semibold hidden sm:table-cell">
+                    {lang === 'el' ? 'Κορυφαίοι Μήνες' : 'Top Months'}
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {expensesByCategory.map((item, index) => (
+                  <TableRow key={item.category} className="hover:bg-muted/50">
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-full flex-shrink-0" 
+                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                        />
+                        <span className="truncate text-sm">
+                          {item.subcategory ? `${item.label} (${item.subcategory})` : item.label}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-red-600 text-sm">
+                      {currencySymbol}{item.total.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground text-sm hidden sm:table-cell">
+                      {item.topMonths || '-'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
 
-      {/* Most Costly Vehicles */}
-      {costlyVehicles.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              {isBoats ? <Ship className="h-4 w-4" /> : <Car className="h-4 w-4" />}
-              {lang === 'el' ? 'Οχήματα με Υψηλότερα Έξοδα' : 'Most Costly Vehicles'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {costlyVehicles.map((vehicle, index) => (
-                <div key={vehicle.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg font-bold text-red-700">#{index + 1}</span>
-                    <span className="font-medium">{vehicle.name}</span>
-                  </div>
-                  <span className="font-semibold text-red-600">
-                    {currencySymbol}{vehicle.total.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-              ))}
+        {/* Right: Pie Chart + Costly Vehicles stacked (takes 2 columns) */}
+        <div className="lg:col-span-2 flex flex-col gap-4">
+          {/* Pie Chart - No title */}
+          {pieData.length > 0 && (
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsPieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={35}
+                    outerRadius={60}
+                    fill="#ef4444"
+                    dataKey="value"
+                    paddingAngle={2}
+                    label={({ value }) => `${value}%`}
+                    labelLine={{ strokeWidth: 1 }}
+                  >
+                    {pieData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Legend 
+                    layout="vertical"
+                    verticalAlign="middle"
+                    align="right"
+                    wrapperStyle={{ 
+                      fontSize: '10px', 
+                      paddingLeft: '5px',
+                      maxWidth: '100px'
+                    }}
+                  />
+                  <Tooltip 
+                    formatter={(value: number, name: string, props: any) => [
+                      `${value}% (${currencySymbol}${props.payload.amount.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2 })})`,
+                      name
+                    ]}
+                    contentStyle={{
+                      borderRadius: 8,
+                      border: "none",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                      fontSize: '11px'
+                    }}
+                  />
+                </RechartsPieChart>
+              </ResponsiveContainer>
             </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+          )}
+
+          {/* Most Costly Vehicles - Compact */}
+          {costlyVehicles.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                {isBoats ? <Ship className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />}
+                <span>{lang === 'el' ? 'Κορυφαία Έξοδα' : 'Top Costs'}</span>
+              </div>
+              <div className="space-y-1.5">
+                {costlyVehicles.slice(0, 3).map((vehicle, index) => (
+                  <div key={vehicle.id} className="flex items-center justify-between py-1.5 px-2 bg-red-50 rounded text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-red-700 text-xs">#{index + 1}</span>
+                      <span className="font-medium truncate text-xs">{vehicle.name}</span>
+                    </div>
+                    <span className="font-semibold text-red-600 text-xs">
+                      {currencySymbol}{vehicle.total.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 0 })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
   );
 }
