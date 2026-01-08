@@ -5,7 +5,7 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Plus, Filter, Loader2, Eye, CalendarIcon } from "lucide-react";
+import { TrendingUp, TrendingDown, Plus, Loader2, Eye, CalendarIcon, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -22,10 +22,13 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 import { BarChart, LineChart } from "@/components/finances/charts";
 import { IncomeBreakdown } from "@/components/finances/IncomeBreakdown";
 import { ExpenseBreakdown } from "@/components/finances/ExpenseBreakdown";
 import { useAuth } from "@/contexts/AuthContext";
+import { getMaintenanceTypeLabel } from "@/constants/maintenanceTypes";
 import { 
   TimeframeType, 
   filterByCalendarTimeframe,
@@ -39,11 +42,13 @@ interface FinancialRecord {
   category: string;
   amount: number;
   date: string;
+  created_at: string;
   description: string | null;
   income_source_type?: string | null;
   income_source_specification?: string | null;
   expense_subcategory?: string | null;
   vehicle_id?: string | null;
+  booking_id?: string | null;
 }
 
 interface Vehicle {
@@ -57,18 +62,22 @@ interface FinanceDashboardProps {
   onAddRecord?: () => void;
   financialRecords?: FinancialRecord[];
   isLoading?: boolean;
+  onRecordDeleted?: () => void;
 }
 
-export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading = false }: FinanceDashboardProps) {
+export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading = false, onRecordDeleted }: FinanceDashboardProps) {
   const [timeframe, setTimeframe] = useState<TimeframeType>("month");
   const [customRange, setCustomRange] = useState<DateRange | undefined>();
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [deleteTransactionId, setDeleteTransactionId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const isBoats = isBoatBusiness();
   const { t, language, isLanguageLoading } = useLanguage();
   const { user } = useAuth();
+  const { toast } = useToast();
   
   useEffect(() => {
     if (user) {
@@ -108,16 +117,187 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     return filterByCalendarTimeframe(financialRecords, timeframe, customRange);
   }, [financialRecords, timeframe, customRange]);
 
-  // Recent transactions (filtered by timeframe, sorted by date)
+  // Recent transactions (filtered by timeframe, sorted by creation timestamp)
   const recentTransactions = useMemo(() => {
     return [...filteredRecords].sort((a, b) => 
-      new Date(b.date).getTime() - new Date(a.date).getTime()
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
   }, [filteredRecords]);
 
   const visibleTransactions = showAllTransactions 
     ? recentTransactions 
     : recentTransactions.slice(0, 5);
+
+  // Generate standardized title for transactions
+  const getTransactionTitle = (record: FinancialRecord): string => {
+    const isIncome = record.type === 'income';
+    const prefix = isIncome 
+      ? (language === 'el' ? 'Έσοδο' : 'Income Record')
+      : (language === 'el' ? 'Έξοδο' : 'Expense Record');
+    
+    if (isIncome) {
+      // Income titles
+      if (record.category === 'rental') {
+        // Rental income - show vehicle and customer info from description
+        return `${prefix} – ${record.description || 'Rental'}`;
+      } else if (record.category === 'additional') {
+        return `${prefix} – ${record.description || 'Additional Income'}`;
+      } else {
+        // Manual income - show source type
+        const sourceType = record.income_source_type;
+        const sourceLabels: Record<string, string> = {
+          walk_in: language === 'el' ? 'Επιτόπια' : 'Walk-in',
+          internet: language === 'el' ? 'Διαδίκτυο' : 'Internet',
+          phone: language === 'el' ? 'Τηλέφωνο' : 'Phone',
+          collaboration: language === 'el' ? 'Συνεργασία' : 'Collaboration',
+          other: language === 'el' ? 'Άλλο' : 'Other'
+        };
+        const sourceLabel = sourceType ? sourceLabels[sourceType] || sourceType : '';
+        const spec = record.income_source_specification;
+        if (spec) {
+          return `${prefix} – ${sourceLabel} · ${spec}`;
+        }
+        return `${prefix} – ${record.description || sourceLabel || 'Manual Income'}`;
+      }
+    } else {
+      // Expense titles
+      const categoryLabels: Record<string, string> = {
+        fuel: language === 'el' ? 'Καύσιμα' : 'Fuel',
+        maintenance: language === 'el' ? 'Συντήρηση Οχήματος' : 'Vehicle Maintenance',
+        carwash: language === 'el' ? 'Πλύσιμο' : 'Car Wash',
+        insurance: language === 'el' ? 'Ασφάλεια' : 'Insurance',
+        tax: language === 'el' ? 'Φόροι/Τέλη' : 'Taxes/Fees',
+        salary: language === 'el' ? 'Μισθοί' : 'Salaries',
+        cleaning: language === 'el' ? 'Καθαρισμός' : 'Cleaning',
+        docking: language === 'el' ? 'Τέλη Ελλιμενισμού' : 'Docking Fees',
+        licensing: language === 'el' ? 'Άδειες' : 'Licensing',
+        other: language === 'el' ? 'Άλλο' : 'Other'
+      };
+      
+      const categoryLabel = categoryLabels[record.category] || record.category;
+      
+      // For maintenance, show subcategory
+      if (record.category === 'maintenance' && record.expense_subcategory) {
+        const subcatLabel = getMaintenanceTypeLabel(record.expense_subcategory, language);
+        return `${prefix} – ${categoryLabel} (${subcatLabel})`;
+      }
+      
+      // For other expenses with subcategory
+      if (record.expense_subcategory) {
+        return `${prefix} – ${categoryLabel} (${record.expense_subcategory})`;
+      }
+      
+      return `${prefix} – ${categoryLabel}`;
+    }
+  };
+
+  // Handle delete transaction with full cascade
+  const handleDeleteTransaction = async (recordId: string) => {
+    const record = financialRecords.find(r => r.id === recordId);
+    if (!record) return;
+
+    setIsDeleting(true);
+    try {
+      // If this is linked to a booking, delete the entire booking and its cascade
+      if (record.booking_id) {
+        // Get booking details first
+        const { data: booking } = await supabase
+          .from('rental_bookings')
+          .select('contract_photo_path')
+          .eq('id', record.booking_id)
+          .single();
+
+        // Delete contract from storage if exists
+        if (booking?.contract_photo_path) {
+          await supabase.storage
+            .from('rental-contracts')
+            .remove([booking.contract_photo_path]);
+        }
+
+        // Get daily tasks with contract paths
+        const { data: tasksWithContracts } = await supabase
+          .from('daily_tasks')
+          .select('contract_path')
+          .eq('booking_id', record.booking_id)
+          .not('contract_path', 'is', null);
+
+        // Delete task contract files
+        if (tasksWithContracts && tasksWithContracts.length > 0) {
+          const contractPaths = tasksWithContracts
+            .map(t => t.contract_path)
+            .filter(Boolean) as string[];
+          if (contractPaths.length > 0) {
+            await supabase.storage
+              .from('rental-contracts')
+              .remove(contractPaths);
+          }
+        }
+
+        // Delete daily tasks linked to booking
+        await supabase
+          .from('daily_tasks')
+          .delete()
+          .eq('booking_id', record.booking_id);
+
+        // Delete all financial records for this booking
+        await supabase
+          .from('financial_records')
+          .delete()
+          .eq('booking_id', record.booking_id);
+
+        // Delete the booking itself
+        await supabase
+          .from('rental_bookings')
+          .delete()
+          .eq('id', record.booking_id);
+
+      } else if (record.category === 'maintenance' && record.vehicle_id) {
+        // If this is a maintenance expense, also delete the vehicle_maintenance record
+        // Find by matching date and amount
+        await supabase
+          .from('vehicle_maintenance')
+          .delete()
+          .eq('vehicle_id', record.vehicle_id)
+          .eq('date', record.date)
+          .eq('cost', record.amount);
+
+        // Delete the financial record
+        await supabase
+          .from('financial_records')
+          .delete()
+          .eq('id', recordId);
+      } else {
+        // Simple delete - just the financial record
+        await supabase
+          .from('financial_records')
+          .delete()
+          .eq('id', recordId);
+      }
+
+      toast({
+        title: language === 'el' ? 'Διαγράφηκε' : 'Deleted',
+        description: language === 'el' 
+          ? 'Η συναλλαγή και τα σχετικά δεδομένα διαγράφηκαν επιτυχώς'
+          : 'Transaction and related data have been deleted successfully',
+      });
+
+      // Trigger refresh
+      onRecordDeleted?.();
+      
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      toast({
+        title: language === 'el' ? 'Σφάλμα' : 'Error',
+        description: language === 'el' 
+          ? 'Αποτυχία διαγραφής συναλλαγής'
+          : 'Failed to delete transaction',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteTransactionId(null);
+    }
+  };
   
   const calculateSummaryData = () => {
     const incomeRecords = filteredRecords.filter(record => record.type === "income");
@@ -307,11 +487,13 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
               {visibleTransactions.slice(0, 5).map(record => (
                 <TransactionItem 
                   key={record.id}
-                  description={record.description || record.category}
+                  id={record.id}
+                  title={getTransactionTitle(record)}
                   amount={Number(record.amount)}
                   date={formatDate(record.date)}
                   type={record.type}
                   lang={language}
+                  onDelete={(id) => setDeleteTransactionId(id)}
                 />
               ))}
               {recentTransactions.length > 5 && !showAllTransactions && (
@@ -347,16 +529,48 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
             {recentTransactions.map(record => (
               <TransactionItem 
                 key={record.id}
-                description={record.description || record.category}
+                id={record.id}
+                title={getTransactionTitle(record)}
                 amount={Number(record.amount)}
                 date={formatDate(record.date)}
                 type={record.type}
                 lang={language}
+                onDelete={(id) => setDeleteTransactionId(id)}
               />
             ))}
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTransactionId} onOpenChange={(open) => !open && setDeleteTransactionId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {language === 'el' ? 'Διαγραφή Συναλλαγής' : 'Delete Transaction'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {language === 'el' 
+                ? 'Είστε βέβαιοι ότι θέλετε να διαγράψετε αυτήν τη συναλλαγή; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί. Αν αυτή η συναλλαγή συνδέεται με κράτηση ή συντήρηση, θα διαγραφούν και τα σχετικά δεδομένα.'
+                : 'Are you sure you want to delete this transaction? This action cannot be undone. If this transaction is linked to a booking or maintenance record, related data will also be deleted.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>
+              {language === 'el' ? 'Ακύρωση' : 'Cancel'}
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => deleteTransactionId && handleDeleteTransaction(deleteTransactionId)}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting 
+                ? (language === 'el' ? 'Διαγραφή...' : 'Deleting...') 
+                : (language === 'el' ? 'Διαγραφή' : 'Delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -401,18 +615,20 @@ function SummaryCard({ title, value, change, trend, prefix = "", trendReversed =
   );
 }
 
-function TransactionItem({ description, amount, date, type, lang }: {
-  description: string;
+function TransactionItem({ id, title, amount, date, type, lang, onDelete }: {
+  id: string;
+  title: string;
   amount: number;
   date: string;
   type: string;
   lang: string;
+  onDelete: (id: string) => void;
 }) {
   const isIncome = type === "income";
   
   return (
-    <div className="flex items-center justify-between p-3 rounded-md hover:bg-accent/50 transition-colors">
-      <div className="flex items-center">
+    <div className="flex items-center justify-between p-3 rounded-md hover:bg-accent/50 transition-colors group">
+      <div className="flex items-center flex-1 min-w-0">
         <div className={cn(
           "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
           isIncome ? "bg-green-100" : "bg-red-100"
@@ -424,17 +640,28 @@ function TransactionItem({ description, amount, date, type, lang }: {
           )}
         </div>
         
-        <div className="ml-3">
-          <div className="font-medium">{description}</div>
+        <div className="ml-3 min-w-0 flex-1">
+          <div className="font-medium truncate">{title}</div>
           <div className="text-xs text-muted-foreground">{date}</div>
         </div>
       </div>
       
-      <div className={cn(
-        "font-medium",
-        isIncome ? "text-green-600" : "text-red-600"
-      )}>
-        {isIncome ? "+" : "-"}{lang === 'el' ? '€' : '$'}{amount.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      <div className="flex items-center gap-2">
+        <div className={cn(
+          "font-medium",
+          isIncome ? "text-green-600" : "text-red-600"
+        )}>
+          {isIncome ? "+" : "-"}{lang === 'el' ? '€' : '$'}{amount.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </div>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onDelete(id)}
+          className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive hover:bg-destructive/10"
+        >
+          <X className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );
