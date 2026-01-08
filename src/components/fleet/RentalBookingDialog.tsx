@@ -123,17 +123,14 @@ export function RentalBookingDialog({
     setAdjustedRate(vehicleDailyRate);
   }, [vehicleDailyRate]);
 
-  // Calculate rental days based on 24-HOUR PERIODS
-  // Base: end_date - start_date = number of 24-hour blocks
-  // With times: calculate exact hours, apply 1-hour grace period
+  // Calculate rental days based on STRICT 24-HOUR CYCLES
+  // Formula: daysCharged = ceil(totalHours / 24)
+  // Minimum charge: 1 day
+  // NO grace periods, NO exceptions
   const calculateRentalDays = () => {
     if (!startDate || !endDate) return 0;
     
-    // Base calculation: difference in days (not inclusive)
-    // Jan 20 → Jan 24 = 4 days (4 full 24-hour periods)
-    const baseDays = differenceInDays(endDate, startDate);
-    
-    // If times are provided, calculate with precision
+    // If times are provided, calculate exact hours
     if (pickupTime && returnTime) {
       const pickupDateTime = new Date(startDate);
       const [pickupHours, pickupMinutes] = pickupTime.split(':').map(Number);
@@ -144,21 +141,15 @@ export function RentalBookingDialog({
       returnDateTime.setHours(returnHours, returnMinutes, 0, 0);
       
       const totalHours = differenceInHours(returnDateTime, pickupDateTime);
-      const fullDays = Math.floor(totalHours / 24);
-      const remainderHours = totalHours % 24;
       
-      // Grace period: up to 1 hour late = no extra charge
-      // 2+ hours late = extra day charged
-      if (remainderHours > 1) {
-        return Math.max(1, fullDays + 1);
-      }
-      
-      // Early return or within grace period = base days
-      return Math.max(1, fullDays);
+      // Strict ceiling logic: any hours beyond a 24h block = new day
+      // Minimum 1 day charge
+      return Math.max(1, Math.ceil(totalHours / 24));
     }
     
-    // Without times, use base date calculation
-    return Math.max(1, baseDays);
+    // Without times, use date difference (end - start)
+    // Jan 20 → Jan 24 = 4 days
+    return Math.max(1, differenceInDays(endDate, startDate));
   };
 
   const rentalDays = calculateRentalDays();
