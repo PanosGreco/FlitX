@@ -82,39 +82,64 @@ export function IncomeBreakdown({ financialRecords, vehicles = [], lang = 'en', 
     return financialRecords.filter(r => r.type === 'income');
   }, [financialRecords]);
 
-  // Aggregate income by source type
+  // Helper function to normalize specifications for matching
+  const normalizeSpecification = (spec: string | null | undefined): string => {
+    if (!spec) return '';
+    return spec.trim().toLowerCase();
+  };
+
+  // Helper function to get display specification (properly capitalized)
+  const getDisplaySpecification = (spec: string): string => {
+    if (!spec) return '';
+    // Capitalize first letter of each word
+    return spec.trim().split(' ').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+  };
+
+  // Aggregate income by source type - with dynamic categorization for collaboration/other
   const incomeBySource = useMemo(() => {
-    const sourceData: Record<string, { total: number; months: Record<number, number>; specification?: string }> = {};
+    const sourceData: Record<string, { total: number; months: Record<number, number>; displayLabel: string }> = {};
 
     filteredRecords.forEach(record => {
       const sourceType = record.income_source_type || 'other';
       const month = getMonth(new Date(record.date));
       
-      if (!sourceData[sourceType]) {
-        sourceData[sourceType] = { total: 0, months: {} };
-      }
-      
-      sourceData[sourceType].total += Number(record.amount);
-      sourceData[sourceType].months[month] = (sourceData[sourceType].months[month] || 0) + Number(record.amount);
+      // For collaboration and other, create dynamic categories based on specification
+      let categoryKey: string;
+      let displayLabel: string;
       
       if ((sourceType === 'collaboration' || sourceType === 'other') && record.income_source_specification) {
-        sourceData[sourceType].specification = record.income_source_specification;
+        const normalizedSpec = normalizeSpecification(record.income_source_specification);
+        const displaySpec = getDisplaySpecification(record.income_source_specification);
+        categoryKey = `${sourceType}_${normalizedSpec}`;
+        const baseLabel = INCOME_SOURCE_LABELS[sourceType]?.[lang === 'el' ? 'el' : 'en'] || sourceType;
+        displayLabel = `${baseLabel} (${displaySpec})`;
+      } else {
+        categoryKey = sourceType;
+        displayLabel = INCOME_SOURCE_LABELS[sourceType]?.[lang === 'el' ? 'el' : 'en'] || sourceType;
       }
+      
+      if (!sourceData[categoryKey]) {
+        sourceData[categoryKey] = { total: 0, months: {}, displayLabel };
+      }
+      
+      sourceData[categoryKey].total += Number(record.amount);
+      sourceData[categoryKey].months[month] = (sourceData[categoryKey].months[month] || 0) + Number(record.amount);
     });
 
     return Object.entries(sourceData)
-      .map(([source, data]) => {
+      .map(([key, data]) => {
         const sortedMonths = Object.entries(data.months)
           .sort((a, b) => b[1] - a[1])
           .slice(0, 3)
           .map(([month]) => MONTH_NAMES[month]?.[lang === 'el' ? 'el' : 'en'] || month);
 
         return {
-          source,
-          label: INCOME_SOURCE_LABELS[source]?.[lang === 'el' ? 'el' : 'en'] || source,
+          key,
+          label: data.displayLabel,
           total: data.total,
           topMonths: sortedMonths.join(", "),
-          specification: data.specification,
         };
       })
       .sort((a, b) => b.total - a.total);
@@ -124,7 +149,7 @@ export function IncomeBreakdown({ financialRecords, vehicles = [], lang = 'en', 
   const pieData = useMemo(() => {
     const total = incomeBySource.reduce((sum, item) => sum + item.total, 0);
     return incomeBySource.map(item => ({
-      name: item.specification ? `${item.label} (${item.specification})` : item.label,
+      name: item.label,
       value: Math.round((item.total / total) * 100) || 0,
       amount: item.total,
     }));
@@ -200,7 +225,7 @@ export function IncomeBreakdown({ financialRecords, vehicles = [], lang = 'en', 
               </TableHeader>
               <TableBody>
                 {incomeBySource.map((item, index) => (
-                  <TableRow key={item.source} className="hover:bg-muted/50">
+                  <TableRow key={item.key} className="hover:bg-muted/50">
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div 
@@ -208,7 +233,7 @@ export function IncomeBreakdown({ financialRecords, vehicles = [], lang = 'en', 
                           style={{ backgroundColor: COLORS[index % COLORS.length] }}
                         />
                         <span className="truncate text-sm">
-                          {item.specification ? `${item.label} (${item.specification})` : item.label}
+                          {item.label}
                         </span>
                       </div>
                     </TableCell>

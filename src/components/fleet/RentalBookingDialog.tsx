@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContentManualScroll, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -509,13 +509,13 @@ export function RentalBookingDialog({
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select time" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[200px]">
+                  <SelectContentManualScroll scrollHeight="200px">
                     {timeOptions.map((time) => (
                       <SelectItem key={time} value={time}>
                         {time}
                       </SelectItem>
                     ))}
-                  </SelectContent>
+                  </SelectContentManualScroll>
                 </Select>
               </div>
             </div>
@@ -571,13 +571,13 @@ export function RentalBookingDialog({
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select time" />
                   </SelectTrigger>
-                  <SelectContent className="max-h-[200px]">
+                  <SelectContentManualScroll scrollHeight="200px">
                     {timeOptions.map((time) => (
                       <SelectItem key={time} value={time}>
                         {time}
                       </SelectItem>
                     ))}
-                  </SelectContent>
+                  </SelectContentManualScroll>
                 </Select>
               </div>
             </div>
