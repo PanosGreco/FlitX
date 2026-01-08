@@ -123,14 +123,42 @@ export function RentalBookingDialog({
     setAdjustedRate(vehicleDailyRate);
   }, [vehicleDailyRate]);
 
-  // Calculate rental days based on CALENDAR DAYS only
-  // Times are for scheduling purposes only, they do NOT affect the number of billed days
+  // Calculate rental days based on 24-HOUR PERIODS
+  // Base: end_date - start_date = number of 24-hour blocks
+  // With times: calculate exact hours, apply 1-hour grace period
   const calculateRentalDays = () => {
     if (!startDate || !endDate) return 0;
     
-    // Always use calendar-based calculation: count inclusive days
-    // Example: Jan 1 to Jan 4 = 4 days (1st, 2nd, 3rd, 4th)
-    return Math.max(1, differenceInDays(endDate, startDate) + 1);
+    // Base calculation: difference in days (not inclusive)
+    // Jan 20 → Jan 24 = 4 days (4 full 24-hour periods)
+    const baseDays = differenceInDays(endDate, startDate);
+    
+    // If times are provided, calculate with precision
+    if (pickupTime && returnTime) {
+      const pickupDateTime = new Date(startDate);
+      const [pickupHours, pickupMinutes] = pickupTime.split(':').map(Number);
+      pickupDateTime.setHours(pickupHours, pickupMinutes, 0, 0);
+      
+      const returnDateTime = new Date(endDate);
+      const [returnHours, returnMinutes] = returnTime.split(':').map(Number);
+      returnDateTime.setHours(returnHours, returnMinutes, 0, 0);
+      
+      const totalHours = differenceInHours(returnDateTime, pickupDateTime);
+      const fullDays = Math.floor(totalHours / 24);
+      const remainderHours = totalHours % 24;
+      
+      // Grace period: up to 1 hour late = no extra charge
+      // 2+ hours late = extra day charged
+      if (remainderHours > 1) {
+        return Math.max(1, fullDays + 1);
+      }
+      
+      // Early return or within grace period = base days
+      return Math.max(1, fullDays);
+    }
+    
+    // Without times, use base date calculation
+    return Math.max(1, baseDays);
   };
 
   const rentalDays = calculateRentalDays();
