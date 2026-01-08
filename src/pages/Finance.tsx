@@ -27,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { usePageTitle } from "@/hooks/usePageTitle";
+import { getMaintenanceTypeOptions, getMaintenanceTypeLabel } from "@/constants/maintenanceTypes";
 
 const Finance = () => {
   const [isAddFinanceOpen, setIsAddFinanceOpen] = useState(false);
@@ -229,23 +230,17 @@ const Finance = () => {
       } else {
         // BI-DIRECTIONAL SYNC: If this is a maintenance expense with a vehicle, 
         // also create a vehicle_maintenance record
-        if (recordType === "expense" && expenseCategory === 'maintenance' && selectedVehicleId) {
-          const maintenanceType = expenseSubcategory?.toLowerCase().includes('oil') ? 'oil_change' :
-            expenseSubcategory?.toLowerCase().includes('tire') ? 'tire_rotation' :
-            expenseSubcategory?.toLowerCase().includes('brake') ? 'brake_service' :
-            expenseSubcategory?.toLowerCase().includes('filter') ? 'filter_replacement' :
-            expenseSubcategory?.toLowerCase().includes('battery') ? 'battery_replacement' :
-            expenseSubcategory?.toLowerCase().includes('service') ? 'full_service' : 'other';
-
+        if (recordType === "expense" && expenseCategory === 'maintenance' && selectedVehicleId && expenseSubcategory) {
+          // expenseSubcategory is now directly a maintenance type key (e.g., 'oil_change', 'brakes')
           const { error: maintenanceError } = await supabase
             .from('vehicle_maintenance')
             .insert({
               user_id: session.session.user.id,
               vehicle_id: selectedVehicleId,
-              type: maintenanceType,
+              type: expenseSubcategory,
               date: date,
               cost: parseFloat(amount),
-              description: expenseSubcategory || notes || 'Maintenance from Income & Expenses'
+              description: notes || getMaintenanceTypeLabel(expenseSubcategory, language)
             });
 
           if (maintenanceError) {
@@ -385,17 +380,36 @@ const Finance = () => {
                 </div>
               )}
 
-              {/* Expense Subcategory - for maintenance/other */}
-              {recordType === "expense" && (expenseCategory === 'maintenance' || expenseCategory === 'other') && (
+              {/* Expense Subcategory - dropdown for maintenance, free-text for other */}
+              {recordType === "expense" && expenseCategory === 'maintenance' && (
+                <div className="space-y-2">
+                  <Label htmlFor="maintenanceType">
+                    {language === 'el' ? 'Τύπος Συντήρησης' : 'Maintenance Type'} *
+                  </Label>
+                  <Select value={expenseSubcategory} onValueChange={setExpenseSubcategory} disabled={isLanguageLoading}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={language === 'el' ? 'Επιλέξτε τύπο...' : 'Select type...'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {getMaintenanceTypeOptions(language).map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Free-text subcategory only for 'other' expense category */}
+              {recordType === "expense" && expenseCategory === 'other' && (
                 <div className="space-y-2">
                   <Label htmlFor="expenseSubcat">
                     {language === 'el' ? 'Προσδιορισμός' : 'Specification'} *
                   </Label>
                   <Input 
                     id="expenseSubcat"
-                    placeholder={expenseCategory === 'maintenance' 
-                      ? (language === 'el' ? 'π.χ. Αλλαγή Λαδιών, Φρένα' : 'e.g. Oil Change, Brakes')
-                      : (language === 'el' ? 'Περιγράψτε το έξοδο...' : 'Describe the expense...')}
+                    placeholder={language === 'el' ? 'Περιγράψτε το έξοδο...' : 'Describe the expense...'}
                     value={expenseSubcategory}
                     onChange={(e) => setExpenseSubcategory(e.target.value)}
                     required
