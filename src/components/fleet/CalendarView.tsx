@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { format, eachDayOfInterval, isSameDay } from "date-fns";
+import { useState, useEffect, useMemo } from "react";
+import { format, eachDayOfInterval, isSameDay, isWithinInterval, isBefore, isAfter, startOfDay } from "date-fns";
 import { ChevronLeft, ChevronRight, Plus, Clock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,7 +43,8 @@ interface CalendarViewProps {
 
 export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: CalendarViewProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [selectionStart, setSelectionStart] = useState<Date | null>(null);
+  const [selectionEnd, setSelectionEnd] = useState<Date | null>(null);
   const [bookings, setBookings] = useState<RentalBooking[]>([]);
   const [maintenanceBlocks, setMaintenanceBlocks] = useState<MaintenanceBlock[]>([]);
   const [bookedDates, setBookedDates] = useState<Set<string>>(new Set());
@@ -142,14 +143,45 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
     }
   };
 
-  const handleDateSelect = (dates: Date[] | undefined) => {
-    setSelectedDates(dates || []);
+  // Calculate selected dates as a range
+  const selectedDates = useMemo(() => {
+    if (!selectionStart) return [];
+    if (!selectionEnd) return [selectionStart];
+    
+    const start = isBefore(selectionStart, selectionEnd) ? selectionStart : selectionEnd;
+    const end = isAfter(selectionStart, selectionEnd) ? selectionStart : selectionEnd;
+    
+    return eachDayOfInterval({ start, end });
+  }, [selectionStart, selectionEnd]);
+
+  // Handle date click for range selection
+  const handleDateClick = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const isBooked = bookedDates.has(dateStr);
+    const isMaintenance = maintenanceDates.has(dateStr);
+    
+    // Don't allow selecting booked or maintenance dates
+    if (isBooked || isMaintenance) return;
+    
+    if (!selectionStart) {
+      // First click - set start date
+      setSelectionStart(date);
+      setSelectionEnd(null);
+    } else if (!selectionEnd) {
+      // Second click - set end date
+      setSelectionEnd(date);
+    } else {
+      // Third click - start new selection
+      setSelectionStart(date);
+      setSelectionEnd(null);
+    }
   };
 
-  // New Booking button is always enabled - dates selected inside the modal
+  // Handle new booking with selected dates
   const handleNewBooking = () => {
     onNewBooking(selectedDates);
-    setSelectedDates([]);
+    setSelectionStart(null);
+    setSelectionEnd(null);
   };
 
   const isDateBooked = (date: Date) => {
@@ -158,6 +190,10 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
 
   const isDateMaintenance = (date: Date) => {
     return maintenanceDates.has(format(date, 'yyyy-MM-dd'));
+  };
+
+  const isDateSelected = (date: Date) => {
+    return selectedDates.some(d => isSameDay(d, date));
   };
 
   const getDateInfo = (date: Date): DateInfo[] | undefined => {
@@ -178,17 +214,21 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
     const hasInfo = dateInfo && dateInfo.length > 0;
     const isBooked = isDateBooked(date);
     const isMaintenance = isDateMaintenance(date);
-    const isSelected = selectedDates.some(d => isSameDay(d, date));
+    const isSelected = isDateSelected(date);
     const isToday = isSameDay(date, new Date());
+    const isSelectionStartDate = selectionStart && isSameDay(date, selectionStart);
+    const isSelectionEndDate = selectionEnd && isSameDay(date, selectionEnd);
     
     const dayContent = (
       <button
         {...props}
+        onClick={() => handleDateClick(date)}
         className={cn(
-          "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground relative rounded-md",
-          isBooked && "bg-red-600 text-white font-bold hover:bg-red-700",
-          isMaintenance && !isBooked && "bg-orange-500 text-white font-bold hover:bg-orange-600",
-          isSelected && "bg-primary text-primary-foreground hover:bg-primary",
+          "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground relative rounded-md transition-colors",
+          isBooked && "bg-red-600 text-white font-bold hover:bg-red-700 cursor-not-allowed",
+          isMaintenance && !isBooked && "bg-orange-500 text-white font-bold hover:bg-orange-600 cursor-not-allowed",
+          isSelected && !isBooked && !isMaintenance && "bg-primary text-primary-foreground hover:bg-primary",
+          (isSelectionStartDate || isSelectionEndDate) && "ring-2 ring-primary ring-offset-2",
           isToday && !isBooked && !isMaintenance && !isSelected && "bg-accent text-accent-foreground"
         )}
       >
@@ -259,7 +299,6 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
           </Button>
         </div>
         
-        {/* New Booking button is always enabled */}
         <Button 
           onClick={handleNewBooking}
           className="bg-flitx-blue hover:bg-flitx-blue-600"
@@ -274,7 +313,6 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
           <Calendar
             mode="multiple"
             selected={selectedDates}
-            onSelect={handleDateSelect}
             month={currentDate}
             onMonthChange={setCurrentDate}
             className="w-full"

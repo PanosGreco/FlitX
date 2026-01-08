@@ -105,7 +105,7 @@ const Finance = () => {
       const { data, error } = await supabase
         .from('financial_records')
         .select('*')
-        .order('date', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error("Error fetching financial records:", error);
@@ -280,6 +280,7 @@ const Finance = () => {
           onAddRecord={handleOpenAddFinance}
           financialRecords={financialRecords}
           isLoading={isLoading}
+          onRecordDeleted={fetchFinancialRecords}
         />
         
         {/* Add Finance Record Dialog */}

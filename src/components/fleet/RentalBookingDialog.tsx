@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { format, differenceInDays, differenceInHours } from "date-fns";
-import { CalendarIcon, Camera, Upload, X, MapPin, Clock, Plus, Trash2 } from "lucide-react";
+import { format, differenceInDays, differenceInHours, eachDayOfInterval, isBefore, isAfter } from "date-fns";
+import { CalendarIcon, Camera, Upload, X, MapPin, Clock, Plus, Trash2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,13 @@ interface AdditionalCost {
   id: string;
   amount: number;
   note: string;
+}
+
+interface ExistingBooking {
+  id: string;
+  start_date: string;
+  end_date: string;
+  customer_name: string;
 }
 
 interface RentalBookingDialogProps {
@@ -59,9 +67,50 @@ export function RentalBookingDialog({
   const [adjustedRate, setAdjustedRate] = useState(vehicleDailyRate);
   const [customTotalPrice, setCustomTotalPrice] = useState(0);
   const [additionalCosts, setAdditionalCosts] = useState<AdditionalCost[]>([]);
+  const [existingBookings, setExistingBookings] = useState<ExistingBooking[]>([]);
+  const [conflictError, setConflictError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Fetch existing bookings for conflict detection
+  useEffect(() => {
+    if (isOpen && vehicleId) {
+      fetchExistingBookings();
+    }
+  }, [isOpen, vehicleId]);
+
+  const fetchExistingBookings = async () => {
+    const { data } = await supabase
+      .from('rental_bookings')
+      .select('id, start_date, end_date, customer_name')
+      .eq('vehicle_id', vehicleId)
+      .in('status', ['confirmed', 'active', 'pending']);
+    setExistingBookings(data || []);
+  };
+
+  // Check for conflicts when dates change
+  useEffect(() => {
+    if (startDate && endDate && existingBookings.length > 0) {
+      const newStart = startDate;
+      const newEnd = endDate;
+      
+      const conflict = existingBookings.find(booking => {
+        const bookingStart = new Date(booking.start_date);
+        const bookingEnd = new Date(booking.end_date);
+        // Check if ranges overlap
+        return !(isAfter(newStart, bookingEnd) || isBefore(newEnd, bookingStart));
+      });
+      
+      if (conflict) {
+        setConflictError(`This vehicle is already booked from ${format(new Date(conflict.start_date), 'MMM dd')} to ${format(new Date(conflict.end_date), 'MMM dd')} for ${conflict.customer_name}.`);
+      } else {
+        setConflictError(null);
+      }
+    } else {
+      setConflictError(null);
+    }
+  }, [startDate, endDate, existingBookings]);
 
   // Update preselected dates when props change
   useEffect(() => {
