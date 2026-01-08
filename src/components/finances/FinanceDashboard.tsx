@@ -117,16 +117,17 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     return filterByCalendarTimeframe(financialRecords, timeframe, customRange);
   }, [financialRecords, timeframe, customRange]);
 
-  // Recent transactions (filtered by timeframe, sorted by creation timestamp)
-  const recentTransactions = useMemo(() => {
-    return [...filteredRecords].sort((a, b) => 
+  // Transactions list - ALWAYS shows ALL transactions, independent of date filters
+  // Sorted by exact creation timestamp (most recent first)
+  const allTransactions = useMemo(() => {
+    return [...financialRecords].sort((a, b) => 
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
-  }, [filteredRecords]);
+  }, [financialRecords]);
 
   const visibleTransactions = showAllTransactions 
-    ? recentTransactions 
-    : recentTransactions.slice(0, 5);
+    ? allTransactions 
+    : allTransactions.slice(0, 5);
 
   // Generate standardized title for transactions
   const getTransactionTitle = (record: FinancialRecord): string => {
@@ -466,23 +467,23 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         timeframe={timeframe}
       />
         
-      {/* Recent Transactions - Complete & Filterable */}
+      {/* Transactions - Global list, independent of date filters */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">{language === 'el' ? 'Πρόσφατες Συναλλαγές' : 'Recent Transactions'}</CardTitle>
-          {recentTransactions.length > 5 && (
+          <CardTitle className="text-lg">{language === 'el' ? 'Συναλλαγές' : 'Transactions'}</CardTitle>
+          {allTransactions.length > 5 && (
             <Button 
               variant="outline" 
               size="sm"
               onClick={() => setShowAllTransactions(true)}
             >
               <Eye className="h-4 w-4 mr-2" />
-              {language === 'el' ? 'Όλες' : 'View All'} ({recentTransactions.length})
+              {language === 'el' ? 'Όλες' : 'View All'} ({allTransactions.length})
             </Button>
           )}
         </CardHeader>
         <CardContent>
-          {recentTransactions.length > 0 ? (
+          {allTransactions.length > 0 ? (
             <div className="space-y-4">
               {visibleTransactions.slice(0, 5).map(record => (
                 <TransactionItem 
@@ -496,17 +497,17 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
                   onDelete={(id) => setDeleteTransactionId(id)}
                 />
               ))}
-              {recentTransactions.length > 5 && !showAllTransactions && (
+              {allTransactions.length > 5 && !showAllTransactions && (
                 <div className="text-center text-sm text-muted-foreground pt-2">
                   {language === 'el' 
-                    ? `Εμφάνιση 5 από ${recentTransactions.length} συναλλαγές`
-                    : `Showing 5 of ${recentTransactions.length} transactions`}
+                    ? `Εμφάνιση 5 από ${allTransactions.length} συναλλαγές`
+                    : `Showing 5 of ${allTransactions.length} transactions`}
                 </div>
               )}
             </div>
           ) : (
             <p className="text-center text-muted-foreground py-8">
-              {language === 'el' ? 'Δεν βρέθηκαν συναλλαγές για αυτήν την περίοδο' : 'No transactions found for this period'}
+              {language === 'el' ? 'Δεν υπάρχουν συναλλαγές' : 'No transactions found'}
             </p>
           )}
         </CardContent>
@@ -520,13 +521,13 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
               <CalendarIcon className="h-5 w-5" />
               {language === 'el' ? 'Όλες οι Συναλλαγές' : 'All Transactions'}
               <span className="text-muted-foreground font-normal text-sm">
-                ({recentTransactions.length})
+                ({allTransactions.length})
               </span>
             </DialogTitle>
           </DialogHeader>
           
           <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-            {recentTransactions.map(record => (
+            {allTransactions.map(record => (
               <TransactionItem 
                 key={record.id}
                 id={record.id}
