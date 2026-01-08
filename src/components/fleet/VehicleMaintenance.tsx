@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { MAINTENANCE_TYPES, getMaintenanceTypeLabel, getMaintenanceTypeOptions } from "@/constants/maintenanceTypes";
 
 interface MaintenanceRecord {
   id: string;
@@ -157,7 +158,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
             amount: costValue,
             date: serviceDate,
             description: `${getServiceTypeLabel(serviceType)}${notes ? ': ' + notes : ''}`,
-            expense_subcategory: getServiceTypeLabel(serviceType),
+            expense_subcategory: serviceType, // Store the key, not the label
             source_section: 'vehicle_maintenance',
             vehicle_fuel_type: vehicleData?.fuel_type || null,
             vehicle_year: vehicleData?.year || null
@@ -185,19 +186,8 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
     }
   };
   
-  const getServiceTypeLabel = (type: string) => {
-    const labels: {[key: string]: string} = {
-      oil_change: language === 'el' ? 'Αλλαγή Λαδιών' : 'Oil Change',
-      tire_rotation: language === 'el' ? 'Περιστροφή Ελαστικών' : 'Tire Rotation',
-      full_service: language === 'el' ? 'Πλήρες Σέρβις' : 'Full Service',
-      filter_replacement: language === 'el' ? 'Αντικατάσταση Φίλτρων' : 'Filter Replacement',
-      brake_service: language === 'el' ? 'Σέρβις Φρένων' : 'Brake Service',
-      battery_replacement: language === 'el' ? 'Αντικατάσταση Μπαταρίας' : 'Battery Replacement',
-      other: language === 'el' ? 'Άλλο Σέρβις' : 'Other Service'
-    };
-    
-    return labels[type] || type;
-  };
+  // Use shared maintenance type labels
+  const getServiceTypeLabel = (type: string) => getMaintenanceTypeLabel(type, language);
   
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString(language === 'el' ? 'el-GR' : 'en-US');
@@ -384,13 +374,11 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
                   <SelectValue placeholder={language === 'el' ? 'Επιλέξτε τύπο σέρβις' : 'Select service type'} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="oil_change">{getServiceTypeLabel('oil_change')}</SelectItem>
-                  <SelectItem value="tire_rotation">{getServiceTypeLabel('tire_rotation')}</SelectItem>
-                  <SelectItem value="full_service">{getServiceTypeLabel('full_service')}</SelectItem>
-                  <SelectItem value="filter_replacement">{getServiceTypeLabel('filter_replacement')}</SelectItem>
-                  <SelectItem value="brake_service">{getServiceTypeLabel('brake_service')}</SelectItem>
-                  <SelectItem value="battery_replacement">{getServiceTypeLabel('battery_replacement')}</SelectItem>
-                  <SelectItem value="other">{getServiceTypeLabel('other')}</SelectItem>
+                  {getMaintenanceTypeOptions(language).map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

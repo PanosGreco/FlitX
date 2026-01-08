@@ -19,6 +19,7 @@ import {
 import { TrendingDown, Car, Ship } from "lucide-react";
 import { getMonth } from "date-fns";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
+import { getMaintenanceTypeLabel } from "@/constants/maintenanceTypes";
 
 interface FinancialRecord {
   id: string;
@@ -99,42 +100,45 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
     return financialRecords.filter(r => r.type === 'expense');
   }, [financialRecords]);
 
-  // Aggregate expenses by category with fuel type and year tracking
+  // Aggregate expenses by category AND subcategory for maintenance
   const expensesByCategory = useMemo(() => {
     const categoryData: Record<string, { 
       total: number; 
       months: Record<number, number>; 
-      subcategory?: string;
       fuelTypes: Set<string>;
       years: Set<number>;
     }> = {};
 
     filteredRecords.forEach(record => {
-      const category = record.category || 'other';
+      const baseCategory = record.category || 'other';
       const month = getMonth(new Date(record.date));
       
-      if (!categoryData[category]) {
-        categoryData[category] = { total: 0, months: {}, fuelTypes: new Set(), years: new Set() };
+      // For maintenance, aggregate by subcategory (e.g., "maintenance_oil_change")
+      let aggregationKey = baseCategory;
+      if (baseCategory === 'maintenance' && record.expense_subcategory) {
+        aggregationKey = `maintenance_${record.expense_subcategory}`;
+      } else if (baseCategory === 'other' && record.expense_subcategory) {
+        aggregationKey = `other_${record.expense_subcategory}`;
       }
       
-      categoryData[category].total += Number(record.amount);
-      categoryData[category].months[month] = (categoryData[category].months[month] || 0) + Number(record.amount);
-      
-      if ((category === 'maintenance' || category === 'other') && record.expense_subcategory) {
-        categoryData[category].subcategory = record.expense_subcategory;
+      if (!categoryData[aggregationKey]) {
+        categoryData[aggregationKey] = { total: 0, months: {}, fuelTypes: new Set(), years: new Set() };
       }
+      
+      categoryData[aggregationKey].total += Number(record.amount);
+      categoryData[aggregationKey].months[month] = (categoryData[aggregationKey].months[month] || 0) + Number(record.amount);
 
       // Track fuel types and years from vehicle-linked expenses
       if (record.vehicle_fuel_type) {
-        categoryData[category].fuelTypes.add(record.vehicle_fuel_type);
+        categoryData[aggregationKey].fuelTypes.add(record.vehicle_fuel_type);
       }
       if (record.vehicle_year) {
-        categoryData[category].years.add(record.vehicle_year);
+        categoryData[aggregationKey].years.add(record.vehicle_year);
       }
     });
 
     return Object.entries(categoryData)
-      .map(([category, data]) => {
+      .map(([key, data]) => {
         const sortedMonths = Object.entries(data.months)
           .sort((a, b) => b[1] - a[1])
           .slice(0, 3)
@@ -144,12 +148,26 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
         const fuelTypesArray = Array.from(data.fuelTypes);
         const yearsArray = Array.from(data.years).sort((a, b) => b - a);
 
+        // Determine label based on key
+        let label: string;
+        if (key.startsWith('maintenance_')) {
+          const subcategory = key.replace('maintenance_', '');
+          const maintenanceLabel = getMaintenanceTypeLabel(subcategory, lang);
+          const categoryLabel = EXPENSE_CATEGORY_LABELS['maintenance']?.[lang === 'el' ? 'el' : 'en'] || 'Vehicle Maintenance';
+          label = `${categoryLabel} (${maintenanceLabel})`;
+        } else if (key.startsWith('other_')) {
+          const subcategory = key.replace('other_', '');
+          const categoryLabel = EXPENSE_CATEGORY_LABELS['other']?.[lang === 'el' ? 'el' : 'en'] || 'Other';
+          label = `${categoryLabel} (${subcategory})`;
+        } else {
+          label = EXPENSE_CATEGORY_LABELS[key]?.[lang === 'el' ? 'el' : 'en'] || key;
+        }
+
         return {
-          category,
-          label: EXPENSE_CATEGORY_LABELS[category]?.[lang === 'el' ? 'el' : 'en'] || category,
+          key,
+          label,
           total: data.total,
           topMonths: sortedMonths.join(", "),
-          subcategory: data.subcategory,
           fuelTypes: fuelTypesArray.length > 0 ? fuelTypesArray.map(ft => getFuelTypeLabel(ft, lang)).join(', ') : null,
           years: yearsArray.length > 0 ? yearsArray.join(', ') : null,
         };
@@ -161,7 +179,7 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
   const pieData = useMemo(() => {
     const total = expensesByCategory.reduce((sum, item) => sum + item.total, 0);
     return expensesByCategory.map(item => ({
-      name: item.subcategory ? `${item.label} (${item.subcategory})` : item.label,
+      name: item.label,
       value: Math.round((item.total / total) * 100) || 0,
       amount: item.total,
     }));
@@ -243,7 +261,7 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
               </TableHeader>
               <TableBody>
                 {expensesByCategory.map((item, index) => (
-                  <TableRow key={item.category} className="hover:bg-muted/50">
+                  <TableRow key={item.key} className="hover:bg-muted/50">
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <div 
@@ -251,7 +269,7 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
                           style={{ backgroundColor: COLORS[index % COLORS.length] }}
                         />
                         <span className="truncate text-sm">
-                          {item.subcategory ? `${item.label} (${item.subcategory})` : item.label}
+                          {item.label}
                         </span>
                       </div>
                     </TableCell>
