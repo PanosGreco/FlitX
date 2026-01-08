@@ -123,32 +123,13 @@ export function RentalBookingDialog({
     setAdjustedRate(vehicleDailyRate);
   }, [vehicleDailyRate]);
 
-  // Calculate rental days with 25-hour rule (24h = 1 day, +1 hour grace)
+  // Calculate rental days based on CALENDAR DAYS only
+  // Times are for scheduling purposes only, they do NOT affect the number of billed days
   const calculateRentalDays = () => {
     if (!startDate || !endDate) return 0;
     
-    // If times are provided, calculate based on hours
-    if (pickupTime && returnTime) {
-      const pickupDateTime = new Date(startDate);
-      const [pickupHours, pickupMinutes] = pickupTime.split(':').map(Number);
-      pickupDateTime.setHours(pickupHours, pickupMinutes, 0, 0);
-      
-      const returnDateTime = new Date(endDate);
-      const [returnHours, returnMinutes] = returnTime.split(':').map(Number);
-      returnDateTime.setHours(returnHours, returnMinutes, 0, 0);
-      
-      const totalHours = differenceInHours(returnDateTime, pickupDateTime);
-      // Apply 25-hour rule: charge extra day only after 25 hours
-      const days = Math.ceil(totalHours / 24);
-      const remainder = totalHours % 24;
-      // If within 1 hour grace period (25th hour), don't charge extra
-      if (remainder <= 1 && days > 1) {
-        return days - 1;
-      }
-      return Math.max(1, days);
-    }
-    
-    // Fallback to date-based calculation
+    // Always use calendar-based calculation: count inclusive days
+    // Example: Jan 1 to Jan 4 = 4 days (1st, 2nd, 3rd, 4th)
     return Math.max(1, differenceInDays(endDate, startDate) + 1);
   };
 
