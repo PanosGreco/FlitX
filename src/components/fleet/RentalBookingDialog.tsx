@@ -123,14 +123,22 @@ export function RentalBookingDialog({
     setAdjustedRate(vehicleDailyRate);
   }, [vehicleDailyRate]);
 
-  // Calculate rental days based on STRICT 24-HOUR CYCLES
-  // Formula: daysCharged = ceil(totalHours / 24)
-  // Minimum charge: 1 day
-  // NO grace periods, NO exceptions
+  // Generate 24-hour time options (00:00 to 23:00)
+  const timeOptions = Array.from({ length: 24 }, (_, i) => {
+    const hour = i.toString().padStart(2, '0');
+    return `${hour}:00`;
+  });
+
+  // Calculate rental days based on 24-HOUR CYCLES with 1-hour grace period
+  // Base: end_date - start_date = number of days
+  // With times: calculate exact hours, apply grace period
   const calculateRentalDays = () => {
     if (!startDate || !endDate) return 0;
     
-    // If times are provided, calculate exact hours
+    // Base calculation: difference in days
+    const baseDays = differenceInDays(endDate, startDate);
+    
+    // If times are provided, calculate with precision
     if (pickupTime && returnTime) {
       const pickupDateTime = new Date(startDate);
       const [pickupHours, pickupMinutes] = pickupTime.split(':').map(Number);
@@ -141,15 +149,21 @@ export function RentalBookingDialog({
       returnDateTime.setHours(returnHours, returnMinutes, 0, 0);
       
       const totalHours = differenceInHours(returnDateTime, pickupDateTime);
+      const fullDays = Math.floor(totalHours / 24);
+      const remainderHours = totalHours % 24;
       
-      // Strict ceiling logic: any hours beyond a 24h block = new day
-      // Minimum 1 day charge
-      return Math.max(1, Math.ceil(totalHours / 24));
+      // Grace period: up to 1 hour late = no extra charge
+      // 2+ hours late = extra day charged
+      // Early return = still charged for full 24h cycles
+      if (remainderHours > 1) {
+        return Math.max(1, fullDays + 1);
+      }
+      
+      return Math.max(1, fullDays);
     }
     
-    // Without times, use date difference (end - start)
-    // Jan 20 → Jan 24 = 4 days
-    return Math.max(1, differenceInDays(endDate, startDate));
+    // Without times, use base date calculation
+    return Math.max(1, baseDays);
   };
 
   const rentalDays = calculateRentalDays();
@@ -416,6 +430,36 @@ export function RentalBookingDialog({
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Source Field - Moved to top */}
+          <div className="space-y-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
+            <Label className="text-base font-semibold">Booking Source</Label>
+            <Select value={incomeSourceType} onValueChange={(value) => {
+              setIncomeSourceType(value);
+              if (value !== 'collaboration' && value !== 'other') {
+                setIncomeSourceSpecification('');
+              }
+            }}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select source" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="walk_in">Walk-in</SelectItem>
+                <SelectItem value="internet">Internet</SelectItem>
+                <SelectItem value="phone">Phone</SelectItem>
+                <SelectItem value="collaboration">Collaboration</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            {(incomeSourceType === 'collaboration' || incomeSourceType === 'other') && (
+              <Input
+                value={incomeSourceSpecification}
+                onChange={(e) => setIncomeSourceSpecification(e.target.value)}
+                placeholder={incomeSourceType === 'collaboration' ? 'Partner name...' : 'Specify source...'}
+              />
+            )}
+          </div>
+
           <div>
             <Label htmlFor="customer-name">Customer Name</Label>
             <Input
@@ -459,14 +503,20 @@ export function RentalBookingDialog({
               <div>
                 <Label className="text-xs text-muted-foreground flex items-center gap-1">
                   <Clock className="h-3 w-3" />
-                  Time
+                  Time (24h)
                 </Label>
-                <Input
-                  type="time"
-                  value={pickupTime}
-                  onChange={(e) => setPickupTime(e.target.value)}
-                  className="w-full"
-                />
+                <Select value={pickupTime} onValueChange={setPickupTime}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select time" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {timeOptions.map((time) => (
+                      <SelectItem key={time} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div>
@@ -515,14 +565,20 @@ export function RentalBookingDialog({
               <div>
                 <Label className="text-xs text-muted-foreground flex items-center gap-1">
                   <Clock className="h-3 w-3" />
-                  Time
+                  Time (24h)
                 </Label>
-                <Input
-                  type="time"
-                  value={returnTime}
-                  onChange={(e) => setReturnTime(e.target.value)}
-                  className="w-full"
-                />
+                <Select value={returnTime} onValueChange={setReturnTime}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select time" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {timeOptions.map((time) => (
+                      <SelectItem key={time} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div>
@@ -700,35 +756,6 @@ export function RentalBookingDialog({
             />
           </div>
 
-          {/* Source Field */}
-          <div className="space-y-3">
-            <Label>Source</Label>
-            <Select value={incomeSourceType} onValueChange={(value) => {
-              setIncomeSourceType(value);
-              if (value !== 'collaboration' && value !== 'other') {
-                setIncomeSourceSpecification('');
-              }
-            }}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select source" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="walk_in">Walk-in</SelectItem>
-                <SelectItem value="internet">Internet</SelectItem>
-                <SelectItem value="phone">Phone</SelectItem>
-                <SelectItem value="collaboration">Collaboration</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            {(incomeSourceType === 'collaboration' || incomeSourceType === 'other') && (
-              <Input
-                value={incomeSourceSpecification}
-                onChange={(e) => setIncomeSourceSpecification(e.target.value)}
-                placeholder={incomeSourceType === 'collaboration' ? 'Partner name...' : 'Specify source...'}
-              />
-            )}
-          </div>
 
           <div>
             <Label>Contract Photo</Label>
