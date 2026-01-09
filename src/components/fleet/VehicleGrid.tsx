@@ -6,6 +6,8 @@ import { PlusCircle, Search, Filter, Loader2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useFleetStatuses } from "@/hooks/useVehicleStatus";
+import { VehicleFilterPanel, VehicleFilters } from "./VehicleFilterPanel";
+import { Badge } from "@/components/ui/badge";
 
 interface VehicleGridProps {
   vehicles: VehicleData[];
@@ -15,7 +17,13 @@ interface VehicleGridProps {
 
 export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: VehicleGridProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const { t, isLanguageLoading } = useLanguage();
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filters, setFilters] = useState<VehicleFilters>({
+    yearSort: null,
+    fuelTypes: [],
+    passengerCounts: [],
+  });
+  const { t, language, isLanguageLoading } = useLanguage();
   
   usePageTitle("fleet");
 
@@ -25,14 +33,40 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
   // Compute statuses for all vehicles based on calendar data
   const { statuses: computedStatuses, isLoading: statusesLoading } = useFleetStatuses(vehicleIds);
   
-  const filteredVehicles = vehicles.filter((vehicle) => {
-    const searchTerms = searchQuery.toLowerCase().trim().split(" ");
-    const vehicleText = `${vehicle.make} ${vehicle.model} ${vehicle.year} ${vehicle.licensePlate}`.toLowerCase();
-    
-    return searchTerms.every((term) => vehicleText.includes(term));
-  });
+  const filteredAndSortedVehicles = useMemo(() => {
+    // First filter by search
+    let result = vehicles.filter((vehicle) => {
+      const searchTerms = searchQuery.toLowerCase().trim().split(" ");
+      const vehicleText = `${vehicle.make} ${vehicle.model} ${vehicle.year} ${vehicle.licensePlate}`.toLowerCase();
+      return searchTerms.every((term) => vehicleText.includes(term));
+    });
+
+    // Filter by fuel type
+    if (filters.fuelTypes.length > 0) {
+      result = result.filter(v => v.fuelType && filters.fuelTypes.includes(v.fuelType));
+    }
+
+    // Filter by passenger count
+    if (filters.passengerCounts.length > 0) {
+      result = result.filter(v => v.passengerCapacity && filters.passengerCounts.includes(v.passengerCapacity));
+    }
+
+    // Sort by year
+    if (filters.yearSort) {
+      result = [...result].sort((a, b) => 
+        filters.yearSort === 'asc' ? a.year - b.year : b.year - a.year
+      );
+    }
+
+    return result;
+  }, [vehicles, searchQuery, filters]);
 
   const showLoading = isLoading || statusesLoading;
+
+  const activeFilterCount = 
+    (filters.yearSort ? 1 : 0) + 
+    filters.fuelTypes.length + 
+    filters.passengerCounts.length;
 
   return (
     <div className="space-y-4">
@@ -59,14 +93,31 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
             disabled={isLanguageLoading || showLoading}
           />
         </div>
-        <Button 
-          variant="outline" 
-          size="icon" 
-          aria-label="Filter"
-          disabled={isLanguageLoading || showLoading}
-        >
-          <Filter className="h-4 w-4" />
-        </Button>
+        <VehicleFilterPanel
+          filters={filters}
+          onFiltersChange={setFilters}
+          isOpen={isFilterOpen}
+          onOpenChange={setIsFilterOpen}
+          trigger={
+            <Button 
+              variant="outline" 
+              size="icon" 
+              aria-label="Filter"
+              disabled={isLanguageLoading || showLoading}
+              className="relative"
+            >
+              <Filter className="h-4 w-4" />
+              {activeFilterCount > 0 && (
+                <Badge 
+                  className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                  variant="default"
+                >
+                  {activeFilterCount}
+                </Badge>
+              )}
+            </Button>
+          }
+        />
       </div>
       
       {showLoading ? (
@@ -76,8 +127,8 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {filteredVehicles.length > 0 ? (
-            filteredVehicles.map((vehicle) => (
+          {filteredAndSortedVehicles.length > 0 ? (
+            filteredAndSortedVehicles.map((vehicle) => (
               <VehicleCard 
                 key={vehicle.id} 
                 vehicle={vehicle} 
@@ -86,7 +137,7 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
             ))
           ) : (
             <div className="col-span-full py-8 text-center text-muted-foreground">
-              {searchQuery ? (
+              {searchQuery || activeFilterCount > 0 ? (
                 <p>{t.noSearchResults}</p>
               ) : (
                 <p>{t.noVehicles}</p>

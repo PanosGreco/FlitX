@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Car, Calendar, AlertTriangle, FileText, ChevronLeft, Gauge, Settings, RefreshCcw, Wrench, Upload, Fuel } from "lucide-react";
+import { Car, Calendar, AlertTriangle, FileText, ChevronLeft, Gauge, Settings, RefreshCcw, Wrench, Upload, Fuel, Users, Bell } from "lucide-react";
 
 const FUEL_TYPE_LABELS: Record<string, { en: string; el: string }> = {
   petrol: { en: "Petrol", el: "Βενζίνη" },
@@ -8,7 +8,8 @@ const FUEL_TYPE_LABELS: Record<string, { en: string; el: string }> = {
   hybrid: { en: "Hybrid", el: "Υβριδικό" },
 };
 
-const getFuelTypeLabel = (fuelType: string, lang: string) => {
+const getFuelTypeLabel = (fuelType: string | undefined, lang: string): string => {
+  if (!fuelType) return lang === 'el' ? 'Άγνωστο' : 'Unknown';
   return FUEL_TYPE_LABELS[fuelType]?.[lang === 'el' ? 'el' : 'en'] || fuelType;
 };
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { useToast } from "@/components/ui/use-toast";
 import { VehicleMaintenance } from "./VehicleMaintenance";
 import { VehicleReminders } from "./VehicleReminders";
+import { VehicleDocuments } from "./VehicleDocuments";
 import { DamageReport } from "@/components/damage/DamageReport";
 import { RentalBookingDialog } from "./RentalBookingDialog";
 import { RentalBookingsList } from "./RentalBookingsList";
@@ -94,7 +96,8 @@ export function VehicleDetails({
     totalServiceCost: 0,
     fuelCosts: 0,
     milesPerDay: 0,
-    image: undefined
+    image: undefined,
+    passengerCapacity: 5
   };
 
   // Use computed status from calendar data
@@ -288,10 +291,12 @@ export function VehicleDetails({
                   <span>{vehicle.licensePlate}</span>
                   <span className="mx-2">•</span>
                   <span>{safeNumber(vehicle.mileage).toLocaleString()} km</span>
-                  {vehicle.fuelType && (
+                  <span className="mx-2">•</span>
+                  <span>{getFuelTypeLabel(vehicle.fuelType, language)}</span>
+                  {vehicle.passengerCapacity && (
                     <>
                       <span className="mx-2">•</span>
-                      <span>{getFuelTypeLabel(vehicle.fuelType, language)}</span>
+                      <span>{vehicle.passengerCapacity} {language === 'el' ? 'άτομα' : 'people'}</span>
                     </>
                   )}
                 </div>
@@ -311,7 +316,10 @@ export function VehicleDetails({
           
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="flex w-full max-w-5xl mb-6 overflow-x-auto scrollbar-hide">
-              <TabsTrigger value="details" className="px-4 py-2 flex-grow">{getTrans('overview', 'Overview')}</TabsTrigger>
+              <TabsTrigger value="reminders" className="px-4 py-2 flex-grow">
+                <Bell className="h-4 w-4 mr-1" />
+                {language === 'el' ? 'Υπενθυμίσεις' : 'Reminders'}
+              </TabsTrigger>
               <TabsTrigger value="maintenance" className="px-4 py-2 flex-grow">{getTrans('vehicleMaintenance', 'Maintenance')}</TabsTrigger>
               <TabsTrigger value="damage" className="px-4 py-2 flex-grow">{language === 'el' ? 'Ζημιές' : 'Damages'}</TabsTrigger>
               <TabsTrigger value="documents" className="px-4 py-2 flex-grow">{getTrans('documents', 'Documents')}</TabsTrigger>
@@ -323,162 +331,27 @@ export function VehicleDetails({
               {loading ? <div className="flex justify-center py-12">
                   <div className="text-flitx-gray-500">{language === 'el' ? 'Φόρτωση δεδομένων...' : 'Loading vehicle data...'}</div>
                 </div> : <>
-                  <TabsContent value="details" className="mt-6 space-y-8">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-lg flex items-center">
-                            <Gauge className="h-5 w-5 mr-2 text-flitx-blue" />
-                            {getTrans('performance', 'Performance')}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="grid grid-cols-2 gap-y-4 mt-2">
-                            <div>
-                              <div className="text-sm text-flitx-gray-500">{getTrans('fuelType', 'Fuel Type')}</div>
-                              <div className="font-semibold text-2xl">{vehicle.mpg || 0} km/L</div>
-                            </div>
-                            
-                            <div>
-                              <div className="text-sm text-flitx-gray-500">{getTrans('costPerMile', 'Cost Per Mile')}</div>
-                              <div className="font-semibold text-2xl">${vehicle.costPerMile || 0}</div>
-                            </div>
-                            
-                            <div>
-                              <div className="text-sm text-flitx-gray-500">{getTrans('fuelCosts', 'Fuel Costs')}</div>
-                              <div className="font-semibold text-2xl">${safeNumber(vehicle.fuelCosts).toLocaleString()}</div>
-                            </div>
-                            
-                            <div>
-                              <div className="text-sm text-flitx-gray-500">{getTrans('totalServiceCost', 'Total Service Cost')}</div>
-                              <div className="font-semibold text-2xl">${safeNumber(vehicle.totalServiceCost).toLocaleString()}</div>
-                            </div>
-                            
-                            <div>
-                              <div className="text-sm text-flitx-gray-500">{getTrans('milesPerDay', 'Miles Per Day')}</div>
-                              <div className="font-semibold text-2xl">{vehicle.milesPerDay || 0}</div>
-                            </div>
-                          </div>
-
-                          <Separator className="my-4" />
-                          
-                          <div className="space-y-4">
-                            <div>
-                              <div className="flex justify-between items-center mb-2">
-                                <div className="text-sm font-medium">{getTrans('fuelLevel', 'Fuel Level')}</div>
-                                <div className="text-sm text-flitx-gray-500">{vehicle.fuelLevel || 0}%</div>
-                              </div>
-                              <Progress value={vehicle.fuelLevel || 0} className="h-3" />
-                            </div>
-                            
-                            <div className="flex flex-col sm:flex-row gap-4">
-                              <div className="flex-1">
-                                <div className="text-sm text-flitx-gray-500 mb-1">{getTrans('fuelType', 'Fuel Type')}</div>
-                                <div className="font-medium">{vehicle.fuelType || 'N/A'}</div>
-                              </div>
-                              
-                              <div className="flex-1">
-                                <div className="text-sm text-flitx-gray-500 mb-1">{language === 'el' ? 'Εκτιμώμενη Εμβέλεια' : 'Estimated Range'}</div>
-                                <div className="font-medium">670 km</div>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                      
-                      <Card>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-lg flex items-center">
-                            <Wrench className="h-5 w-5 mr-2 text-flitx-blue" />
-                            {getTrans('vehicleMaintenance', 'Maintenance')}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <div className="flex justify-between items-center mb-4">
-                            <div className="flex items-center">
-                              <div className="bg-flitx-blue text-white p-2 rounded-lg">
-                                <RefreshCcw className="h-5 w-5" />
-                              </div>
-                              <div className="ml-3">
-                                <div className="text-sm text-flitx-gray-500">{language === 'el' ? 'Επόμενο Σέρβις' : 'Next Service'}</div>
-                                <div className="font-semibold">{language === 'el' ? 'Σε 4,000 χλμ' : 'In 4,000 km'}</div>
-                              </div>
-                            </div>
-                            
-                            <div className="text-right">
-                              <div className="text-sm text-flitx-gray-500">{getTrans('lastServiceDate', 'Last Service Date')}</div>
-                              <div>{vehicle.lastServiceDate ? new Date(vehicle.lastServiceDate).toLocaleDateString() : 'N/A'}</div>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-sm">
-                              <span>{getTrans('serviceReminders', 'Service Reminders')}</span>
-                              <div>
-                                <span className="text-red-500 font-bold">{vehicle.serviceReminders || 0}</span>
-                                <span className="text-flitx-gray-400"> {language === 'el' ? 'ενεργές' : 'active'}</span>
-                              </div>
-                            </div>
-                            
-                            <div className="flex justify-between text-sm">
-                              <span>{getTrans('totalServices', 'Total Services')}</span>
-                              <span>{vehicle.totalServices || 0}</span>
-                            </div>
-                            
-                            <Separator className="my-3" />
-                            
-                            <div className="text-sm text-flitx-gray-500">{language === 'el' ? 'Κατάσταση Αλλαγής Λαδιών' : 'Oil Change Status'}</div>
-                            <Progress value={65} className="h-2" />
-                            <div className="text-xs text-right text-flitx-gray-400">{language === 'el' ? '4,000 χλμ υπόλοιπο' : '4,000 km remaining'}</div>
-                          </div>
-                        </CardContent>
-                      </Card>
+                  <TabsContent value="reminders" className="mt-6 space-y-6">
+                    <div className="bg-muted/50 rounded-lg p-4 mb-4">
+                      <p className="text-sm text-muted-foreground">
+                        {language === 'el' 
+                          ? 'Προσθέστε υπενθυμίσεις για συντήρηση, ανανεώσεις, έγγραφα ή οποιαδήποτε εργασία σχετική με το όχημα.'
+                          : 'Add reminders for maintenance, renewals, documents, or any vehicle-related task.'}
+                      </p>
                     </div>
+                    <VehicleReminders vehicleId={vehicleId || ""} />
                   </TabsContent>
                   
                   <TabsContent value="maintenance" className="mt-6">
                     <VehicleMaintenance vehicleId={vehicleId || ""} />
-                    <div className="mt-8">
-                      <VehicleReminders vehicleId={vehicleId || ""} />
-                    </div>
                   </TabsContent>
                   
                   <TabsContent value="damage" className="mt-6">
                     <DamageReport vehicleId={vehicleId || ""} />
                   </TabsContent>
                   
-                  <TabsContent value="documents" className="mt-6 space-y-8">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center">
-                          <FileText className="h-5 w-5 mr-2" />
-                          {getTrans('documents', 'Documents')}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm text-flitx-gray-500">
-                              {language === 'el' ? 'Ανεβάστε έγγραφα για το όχημα' : 'Upload documents for this vehicle'}
-                            </p>
-                            <Button variant="outline" size="sm">
-                              <Upload className="h-4 w-4 mr-2" />
-                              {getTrans('uploadDocuments', 'Upload Documents')}
-                            </Button>
-                          </div>
-                          
-                          <input id="file-upload" type="file" className="hidden" onChange={handleFileUpload} accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
-                          
-                          {documents.length > 0 && <div className="space-y-2">
-                              <h3 className="text-sm font-medium">{language === 'el' ? 'Ανεβασμένα Έγγραφα' : 'Uploaded Documents'}</h3>
-                              {documents.map((doc, index) => <div key={index} className="flex items-center justify-between p-2 border rounded">
-                                  <span className="text-sm">{doc.name}</span>
-                                  <span className="text-xs text-flitx-gray-500">{doc.date}</span>
-                                </div>)}
-                            </div>}
-                        </div>
-                      </CardContent>
-                    </Card>
+                  <TabsContent value="documents" className="mt-6">
+                    <VehicleDocuments vehicleId={vehicleId || ""} />
                   </TabsContent>
                   
                   <TabsContent value="availability" className="mt-6">
