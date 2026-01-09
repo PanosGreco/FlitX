@@ -1,4 +1,4 @@
-import { Car, Calendar, AlertTriangle, Wrench, Fuel } from "lucide-react";
+import { Car, Calendar, AlertTriangle, Wrench, Fuel, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -29,6 +29,7 @@ export interface VehicleData {
   dailyRate: number;
   rented_until?: string;
   fuelType?: string;
+  passengerCapacity?: number;
 }
 interface VehicleCardProps {
   vehicle: VehicleData;
@@ -79,7 +80,9 @@ export function VehicleCard({
         </h3>
         
         <div className="mt-1 text-sm text-flitx-gray-500">
-          {vehicle.type} • {vehicle.licensePlate}{vehicle.fuelType ? ` • ${getFuelTypeLabel(vehicle.fuelType, language)}` : ''}
+          {vehicle.type} • {vehicle.licensePlate}
+          {vehicle.fuelType ? ` • ${getFuelTypeLabel(vehicle.fuelType, language)}` : ''}
+          {vehicle.passengerCapacity ? ` • ${vehicle.passengerCapacity} ${language === 'el' ? 'άτομα' : 'people'}` : ''}
         </div>
         
         <div className="mt-3 flex justify-between items-center">

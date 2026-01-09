@@ -45,6 +45,7 @@ const Fleet = () => {
   const [year, setYear] = useState("");
   const [type, setType] = useState("");
   const [fuelType, setFuelType] = useState("petrol");
+  const [passengerCapacity, setPassengerCapacity] = useState("5");
   const [licensePlate, setLicensePlate] = useState("");
   const [dailyRate, setDailyRate] = useState("");
   const [mileage, setMileage] = useState("");
@@ -144,6 +145,7 @@ const Fleet = () => {
     setYear("");
     setType("");
     setFuelType("petrol");
+    setPassengerCapacity("5");
     setLicensePlate("");
     setDailyRate("");
     setMileage("");
@@ -175,6 +177,7 @@ const Fleet = () => {
           year: parseInt(year),
           type,
           fuel_type: fuelType,
+          passenger_capacity: parseInt(passengerCapacity),
           license_plate: licensePlate,
           daily_rate: parseFloat(dailyRate),
           mileage: parseInt(mileage),
@@ -230,18 +233,18 @@ const Fleet = () => {
           setIsAddDialogOpen(open);
           if (!open) resetForm();
         }}>
-          <DialogContent>
-            <DialogHeader>
+          <DialogContent className="max-h-[85vh] overflow-y-auto">
+            <DialogHeader className="pb-2">
               <DialogTitle>{t.addNewVehicle}</DialogTitle>
               <DialogDescription>
                 {t.enterVehicleDetails}
               </DialogDescription>
             </DialogHeader>
             
-            <form onSubmit={handleSubmitNewVehicle} className="space-y-4">
+            <form onSubmit={handleSubmitNewVehicle} className="space-y-3">
               {/* Vehicle Image Upload */}
-              <div className="flex flex-col items-center justify-center space-y-2">
-                <div className="h-32 w-full bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+              <div className="flex flex-col items-center justify-center space-y-1">
+                <div className="h-24 w-full bg-muted rounded-lg flex items-center justify-center overflow-hidden">
                   {vehicleImage ? (
                     <img 
                       src={vehicleImage} 
@@ -249,14 +252,14 @@ const Fleet = () => {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <Image className="h-12 w-12 text-muted-foreground" />
+                    <Image className="h-10 w-10 text-muted-foreground" />
                   )}
                 </div>
                 
                 <div className="flex items-center space-x-2">
                   <label 
                     htmlFor="vehicle-photo-upload" 
-                    className="flex items-center px-3 py-1.5 text-sm border border-input rounded-md bg-background hover:bg-accent cursor-pointer"
+                    className="flex items-center px-3 py-1 text-sm border border-input rounded-md bg-background hover:bg-accent cursor-pointer"
                   >
                     <Upload className="h-4 w-4 mr-2" />
                     {t.uploadPhoto}
@@ -270,13 +273,10 @@ const Fleet = () => {
                     />
                   </label>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {t.photoRestrictions}
-                </p>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
                   <Label htmlFor="make">{t.make}</Label>
                   <Input 
                     id="make" 
@@ -288,7 +288,7 @@ const Fleet = () => {
                   />
                 </div>
                 
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="model">{t.model}</Label>
                   <Input 
                     id="model" 
@@ -301,8 +301,8 @@ const Fleet = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
                   <Label htmlFor="year">{t.year}</Label>
                   <Input 
                     id="year" 
@@ -317,7 +317,7 @@ const Fleet = () => {
                   />
                 </div>
                 
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="type">{t.type}</Label>
                   <Select 
                     disabled={isLanguageLoading || isSubmitting}
@@ -339,8 +339,10 @@ const Fleet = () => {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
 
-                <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
                   <Label htmlFor="fuelType">{language === 'el' ? 'Τύπος Καυσίμου' : 'Fuel Type'}</Label>
                   <Select 
                     disabled={isLanguageLoading || isSubmitting}
@@ -360,10 +362,32 @@ const Fleet = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="passengerCapacity">{language === 'el' ? 'Αριθμός Επιβατών' : 'Number of People'}</Label>
+                  <Select 
+                    disabled={isLanguageLoading || isSubmitting}
+                    value={passengerCapacity}
+                    onValueChange={setPassengerCapacity}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={language === 'el' ? 'Επιλέξτε...' : 'Select...'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="2">2</SelectItem>
+                        <SelectItem value="4">4</SelectItem>
+                        <SelectItem value="5">5</SelectItem>
+                        <SelectItem value="7">7</SelectItem>
+                        <SelectItem value="9">9</SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
                   <Label htmlFor="licensePlate">{t.licensePlate}</Label>
                   <Input 
                     id="licensePlate" 
@@ -375,7 +399,7 @@ const Fleet = () => {
                   />
                 </div>
                 
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <Label htmlFor="dailyRate">{t.dailyRate}</Label>
                   <Input 
                     id="dailyRate" 
@@ -391,35 +415,34 @@ const Fleet = () => {
                 </div>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="mileage">{t.mileage}</Label>
-                <Input 
-                  id="mileage" 
-                  type="number" 
-                  placeholder="e.g. 15000"
-                  min={0}
-                  required
-                  disabled={isLanguageLoading || isSubmitting}
-                  value={mileage}
-                  onChange={(e) => setMileage(e.target.value)}
-                />
-              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="mileage">{t.mileage}</Label>
+                  <Input 
+                    id="mileage" 
+                    type="number" 
+                    placeholder="e.g. 15000"
+                    min={0}
+                    required
+                    disabled={isLanguageLoading || isSubmitting}
+                    value={mileage}
+                    onChange={(e) => setMileage(e.target.value)}
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="purchasePrice">{language === 'el' ? 'Τιμή Αγοράς' : 'Purchase Price'}</Label>
-                <Input 
-                  id="purchasePrice" 
-                  type="number" 
-                  placeholder={language === 'el' ? 'Προαιρετικό' : 'Optional'}
-                  min={0}
-                  step="0.01"
-                  disabled={isLanguageLoading || isSubmitting}
-                  value={purchasePrice}
-                  onChange={(e) => setPurchasePrice(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  {language === 'el' ? 'Χρησιμοποιείται για τον υπολογισμό κέρδους' : 'Used for profit calculation'}
-                </p>
+                <div className="space-y-1">
+                  <Label htmlFor="purchasePrice">{language === 'el' ? 'Τιμή Αγοράς' : 'Purchase Price'}</Label>
+                  <Input 
+                    id="purchasePrice" 
+                    type="number" 
+                    placeholder={language === 'el' ? 'Προαιρετικό' : 'Optional'}
+                    min={0}
+                    step="0.01"
+                    disabled={isLanguageLoading || isSubmitting}
+                    value={purchasePrice}
+                    onChange={(e) => setPurchasePrice(e.target.value)}
+                  />
+                </div>
               </div>
               
               <DialogFooter>

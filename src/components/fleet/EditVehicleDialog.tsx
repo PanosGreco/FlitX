@@ -33,6 +33,7 @@ interface EditVehicleDialogProps {
     image?: string;
     purchase_price?: number | null;
     fuel_type?: string;
+    passenger_capacity?: number;
   };
   onSaved: () => void;
 }
@@ -45,6 +46,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
   const [purchasePrice, setPurchasePrice] = useState<string>(vehicle.purchase_price?.toString() || '');
   const [vehicleImage, setVehicleImage] = useState<string | null>(vehicle.image || null);
   const [fuelType, setFuelType] = useState(vehicle.fuel_type || 'petrol');
+  const [passengerCapacity, setPassengerCapacity] = useState(vehicle.passenger_capacity?.toString() || '5');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -57,6 +59,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     setPurchasePrice(vehicle.purchase_price?.toString() || '');
     setVehicleImage(vehicle.image || null);
     setFuelType(vehicle.fuel_type || 'petrol');
+    setPassengerCapacity(vehicle.passenger_capacity?.toString() || '5');
   }, [vehicle]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,6 +89,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
           purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
           image: vehicleImage,
           fuel_type: fuelType,
+          passenger_capacity: parseInt(passengerCapacity),
         })
         .eq('id', vehicle.id);
 
@@ -172,6 +176,22 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
                 <SelectItem value="diesel">Diesel</SelectItem>
                 <SelectItem value="electric">Electric</SelectItem>
                 <SelectItem value="hybrid">Hybrid</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="passenger-capacity">Number of People</Label>
+            <Select value={passengerCapacity} onValueChange={setPassengerCapacity}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2">2</SelectItem>
+                <SelectItem value="4">4</SelectItem>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="7">7</SelectItem>
+                <SelectItem value="9">9</SelectItem>
               </SelectContent>
             </Select>
           </div>
