@@ -253,7 +253,7 @@ export function DamageReport({
       const categoryDamages = getDamagesByCategory(category);
       return <Card key={category} className="overflow-hidden">
             <CardHeader className="py-3 bg-[#739ee7]">
-              <CardTitle className="text-base font-medium">
+              <CardTitle className="font-medium text-lg">
                 {category}
                 {categoryDamages.length > 0 && <span className="ml-2 text-sm font-normal text-muted-foreground">
                     ({categoryDamages.length})
