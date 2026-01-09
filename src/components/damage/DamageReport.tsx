@@ -269,7 +269,7 @@ export function DamageReport({
                       <button onClick={() => handleDeleteImage(damage)} className="absolute top-1 right-1 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity">
                         <X className="h-3 w-3" />
                       </button>
-                      <p className="mt-1 text-xs text-muted-foreground">
+                      <p className="mt-1 text-muted-foreground text-sm">
                         Uploaded: {formatDateTime(damage.created_at)}
                       </p>
                     </div>)}
