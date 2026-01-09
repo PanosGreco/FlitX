@@ -1,13 +1,26 @@
 import { useState, useEffect } from "react";
 import { Car, Calendar, AlertTriangle, FileText, ChevronLeft, Gauge, Settings, RefreshCcw, Wrench, Upload, Fuel, Users, Bell } from "lucide-react";
-
-const FUEL_TYPE_LABELS: Record<string, { en: string; el: string }> = {
-  petrol: { en: "Petrol", el: "Βενζίνη" },
-  diesel: { en: "Diesel", el: "Diesel" },
-  electric: { en: "Electric", el: "Ηλεκτρικό" },
-  hybrid: { en: "Hybrid", el: "Υβριδικό" },
+const FUEL_TYPE_LABELS: Record<string, {
+  en: string;
+  el: string;
+}> = {
+  petrol: {
+    en: "Petrol",
+    el: "Βενζίνη"
+  },
+  diesel: {
+    en: "Diesel",
+    el: "Diesel"
+  },
+  electric: {
+    en: "Electric",
+    el: "Ηλεκτρικό"
+  },
+  hybrid: {
+    en: "Hybrid",
+    el: "Υβριδικό"
+  }
 };
-
 const getFuelTypeLabel = (fuelType: string | undefined, lang: string): string => {
   if (!fuelType) return lang === 'el' ? 'Άγνωστο' : 'Unknown';
   return FUEL_TYPE_LABELS[fuelType]?.[lang === 'el' ? 'el' : 'en'] || fuelType;
@@ -293,12 +306,10 @@ export function VehicleDetails({
                   <span>{safeNumber(vehicle.mileage).toLocaleString()} km</span>
                   <span className="mx-2">•</span>
                   <span>{getFuelTypeLabel(vehicle.fuelType, language)}</span>
-                  {vehicle.passengerCapacity && (
-                    <>
+                  {vehicle.passengerCapacity && <>
                       <span className="mx-2">•</span>
                       <span>{vehicle.passengerCapacity} {language === 'el' ? 'άτομα' : 'people'}</span>
-                    </>
-                  )}
+                    </>}
                 </div>
               </div>
               
@@ -327,16 +338,14 @@ export function VehicleDetails({
               <TabsTrigger value="finance" className="px-4 py-2 flex-grow">{getTrans('finance', 'Finance')}</TabsTrigger>
             </TabsList>
           
-            <div className="container py-6">
+            <div className="container py-0">
               {loading ? <div className="flex justify-center py-12">
                   <div className="text-flitx-gray-500">{language === 'el' ? 'Φόρτωση δεδομένων...' : 'Loading vehicle data...'}</div>
                 </div> : <>
                   <TabsContent value="reminders" className="mt-6 space-y-6">
                     <div className="bg-muted/50 rounded-lg p-4 mb-4">
                       <p className="text-sm text-muted-foreground">
-                        {language === 'el' 
-                          ? 'Προσθέστε υπενθυμίσεις για συντήρηση, ανανεώσεις, έγγραφα ή οποιαδήποτε εργασία σχετική με το όχημα.'
-                          : 'Add reminders for maintenance, renewals, documents, or any vehicle-related task.'}
+                        {language === 'el' ? 'Προσθέστε υπενθυμίσεις για συντήρηση, ανανεώσεις, έγγραφα ή οποιαδήποτε εργασία σχετική με το όχημα.' : 'Add reminders for maintenance, renewals, documents, or any vehicle-related task.'}
                       </p>
                     </div>
                     <VehicleReminders vehicleId={vehicleId || ""} />
