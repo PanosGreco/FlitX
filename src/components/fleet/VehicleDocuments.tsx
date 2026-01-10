@@ -3,11 +3,9 @@ import {
   FileText, 
   Upload, 
   Search, 
-  X, 
-  File, 
-  Image as ImageIcon,
   Loader2,
-  Trash2
+  Trash2,
+  Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,8 +29,8 @@ interface VehicleDocument {
   name: string;
   file_path: string;
   file_type: string;
-  uploaded_at: string;
-  file_url?: string;
+  file_size: number | null;
+  created_at: string;
 }
 
 interface VehicleDocumentsProps {
@@ -48,6 +46,8 @@ export function VehicleDocuments({ vehicleId }: VehicleDocumentsProps) {
   const [documentName, setDocumentName] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [viewingDocument, setViewingDocument] = useState<VehicleDocument | null>(null);
+  const [viewingUrl, setViewingUrl] = useState<string | null>(null);
+  const [loadingUrl, setLoadingUrl] = useState(false);
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -59,16 +59,37 @@ export function VehicleDocuments({ vehicleId }: VehicleDocumentsProps) {
     }
   }, [vehicleId, user]);
 
+  // Clean up viewing URL when dialog closes
+  useEffect(() => {
+    if (!viewingDocument) {
+      setViewingUrl(null);
+    }
+  }, [viewingDocument]);
+
   const fetchDocuments = async () => {
+    if (!user) return;
+    
     try {
       setLoading(true);
       
-      // For now, we'll store documents in localStorage as a simple solution
-      // In production, this should use Supabase Storage
-      const storedDocs = localStorage.getItem(`vehicle_documents_${vehicleId}`);
-      if (storedDocs) {
-        setDocuments(JSON.parse(storedDocs));
+      const { data, error } = await supabase
+        .from('vehicle_documents')
+        .select('*')
+        .eq('vehicle_id', vehicleId)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error fetching documents:", error);
+        toast({
+          title: language === 'el' ? 'Σφάλμα' : 'Error',
+          description: language === 'el' ? 'Αποτυχία φόρτωσης εγγράφων' : 'Failed to load documents',
+          variant: 'destructive',
+        });
+        return;
       }
+
+      setDocuments(data || []);
     } catch (error) {
       console.error("Error fetching documents:", error);
     } finally {
@@ -88,7 +109,7 @@ export function VehicleDocuments({ vehicleId }: VehicleDocumentsProps) {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !documentName.trim()) {
+    if (!selectedFile || !documentName.trim() || !user) {
       toast({
         title: language === 'el' ? 'Σφάλμα' : 'Error',
         description: language === 'el' ? 'Παρακαλώ επιλέξτε αρχείο και όνομα' : 'Please select a file and enter a name',
@@ -100,34 +121,50 @@ export function VehicleDocuments({ vehicleId }: VehicleDocumentsProps) {
     setUploading(true);
     
     try {
-      // Convert file to base64 for localStorage storage
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          const newDoc: VehicleDocument = {
-            id: crypto.randomUUID(),
-            name: documentName.trim(),
-            file_path: event.target.result.toString(),
-            file_type: selectedFile.type,
-            uploaded_at: new Date().toISOString(),
-            file_url: event.target.result.toString(),
-          };
-          
-          const updatedDocs = [...documents, newDoc];
-          setDocuments(updatedDocs);
-          localStorage.setItem(`vehicle_documents_${vehicleId}`, JSON.stringify(updatedDocs));
-          
-          toast({
-            title: language === 'el' ? 'Επιτυχία' : 'Success',
-            description: language === 'el' ? 'Το έγγραφο ανέβηκε επιτυχώς' : 'Document uploaded successfully',
-          });
-          
-          setIsAddDialogOpen(false);
-          setDocumentName("");
-          setSelectedFile(null);
-        }
-      };
-      reader.readAsDataURL(selectedFile);
+      // Generate unique file path: user_id/vehicle_id/timestamp_filename
+      const fileExt = selectedFile.name.split('.').pop();
+      const timestamp = Date.now();
+      const filePath = `${user.id}/${vehicleId}/${timestamp}_${documentName.trim().replace(/\s+/g, '_')}.${fileExt}`;
+
+      // Upload file to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('vehicle-documents')
+        .upload(filePath, selectedFile);
+
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+        throw uploadError;
+      }
+
+      // Save document metadata to database
+      const { error: dbError } = await supabase
+        .from('vehicle_documents')
+        .insert({
+          user_id: user.id,
+          vehicle_id: vehicleId,
+          name: documentName.trim(),
+          file_path: filePath,
+          file_type: selectedFile.type,
+          file_size: selectedFile.size,
+        });
+
+      if (dbError) {
+        // If database insert fails, try to clean up the uploaded file
+        await supabase.storage.from('vehicle-documents').remove([filePath]);
+        throw dbError;
+      }
+
+      toast({
+        title: language === 'el' ? 'Επιτυχία' : 'Success',
+        description: language === 'el' ? 'Το έγγραφο ανέβηκε επιτυχώς' : 'Document uploaded successfully',
+      });
+
+      // Refresh documents list
+      await fetchDocuments();
+      
+      setIsAddDialogOpen(false);
+      setDocumentName("");
+      setSelectedFile(null);
     } catch (error) {
       console.error("Error uploading document:", error);
       toast({
@@ -140,15 +177,96 @@ export function VehicleDocuments({ vehicleId }: VehicleDocumentsProps) {
     }
   };
 
-  const handleDeleteDocument = (docId: string) => {
-    const updatedDocs = documents.filter(d => d.id !== docId);
-    setDocuments(updatedDocs);
-    localStorage.setItem(`vehicle_documents_${vehicleId}`, JSON.stringify(updatedDocs));
+  const handleDeleteDocument = async (doc: VehicleDocument, e: React.MouseEvent) => {
+    e.stopPropagation();
     
-    toast({
-      title: language === 'el' ? 'Διαγράφηκε' : 'Deleted',
-      description: language === 'el' ? 'Το έγγραφο διαγράφηκε' : 'Document deleted',
-    });
+    try {
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('vehicle-documents')
+        .remove([doc.file_path]);
+
+      if (storageError) {
+        console.error("Storage delete error:", storageError);
+        // Continue to try database delete even if storage fails
+      }
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('vehicle_documents')
+        .delete()
+        .eq('id', doc.id);
+
+      if (dbError) {
+        throw dbError;
+      }
+
+      setDocuments(prev => prev.filter(d => d.id !== doc.id));
+      
+      toast({
+        title: language === 'el' ? 'Διαγράφηκε' : 'Deleted',
+        description: language === 'el' ? 'Το έγγραφο διαγράφηκε' : 'Document deleted',
+      });
+    } catch (error) {
+      console.error("Error deleting document:", error);
+      toast({
+        title: language === 'el' ? 'Σφάλμα' : 'Error',
+        description: language === 'el' ? 'Αποτυχία διαγραφής εγγράφου' : 'Failed to delete document',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleViewDocument = async (doc: VehicleDocument) => {
+    setViewingDocument(doc);
+    setLoadingUrl(true);
+    
+    try {
+      // Generate a short-lived signed URL (expires in 1 hour)
+      const { data, error } = await supabase.storage
+        .from('vehicle-documents')
+        .createSignedUrl(doc.file_path, 3600); // 1 hour expiry
+
+      if (error) {
+        throw error;
+      }
+
+      setViewingUrl(data.signedUrl);
+    } catch (error) {
+      console.error("Error getting signed URL:", error);
+      toast({
+        title: language === 'el' ? 'Σφάλμα' : 'Error',
+        description: language === 'el' ? 'Αποτυχία φόρτωσης εγγράφου' : 'Failed to load document',
+        variant: 'destructive',
+      });
+      setViewingDocument(null);
+    } finally {
+      setLoadingUrl(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!viewingDocument || !viewingUrl) return;
+
+    try {
+      const response = await fetch(viewingUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = viewingDocument.name + '.' + viewingDocument.file_path.split('.').pop();
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Download error:", error);
+      toast({
+        title: language === 'el' ? 'Σφάλμα' : 'Error',
+        description: language === 'el' ? 'Αποτυχία λήψης αρχείου' : 'Failed to download file',
+        variant: 'destructive',
+      });
+    }
   };
 
   const filteredDocuments = documents.filter(doc =>
@@ -158,13 +276,13 @@ export function VehicleDocuments({ vehicleId }: VehicleDocumentsProps) {
   const isImageFile = (fileType: string) => fileType.startsWith('image/');
 
   const renderDocumentPreview = (doc: VehicleDocument) => {
+    // For list view, we don't show actual image previews to avoid generating URLs unnecessarily
+    // Instead, we show icons based on file type
     if (isImageFile(doc.file_type)) {
       return (
-        <img 
-          src={doc.file_url || doc.file_path} 
-          alt={doc.name}
-          className="w-full h-24 object-cover rounded-t-lg"
-        />
+        <div className="w-full h-24 bg-muted flex items-center justify-center rounded-t-lg">
+          <FileText className="h-10 w-10 text-muted-foreground" />
+        </div>
       );
     }
     return (
@@ -172,6 +290,13 @@ export function VehicleDocuments({ vehicleId }: VehicleDocumentsProps) {
         <FileText className="h-10 w-10 text-muted-foreground" />
       </div>
     );
+  };
+
+  const formatFileSize = (bytes: number | null) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
   return (
@@ -229,23 +354,21 @@ export function VehicleDocuments({ vehicleId }: VehicleDocumentsProps) {
                   <div 
                     key={doc.id}
                     className="group relative border rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => setViewingDocument(doc)}
+                    onClick={() => handleViewDocument(doc)}
                   >
                     {renderDocumentPreview(doc)}
                     <div className="p-2">
                       <p className="text-sm font-medium truncate">{doc.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {new Date(doc.uploaded_at).toLocaleDateString()}
+                        {new Date(doc.created_at).toLocaleDateString()}
+                        {doc.file_size && ` • ${formatFileSize(doc.file_size)}`}
                       </p>
                     </div>
                     <Button
                       variant="destructive"
                       size="icon"
                       className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteDocument(doc.id);
-                      }}
+                      onClick={(e) => handleDeleteDocument(doc, e)}
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
@@ -328,23 +451,38 @@ export function VehicleDocuments({ vehicleId }: VehicleDocumentsProps) {
         <Dialog open={!!viewingDocument} onOpenChange={() => setViewingDocument(null)}>
           <DialogContent className="max-w-4xl max-h-[90vh]">
             <DialogHeader>
-              <DialogTitle>{viewingDocument?.name}</DialogTitle>
+              <DialogTitle className="flex items-center justify-between">
+                <span>{viewingDocument?.name}</span>
+                {viewingUrl && (
+                  <Button variant="outline" size="sm" onClick={handleDownload}>
+                    <Download className="h-4 w-4 mr-2" />
+                    {language === 'el' ? 'Λήψη' : 'Download'}
+                  </Button>
+                )}
+              </DialogTitle>
             </DialogHeader>
             
             <div className="flex items-center justify-center py-4">
-              {viewingDocument && isImageFile(viewingDocument.file_type) ? (
+              {loadingUrl ? (
+                <div className="flex flex-col items-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    {language === 'el' ? 'Φόρτωση...' : 'Loading...'}
+                  </p>
+                </div>
+              ) : viewingDocument && viewingUrl && isImageFile(viewingDocument.file_type) ? (
                 <img 
-                  src={viewingDocument.file_url || viewingDocument.file_path}
+                  src={viewingUrl}
                   alt={viewingDocument.name}
                   className="max-w-full max-h-[70vh] object-contain"
                 />
-              ) : viewingDocument?.file_type === 'application/pdf' ? (
+              ) : viewingDocument?.file_type === 'application/pdf' && viewingUrl ? (
                 <iframe
-                  src={viewingDocument.file_url || viewingDocument.file_path}
+                  src={viewingUrl}
                   className="w-full h-[70vh]"
                   title={viewingDocument.name}
                 />
-              ) : (
+              ) : viewingUrl ? (
                 <div className="text-center py-8">
                   <FileText className="mx-auto mb-3 h-16 w-16 text-muted-foreground" />
                   <p className="text-muted-foreground">
@@ -354,16 +492,13 @@ export function VehicleDocuments({ vehicleId }: VehicleDocumentsProps) {
                   </p>
                   <Button 
                     className="mt-4"
-                    onClick={() => {
-                      if (viewingDocument?.file_url) {
-                        window.open(viewingDocument.file_url, '_blank');
-                      }
-                    }}
+                    onClick={handleDownload}
                   >
+                    <Download className="h-4 w-4 mr-2" />
                     {language === 'el' ? 'Λήψη' : 'Download'}
                   </Button>
                 </div>
-              )}
+              ) : null}
             </div>
           </DialogContent>
         </Dialog>
