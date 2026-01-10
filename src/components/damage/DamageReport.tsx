@@ -93,10 +93,12 @@ export function DamageReport({
     try {
       const uploadedUrls: string[] = [];
 
-      // Upload each file
+      // Upload each file with sanitized filenames
       for (let i = 0; i < selectedFiles.length; i++) {
         const file = selectedFiles[i];
-        const fileExt = file.name.split('.').pop();
+        // Sanitize extension to prevent path traversal
+        const rawExt = file.name.split('.').pop() || '';
+        const fileExt = rawExt.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
         const fileName = `${vehicleId}/${Date.now()}_${i}.${fileExt}`;
         const {
           error: uploadError

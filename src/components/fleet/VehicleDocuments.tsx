@@ -121,10 +121,17 @@ export function VehicleDocuments({ vehicleId }: VehicleDocumentsProps) {
     setUploading(true);
     
     try {
-      // Generate unique file path: user_id/vehicle_id/timestamp_filename
-      const fileExt = selectedFile.name.split('.').pop();
+      // Sanitize filename components to prevent path traversal
+      const rawExt = selectedFile.name.split('.').pop() || '';
+      const fileExt = rawExt.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
       const timestamp = Date.now();
-      const filePath = `${user.id}/${vehicleId}/${timestamp}_${documentName.trim().replace(/\s+/g, '_')}.${fileExt}`;
+      const safeName = documentName.trim()
+        .replace(/\.\./g, '') // Remove path traversal sequences
+        .replace(/[\/\\]/g, '') // Remove path separators
+        .replace(/\s+/g, '_')
+        .replace(/[^a-zA-Z0-9._-]/g, '_')
+        .substring(0, 100);
+      const filePath = `${user.id}/${vehicleId}/${timestamp}_${safeName}.${fileExt}`;
 
       // Upload file to Supabase Storage
       const { error: uploadError } = await supabase.storage
