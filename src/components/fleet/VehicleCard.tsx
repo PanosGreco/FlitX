@@ -82,7 +82,7 @@ export function VehicleCard({
         <div className="mt-1 text-sm text-flitx-gray-500">
           {vehicle.type} • {vehicle.licensePlate}
           {vehicle.fuelType ? ` • ${getFuelTypeLabel(vehicle.fuelType, language)}` : ''}
-          {vehicle.passengerCapacity ? ` • ${vehicle.passengerCapacity} ${language === 'el' ? 'άτομα' : 'people'}` : ''}
+          {vehicle.passengerCapacity ? ` • ${vehicle.passengerCapacity >= 7 ? '7+' : vehicle.passengerCapacity} ${language === 'el' ? 'άτομα' : 'people'}` : ''}
         </div>
         
         <div className="mt-3 flex justify-between items-center">
@@ -92,7 +92,7 @@ export function VehicleCard({
           
           <div className="flex items-center text-flitx-blue font-semibold">
             <Calendar className="w-4 h-4 mr-1" />
-            <span>{language === 'el' ? '€' : '$'}{vehicle.dailyRate}/{t.day}</span>
+            <span>€{vehicle.dailyRate}/{t.day}</span>
           </div>
         </div>
       </div>

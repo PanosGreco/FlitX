@@ -22,7 +22,7 @@ const FUEL_TYPE_LABELS: Record<string, {
   }
 };
 const getFuelTypeLabel = (fuelType: string | undefined, lang: string): string => {
-  if (!fuelType) return lang === 'el' ? 'Άγνωστο' : 'Unknown';
+  if (!fuelType) return '';
   return FUEL_TYPE_LABELS[fuelType]?.[lang === 'el' ? 'el' : 'en'] || fuelType;
 };
 import { Button } from "@/components/ui/button";
@@ -68,7 +68,7 @@ export function VehicleDetails({
   translations
 }: VehicleDetailsProps) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("details");
+  const [activeTab, setActiveTab] = useState("reminders");
   const [isEditStatusOpen, setIsEditStatusOpen] = useState(false);
   const [isEditVehicleOpen, setIsEditVehicleOpen] = useState(false);
   const [isRentalBookingOpen, setIsRentalBookingOpen] = useState(false);
@@ -298,17 +298,19 @@ export function VehicleDetails({
                   </Badge>
                 </h1>
                 
-                <div className="flex items-center text-flitx-gray-500 mt-1">
+                <div className="flex items-center text-flitx-gray-500 mt-1 flex-wrap">
                   <span>{vehicle.type}</span>
                   <span className="mx-2">•</span>
                   <span>{vehicle.licensePlate}</span>
                   <span className="mx-2">•</span>
                   <span>{safeNumber(vehicle.mileage).toLocaleString()} km</span>
-                  <span className="mx-2">•</span>
-                  <span>{getFuelTypeLabel(vehicle.fuelType, language)}</span>
+                  {getFuelTypeLabel(vehicle.fuelType, language) && <>
+                    <span className="mx-2">•</span>
+                    <span>{getFuelTypeLabel(vehicle.fuelType, language)}</span>
+                  </>}
                   {vehicle.passengerCapacity && <>
                       <span className="mx-2">•</span>
-                      <span>{vehicle.passengerCapacity} {language === 'el' ? 'άτομα' : 'people'}</span>
+                      <span>{vehicle.passengerCapacity >= 7 ? '7+' : vehicle.passengerCapacity} {language === 'el' ? 'άτομα' : 'people'}</span>
                     </>}
                 </div>
               </div>
@@ -328,7 +330,6 @@ export function VehicleDetails({
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="flex w-full max-w-5xl mb-6 overflow-x-auto scrollbar-hide">
               <TabsTrigger value="reminders" className="px-4 py-2 flex-grow">
-                <Bell className="h-4 w-4 mr-1" />
                 {language === 'el' ? 'Υπενθυμίσεις' : 'Reminders'}
               </TabsTrigger>
               <TabsTrigger value="maintenance" className="px-4 py-2 flex-grow">{getTrans('vehicleMaintenance', 'Maintenance')}</TabsTrigger>
@@ -343,11 +344,6 @@ export function VehicleDetails({
                   <div className="text-flitx-gray-500">{language === 'el' ? 'Φόρτωση δεδομένων...' : 'Loading vehicle data...'}</div>
                 </div> : <>
                   <TabsContent value="reminders" className="mt-6 space-y-6">
-                    <div className="bg-muted/50 rounded-lg p-4 mb-4">
-                      <p className="text-sm text-muted-foreground">
-                        {language === 'el' ? 'Προσθέστε υπενθυμίσεις για συντήρηση, ανανεώσεις, έγγραφα ή οποιαδήποτε εργασία σχετική με το όχημα.' : 'Add reminders for maintenance, renewals, documents, or any vehicle-related task.'}
-                      </p>
-                    </div>
                     <VehicleReminders vehicleId={vehicleId || ""} />
                   </TabsContent>
                   

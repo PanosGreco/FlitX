@@ -331,7 +331,7 @@ export function RentalBookingsList({ vehicleId, onBookingDeleted }: RentalBookin
                   <div className="flex items-start gap-2 text-sm text-gray-600">
                     <span className="font-medium text-muted-foreground min-w-[60px]">Pickup:</span>
                     <span>
-                      {format(new Date(booking.start_date), 'MMM dd, yyyy')}
+                      {format(new Date(booking.start_date), 'dd/MM/yyyy')}
                       {booking.pickup_time && (
                         <span className="ml-1">• {formatTime(booking.pickup_time)}</span>
                       )}
@@ -345,7 +345,7 @@ export function RentalBookingsList({ vehicleId, onBookingDeleted }: RentalBookin
                   <div className="flex items-start gap-2 text-sm text-gray-600">
                     <span className="font-medium text-muted-foreground min-w-[60px]">Return:</span>
                     <span>
-                      {format(new Date(booking.end_date), 'MMM dd, yyyy')}
+                      {format(new Date(booking.end_date), 'dd/MM/yyyy')}
                       {booking.return_time && (
                         <span className="ml-1">• {formatTime(booking.return_time)}</span>
                       )}

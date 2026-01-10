@@ -25,7 +25,7 @@ interface VehicleFilterPanelProps {
 }
 
 const FUEL_TYPES = ['petrol', 'diesel', 'electric', 'hybrid'];
-const PASSENGER_COUNTS = [2, 4, 5, 7];
+const PASSENGER_COUNTS = [1, 2, 3, 4, 5, 6, 7];
 
 export function VehicleFilterPanel({ 
   filters, 
@@ -152,9 +152,9 @@ export function VehicleFilterPanel({
                   variant={filters.passengerCounts.includes(count) ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => handlePassengerCountToggle(count)}
-                  className="h-8 w-10 text-xs"
+                  className="h-8 min-w-[2.5rem] text-xs"
                 >
-                  {count}
+                  {count === 7 ? '7+' : count}
                 </Button>
               ))}
             </div>

@@ -187,11 +187,13 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
                 <SelectValue placeholder="Select..." />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="1">1</SelectItem>
                 <SelectItem value="2">2</SelectItem>
+                <SelectItem value="3">3</SelectItem>
                 <SelectItem value="4">4</SelectItem>
                 <SelectItem value="5">5</SelectItem>
-                <SelectItem value="7">7</SelectItem>
-                <SelectItem value="9">9</SelectItem>
+                <SelectItem value="6">6</SelectItem>
+                <SelectItem value="7">7+</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -218,7 +220,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="daily-rate">Daily Rate ($)</Label>
+            <Label htmlFor="daily-rate">Daily Rate (€)</Label>
             <Input
               id="daily-rate"
               type="number"
@@ -245,7 +247,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="purchase-price">Purchase Price ($)</Label>
+            <Label htmlFor="purchase-price">Purchase Price (€)</Label>
             <Input
               id="purchase-price"
               type="number"

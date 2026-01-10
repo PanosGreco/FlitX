@@ -48,7 +48,14 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
 
     // Filter by passenger count
     if (filters.passengerCounts.length > 0) {
-      result = result.filter(v => v.passengerCapacity && filters.passengerCounts.includes(v.passengerCapacity));
+      result = result.filter(v => {
+        if (!v.passengerCapacity) return false;
+        // If filter includes 7 (7+), include vehicles with capacity >= 7
+        if (filters.passengerCounts.includes(7) && v.passengerCapacity >= 7) {
+          return true;
+        }
+        return filters.passengerCounts.includes(v.passengerCapacity);
+      });
     }
 
     // Sort by year

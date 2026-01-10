@@ -323,7 +323,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
-      return format(date, 'PP', { locale: language === 'el' ? el : enUS });
+      return format(date, 'dd/MM/yyyy');
     } catch (error) {
       return dateString;
     }
@@ -406,7 +406,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           value={summaryData.totalIncome} 
           change={summaryData.incomeChange} 
           trend={summaryData.incomeChange >= 0 ? "up" : "down"} 
-          prefix={language === 'el' ? '€' : '$'} 
+          prefix="€" 
           lang={language}
         />
         
@@ -415,7 +415,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           value={summaryData.totalExpenses} 
           change={summaryData.expenseChange} 
           trend={summaryData.expenseChange >= 0 ? "up" : "down"} 
-          prefix={language === 'el' ? '€' : '$'}
+          prefix="€"
           trendReversed
           lang={language}
         />
@@ -425,7 +425,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           value={summaryData.netProfit} 
           change={summaryData.profitChange} 
           trend={summaryData.profitChange >= 0 ? "up" : "down"} 
-          prefix={language === 'el' ? '€' : '$'}
+          prefix="€"
           lang={language}
         />
       </div>
@@ -652,7 +652,7 @@ function TransactionItem({ id, title, amount, date, type, lang, onDelete }: {
           "font-medium",
           isIncome ? "text-green-600" : "text-red-600"
         )}>
-          {isIncome ? "+" : "-"}{lang === 'el' ? '€' : '$'}{amount.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {isIncome ? "+" : "-"}€{amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
         
         <Button
