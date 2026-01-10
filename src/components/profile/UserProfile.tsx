@@ -174,11 +174,16 @@ export function UserProfile() {
     setIsDeleting(true);
     try {
       // Delete all user data from tables (RLS ensures only user's data is deleted)
+      // Order matters: delete child records before parent records to respect foreign keys
       await supabase.from('daily_tasks').delete().eq('user_id', user.id);
       await supabase.from('damage_reports').delete().eq('user_id', user.id);
       await supabase.from('financial_records').delete().eq('user_id', user.id);
       await supabase.from('vehicle_maintenance').delete().eq('user_id', user.id);
       await supabase.from('vehicle_reminders').delete().eq('user_id', user.id);
+      await supabase.from('vehicle_documents').delete().eq('user_id', user.id);
+      await supabase.from('maintenance_blocks').delete().eq('user_id', user.id);
+      // Delete booking_contacts before rental_bookings (foreign key dependency)
+      await supabase.from('booking_contacts').delete().eq('user_id', user.id);
       await supabase.from('rental_bookings').delete().eq('user_id', user.id);
       await supabase.from('vehicles').delete().eq('user_id', user.id);
       await supabase.from('user_roles').delete().eq('user_id', user.id);
