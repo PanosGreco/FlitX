@@ -199,7 +199,14 @@ export function RentalBookingDialog({
   };
 
   const uploadContractPhoto = async (file: File, userId: string): Promise<string | null> => {
-    const fileName = `${userId}/${Date.now()}_${file.name}`;
+    // Sanitize filename to prevent path traversal
+    const safeFilename = file.name
+      .replace(/\.\./g, '') // Remove path traversal sequences
+      .replace(/[\/\\]/g, '') // Remove path separators
+      .replace(/[^a-zA-Z0-9._-]/g, '_') // Replace special chars
+      .substring(0, 100);
+    
+    const fileName = `${userId}/${Date.now()}_${safeFilename}`;
     const { data, error } = await supabase.storage
       .from('rental-contracts')
       .upload(fileName, file);
