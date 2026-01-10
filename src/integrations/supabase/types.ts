@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      booking_contacts: {
+        Row: {
+          booking_id: string
+          created_at: string
+          customer_email: string | null
+          customer_phone: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          customer_email?: string | null
+          customer_phone?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          customer_email?: string | null
+          customer_phone?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_contacts_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "rental_bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_tasks: {
         Row: {
           assigned_to: string | null
@@ -302,9 +340,7 @@ export type Database = {
         Row: {
           contract_photo_path: string | null
           created_at: string
-          customer_email: string | null
           customer_name: string
-          customer_phone: string | null
           dropoff_location: string | null
           end_date: string
           id: string
@@ -322,9 +358,7 @@ export type Database = {
         Insert: {
           contract_photo_path?: string | null
           created_at?: string
-          customer_email?: string | null
           customer_name: string
-          customer_phone?: string | null
           dropoff_location?: string | null
           end_date: string
           id?: string
@@ -342,9 +376,7 @@ export type Database = {
         Update: {
           contract_photo_path?: string | null
           created_at?: string
-          customer_email?: string | null
           customer_name?: string
-          customer_phone?: string | null
           dropoff_location?: string | null
           end_date?: string
           id?: string
