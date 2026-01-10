@@ -197,10 +197,8 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
       ) : reminders.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground">
-            <Bell className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
-            <h3 className="mb-1 text-lg font-medium">No reminders yet</h3>
             <p className="text-sm">
-              Add reminders for important events like insurance renewal or maintenance.
+              Add reminders for maintenance, renewals, documents, or any vehicle-related task.
             </p>
           </CardContent>
         </Card>
@@ -218,7 +216,7 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
                   </h3>
                   <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                     <Calendar className="h-3.5 w-3.5" />
-                    {format(new Date(reminder.due_date), "MMM d, yyyy")}
+                    {format(new Date(reminder.due_date), "dd/MM/yyyy")}
                   </div>
                   {reminder.description && (
                     <p className="text-sm mt-1 text-muted-foreground">{reminder.description}</p>

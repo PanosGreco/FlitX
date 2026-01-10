@@ -144,7 +144,7 @@ export function VehicleFinanceTab({ vehicleId, vehicleName, purchasePrice }: Veh
               <span className="text-sm font-medium">Total Revenue</span>
             </div>
             <div className="text-2xl font-bold text-green-700">
-              ${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              €{totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
             <div className="text-xs text-green-600 mt-1">
               From {records.filter(r => r.type === 'income').length} transactions
@@ -159,7 +159,7 @@ export function VehicleFinanceTab({ vehicleId, vehicleName, purchasePrice }: Veh
               <span className="text-sm font-medium">Total Expenses</span>
             </div>
             <div className="text-2xl font-bold text-red-700">
-              ${totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              €{totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
             <div className="text-xs text-red-600 mt-1">
               From {records.filter(r => r.type === 'expense').length} transactions
@@ -174,7 +174,7 @@ export function VehicleFinanceTab({ vehicleId, vehicleName, purchasePrice }: Veh
               <span className="text-sm font-medium">Net Income</span>
             </div>
             <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
-              ${netProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              €{netProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
           </CardContent>
         </Card>
@@ -185,13 +185,13 @@ export function VehicleFinanceTab({ vehicleId, vehicleName, purchasePrice }: Veh
         <Card className="border-muted">
           <CardContent className="py-3 px-4">
             <div className="text-sm text-muted-foreground">
-              Vehicle purchase value: <span className="font-medium text-foreground">${purchasePrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              Vehicle purchase value: <span className="font-medium text-foreground">€{purchasePrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
             {breakEvenStatus && (
               <div className={`text-sm mt-1 ${breakEvenStatus.type === 'profit' ? 'text-green-600' : 'text-amber-600'}`}>
                 {breakEvenStatus.type === 'profit' 
-                  ? <>Profit: <span className="font-semibold">${breakEvenStatus.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></>
-                  : <>Remaining for depreciation: <span className="font-semibold">${breakEvenStatus.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></>
+                  ? <>Profit: <span className="font-semibold">€{breakEvenStatus.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></>
+                  : <>Remaining for depreciation: <span className="font-semibold">€{breakEvenStatus.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></>
                 }
               </div>
             )}
@@ -310,10 +310,10 @@ function TransactionItem({ record }: { record: FinanceRecord }) {
       </div>
       <div className="text-right">
         <div className={`font-semibold ${record.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-          {record.type === 'income' ? '+' : '-'}${Number(record.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          {record.type === 'income' ? '+' : '-'}€{Number(record.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
         </div>
         <div className="text-xs text-muted-foreground">
-          {format(new Date(record.date), 'MMM dd, yyyy')}
+          {format(new Date(record.date), 'dd/MM/yyyy')}
         </div>
       </div>
     </div>

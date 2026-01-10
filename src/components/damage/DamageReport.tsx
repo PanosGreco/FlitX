@@ -195,7 +195,7 @@ export function DamageReport({
   };
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
-    return format(date, "dd MMM yyyy '–' HH:mm");
+    return format(date, "dd/MM/yyyy '–' HH:mm");
   };
   if (loading) {
     return <Card>
@@ -206,7 +206,10 @@ export function DamageReport({
   }
   return <div className="space-y-6">
       {/* Header with Add Button */}
-      <div className="flex justify-end">
+      <div className="flex justify-between items-start">
+        <p className="text-sm text-muted-foreground flex-1 mr-4">
+          Here you can keep a record of the vehicle's damages to easily track and review them over time.
+        </p>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button>
