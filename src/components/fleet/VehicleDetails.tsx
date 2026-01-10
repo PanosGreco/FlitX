@@ -99,7 +99,7 @@ export function VehicleDetails({
     status: "available",
     licensePlate: "N/A",
     fuelLevel: 0,
-    fuelType: "Unknown",
+    fuelType: "",
     mpg: 0,
     lastServiceDate: new Date().toISOString(),
     costPerMile: 0,
