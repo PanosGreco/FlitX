@@ -103,7 +103,7 @@ export function RentalBookingDialog({
       });
       
       if (conflict) {
-        setConflictError(`This vehicle is already booked from ${format(new Date(conflict.start_date), 'MMM dd')} to ${format(new Date(conflict.end_date), 'MMM dd')} for ${conflict.customer_name}.`);
+        setConflictError(`This vehicle is already booked from ${format(new Date(conflict.start_date), 'dd MMM')} to ${format(new Date(conflict.end_date), 'dd MMM')} for ${conflict.customer_name}.`);
       } else {
         setConflictError(null);
       }

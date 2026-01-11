@@ -32,6 +32,7 @@ interface Vehicle {
   image?: string;
   license_plate?: string;
   purchase_price?: number | null;
+  passengerCapacity?: number;
 }
 
 interface VehicleTranslations {
@@ -131,7 +132,7 @@ const VehicleDetail = () => {
         license_plate: data.license_plate || '',
         fuelLevel: data.fuel_level || 0,
         fuel_level: data.fuel_level || 0,
-        fuelType: 'Unknown',
+        fuelType: data.fuel_type || '',
         mpg: 0,
         lastServiceDate: new Date().toISOString(),
         costPerMile: 0,
@@ -143,7 +144,8 @@ const VehicleDetail = () => {
         fuelCosts: 0,
         milesPerDay: 0,
         image: data.image || undefined,
-        purchase_price: data.purchase_price || null
+        purchase_price: data.purchase_price || null,
+        passengerCapacity: data.passenger_capacity || undefined
       };
       setVehicle(vehicleData);
     } catch (error) {
@@ -157,6 +159,25 @@ const VehicleDetail = () => {
   useEffect(() => {
     fetchVehicle();
   }, [fetchVehicle]);
+
+  // Realtime subscription for vehicle updates
+  useEffect(() => {
+    if (!id || !user) return;
+
+    const channel = supabase
+      .channel(`vehicle_${id}_changes`)
+      .on('postgres_changes', 
+        { event: 'UPDATE', schema: 'public', table: 'vehicles', filter: `id=eq.${id}` }, 
+        () => {
+          fetchVehicle();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, user, fetchVehicle]);
   
   if (loading) {
     return (

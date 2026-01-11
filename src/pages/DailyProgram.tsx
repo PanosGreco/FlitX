@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { format } from "date-fns";
 import { CalendarIcon, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +9,8 @@ import { DailyProgramSection } from "@/components/daily-program/DailyProgramSect
 import { AddTaskDialog } from "@/components/daily-program/AddTaskDialog";
 import { cn } from "@/lib/utils";
 import { useDailyTasks, DailyTask } from "@/hooks/useDailyTasks";
+import { formatDateShortEuropean } from "@/utils/dateFormatUtils";
+import { format } from "date-fns";
 export type { DailyTask } from "@/hooks/useDailyTasks";
 export default function DailyProgram() {
   document.title = "Daily Program - FlitX";
@@ -52,7 +53,7 @@ export default function DailyProgram() {
                 <PopoverTrigger asChild>
                   <Button variant="outline" className={cn("justify-start text-left font-normal", "text-muted-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(selectedDate, 'MMM dd, yyyy')}
+                    {formatDateShortEuropean(selectedDate)}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="end">
