@@ -156,8 +156,8 @@ export function TaskItem({
 
             {/* Location */}
             {task.location && <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" />
-                <span className="truncate">{task.location}</span>
+                <MapPin className="w-3 h-[20px]" />
+                <span className="truncate text-sm">{task.location}</span>
               </div>}
 
             {/* Notes */}
