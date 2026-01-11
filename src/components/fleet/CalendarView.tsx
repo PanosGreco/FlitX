@@ -389,8 +389,8 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
                 <p className="text-sm text-blue-700">
                   {selectedDates.length > 0 && (
                     <>
-                      {format(selectedDates[0], 'MMM dd')}
-                      {selectedDates.length > 1 && ` - ${format(selectedDates[selectedDates.length - 1], 'MMM dd')}`}
+                      {format(selectedDates[0], 'dd MMM')}
+                      {selectedDates.length > 1 && ` - ${format(selectedDates[selectedDates.length - 1], 'dd MMM')}`}
                     </>
                   )}
                 </p>

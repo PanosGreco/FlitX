@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from "react";
-import { format } from "date-fns";
 import { Calendar, User, FileText, Trash2, X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { formatDateEuropean, formatTime24h } from "@/utils/dateFormatUtils";
 interface RentalBooking {
   id: string;
   start_date: string;
@@ -211,11 +211,7 @@ export function RentalBookingsList({
     };
   };
   const formatTime = (time: string | null) => {
-    if (!time) return null;
-    const [hours, minutes] = time.split(':');
-    const date = new Date();
-    date.setHours(parseInt(hours), parseInt(minutes));
-    return format(date, 'h:mm a');
+    return formatTime24h(time);
   };
   if (loading) {
     return <div className="space-y-4">
@@ -276,7 +272,7 @@ export function RentalBookingsList({
                   <div className="flex items-start gap-2 text-sm text-gray-600">
                     <span className="font-medium text-muted-foreground min-w-[60px] text-base">Pickup:</span>
                     <span className="text-base">
-                      {format(new Date(booking.start_date), 'dd/MM/yyyy')}
+                      {formatDateEuropean(booking.start_date)}
                       {booking.pickup_time && <span className="ml-1">• {formatTime(booking.pickup_time)}</span>}
                       {booking.pickup_location && <span className="ml-1">• {booking.pickup_location}</span>}
                     </span>
@@ -286,7 +282,7 @@ export function RentalBookingsList({
                   <div className="flex items-start gap-2 text-sm text-gray-600">
                     <span className="font-medium text-muted-foreground min-w-[60px] text-base">Return:</span>
                     <span className="text-base">
-                      {format(new Date(booking.end_date), 'dd/MM/yyyy')}
+                      {formatDateEuropean(booking.end_date)}
                       {booking.return_time && <span className="ml-1">• {formatTime(booking.return_time)}</span>}
                       {booking.dropoff_location && <span className="ml-1">• {booking.dropoff_location}</span>}
                     </span>

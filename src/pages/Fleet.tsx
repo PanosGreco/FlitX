@@ -87,6 +87,7 @@ const Fleet = () => {
         fuelLevel: v.fuel_level || 0,
         dailyRate: v.daily_rate || 0,
         fuelType: v.fuel_type || 'petrol',
+        passengerCapacity: v.passenger_capacity || undefined,
       }));
 
       setVehicles(transformedVehicles);

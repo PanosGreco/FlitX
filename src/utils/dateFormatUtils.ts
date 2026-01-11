@@ -10,7 +10,7 @@ export function formatDateEuropean(date: Date | string): string {
 }
 
 /**
- * Format a date with time in European format
+ * Format a date with time in European format (24-hour)
  */
 export function formatDateTimeEuropean(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
@@ -39,4 +39,25 @@ export function formatDateLongEuropean(date: Date | string, language: string = "
 export function formatMonthYear(date: Date | string, language: string = "en"): string {
   const d = typeof date === "string" ? new Date(date) : date;
   return format(d, "MMMM yyyy", { locale: language === "el" ? el : enUS });
+}
+
+/**
+ * Format time in 24-hour format (HH:mm)
+ */
+export function formatTime24h(time: string | null): string | null {
+  if (!time) return null;
+  // If already in HH:mm format, return as is
+  if (/^\d{2}:\d{2}(:\d{2})?$/.test(time)) {
+    return time.substring(0, 5);
+  }
+  // Parse time string and format
+  const [hours, minutes] = time.split(':');
+  return `${hours.padStart(2, '0')}:${minutes?.padStart(2, '0') || '00'}`;
+}
+
+/**
+ * Format time from Date object in 24-hour format
+ */
+export function formatTimeFrom24h(date: Date): string {
+  return format(date, "HH:mm");
 }
