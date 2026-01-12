@@ -161,7 +161,7 @@ export function TaskItem({
               </div>}
 
             {/* Notes */}
-            {task.notes && <p className="text-xs text-muted-foreground bg-muted/50 p-2 rounded line-clamp-2">
+            {task.notes && <p className="text-muted-foreground bg-muted/50 p-2 rounded line-clamp-2 text-sm">
                 {task.notes}
               </p>}
 
