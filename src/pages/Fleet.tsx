@@ -21,13 +21,22 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Image, Loader2 } from "lucide-react";
+import { Upload, Image, Loader2, Info } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { VehicleData } from "@/components/fleet/VehicleCard";
+import { 
+  VEHICLE_TYPES, 
+  VEHICLE_CATEGORIES, 
+  VEHICLE_TYPE_LABELS,
+  VehicleType,
+  normalizeCategory,
+  formatCustomCategory
+} from "@/constants/vehicleTypes";
 
 const Fleet = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -43,7 +52,10 @@ const Fleet = () => {
   const [make, setMake] = useState("");
   const [model, setModel] = useState("");
   const [year, setYear] = useState("");
-  const [type, setType] = useState("");
+  const [vehicleType, setVehicleType] = useState<VehicleType>("car");
+  const [vehicleCategory, setVehicleCategory] = useState("");
+  const [customCategory, setCustomCategory] = useState("");
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [fuelType, setFuelType] = useState("petrol");
   const [passengerCapacity, setPassengerCapacity] = useState("5");
   const [licensePlate, setLicensePlate] = useState("");
@@ -144,7 +156,10 @@ const Fleet = () => {
     setMake("");
     setModel("");
     setYear("");
-    setType("");
+    setVehicleType("car");
+    setVehicleCategory("");
+    setCustomCategory("");
+    setIsCustomCategory(false);
     setFuelType("petrol");
     setPassengerCapacity("5");
     setLicensePlate("");
@@ -152,6 +167,37 @@ const Fleet = () => {
     setMileage("");
     setPurchasePrice("");
     setVehicleImage(null);
+  };
+
+  // Handle vehicle type change - reset category
+  const handleVehicleTypeChange = (newType: VehicleType) => {
+    setVehicleType(newType);
+    setVehicleCategory("");
+    setCustomCategory("");
+    setIsCustomCategory(false);
+  };
+
+  // Handle category selection
+  const handleCategoryChange = (value: string) => {
+    if (value === 'custom') {
+      setIsCustomCategory(true);
+      setVehicleCategory("");
+    } else {
+      setIsCustomCategory(false);
+      setVehicleCategory(value);
+      setCustomCategory("");
+    }
+  };
+
+  // Get final category value (normalized for custom)
+  const getFinalCategory = () => {
+    if (vehicleType === 'atv') {
+      return 'atv';
+    }
+    if (isCustomCategory && customCategory.trim()) {
+      return normalizeCategory(customCategory);
+    }
+    return vehicleCategory;
   };
   
   const handleSubmitNewVehicle = async (e: React.FormEvent) => {
@@ -169,6 +215,18 @@ const Fleet = () => {
     setIsSubmitting(true);
     
     try {
+      const finalCategory = getFinalCategory();
+      
+      if (!finalCategory && vehicleType !== 'atv') {
+        toast({
+          title: language === 'el' ? 'Σφάλμα' : 'Error',
+          description: language === 'el' ? 'Παρακαλώ επιλέξτε κατηγορία' : 'Please select a category',
+          variant: 'destructive',
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
       const { error } = await supabase
         .from('vehicles')
         .insert({
@@ -176,7 +234,8 @@ const Fleet = () => {
           make,
           model,
           year: parseInt(year),
-          type,
+          vehicle_type: vehicleType,
+          type: finalCategory,
           fuel_type: fuelType,
           passenger_capacity: parseInt(passengerCapacity),
           license_plate: licensePlate,
@@ -276,32 +335,85 @@ const Fleet = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="make">{t.make}</Label>
-                  <Input 
-                    id="make" 
-                    placeholder="e.g. Toyota" 
-                    required 
-                    disabled={isLanguageLoading || isSubmitting}
-                    value={make}
-                    onChange={(e) => setMake(e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-1">
-                  <Label htmlFor="model">{t.model}</Label>
-                  <Input 
-                    id="model" 
-                    placeholder="e.g. Corolla" 
-                    required 
-                    disabled={isLanguageLoading || isSubmitting}
-                    value={model}
-                    onChange={(e) => setModel(e.target.value)}
-                  />
-                </div>
+              {/* Vehicle Type - FIRST and PROMINENT */}
+              <div className="space-y-1">
+                <Label htmlFor="vehicleType" className="font-semibold text-foreground">
+                  {language === 'el' ? 'Τύπος Οχήματος' : 'Vehicle Type'}
+                </Label>
+                <Select 
+                  disabled={isLanguageLoading || isSubmitting}
+                  value={vehicleType}
+                  onValueChange={(v) => handleVehicleTypeChange(v as VehicleType)}
+                >
+                  <SelectTrigger className="font-medium">
+                    <SelectValue placeholder={language === 'el' ? 'Επιλέξτε τύπο...' : 'Select type...'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {VEHICLE_TYPES.map((vt) => (
+                        <SelectItem key={vt} value={vt} className="font-semibold">
+                          {VEHICLE_TYPE_LABELS[vt][language === 'el' ? 'el' : 'en']}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
-              
+
+              {/* Vehicle Category - Dynamic based on type */}
+              {vehicleType !== 'atv' && (
+                <div className="space-y-1">
+                  <Label htmlFor="vehicleCategory">
+                    {language === 'el' ? 'Κατηγορία' : 'Category'}
+                  </Label>
+                  {!isCustomCategory ? (
+                    <Select 
+                      disabled={isLanguageLoading || isSubmitting}
+                      value={vehicleCategory}
+                      onValueChange={handleCategoryChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={language === 'el' ? 'Επιλέξτε κατηγορία...' : 'Select category...'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {VEHICLE_CATEGORIES[vehicleType].map((cat) => (
+                            <SelectItem key={cat.value} value={cat.value}>
+                              {cat.label[language === 'el' ? 'el' : 'en']}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="custom" className="text-muted-foreground italic">
+                            {language === 'el' ? 'Προσαρμοσμένη κατηγορία...' : 'Custom Category...'}
+                          </SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input 
+                        placeholder={language === 'el' ? 'π.χ. BKJH' : 'e.g. BKJH'}
+                        value={customCategory}
+                        onChange={(e) => setCustomCategory(e.target.value)}
+                        disabled={isLanguageLoading || isSubmitting}
+                        className="flex-1"
+                      />
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          setIsCustomCategory(false);
+                          setCustomCategory("");
+                        }}
+                        disabled={isSubmitting}
+                      >
+                        {language === 'el' ? 'Ακύρωση' : 'Cancel'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label htmlFor="year">{t.year}</Label>
@@ -317,32 +429,7 @@ const Fleet = () => {
                     onChange={(e) => setYear(e.target.value)}
                   />
                 </div>
-                
-                <div className="space-y-1">
-                  <Label htmlFor="type">{t.type}</Label>
-                  <Select 
-                    disabled={isLanguageLoading || isSubmitting}
-                    value={type}
-                    onValueChange={setType}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t.type} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>{t.vehicleTypes}</SelectLabel>
-                        <SelectItem value="sedan">{t.sedan}</SelectItem>
-                        <SelectItem value="suv">{t.suv}</SelectItem>
-                        <SelectItem value="economy">{t.economy}</SelectItem>
-                        <SelectItem value="luxury">{t.luxury}</SelectItem>
-                        <SelectItem value="van">{t.van}</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label htmlFor="fuelType">{language === 'el' ? 'Τύπος Καυσίμου' : 'Fuel Type'}</Label>
                   <Select 
@@ -363,7 +450,9 @@ const Fleet = () => {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
 
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label htmlFor="passengerCapacity">{language === 'el' ? 'Αριθμός Επιβατών' : 'Number of People'}</Label>
                   <Select 
@@ -374,7 +463,7 @@ const Fleet = () => {
                     <SelectTrigger>
                       <SelectValue placeholder={language === 'el' ? 'Επιλέξτε...' : 'Select...'} />
                     </SelectTrigger>
-                <SelectContent>
+                    <SelectContent>
                       <SelectGroup>
                         <SelectItem value="1">1</SelectItem>
                         <SelectItem value="2">2</SelectItem>
@@ -387,6 +476,30 @@ const Fleet = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="make">{t.make}</Label>
+                  <Input 
+                    id="make" 
+                    placeholder="e.g. Toyota" 
+                    required 
+                    disabled={isLanguageLoading || isSubmitting}
+                    value={make}
+                    onChange={(e) => setMake(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="model">{t.model}</Label>
+                <Input 
+                  id="model" 
+                  placeholder="e.g. Corolla" 
+                  required 
+                  disabled={isLanguageLoading || isSubmitting}
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                />
               </div>
               
               <div className="grid grid-cols-2 gap-3">
@@ -434,16 +547,35 @@ const Fleet = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <Label htmlFor="purchasePrice">{language === 'el' ? 'Τιμή Αγοράς' : 'Purchase Price'}</Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="purchasePrice">{language === 'el' ? 'Τιμή Αγοράς' : 'Purchase Price'}</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs">
+                            {language === 'el' 
+                              ? 'Η τιμή αγοράς βοηθά στη δημιουργία πιο ακριβούς οικονομικής ανάλυσης, insights και μετρήσεων μακροπρόθεσμης απόδοσης του στόλου.'
+                              : 'The purchase price helps generate more accurate financial analysis, insights, and long-term fleet performance metrics.'}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <Input 
                     id="purchasePrice" 
-                    type="number" 
+                    type="text"
+                    inputMode="decimal"
                     placeholder={language === 'el' ? 'Προαιρετικό' : 'Optional'}
-                    min={0}
-                    step="0.01"
                     disabled={isLanguageLoading || isSubmitting}
                     value={purchasePrice}
-                    onChange={(e) => setPurchasePrice(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9.]/g, '');
+                      setPurchasePrice(value);
+                    }}
+                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
               </div>

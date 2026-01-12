@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Image } from "lucide-react";
+import { Upload, Image, Info } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,9 +17,20 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
 } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { 
+  VEHICLE_TYPES, 
+  VEHICLE_CATEGORIES, 
+  VEHICLE_TYPE_LABELS,
+  VehicleType,
+  normalizeCategory,
+  isStandardCategory
+} from "@/constants/vehicleTypes";
 
 interface EditVehicleDialogProps {
   isOpen: boolean;
@@ -34,11 +45,14 @@ interface EditVehicleDialogProps {
     purchase_price?: number | null;
     fuel_type?: string;
     passenger_capacity?: number;
+    vehicle_type?: string;
+    type?: string;
   };
   onSaved: () => void;
 }
 
 export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVehicleDialogProps) {
+  const { language } = useLanguage();
   const [mileage, setMileage] = useState(vehicle.mileage || 0);
   const [dailyRate, setDailyRate] = useState(vehicle.daily_rate || 0);
   const [fuelLevel, setFuelLevel] = useState(vehicle.fuel_level || 100);
@@ -47,6 +61,10 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
   const [vehicleImage, setVehicleImage] = useState<string | null>(vehicle.image || null);
   const [fuelType, setFuelType] = useState(vehicle.fuel_type || 'petrol');
   const [passengerCapacity, setPassengerCapacity] = useState(vehicle.passenger_capacity?.toString() || '5');
+  const [vehicleType, setVehicleType] = useState<VehicleType>((vehicle.vehicle_type as VehicleType) || 'car');
+  const [vehicleCategory, setVehicleCategory] = useState(vehicle.type || '');
+  const [customCategory, setCustomCategory] = useState('');
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -60,6 +78,20 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     setVehicleImage(vehicle.image || null);
     setFuelType(vehicle.fuel_type || 'petrol');
     setPassengerCapacity(vehicle.passenger_capacity?.toString() || '5');
+    
+    const vType = (vehicle.vehicle_type as VehicleType) || 'car';
+    setVehicleType(vType);
+    
+    const category = vehicle.type || '';
+    if (category && !isStandardCategory(category) && category !== 'atv') {
+      setIsCustomCategory(true);
+      setCustomCategory(category.toUpperCase());
+      setVehicleCategory('');
+    } else {
+      setIsCustomCategory(false);
+      setCustomCategory('');
+      setVehicleCategory(category);
+    }
   }, [vehicle]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,7 +107,49 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     }
   };
 
+  // Handle vehicle type change - reset category
+  const handleVehicleTypeChange = (newType: VehicleType) => {
+    setVehicleType(newType);
+    setVehicleCategory('');
+    setCustomCategory('');
+    setIsCustomCategory(false);
+  };
+
+  // Handle category selection
+  const handleCategoryChange = (value: string) => {
+    if (value === 'custom') {
+      setIsCustomCategory(true);
+      setVehicleCategory('');
+    } else {
+      setIsCustomCategory(false);
+      setVehicleCategory(value);
+      setCustomCategory('');
+    }
+  };
+
+  // Get final category value (normalized for custom)
+  const getFinalCategory = () => {
+    if (vehicleType === 'atv') {
+      return 'atv';
+    }
+    if (isCustomCategory && customCategory.trim()) {
+      return normalizeCategory(customCategory);
+    }
+    return vehicleCategory;
+  };
+
   const handleSave = async () => {
+    const finalCategory = getFinalCategory();
+    
+    if (!finalCategory && vehicleType !== 'atv') {
+      toast({
+        title: language === 'el' ? 'Σφάλμα' : 'Error',
+        description: language === 'el' ? 'Παρακαλώ επιλέξτε κατηγορία' : 'Please select a category',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -90,22 +164,24 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
           image: vehicleImage,
           fuel_type: fuelType,
           passenger_capacity: parseInt(passengerCapacity),
+          vehicle_type: vehicleType,
+          type: finalCategory,
         })
         .eq('id', vehicle.id);
 
       if (error) {
         console.error('Error updating vehicle:', error);
         toast({
-          title: "Error",
-          description: "Failed to update vehicle details",
+          title: language === 'el' ? 'Σφάλμα' : 'Error',
+          description: language === 'el' ? 'Αποτυχία ενημέρωσης οχήματος' : 'Failed to update vehicle details',
           variant: "destructive"
         });
         return;
       }
 
       toast({
-        title: "Vehicle Updated",
-        description: "Vehicle details have been saved successfully",
+        title: language === 'el' ? 'Το όχημα ενημερώθηκε' : 'Vehicle Updated',
+        description: language === 'el' ? 'Οι λεπτομέρειες του οχήματος αποθηκεύτηκαν' : 'Vehicle details have been saved successfully',
       });
       
       onSaved();
@@ -113,8 +189,8 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     } catch (err) {
       console.error('Exception updating vehicle:', err);
       toast({
-        title: "Error",
-        description: "An unexpected error occurred",
+        title: language === 'el' ? 'Σφάλμα' : 'Error',
+        description: language === 'el' ? 'Προέκυψε απρόσμενο σφάλμα' : 'An unexpected error occurred',
         variant: "destructive"
       });
     } finally {
@@ -126,16 +202,16 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit Vehicle</DialogTitle>
+          <DialogTitle>{language === 'el' ? 'Επεξεργασία Οχήματος' : 'Edit Vehicle'}</DialogTitle>
           <DialogDescription>
-            Update vehicle details and information
+            {language === 'el' ? 'Ενημέρωση στοιχείων και πληροφοριών οχήματος' : 'Update vehicle details and information'}
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
           {/* Vehicle Image */}
           <div className="space-y-2">
-            <Label>Vehicle Photo</Label>
+            <Label>{language === 'el' ? 'Φωτογραφία Οχήματος' : 'Vehicle Photo'}</Label>
             <div className="flex items-center gap-4">
               <div className="h-20 w-28 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
                 {vehicleImage ? (
@@ -153,7 +229,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
                 className="flex items-center px-3 py-2 text-sm border border-input rounded-md bg-background hover:bg-accent cursor-pointer"
               >
                 <Upload className="h-4 w-4 mr-2" />
-                Change Photo
+                {language === 'el' ? 'Αλλαγή Φωτογραφίας' : 'Change Photo'}
                 <input
                   id="edit-vehicle-photo"
                   type="file"
@@ -165,26 +241,95 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
             </div>
           </div>
 
+          {/* Vehicle Type */}
           <div className="space-y-2">
-            <Label htmlFor="fuel-type">Fuel Type</Label>
-            <Select value={fuelType} onValueChange={setFuelType}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select fuel type" />
+            <Label htmlFor="vehicle-type" className="font-semibold">
+              {language === 'el' ? 'Τύπος Οχήματος' : 'Vehicle Type'}
+            </Label>
+            <Select value={vehicleType} onValueChange={(v) => handleVehicleTypeChange(v as VehicleType)}>
+              <SelectTrigger className="font-medium">
+                <SelectValue placeholder={language === 'el' ? 'Επιλέξτε τύπο...' : 'Select type...'} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="petrol">Petrol</SelectItem>
-                <SelectItem value="diesel">Diesel</SelectItem>
-                <SelectItem value="electric">Electric</SelectItem>
-                <SelectItem value="hybrid">Hybrid</SelectItem>
+                <SelectGroup>
+                  {VEHICLE_TYPES.map((vt) => (
+                    <SelectItem key={vt} value={vt} className="font-semibold">
+                      {VEHICLE_TYPE_LABELS[vt][language === 'el' ? 'el' : 'en']}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Vehicle Category - Dynamic */}
+          {vehicleType !== 'atv' && (
+            <div className="space-y-2">
+              <Label htmlFor="vehicle-category">
+                {language === 'el' ? 'Κατηγορία' : 'Category'}
+              </Label>
+              {!isCustomCategory ? (
+                <Select value={vehicleCategory} onValueChange={handleCategoryChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={language === 'el' ? 'Επιλέξτε κατηγορία...' : 'Select category...'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {VEHICLE_CATEGORIES[vehicleType].map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.label[language === 'el' ? 'el' : 'en']}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="custom" className="text-muted-foreground italic">
+                        {language === 'el' ? 'Προσαρμοσμένη κατηγορία...' : 'Custom Category...'}
+                      </SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder={language === 'el' ? 'π.χ. BKJH' : 'e.g. BKJH'}
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setIsCustomCategory(false);
+                      setCustomCategory('');
+                    }}
+                  >
+                    {language === 'el' ? 'Ακύρωση' : 'Cancel'}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="fuel-type">{language === 'el' ? 'Τύπος Καυσίμου' : 'Fuel Type'}</Label>
+            <Select value={fuelType} onValueChange={setFuelType}>
+              <SelectTrigger>
+                <SelectValue placeholder={language === 'el' ? 'Επιλέξτε...' : 'Select fuel type'} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="petrol">{language === 'el' ? 'Βενζίνη' : 'Petrol'}</SelectItem>
+                <SelectItem value="diesel">{language === 'el' ? 'Diesel' : 'Diesel'}</SelectItem>
+                <SelectItem value="electric">{language === 'el' ? 'Ηλεκτρικό' : 'Electric'}</SelectItem>
+                <SelectItem value="hybrid">{language === 'el' ? 'Υβριδικό' : 'Hybrid'}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="passenger-capacity">Number of People</Label>
+            <Label htmlFor="passenger-capacity">{language === 'el' ? 'Αριθμός Επιβατών' : 'Number of People'}</Label>
             <Select value={passengerCapacity} onValueChange={setPassengerCapacity}>
               <SelectTrigger>
-                <SelectValue placeholder="Select..." />
+                <SelectValue placeholder={language === 'el' ? 'Επιλέξτε...' : 'Select...'} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="1">1</SelectItem>
@@ -199,7 +344,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="license-plate">License Plate</Label>
+            <Label htmlFor="license-plate">{language === 'el' ? 'Πινακίδα' : 'License Plate'}</Label>
             <Input
               id="license-plate"
               value={licensePlate}
@@ -209,7 +354,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="mileage">Current Mileage (km)</Label>
+            <Label htmlFor="mileage">{language === 'el' ? 'Χιλιόμετρα' : 'Current Mileage (km)'}</Label>
             <Input
               id="mileage"
               type="number"
@@ -220,7 +365,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="daily-rate">Daily Rate (€)</Label>
+            <Label htmlFor="daily-rate">{language === 'el' ? 'Ημερήσια Τιμή (€)' : 'Daily Rate (€)'}</Label>
             <Input
               id="daily-rate"
               type="number"
@@ -230,12 +375,12 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
               step="0.01"
             />
             <p className="text-xs text-muted-foreground">
-              Default rate for new bookings
+              {language === 'el' ? 'Προεπιλεγμένη τιμή για νέες κρατήσεις' : 'Default rate for new bookings'}
             </p>
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="fuel-level">Fuel Level (%)</Label>
+            <Label htmlFor="fuel-level">{language === 'el' ? 'Επίπεδο Καυσίμου (%)' : 'Fuel Level (%)'}</Label>
             <Input
               id="fuel-level"
               type="number"
@@ -247,28 +392,44 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="purchase-price">Purchase Price (€)</Label>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="purchase-price">{language === 'el' ? 'Τιμή Αγοράς (€)' : 'Purchase Price (€)'}</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-xs">
+                      {language === 'el' 
+                        ? 'Η τιμή αγοράς βοηθά στη δημιουργία πιο ακριβούς οικονομικής ανάλυσης, insights και μετρήσεων μακροπρόθεσμης απόδοσης του στόλου.'
+                        : 'The purchase price helps generate more accurate financial analysis, insights, and long-term fleet performance metrics.'}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Input
               id="purchase-price"
-              type="number"
+              type="text"
+              inputMode="decimal"
               value={purchasePrice}
-              onChange={(e) => setPurchasePrice(e.target.value)}
-              min={0}
-              step="0.01"
-              placeholder="Optional"
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9.]/g, '');
+                setPurchasePrice(value);
+              }}
+              placeholder={language === 'el' ? 'Προαιρετικό' : 'Optional'}
+              className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
-            <p className="text-xs text-muted-foreground">
-              Used to calculate break-even and profit
-            </p>
           </div>
         </div>
         
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={isLoading}>
-            Cancel
+            {language === 'el' ? 'Ακύρωση' : 'Cancel'}
           </Button>
           <Button onClick={handleSave} disabled={isLoading}>
-            {isLoading ? "Saving..." : "Save Changes"}
+            {isLoading ? (language === 'el' ? 'Αποθήκευση...' : 'Saving...') : (language === 'el' ? 'Αποθήκευση' : 'Save Changes')}
           </Button>
         </DialogFooter>
       </DialogContent>
