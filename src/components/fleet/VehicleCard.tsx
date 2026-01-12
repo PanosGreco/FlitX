@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ComputedStatus } from "@/hooks/useVehicleStatus";
+import { getVehicleCategoryLabel } from "@/constants/vehicleTypes";
 
 const FUEL_TYPE_LABELS: Record<string, { en: string; el: string }> = {
   petrol: { en: "Petrol", el: "Βενζίνη" },
@@ -80,7 +81,7 @@ export function VehicleCard({
         </h3>
         
         <div className="mt-1 text-sm text-flitx-gray-500">
-          {vehicle.type} • {vehicle.licensePlate}
+          {getVehicleCategoryLabel(vehicle.type, language)} • {vehicle.licensePlate}
           {vehicle.fuelType ? ` • ${getFuelTypeLabel(vehicle.fuelType, language)}` : ''}
           {vehicle.passengerCapacity ? ` • ${vehicle.passengerCapacity >= 7 ? '7+' : vehicle.passengerCapacity} ${language === 'el' ? 'άτομα' : 'people'}` : ''}
         </div>
