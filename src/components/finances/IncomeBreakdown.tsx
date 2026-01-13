@@ -371,9 +371,9 @@ export function IncomeBreakdown({ financialRecords, vehicles = [], lang = 'en', 
 
         {/* Right: Pie Chart + Top Vehicles (5 columns) */}
         <div className="lg:col-span-5 flex flex-col gap-2">
-          {/* Pie Chart - Compact */}
+          {/* Pie Chart */}
           {pieData.length > 0 && (
-            <div className="h-32">
+            <div className="h-40">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPieChart margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
                   <Pie
