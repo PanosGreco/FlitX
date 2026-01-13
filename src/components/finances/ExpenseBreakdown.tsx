@@ -344,8 +344,8 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
           </div>
         </div>
 
-        {/* Middle: Vehicle Category Breakdown (3 columns) - INDEPENDENT HEIGHT */}
-        <div className="lg:col-span-3">
+        {/* Middle: Vehicle Category Breakdown (2 columns) - INDEPENDENT HEIGHT */}
+        <div className="lg:col-span-2">
           <div className="border rounded-lg overflow-hidden">
             <Table className="table-fixed">
               <TableHeader>
@@ -393,8 +393,8 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
           </div>
         </div>
 
-        {/* Right: Pie Chart + Costly Vehicles (4 columns) */}
-        <div className="lg:col-span-4 flex flex-col gap-2">
+        {/* Right: Pie Chart + Costly Vehicles (5 columns) */}
+        <div className="lg:col-span-5 flex flex-col gap-2">
           {/* Pie Chart - Compact */}
           {pieData.length > 0 && (
             <div className="h-32">
