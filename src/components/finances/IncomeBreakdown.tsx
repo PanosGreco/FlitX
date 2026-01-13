@@ -342,15 +342,9 @@ export function IncomeBreakdown({ financialRecords, vehicles = [], lang = 'en', 
                   incomeByCategory.slice(0, 6).map((item, index) => (
                     <TableRow key={item.key} className="hover:bg-muted/50">
                       <TableCell className="px-2 py-1">
-                        <div className="flex items-center gap-1">
-                          <div 
-                            className="w-2 h-2 rounded-full flex-shrink-0" 
-                            style={{ backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }}
-                          />
-                          <span className="truncate text-xs font-medium">
-                            {item.label}
-                          </span>
-                        </div>
+                        <span className="truncate text-xs font-medium">
+                          {item.label}
+                        </span>
                       </TableCell>
                       <TableCell className="text-right font-semibold text-green-600 text-xs px-1 py-1">
                         {currencySymbol}{item.total.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
@@ -373,15 +367,15 @@ export function IncomeBreakdown({ financialRecords, vehicles = [], lang = 'en', 
         <div className="lg:col-span-5 flex flex-col gap-2">
           {/* Pie Chart */}
           {pieData.length > 0 && (
-            <div className="h-40">
+            <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
-                <RechartsPieChart margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
+                <RechartsPieChart margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
                   <Pie
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={25}
-                    outerRadius={45}
+                    innerRadius={30}
+                    outerRadius={55}
                     fill="#3b82f6"
                     dataKey="value"
                     paddingAngle={2}
