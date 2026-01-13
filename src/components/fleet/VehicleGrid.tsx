@@ -22,6 +22,8 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
     yearSort: null,
     fuelTypes: [],
     passengerCounts: [],
+    vehicleTypes: [],
+    vehicleCategories: [],
   });
   const { t, language, isLanguageLoading } = useLanguage();
   
@@ -33,6 +35,15 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
   // Compute statuses for all vehicles based on calendar data
   const { statuses: computedStatuses, isLoading: statusesLoading } = useFleetStatuses(vehicleIds);
   
+  // Get all unique categories from vehicles for filter panel
+  const availableCategories = useMemo(() => {
+    const cats = new Set<string>();
+    vehicles.forEach(v => {
+      if (v.type) cats.add(v.type);
+    });
+    return Array.from(cats);
+  }, [vehicles]);
+
   const filteredAndSortedVehicles = useMemo(() => {
     // First filter by search
     let result = vehicles.filter((vehicle) => {
@@ -40,6 +51,22 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
       const vehicleText = `${vehicle.make} ${vehicle.model} ${vehicle.year} ${vehicle.licensePlate}`.toLowerCase();
       return searchTerms.every((term) => vehicleText.includes(term));
     });
+
+    // Filter by vehicle type (car, motorbike, atv)
+    if (filters.vehicleTypes.length > 0) {
+      result = result.filter(v => {
+        const vehicleType = (v as any).vehicle_type || 'car';
+        return filters.vehicleTypes.includes(vehicleType);
+      });
+    }
+
+    // Filter by vehicle category
+    if (filters.vehicleCategories.length > 0) {
+      result = result.filter(v => {
+        const category = v.type?.toLowerCase() || '';
+        return filters.vehicleCategories.some(c => c.toLowerCase() === category);
+      });
+    }
 
     // Filter by fuel type
     if (filters.fuelTypes.length > 0) {
@@ -50,7 +77,6 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
     if (filters.passengerCounts.length > 0) {
       result = result.filter(v => {
         if (!v.passengerCapacity) return false;
-        // If filter includes 7 (7+), include vehicles with capacity >= 7
         if (filters.passengerCounts.includes(7) && v.passengerCapacity >= 7) {
           return true;
         }
@@ -73,7 +99,9 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
   const activeFilterCount = 
     (filters.yearSort ? 1 : 0) + 
     filters.fuelTypes.length + 
-    filters.passengerCounts.length;
+    filters.passengerCounts.length +
+    filters.vehicleTypes.length +
+    filters.vehicleCategories.length;
 
   return (
     <div className="space-y-4">
@@ -105,6 +133,7 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
           onFiltersChange={setFilters}
           isOpen={isFilterOpen}
           onOpenChange={setIsFilterOpen}
+          availableCategories={availableCategories}
           trigger={
             <Button 
               variant="outline" 
