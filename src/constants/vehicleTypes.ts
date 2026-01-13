@@ -11,6 +11,7 @@ export const VEHICLE_CATEGORIES: Record<VehicleType, { value: string; label: { e
     { value: 'economy', label: { en: 'Economy', el: 'Οικονομικό' } },
     { value: 'luxury', label: { en: 'Luxury', el: 'Πολυτελές' } },
     { value: 'van', label: { en: 'Van', el: 'Βαν' } },
+    { value: 'truck', label: { en: 'Truck', el: 'Φορτηγό' } },
   ],
   motorbike: [
     { value: '50cc', label: { en: '50cc', el: '50cc' } },
@@ -26,6 +27,27 @@ export const VEHICLE_TYPE_LABELS: Record<VehicleType, { en: string; el: string }
   car: { en: 'Car', el: 'Αυτοκίνητο' },
   motorbike: { en: 'Motorbike', el: 'Μοτοσυκλέτα' },
   atv: { en: 'ATV', el: 'ATV' },
+};
+
+// Map category to its parent vehicle type
+export const getCategoryVehicleType = (category: string): VehicleType | null => {
+  const normalizedCategory = category.trim().toLowerCase();
+  
+  for (const vehicleType of VEHICLE_TYPES) {
+    const found = VEHICLE_CATEGORIES[vehicleType].find(
+      c => c.value.toLowerCase() === normalizedCategory
+    );
+    if (found) {
+      return vehicleType;
+    }
+  }
+  
+  // Special case: ATV category maps to ATV type
+  if (normalizedCategory === 'atv') {
+    return 'atv';
+  }
+  
+  return null; // Custom category - needs vehicle_type from vehicle data
 };
 
 // Get display label for vehicle type
