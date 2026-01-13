@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X, ChevronDown, ChevronUp } from "lucide-react";
+import { useState, useMemo } from "react";
+import { ChevronDown, ChevronUp, Car, Bike } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,12 +8,29 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { 
+  VEHICLE_TYPES, 
+  VEHICLE_CATEGORIES, 
+  VEHICLE_TYPE_LABELS,
+  getVehicleTypeLabel,
+  getVehicleCategoryLabel,
+  VehicleType 
+} from "@/constants/vehicleTypes";
 
 export interface VehicleFilters {
   yearSort: 'asc' | 'desc' | null;
   fuelTypes: string[];
   passengerCounts: number[];
+  vehicleTypes: string[];
+  vehicleCategories: string[];
 }
 
 interface VehicleFilterPanelProps {
@@ -22,6 +39,7 @@ interface VehicleFilterPanelProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   trigger: React.ReactNode;
+  availableCategories?: string[]; // Custom categories from user's vehicles
 }
 
 const FUEL_TYPES = ['petrol', 'diesel', 'electric', 'hybrid'];
@@ -32,7 +50,8 @@ export function VehicleFilterPanel({
   onFiltersChange, 
   isOpen, 
   onOpenChange,
-  trigger 
+  trigger,
+  availableCategories = []
 }: VehicleFilterPanelProps) {
   const { language } = useLanguage();
 
@@ -42,6 +61,69 @@ export function VehicleFilterPanel({
     electric: language === 'el' ? 'Ηλεκτρικό' : 'Electric',
     hybrid: language === 'el' ? 'Υβριδικό' : 'Hybrid',
   };
+
+  // Get all standard categories for the selected vehicle types
+  const standardCategoriesForSelectedTypes = useMemo(() => {
+    if (filters.vehicleTypes.length === 0) {
+      // Show all categories when no type filter
+      return VEHICLE_TYPES.flatMap(type => 
+        VEHICLE_CATEGORIES[type].map(c => c.value)
+      );
+    }
+    return filters.vehicleTypes.flatMap(type => 
+      VEHICLE_CATEGORIES[type as VehicleType]?.map(c => c.value) || []
+    );
+  }, [filters.vehicleTypes]);
+
+  // Get custom categories (those not in standard categories)
+  const customCategories = useMemo(() => {
+    const standardCats = new Set(
+      VEHICLE_TYPES.flatMap(type => VEHICLE_CATEGORIES[type].map(c => c.value))
+    );
+    return availableCategories.filter(cat => 
+      !standardCats.has(cat) && cat !== 'atv'
+    );
+  }, [availableCategories]);
+
+  // Combined categories to show in dropdown
+  const displayCategories = useMemo(() => {
+    const cats: { value: string; label: string; isCustom: boolean }[] = [];
+    
+    // Add custom categories first
+    customCategories.forEach(cat => {
+      cats.push({
+        value: cat,
+        label: getVehicleCategoryLabel(cat, language),
+        isCustom: true
+      });
+    });
+    
+    // Add standard categories for selected types (or all if no type selected)
+    if (filters.vehicleTypes.length === 0) {
+      VEHICLE_TYPES.forEach(type => {
+        VEHICLE_CATEGORIES[type].forEach(cat => {
+          cats.push({
+            value: cat.value,
+            label: cat.label[language === 'el' ? 'el' : 'en'],
+            isCustom: false
+          });
+        });
+      });
+    } else {
+      filters.vehicleTypes.forEach(type => {
+        const typeCats = VEHICLE_CATEGORIES[type as VehicleType] || [];
+        typeCats.forEach(cat => {
+          cats.push({
+            value: cat.value,
+            label: cat.label[language === 'el' ? 'el' : 'en'],
+            isCustom: false
+          });
+        });
+      });
+    }
+    
+    return cats;
+  }, [filters.vehicleTypes, customCategories, language]);
 
   const handleYearSortChange = (sort: 'asc' | 'desc' | null) => {
     onFiltersChange({ ...filters, yearSort: filters.yearSort === sort ? null : sort });
@@ -61,20 +143,47 @@ export function VehicleFilterPanel({
     onFiltersChange({ ...filters, passengerCounts: newCounts });
   };
 
+  const handleVehicleTypeToggle = (type: string) => {
+    const newTypes = filters.vehicleTypes.includes(type)
+      ? filters.vehicleTypes.filter(t => t !== type)
+      : [...filters.vehicleTypes, type];
+    // Clear category filter when changing vehicle type
+    onFiltersChange({ ...filters, vehicleTypes: newTypes, vehicleCategories: [] });
+  };
+
+  const handleCategoryChange = (category: string) => {
+    if (category === 'all') {
+      onFiltersChange({ ...filters, vehicleCategories: [] });
+    } else {
+      const newCategories = filters.vehicleCategories.includes(category)
+        ? filters.vehicleCategories.filter(c => c !== category)
+        : [...filters.vehicleCategories, category];
+      onFiltersChange({ ...filters, vehicleCategories: newCategories });
+    }
+  };
+
   const clearFilters = () => {
-    onFiltersChange({ yearSort: null, fuelTypes: [], passengerCounts: [] });
+    onFiltersChange({ 
+      yearSort: null, 
+      fuelTypes: [], 
+      passengerCounts: [],
+      vehicleTypes: [],
+      vehicleCategories: []
+    });
   };
 
   const hasActiveFilters = filters.yearSort !== null || 
     filters.fuelTypes.length > 0 || 
-    filters.passengerCounts.length > 0;
+    filters.passengerCounts.length > 0 ||
+    filters.vehicleTypes.length > 0 ||
+    filters.vehicleCategories.length > 0;
 
   return (
     <Popover open={isOpen} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         {trigger}
       </PopoverTrigger>
-      <PopoverContent className="w-72 p-4" align="end">
+      <PopoverContent className="w-80 p-4" align="end">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h4 className="font-medium text-sm">
@@ -91,6 +200,67 @@ export function VehicleFilterPanel({
               </Button>
             )}
           </div>
+
+          {/* Vehicle Type Filter - Top Level */}
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">
+              {language === 'el' ? 'Τύπος Οχήματος' : 'Vehicle Type'}
+            </Label>
+            <div className="flex gap-2">
+              {VEHICLE_TYPES.map(type => (
+                <Button
+                  key={type}
+                  variant={filters.vehicleTypes.includes(type) ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleVehicleTypeToggle(type)}
+                  className="flex-1 text-xs h-8"
+                >
+                  {type === 'car' && <Car className="h-3 w-3 mr-1" />}
+                  {type === 'motorbike' && <Bike className="h-3 w-3 mr-1" />}
+                  {getVehicleTypeLabel(type, language)}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Vehicle Category Dropdown */}
+          {displayCategories.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">
+                {language === 'el' ? 'Κατηγορία' : 'Category'}
+              </Label>
+              <div className="flex flex-wrap gap-1.5">
+                {displayCategories.slice(0, 8).map(cat => (
+                  <Button
+                    key={cat.value}
+                    variant={filters.vehicleCategories.includes(cat.value) ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleCategoryChange(cat.value)}
+                    className={`text-xs h-7 px-2 ${cat.isCustom ? 'border-dashed' : ''}`}
+                  >
+                    {cat.label}
+                  </Button>
+                ))}
+              </div>
+              {displayCategories.length > 8 && (
+                <Select
+                  value=""
+                  onValueChange={(value) => handleCategoryChange(value)}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder={language === 'el' ? 'Περισσότερες...' : 'More...'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {displayCategories.slice(8).map(cat => (
+                      <SelectItem key={cat.value} value={cat.value} className="text-xs">
+                        {cat.label} {cat.isCustom && '(Custom)'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          )}
 
           {/* Year Sort */}
           <div className="space-y-2">

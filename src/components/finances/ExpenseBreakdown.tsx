@@ -15,10 +15,11 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import { TrendingDown, Car, Ship } from "lucide-react";
+import { TrendingDown, Car, Ship, Layers } from "lucide-react";
 import { getMonth } from "date-fns";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { getMaintenanceTypeLabel } from "@/constants/maintenanceTypes";
+import { getVehicleCategoryLabel } from "@/constants/vehicleTypes";
 
 interface FinancialRecord {
   id: string;
@@ -39,6 +40,8 @@ interface Vehicle {
   model: string;
   year: number;
   fuel_type?: string;
+  type?: string; // vehicle category (suv, sedan, etc.)
+  vehicle_type?: string; // top-level type (car, motorbike, atv)
 }
 
 const FUEL_TYPE_LABELS: Record<string, { en: string; el: string }> = {
@@ -62,6 +65,8 @@ interface ExpenseBreakdownProps {
 
 // Distinct expense colors: Purple, Red, Blue, Green, Teal, Pink, Brown, Orange
 const COLORS = ["#8b5cf6", "#ef4444", "#3b82f6", "#22c55e", "#14b8a6", "#ec4899", "#a16207", "#f97316"];
+// Additional colors for category breakdown
+const CATEGORY_COLORS = ["#ef4444", "#f97316", "#8b5cf6", "#06b6d4", "#ec4899", "#14b8a6", "#6366f1", "#84cc16"];
 
 const EXPENSE_CATEGORY_LABELS: Record<string, { en: string; el: string }> = {
   maintenance: { en: "Vehicle Maintenance", el: "Συντήρηση Οχήματος" },
@@ -193,6 +198,45 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
     }));
   }, [expensesByCategory]);
 
+  // Create vehicle lookup map
+  const vehicleMap = useMemo(() => {
+    const map = new Map<string, Vehicle>();
+    vehicles.forEach(v => map.set(v.id, v));
+    return map;
+  }, [vehicles]);
+
+  // Aggregate expenses by vehicle category (case-insensitive, no duplicates)
+  const expensesByVehicleCategory = useMemo(() => {
+    const categoryData: Record<string, { total: number; displayLabel: string }> = {};
+
+    filteredRecords.forEach(record => {
+      if (!record.vehicle_id) return;
+      
+      const vehicle = vehicleMap.get(record.vehicle_id);
+      if (!vehicle) return;
+      
+      // Get the vehicle category (type field), normalize for case-insensitive matching
+      const rawCategory = vehicle.type || 'unknown';
+      const normalizedKey = rawCategory.trim().toLowerCase();
+      
+      if (!categoryData[normalizedKey]) {
+        // Get display label using the utility function
+        const displayLabel = getVehicleCategoryLabel(rawCategory, lang);
+        categoryData[normalizedKey] = { total: 0, displayLabel };
+      }
+      
+      categoryData[normalizedKey].total += Number(record.amount);
+    });
+
+    return Object.entries(categoryData)
+      .map(([key, data]) => ({
+        key,
+        label: data.displayLabel,
+        total: data.total,
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [filteredRecords, vehicleMap, lang]);
+
   // Most costly vehicles
   const costlyVehicles = useMemo(() => {
     const vehicleExpenses: Record<string, number> = {};
@@ -242,48 +286,48 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
         </h2>
       </div>
 
-      {/* Unified Layout: Table Left, Pie + Vehicles Right */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-3">
-        {/* Left: Table (takes 3 columns) - Compact layout */}
-        <div className="lg:col-span-3">
+      {/* Unified Layout: Compact Table Left, Category Breakdown + Pie Right */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+        {/* Left: Category Table (compact - 5 columns) */}
+        <div className="lg:col-span-5">
           <div className="border rounded-lg overflow-hidden">
             <Table className="table-fixed">
               <TableHeader>
                 <TableRow className="bg-primary hover:bg-primary">
-                  <TableHead className="text-primary-foreground font-semibold w-[45%] px-2">
+                  <TableHead className="text-primary-foreground font-semibold w-[40%] px-2 py-1.5 text-xs">
                     {lang === 'el' ? 'Κατηγορία' : 'Category'}
                   </TableHead>
-                  <TableHead className="text-right text-primary-foreground font-semibold w-[25%] px-2">
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[30%] px-2 py-1.5 text-xs">
                     {lang === 'el' ? 'Σύνολο' : 'Total'}
                   </TableHead>
-                  <TableHead className="text-right text-primary-foreground font-semibold hidden sm:table-cell w-[30%] px-2">
-                    {lang === 'el' ? 'Κορυφαίοι Μήνες' : 'Top Months'}
+                  <TableHead className="text-right text-primary-foreground font-semibold hidden sm:table-cell w-[30%] px-2 py-1.5 text-xs">
+                    {lang === 'el' ? 'Top Μήνες' : 'Top Mo.'}
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {expensesByCategory.map((item, index) => (
                   <TableRow key={item.key} className="hover:bg-muted/50">
-                    <TableCell className="px-2 py-1.5">
-                      <div className="flex items-center gap-1.5">
+                    <TableCell className="px-2 py-1">
+                      <div className="flex items-center gap-1">
                         <div 
-                          className="w-2.5 h-2.5 rounded-full flex-shrink-0" 
+                          className="w-2 h-2 rounded-full flex-shrink-0" 
                           style={{ backgroundColor: COLORS[index % COLORS.length] }}
                         />
-                        <span className="truncate text-xs">
+                        <span className="truncate text-[11px]">
                           {item.label}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-medium text-red-600 text-xs px-2 py-1.5">
-                      {currencySymbol}{item.total.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2 })}
+                    <TableCell className="text-right font-medium text-red-600 text-[11px] px-2 py-1">
+                      {currencySymbol}{item.total.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 0 })}
                     </TableCell>
-                    <TableCell className="text-right text-muted-foreground text-xs hidden sm:table-cell px-2 py-1.5">
-                      <div className="flex flex-wrap justify-end gap-1">
-                        {item.topMonthsWithPercentage?.slice(0, 3).map((m, i) => (
+                    <TableCell className="text-right text-muted-foreground text-[10px] hidden sm:table-cell px-2 py-1">
+                      <div className="flex flex-wrap justify-end gap-0.5">
+                        {item.topMonthsWithPercentage?.slice(0, 2).map((m, i) => (
                           <span key={i} className="whitespace-nowrap">
-                            {m.monthName}<span className="text-muted-foreground/60 ml-0.5 text-[10px]">{m.percentage}%</span>
-                            {i < Math.min(item.topMonthsWithPercentage.length, 3) - 1 && ','}
+                            {m.monthName}<span className="text-muted-foreground/60 ml-0.5">{m.percentage}%</span>
+                            {i < Math.min(item.topMonthsWithPercentage.length, 2) - 1 && ','}
                           </span>
                         ))}
                       </div>
@@ -295,19 +339,68 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
           </div>
         </div>
 
-        {/* Right: Pie Chart + Costly Vehicles stacked (takes 2 columns) */}
-        <div className="lg:col-span-2 flex flex-col gap-3">
-          {/* Pie Chart - No legend, hover tooltip only */}
+        {/* Middle: Vehicle Category Breakdown (4 columns) */}
+        <div className="lg:col-span-4">
+          <div className="border rounded-lg overflow-hidden h-full">
+            <Table className="table-fixed">
+              <TableHeader>
+                <TableRow className="bg-red-600 hover:bg-red-600">
+                  <TableHead className="text-white font-semibold w-[60%] px-2 py-1.5 text-xs">
+                    <div className="flex items-center gap-1">
+                      <Layers className="h-3 w-3" />
+                      {lang === 'el' ? 'Κατηγορία' : 'Category'}
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-right text-white font-semibold w-[40%] px-2 py-1.5 text-xs">
+                    {lang === 'el' ? 'Ποσό' : 'Amount'}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {expensesByVehicleCategory.length > 0 ? (
+                  expensesByVehicleCategory.slice(0, 6).map((item, index) => (
+                    <TableRow key={item.key} className="hover:bg-muted/50">
+                      <TableCell className="px-2 py-1">
+                        <div className="flex items-center gap-1">
+                          <div 
+                            className="w-2 h-2 rounded-full flex-shrink-0" 
+                            style={{ backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }}
+                          />
+                          <span className="truncate text-[11px] font-medium">
+                            {item.label}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-semibold text-red-600 text-[11px] px-2 py-1">
+                        {currencySymbol}{item.total.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 0 })}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={2} className="text-center text-muted-foreground text-xs py-4">
+                      {lang === 'el' ? 'Δεν υπάρχουν δεδομένα' : 'No data'}
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+
+        {/* Right: Pie Chart + Costly Vehicles (3 columns) */}
+        <div className="lg:col-span-3 flex flex-col gap-2">
+          {/* Pie Chart - Compact */}
           {pieData.length > 0 && (
-            <div className="h-44">
+            <div className="h-32">
               <ResponsiveContainer width="100%" height="100%">
-                <RechartsPieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
+                <RechartsPieChart margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
                   <Pie
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={40}
-                    outerRadius={65}
+                    innerRadius={25}
+                    outerRadius={45}
                     fill="#8b5cf6"
                     dataKey="value"
                     paddingAngle={2}
@@ -320,14 +413,14 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
                   </Pie>
                   <Tooltip 
                     formatter={(value: number, name: string, props: any) => [
-                      `${value}% (${currencySymbol}${props.payload.amount.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2 })})`,
+                      `${value}% (${currencySymbol}${props.payload.amount.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 0 })})`,
                       name
                     ]}
                     contentStyle={{
                       borderRadius: 8,
                       border: "none",
                       boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                      fontSize: '11px'
+                      fontSize: '10px'
                     }}
                   />
                 </RechartsPieChart>
@@ -335,21 +428,21 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
             </div>
           )}
 
-          {/* Most Costly Vehicles - Renamed to "Most Costful" */}
+          {/* Most Costly Vehicles - Compact */}
           {costlyVehicles.length > 0 && (
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                {isBoats ? <Ship className="h-3 w-3" /> : <Car className="h-3 w-3" />}
-                <span>{lang === 'el' ? 'Πιο Δαπανηρά' : 'Most Costful'}</span>
+            <div className="space-y-1">
+              <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+                {isBoats ? <Ship className="h-2.5 w-2.5" /> : <Car className="h-2.5 w-2.5" />}
+                <span>{lang === 'el' ? 'Δαπανηρά' : 'Top Cost'}</span>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {costlyVehicles.slice(0, 3).map((vehicle, index) => (
-                  <div key={vehicle.id} className="flex items-center justify-between py-1 px-2 bg-red-50 rounded text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-red-700 text-[10px]">#{index + 1}</span>
-                      <span className="font-medium truncate text-[11px]">{vehicle.name}</span>
+                  <div key={vehicle.id} className="flex items-center justify-between py-0.5 px-1.5 bg-red-50 rounded text-[10px]">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <span className="font-bold text-red-700">#{index + 1}</span>
+                      <span className="font-medium truncate">{vehicle.name}</span>
                     </div>
-                    <span className="font-semibold text-red-600 text-[11px]">
+                    <span className="font-semibold text-red-600 flex-shrink-0 ml-1">
                       {currencySymbol}{vehicle.total.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 0 })}
                     </span>
                   </div>
