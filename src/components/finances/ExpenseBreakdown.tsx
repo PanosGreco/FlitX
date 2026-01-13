@@ -15,7 +15,7 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import { TrendingDown, Car, Ship, Layers } from "lucide-react";
+import { TrendingDown, Car, Ship } from "lucide-react";
 import { getMonth } from "date-fns";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { getMaintenanceTypeLabel } from "@/constants/maintenanceTypes";
@@ -98,7 +98,8 @@ const MONTH_NAMES: Record<string, { en: string; el: string }> = {
 
 export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en', timeframe = 'month' }: ExpenseBreakdownProps) {
   const isBoats = isBoatBusiness();
-  const currencySymbol = lang === 'el' ? '€' : '$';
+  // Always use EUR (€)
+  const currencySymbol = '€';
 
   // Records are already filtered by the parent component using calendar-based timeframes
   const filteredRecords = useMemo(() => {
@@ -205,7 +206,7 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
     return map;
   }, [vehicles]);
 
-  // Aggregate expenses by vehicle category (case-insensitive, no duplicates)
+  // Aggregate expenses by vehicle category (case-insensitive, no duplicates, NO UNKNOWN)
   const expensesByVehicleCategory = useMemo(() => {
     const categoryData: Record<string, { total: number; displayLabel: string }> = {};
 
@@ -215,8 +216,12 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
       const vehicle = vehicleMap.get(record.vehicle_id);
       if (!vehicle) return;
       
-      // Get the vehicle category (type field), normalize for case-insensitive matching
-      const rawCategory = vehicle.type || 'unknown';
+      // Get the vehicle category (type field) - SKIP if empty/unknown
+      const rawCategory = vehicle.type;
+      if (!rawCategory || rawCategory.trim() === '' || rawCategory.toLowerCase() === 'unknown') {
+        return; // Skip records with no valid category
+      }
+      
       const normalizedKey = rawCategory.trim().toLowerCase();
       
       if (!categoryData[normalizedKey]) {
@@ -294,13 +299,13 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
             <Table className="table-fixed">
               <TableHeader>
                 <TableRow className="bg-primary hover:bg-primary">
-                  <TableHead className="text-primary-foreground font-semibold w-[40%] px-2 py-1.5 text-xs">
+                  <TableHead className="text-primary-foreground font-semibold w-[45%] px-2 py-1.5 text-xs">
                     {lang === 'el' ? 'Κατηγορία' : 'Category'}
                   </TableHead>
-                  <TableHead className="text-right text-primary-foreground font-semibold w-[30%] px-2 py-1.5 text-xs">
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[25%] px-1 py-1.5 text-xs">
                     {lang === 'el' ? 'Σύνολο' : 'Total'}
                   </TableHead>
-                  <TableHead className="text-right text-primary-foreground font-semibold hidden sm:table-cell w-[30%] px-2 py-1.5 text-xs">
+                  <TableHead className="text-right text-primary-foreground font-semibold hidden sm:table-cell w-[30%] px-1 py-1.5 text-xs">
                     {lang === 'el' ? 'Top Μήνες' : 'Top Mo.'}
                   </TableHead>
                 </TableRow>
@@ -314,15 +319,15 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
                           className="w-2 h-2 rounded-full flex-shrink-0" 
                           style={{ backgroundColor: COLORS[index % COLORS.length] }}
                         />
-                        <span className="truncate text-[11px]">
+                        <span className="truncate text-xs">
                           {item.label}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-medium text-red-600 text-[11px] px-2 py-1">
-                      {currencySymbol}{item.total.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 0 })}
+                    <TableCell className="text-right font-medium text-red-600 text-xs px-1 py-1">
+                      {currencySymbol}{item.total.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
                     </TableCell>
-                    <TableCell className="text-right text-muted-foreground text-[10px] hidden sm:table-cell px-2 py-1">
+                    <TableCell className="text-right text-muted-foreground text-[11px] hidden sm:table-cell px-1 py-1">
                       <div className="flex flex-wrap justify-end gap-0.5">
                         {item.topMonthsWithPercentage?.slice(0, 2).map((m, i) => (
                           <span key={i} className="whitespace-nowrap">
@@ -339,19 +344,19 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
           </div>
         </div>
 
-        {/* Middle: Vehicle Category Breakdown (4 columns) */}
+        {/* Middle: Vehicle Category Breakdown (4 columns) - INDEPENDENT HEIGHT */}
         <div className="lg:col-span-4">
-          <div className="border rounded-lg overflow-hidden h-full">
+          <div className="border rounded-lg overflow-hidden">
             <Table className="table-fixed">
               <TableHeader>
                 <TableRow className="bg-red-600 hover:bg-red-600">
-                  <TableHead className="text-white font-semibold w-[60%] px-2 py-1.5 text-xs">
-                    <div className="flex items-center gap-1">
-                      <Layers className="h-3 w-3" />
-                      {lang === 'el' ? 'Κατηγορία' : 'Category'}
+                  <TableHead className="text-white font-semibold w-[55%] px-2 py-1.5 text-xs">
+                    <div className="flex flex-col leading-tight">
+                      <span>{lang === 'el' ? 'Κατηγορία' : 'Vehicle'}</span>
+                      <span>{lang === 'el' ? 'Οχήματος' : 'Category'}</span>
                     </div>
                   </TableHead>
-                  <TableHead className="text-right text-white font-semibold w-[40%] px-2 py-1.5 text-xs">
+                  <TableHead className="text-right text-white font-semibold w-[45%] px-1 py-1.5 text-xs">
                     {lang === 'el' ? 'Ποσό' : 'Amount'}
                   </TableHead>
                 </TableRow>
@@ -366,19 +371,19 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
                             className="w-2 h-2 rounded-full flex-shrink-0" 
                             style={{ backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }}
                           />
-                          <span className="truncate text-[11px] font-medium">
+                          <span className="truncate text-xs font-medium">
                             {item.label}
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right font-semibold text-red-600 text-[11px] px-2 py-1">
-                        {currencySymbol}{item.total.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 0 })}
+                      <TableCell className="text-right font-semibold text-red-600 text-xs px-1 py-1">
+                        {currencySymbol}{item.total.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-center text-muted-foreground text-xs py-4">
+                    <TableCell colSpan={2} className="text-center text-muted-foreground text-xs py-3">
                       {lang === 'el' ? 'Δεν υπάρχουν δεδομένα' : 'No data'}
                     </TableCell>
                   </TableRow>
@@ -413,14 +418,14 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
                   </Pie>
                   <Tooltip 
                     formatter={(value: number, name: string, props: any) => [
-                      `${value}% (${currencySymbol}${props.payload.amount.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 0 })})`,
+                      `${value}% (${currencySymbol}${props.payload.amount.toLocaleString('el-GR', { minimumFractionDigits: 0 })})`,
                       name
                     ]}
                     contentStyle={{
                       borderRadius: 8,
                       border: "none",
                       boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                      fontSize: '10px'
+                      fontSize: '11px'
                     }}
                   />
                 </RechartsPieChart>
@@ -431,19 +436,19 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
           {/* Most Costly Vehicles - Compact */}
           {costlyVehicles.length > 0 && (
             <div className="space-y-1">
-              <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
-                {isBoats ? <Ship className="h-2.5 w-2.5" /> : <Car className="h-2.5 w-2.5" />}
+              <div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                {isBoats ? <Ship className="h-3 w-3" /> : <Car className="h-3 w-3" />}
                 <span>{lang === 'el' ? 'Δαπανηρά' : 'Top Cost'}</span>
               </div>
               <div className="space-y-0.5">
                 {costlyVehicles.slice(0, 3).map((vehicle, index) => (
-                  <div key={vehicle.id} className="flex items-center justify-between py-0.5 px-1.5 bg-red-50 rounded text-[10px]">
+                  <div key={vehicle.id} className="flex items-center justify-between py-0.5 px-1.5 bg-red-50 rounded text-[11px]">
                     <div className="flex items-center gap-1 min-w-0">
                       <span className="font-bold text-red-700">#{index + 1}</span>
                       <span className="font-medium truncate">{vehicle.name}</span>
                     </div>
                     <span className="font-semibold text-red-600 flex-shrink-0 ml-1">
-                      {currencySymbol}{vehicle.total.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 0 })}
+                      {currencySymbol}{vehicle.total.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
                     </span>
                   </div>
                 ))}
