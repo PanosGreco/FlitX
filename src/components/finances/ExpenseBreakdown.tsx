@@ -344,19 +344,19 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
           </div>
         </div>
 
-        {/* Middle: Vehicle Category Breakdown (4 columns) - INDEPENDENT HEIGHT */}
-        <div className="lg:col-span-4">
+        {/* Middle: Vehicle Category Breakdown (3 columns) - INDEPENDENT HEIGHT */}
+        <div className="lg:col-span-3">
           <div className="border rounded-lg overflow-hidden">
             <Table className="table-fixed">
               <TableHeader>
                 <TableRow className="bg-red-600 hover:bg-red-600">
-                  <TableHead className="text-white font-semibold w-[55%] px-2 py-1.5 text-xs">
+                  <TableHead className="text-white font-semibold w-[70%] px-2 py-1.5 text-xs">
                     <div className="flex flex-col leading-tight">
                       <span>{lang === 'el' ? 'Κατηγορία' : 'Vehicle'}</span>
                       <span>{lang === 'el' ? 'Οχήματος' : 'Category'}</span>
                     </div>
                   </TableHead>
-                  <TableHead className="text-right text-white font-semibold w-[45%] px-1 py-1.5 text-xs">
+                  <TableHead className="text-right text-white font-semibold w-[30%] px-1 py-1.5 text-xs">
                     {lang === 'el' ? 'Ποσό' : 'Amount'}
                   </TableHead>
                 </TableRow>
@@ -393,8 +393,8 @@ export function ExpenseBreakdown({ financialRecords, vehicles = [], lang = 'en',
           </div>
         </div>
 
-        {/* Right: Pie Chart + Costly Vehicles (3 columns) */}
-        <div className="lg:col-span-3 flex flex-col gap-2">
+        {/* Right: Pie Chart + Costly Vehicles (4 columns) */}
+        <div className="lg:col-span-4 flex flex-col gap-2">
           {/* Pie Chart - Compact */}
           {pieData.length > 0 && (
             <div className="h-32">
