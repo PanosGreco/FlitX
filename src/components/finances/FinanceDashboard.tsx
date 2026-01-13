@@ -56,6 +56,10 @@ interface Vehicle {
   make: string;
   model: string;
   year: number;
+  // Category stored in DB (vehicles.type)
+  type?: string | null;
+  // Top-level type stored in DB (vehicles.vehicle_type)
+  vehicle_type?: string | null;
 }
 
 interface FinanceDashboardProps {
@@ -91,7 +95,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     try {
       const { data, error } = await supabase
         .from('vehicles')
-        .select('id, make, model, year')
+        .select('id, make, model, year, type, vehicle_type')
         .order('make');
 
       if (!error && data) {
