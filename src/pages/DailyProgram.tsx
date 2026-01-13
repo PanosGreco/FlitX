@@ -51,7 +51,7 @@ export default function DailyProgram() {
               <CardTitle className="text-center flex-1 text-primary text-xl font-extrabold">                                Daily Program</CardTitle>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("justify-start text-left font-normal", "text-muted-foreground")}>
+                  <Button variant="outline" className={cn("justify-start text-left font-normal text-muted-foreground text-lg rounded")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {formatDateShortEuropean(selectedDate)}
                   </Button>
