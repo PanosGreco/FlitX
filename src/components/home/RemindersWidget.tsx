@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { format, isPast, differenceInDays } from "date-fns";
-import { Bell, Plus, Check, ChevronRight, Clock, Loader2 } from "lucide-react";
+import { Plus, Clock, Loader2, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -25,6 +24,14 @@ interface Reminder {
   is_completed: boolean;
   vehicle?: { make: string; model: string } | null;
 }
+
+// Category colors matching reference design
+const CATEGORY_COLORS = [
+  'bg-teal-400',
+  'bg-violet-400',
+  'bg-cyan-400',
+  'bg-rose-400'
+];
 
 export function RemindersWidget() {
   const { user } = useAuth();
@@ -101,7 +108,7 @@ export function RemindersWidget() {
       .eq('id', reminderId);
 
     if (error) {
-      toast.error(language === 'el' ? 'Σφάλμα ενημέρωσης' : 'Error updating reminder');
+      toast.error('Error updating reminder');
     } else {
       fetchReminders();
     }
@@ -109,7 +116,7 @@ export function RemindersWidget() {
 
   const handleAddReminder = async () => {
     if (!user || !newTitle.trim() || !newDueDate) {
-      toast.error(language === 'el' ? 'Συμπληρώστε τίτλο και ημερομηνία' : 'Please fill title and date');
+      toast.error('Please fill title and date');
       return;
     }
 
@@ -130,9 +137,9 @@ export function RemindersWidget() {
 
     if (error) {
       console.error('Error adding reminder:', error);
-      toast.error(language === 'el' ? 'Σφάλμα δημιουργίας' : 'Error creating reminder');
+      toast.error('Error creating reminder');
     } else {
-      toast.success(language === 'el' ? 'Υπενθύμιση προστέθηκε' : 'Reminder added');
+      toast.success('Reminder added');
       setIsAddDialogOpen(false);
       resetForm();
       fetchReminders();
@@ -155,169 +162,153 @@ export function RemindersWidget() {
 
   const getTimeLabel = (dueDate: string) => {
     const date = new Date(dueDate);
-    const days = differenceInDays(date, new Date());
+    const now = new Date();
+    const diffHours = Math.round((date.getTime() - now.getTime()) / (1000 * 60 * 60));
     
-    if (isPast(date)) {
-      return language === 'el' ? 'Ληγμένη' : 'Overdue';
+    if (diffHours < 0) {
+      return 'Overdue';
     }
-    if (days === 0) {
-      return format(date, 'HH:mm');
-    }
-    if (days === 1) {
-      return language === 'el' ? 'Αύριο' : 'Tomorrow';
+    if (diffHours < 24) {
+      return `${diffHours}h00`;
     }
     return format(date, 'MMM d');
   };
 
   return (
     <>
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Bell className="h-4 w-4" />
-              {language === 'el' ? 'Υπενθυμίσεις' : 'Reminders'}
-            </CardTitle>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="h-6 w-6"
-              onClick={() => setIsAddDialogOpen(true)}
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+      <div className="bg-white rounded-xl p-4 shadow-sm">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-base font-semibold text-slate-800">
+            Categories
+          </h3>
+          <button 
+            className="p-1 hover:bg-slate-100 rounded text-slate-400 transition-colors"
+            onClick={() => setIsAddDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Content */}
+        {loading ? (
+          <div className="flex justify-center py-6">
+            <Loader2 className="h-5 w-5 animate-spin text-slate-300" />
           </div>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {loading ? (
-            <div className="flex justify-center py-4">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            </div>
-          ) : reminders.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              {language === 'el' ? 'Δεν υπάρχουν υπενθυμίσεις' : 'No reminders'}
-            </p>
-          ) : (
-            <>
-              {displayedReminders.map((reminder) => (
-                <div 
-                  key={reminder.id}
+        ) : reminders.length === 0 ? (
+          <p className="text-sm text-slate-400 text-center py-6">
+            No reminders yet
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {displayedReminders.map((reminder, idx) => (
+              <div 
+                key={reminder.id}
+                className={cn(
+                  "flex items-center gap-3 py-2 transition-opacity",
+                  reminder.is_completed && "opacity-50"
+                )}
+              >
+                {/* Colored Checkbox */}
+                <Checkbox
+                  checked={reminder.is_completed}
+                  onCheckedChange={(checked) => 
+                    handleToggleComplete(reminder.id, checked as boolean)
+                  }
                   className={cn(
-                    "flex items-start gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors",
-                    reminder.is_completed && "opacity-60"
+                    "h-5 w-5 rounded border-2 data-[state=checked]:border-current",
+                    CATEGORY_COLORS[idx % CATEGORY_COLORS.length].replace('bg-', 'data-[state=checked]:bg-').replace('bg-', 'border-')
                   )}
-                >
-                  <Checkbox
-                    checked={reminder.is_completed}
-                    onCheckedChange={(checked) => 
-                      handleToggleComplete(reminder.id, checked as boolean)
-                    }
-                    className="mt-0.5"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className={cn(
-                      "text-sm font-medium truncate",
-                      reminder.is_completed && "line-through"
-                    )}>
-                      {reminder.title}
-                    </p>
-                    {reminder.vehicle && (
-                      <p className="text-xs text-muted-foreground truncate">
-                        {reminder.vehicle.make} {reminder.vehicle.model}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    <span className={cn(
-                      isPast(new Date(reminder.due_date)) && !reminder.is_completed && "text-destructive"
-                    )}>
-                      {getTimeLabel(reminder.due_date)}
-                    </span>
-                  </div>
+                  style={{
+                    borderColor: idx === 0 ? '#2dd4bf' : idx === 1 ? '#a78bfa' : idx === 2 ? '#22d3ee' : '#fb7185'
+                  }}
+                />
+                
+                {/* Title */}
+                <span className={cn(
+                  "flex-1 text-sm text-slate-700",
+                  reminder.is_completed && "line-through"
+                )}>
+                  {reminder.title}
+                </span>
+                
+                {/* Time */}
+                <div className="flex items-center gap-1 text-xs text-slate-400">
+                  <Clock className="h-3 w-3" />
+                  <span>{getTimeLabel(reminder.due_date)}</span>
                 </div>
-              ))}
+              </div>
+            ))}
 
-              {hasMore && !showAllReminders && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full mt-2"
-                  onClick={() => setShowAllReminders(true)}
-                >
-                  {language === 'el' ? 'Προβολή όλων' : 'View More'}
-                  <ChevronRight className="h-4 w-4 ml-1" />
-                </Button>
-              )}
-
-              {showAllReminders && hasMore && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="w-full mt-2"
-                  onClick={() => setShowAllReminders(false)}
-                >
-                  {language === 'el' ? 'Λιγότερα' : 'Show Less'}
-                </Button>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+            {hasMore && !showAllReminders && (
+              <button 
+                className="w-full text-center text-xs text-teal-500 hover:text-teal-600 py-2 transition-colors"
+                onClick={() => setShowAllReminders(true)}
+              >
+                View More
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Add Reminder Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>
-              {language === 'el' ? 'Νέα Υπενθύμιση' : 'New Reminder'}
+            <DialogTitle className="text-slate-800">
+              New Reminder
             </DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
             <div>
-              <Label>{language === 'el' ? 'Τίτλος' : 'Title'}</Label>
+              <Label className="text-slate-600">Title</Label>
               <Input
                 value={newTitle}
                 onChange={(e) => setNewTitle(e.target.value)}
-                placeholder={language === 'el' ? 'π.χ. Ανανέωση ασφάλειας' : 'e.g., Renew insurance'}
+                placeholder="e.g., Renew insurance"
+                className="mt-1"
               />
             </div>
 
             <div>
-              <Label>{language === 'el' ? 'Σημειώσεις' : 'Notes'}</Label>
+              <Label className="text-slate-600">Notes</Label>
               <Textarea
                 value={newNotes}
                 onChange={(e) => setNewNotes(e.target.value)}
-                placeholder={language === 'el' ? 'Προαιρετικές σημειώσεις...' : 'Optional notes...'}
+                placeholder="Optional notes..."
                 rows={2}
+                className="mt-1"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label>{language === 'el' ? 'Ημερομηνία' : 'Date'}</Label>
+                <Label className="text-slate-600">Date</Label>
                 <Input
                   type="date"
                   value={newDueDate}
                   onChange={(e) => setNewDueDate(e.target.value)}
+                  className="mt-1"
                 />
               </div>
               <div>
-                <Label>{language === 'el' ? 'Ώρα' : 'Time'}</Label>
+                <Label className="text-slate-600">Time</Label>
                 <Input
                   type="time"
                   value={newDueTime}
                   onChange={(e) => setNewDueTime(e.target.value)}
+                  className="mt-1"
                 />
               </div>
             </div>
 
             <div>
-              <Label>{language === 'el' ? 'Όχημα (προαιρετικό)' : 'Vehicle (optional)'}</Label>
+              <Label className="text-slate-600">Vehicle (optional)</Label>
               <Select value={newVehicleId} onValueChange={setNewVehicleId}>
-                <SelectTrigger>
-                  <SelectValue placeholder={language === 'el' ? 'Επιλέξτε όχημα' : 'Select vehicle'} />
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select vehicle" />
                 </SelectTrigger>
                 <SelectContent>
                   {vehicles.map((v) => (
@@ -328,16 +319,16 @@ export function RemindersWidget() {
             </div>
 
             <div>
-              <Label>{language === 'el' ? 'Συχνότητα' : 'Frequency'}</Label>
+              <Label className="text-slate-600">Frequency</Label>
               <Select value={newFrequency} onValueChange={setNewFrequency}>
-                <SelectTrigger>
+                <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="one_time">{language === 'el' ? 'Μία φορά' : 'One time'}</SelectItem>
-                  <SelectItem value="1_hour_before">{language === 'el' ? '1 ώρα πριν' : '1 hour before'}</SelectItem>
-                  <SelectItem value="1_day_before">{language === 'el' ? '1 ημέρα πριν' : '1 day before'}</SelectItem>
-                  <SelectItem value="1_week_before">{language === 'el' ? '1 εβδομάδα πριν' : '1 week before'}</SelectItem>
+                  <SelectItem value="one_time">One time</SelectItem>
+                  <SelectItem value="1_hour_before">1 hour before</SelectItem>
+                  <SelectItem value="1_day_before">1 day before</SelectItem>
+                  <SelectItem value="1_week_before">1 week before</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -345,11 +336,11 @@ export function RemindersWidget() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-              {language === 'el' ? 'Ακύρωση' : 'Cancel'}
+              Cancel
             </Button>
-            <Button onClick={handleAddReminder} disabled={isSaving}>
+            <Button onClick={handleAddReminder} disabled={isSaving} className="bg-teal-500 hover:bg-teal-600">
               {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {language === 'el' ? 'Προσθήκη' : 'Add'}
+              Add
             </Button>
           </DialogFooter>
         </DialogContent>

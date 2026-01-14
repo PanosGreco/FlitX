@@ -17,6 +17,7 @@ export interface CalendarTask {
   title: string;
   date: string;
   time: string | null;
+  endTime?: string | null;
   location: string | null;
   vehicleName: string | null;
   vehicleId: string | null;
@@ -28,7 +29,6 @@ export default function Home() {
   document.title = "Home - FlitX";
   const { user } = useAuth();
   const { language } = useLanguage();
-  const [isMainCalendarMonthly, setIsMainCalendarMonthly] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [tasks, setTasks] = useState<CalendarTask[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,81 +110,42 @@ export default function Home() {
     fetchTasks();
   }, [fetchTasks, refreshTrigger]);
 
-  const handleSwapCalendars = () => {
-    setIsMainCalendarMonthly(!isMainCalendarMonthly);
-  };
-
   const handleRefresh = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
   return (
     <MobileLayout>
-      <div className="p-4 space-y-4">
-        {/* Header with Create Button */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-primary">
-            {language === 'el' ? 'Αρχική' : 'Home'}
-          </h1>
-          <Button 
-            onClick={() => setIsCreateDialogOpen(true)}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            {language === 'el' ? 'Δημιουργία' : 'Create'}
-          </Button>
-        </div>
+      <div className="min-h-full bg-slate-50/50 p-5">
+        {/* Main Layout - Reference: Left sidebar (small calendar + widgets), Right main area (timeline) */}
+        <div className="flex gap-5">
+          {/* Left Sidebar - Small Calendar + Widgets */}
+          <div className="w-[280px] flex-shrink-0 space-y-4">
+            {/* Small Monthly Calendar */}
+            <MonthlyCalendar
+              tasks={tasks}
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+              loading={loading}
+            />
 
-        {/* Main Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {/* Left Side - Calendars */}
-          <div className="lg:col-span-3 space-y-4">
-            {/* Main Calendar */}
-            {isMainCalendarMonthly ? (
-              <MonthlyCalendar
-                tasks={tasks}
-                selectedDate={selectedDate}
-                onDateSelect={setSelectedDate}
-                loading={loading}
-              />
-            ) : (
-              <TimelineCalendar
-                tasks={tasks}
-                selectedDate={selectedDate}
-                onDateSelect={setSelectedDate}
-                loading={loading}
-              />
-            )}
+            {/* Reminders Widget (renamed from Categories) */}
+            <RemindersWidget />
 
-            {/* Secondary Calendar (Small) */}
-            <div 
-              onClick={handleSwapCalendars}
-              className="cursor-pointer hover:opacity-90 transition-opacity"
-            >
-              {isMainCalendarMonthly ? (
-                <TimelineCalendar
-                  tasks={tasks}
-                  selectedDate={selectedDate}
-                  onDateSelect={setSelectedDate}
-                  loading={loading}
-                  isCompact
-                />
-              ) : (
-                <MonthlyCalendar
-                  tasks={tasks}
-                  selectedDate={selectedDate}
-                  onDateSelect={setSelectedDate}
-                  loading={loading}
-                  isCompact
-                />
-              )}
-            </div>
+            {/* Notes Widget (renamed from Prioritize) */}
+            <NotesWidget />
           </div>
 
-          {/* Right Side - Widgets */}
-          <div className="lg:col-span-1 space-y-4">
-            <RemindersWidget />
-            <NotesWidget />
+          {/* Main Area - Timeline Calendar */}
+          <div className="flex-1 min-w-0">
+            {/* Header with navigation and Create button */}
+            <TimelineCalendar
+              tasks={tasks}
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
+              loading={loading}
+              onCreateClick={() => setIsCreateDialogOpen(true)}
+            />
           </div>
         </div>
 
