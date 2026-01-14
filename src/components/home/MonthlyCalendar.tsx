@@ -1,8 +1,6 @@
 import { useState, useMemo } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, startOfWeek, endOfWeek, addMonths, subMonths } from "date-fns";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -13,28 +11,24 @@ interface MonthlyCalendarProps {
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
   loading?: boolean;
-  isCompact?: boolean;
 }
 
 const TASK_COLORS = {
-  delivery: 'bg-emerald-500',
-  return: 'bg-orange-500',
-  other: 'bg-blue-500'
+  delivery: 'bg-emerald-400',
+  return: 'bg-orange-400',
+  other: 'bg-blue-400'
 };
 
 export function MonthlyCalendar({ 
   tasks, 
   selectedDate, 
   onDateSelect, 
-  loading,
-  isCompact 
+  loading
 }: MonthlyCalendarProps) {
   const { language } = useLanguage();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  const weekDays = language === 'el' 
-    ? ['Δε', 'Τρ', 'Τε', 'Πε', 'Πα', 'Σα', 'Κυ']
-    : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentMonth);
@@ -52,188 +46,141 @@ export function MonthlyCalendar({
   const renderDayDots = (dayTasks: CalendarTask[]) => {
     const types = [...new Set(dayTasks.map(t => t.type))];
     return (
-      <div className="flex gap-0.5 justify-center mt-0.5">
+      <div className="flex gap-[2px] justify-center absolute -bottom-0.5 left-1/2 -translate-x-1/2">
         {types.slice(0, 3).map((type, idx) => (
           <div 
             key={idx} 
-            className={cn("w-1.5 h-1.5 rounded-full", TASK_COLORS[type])}
+            className={cn("w-1 h-1 rounded-full", TASK_COLORS[type])}
           />
         ))}
       </div>
     );
   };
 
-  if (loading && !isCompact) {
+  if (loading) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
+      <div className="bg-white rounded-xl p-4 shadow-sm">
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card className={cn(isCompact && "shadow-sm")}>
-      <CardHeader className={cn("pb-2", isCompact && "py-2 px-3")}>
-        <div className="flex items-center justify-between">
-          <h3 className={cn(
-            "font-semibold",
-            isCompact ? "text-sm" : "text-lg"
-          )}>
-            {format(currentMonth, language === 'el' ? 'MMMM yyyy' : 'MMMM yyyy')}
-          </h3>
-          <div className="flex items-center gap-1">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className={cn(isCompact && "h-6 w-6")}
-              onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-            >
-              <ChevronLeft className={cn(isCompact ? "h-3 w-3" : "h-4 w-4")} />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className={cn(isCompact && "h-6 w-6")}
-              onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-            >
-              <ChevronRight className={cn(isCompact ? "h-3 w-3" : "h-4 w-4")} />
-            </Button>
-          </div>
+    <div className="bg-white rounded-xl p-4 shadow-sm">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-base font-semibold text-slate-800">
+          {format(currentMonth, 'MMMM yyyy')}
+        </h3>
+        <div className="flex items-center gap-0.5">
+          <button 
+            className="p-1 hover:bg-slate-100 rounded text-teal-500 transition-colors"
+            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button 
+            className="p-1 hover:bg-slate-100 rounded text-teal-500 transition-colors"
+            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
-      </CardHeader>
-      <CardContent className={cn(isCompact && "px-3 pb-3")}>
-        {/* Week Days Header */}
-        <div className="grid grid-cols-7 mb-2">
-          {weekDays.map(day => (
-            <div 
-              key={day} 
+      </div>
+
+      {/* Week Days Header */}
+      <div className="grid grid-cols-7 mb-1">
+        {weekDays.map(day => (
+          <div 
+            key={day} 
+            className="text-center text-[11px] font-medium text-slate-400 py-1"
+          >
+            {day}
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar Grid */}
+      <div className="grid grid-cols-7">
+        {calendarDays.map((day, idx) => {
+          const dayTasks = getTasksForDate(day);
+          const isToday = isSameDay(day, new Date());
+          const isSelected = isSameDay(day, selectedDate);
+          const isCurrentMonth = isSameMonth(day, currentMonth);
+
+          const dayContent = (
+            <button
+              key={idx}
+              onClick={() => onDateSelect(day)}
               className={cn(
-                "text-center font-medium text-muted-foreground",
-                isCompact ? "text-[10px]" : "text-xs"
+                "relative flex items-center justify-center w-full aspect-square text-sm transition-all",
+                !isCurrentMonth && "text-slate-300",
+                isCurrentMonth && "text-slate-700",
+                isToday && !isSelected && "bg-teal-50 text-teal-600 rounded-full font-medium",
+                isSelected && "bg-teal-500 text-white rounded-full font-medium",
+                !isSelected && !isToday && "hover:bg-slate-50 rounded-full"
               )}
             >
-              {day}
-            </div>
-          ))}
-        </div>
+              <span>{format(day, 'd')}</span>
+              {dayTasks.length > 0 && renderDayDots(dayTasks)}
+            </button>
+          );
 
-        {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-1">
-          {calendarDays.map((day, idx) => {
-            const dayTasks = getTasksForDate(day);
-            const isToday = isSameDay(day, new Date());
-            const isSelected = isSameDay(day, selectedDate);
-            const isCurrentMonth = isSameMonth(day, currentMonth);
-
-            const dayContent = (
-              <button
-                key={idx}
-                onClick={() => onDateSelect(day)}
-                className={cn(
-                  "flex flex-col items-center justify-start rounded-md transition-colors",
-                  isCompact ? "p-0.5 min-h-[28px]" : "p-1 min-h-[40px]",
-                  !isCurrentMonth && "text-muted-foreground/40",
-                  isToday && !isSelected && "bg-accent",
-                  isSelected && "bg-primary text-primary-foreground",
-                  !isSelected && "hover:bg-accent"
-                )}
-              >
-                <span className={cn(
-                  "font-medium",
-                  isCompact ? "text-[10px]" : "text-sm"
-                )}>
-                  {format(day, 'd')}
-                </span>
-                {dayTasks.length > 0 && !isCompact && renderDayDots(dayTasks)}
-                {dayTasks.length > 0 && isCompact && (
-                  <div className="flex gap-0.5 mt-0.5">
-                    {[...new Set(dayTasks.map(t => t.type))].slice(0, 2).map((type, i) => (
-                      <div key={i} className={cn("w-1 h-1 rounded-full", TASK_COLORS[type])} />
-                    ))}
-                  </div>
-                )}
-              </button>
-            );
-
-            // Add popover for days with tasks (only in non-compact mode)
-            if (dayTasks.length > 0 && !isCompact) {
-              return (
-                <Popover key={idx}>
-                  <PopoverTrigger asChild>
-                    {dayContent}
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64 p-3" align="center" side="top">
-                    <div className="space-y-2">
-                      <h4 className="font-semibold text-sm">
-                        {format(day, 'EEEE, MMM d')}
-                      </h4>
-                      <div className="space-y-1.5">
-                        {dayTasks.map((task) => (
-                          <div 
-                            key={task.id} 
-                            className="flex items-start gap-2 text-sm"
-                          >
-                            <div className={cn(
-                              "w-2 h-2 rounded-full mt-1.5 flex-shrink-0",
-                              TASK_COLORS[task.type]
-                            )} />
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium truncate">
-                                {task.type === 'delivery' 
-                                  ? (language === 'el' ? 'Παράδοση' : 'Delivery')
-                                  : task.type === 'return'
-                                  ? (language === 'el' ? 'Επιστροφή' : 'Return')
-                                  : task.title}
+          // Add popover for days with tasks
+          if (dayTasks.length > 0) {
+            return (
+              <Popover key={idx}>
+                <PopoverTrigger asChild>
+                  {dayContent}
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-3 shadow-lg" align="center" side="right">
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-slate-700">
+                      {format(day, 'EEEE, MMM d')}
+                    </h4>
+                    <div className="space-y-1.5">
+                      {dayTasks.map((task) => (
+                        <div 
+                          key={task.id} 
+                          className="flex items-start gap-2 text-sm"
+                        >
+                          <div className={cn(
+                            "w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0",
+                            TASK_COLORS[task.type]
+                          )} />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-slate-700 truncate text-xs">
+                              {task.type === 'delivery' 
+                                ? 'Delivery'
+                                : task.type === 'return'
+                                ? 'Return'
+                                : task.title}
+                            </p>
+                            {task.vehicleName && (
+                              <p className="text-[10px] text-slate-500 truncate">
+                                {task.vehicleName}
                               </p>
-                              {task.vehicleName && (
-                                <p className="text-xs text-muted-foreground truncate">
-                                  {task.vehicleName}
-                                </p>
-                              )}
-                              {task.time && (
-                                <p className="text-xs text-muted-foreground">
-                                  {task.time}
-                                </p>
-                              )}
-                              {task.customerName && (
-                                <p className="text-xs text-muted-foreground truncate">
-                                  {task.customerName}
-                                </p>
-                              )}
-                            </div>
+                            )}
+                            {task.time && (
+                              <p className="text-[10px] text-slate-500">
+                                {task.time}
+                              </p>
+                            )}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  </PopoverContent>
-                </Popover>
-              );
-            }
+                  </div>
+                </PopoverContent>
+              </Popover>
+            );
+          }
 
-            return dayContent;
-          })}
-        </div>
-
-        {/* Legend (only in non-compact mode) */}
-        {!isCompact && (
-          <div className="flex flex-wrap items-center gap-4 mt-4 text-xs">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-              <span>{language === 'el' ? 'Παράδοση' : 'Delivery'}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-              <span>{language === 'el' ? 'Επιστροφή' : 'Return'}</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-              <span>{language === 'el' ? 'Άλλο' : 'Other'}</span>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          return dayContent;
+        })}
+      </div>
+    </div>
   );
 }

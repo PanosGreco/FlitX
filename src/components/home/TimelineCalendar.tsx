@@ -1,8 +1,7 @@
 import { useState, useMemo } from "react";
 import { format, addDays, subDays, startOfWeek, isSameDay, getWeek } from "date-fns";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -13,23 +12,39 @@ interface TimelineCalendarProps {
   selectedDate: Date;
   onDateSelect: (date: Date) => void;
   loading?: boolean;
-  isCompact?: boolean;
+  onCreateClick?: () => void;
 }
 
+// Soft pastel colors matching reference
 const TASK_COLORS = {
-  delivery: { bg: 'bg-emerald-100', border: 'border-emerald-500', text: 'text-emerald-700' },
-  return: { bg: 'bg-orange-100', border: 'border-orange-500', text: 'text-orange-700' },
-  other: { bg: 'bg-blue-100', border: 'border-blue-500', text: 'text-blue-700' }
+  delivery: { 
+    bg: 'bg-emerald-100/80', 
+    border: 'border-l-emerald-500', 
+    text: 'text-emerald-700',
+    hover: 'hover:bg-emerald-100'
+  },
+  return: { 
+    bg: 'bg-orange-100/80', 
+    border: 'border-l-orange-400', 
+    text: 'text-orange-700',
+    hover: 'hover:bg-orange-100'
+  },
+  other: { 
+    bg: 'bg-violet-100/80', 
+    border: 'border-l-violet-500', 
+    text: 'text-violet-700',
+    hover: 'hover:bg-violet-100'
+  }
 };
 
-const HOURS = Array.from({ length: 13 }, (_, i) => i + 8); // 8:00 to 20:00
+const HOURS = Array.from({ length: 9 }, (_, i) => i + 9); // 09:00 to 17:00
 
 export function TimelineCalendar({ 
   tasks, 
   selectedDate, 
   onDateSelect, 
   loading,
-  isCompact 
+  onCreateClick
 }: TimelineCalendarProps) {
   const { language } = useLanguage();
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
@@ -51,213 +66,224 @@ export function TimelineCalendar({
     return hours + (minutes / 60);
   };
 
-  const getTaskPosition = (task: CalendarTask) => {
-    const time = parseTime(task.time);
-    if (time === null) return null;
-    
-    // Map time to percentage position (8:00 = 0%, 20:00 = 100%)
-    const startHour = 8;
-    const endHour = 20;
-    const position = ((time - startHour) / (endHour - startHour)) * 100;
-    return Math.max(0, Math.min(100, position));
-  };
-
-  if (loading && !isCompact) {
+  if (loading) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
+      <div className="bg-white rounded-xl shadow-sm h-full flex items-center justify-center min-h-[500px]">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-300" />
+      </div>
     );
   }
 
   return (
-    <Card className={cn(isCompact && "shadow-sm")}>
-      <CardHeader className={cn("pb-2", isCompact && "py-2 px-3")}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className={cn(isCompact && "h-6 w-6")}
+    <div className="space-y-4">
+      {/* Header Row - Navigation, Title, Week Badge, Create Button */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {/* Navigation Arrows */}
+          <div className="flex items-center gap-1">
+            <button 
+              className="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 transition-colors"
               onClick={() => setWeekStart(subDays(weekStart, 7))}
             >
-              <ChevronLeft className={cn(isCompact ? "h-3 w-3" : "h-4 w-4")} />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className={cn(isCompact && "h-6 w-6")}
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button 
+              className="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 transition-colors"
               onClick={() => setWeekStart(addDays(weekStart, 7))}
             >
-              <ChevronRight className={cn(isCompact ? "h-3 w-3" : "h-4 w-4")} />
-            </Button>
-          </div>
-          <h3 className={cn(
-            "font-semibold",
-            isCompact ? "text-sm" : "text-lg"
-          )}>
-            {format(weekDays[0], 'MMM d')} - {format(weekDays[6], 'MMM d, yyyy')}
-          </h3>
-          <div className={cn(
-            "px-2 py-1 rounded-md bg-muted text-muted-foreground font-medium",
-            isCompact ? "text-xs" : "text-sm"
-          )}>
-            {language === 'el' ? `Εβδ ${weekNumber}` : `Week ${weekNumber}`}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className={cn("overflow-x-auto", isCompact && "px-3 pb-3")}>
-        <div className={cn(
-          "min-w-[600px]",
-          isCompact ? "min-w-[400px]" : "min-w-[700px]"
-        )}>
-          {/* Days Header */}
-          <div className="grid grid-cols-8 gap-1 mb-2">
-            <div className={cn(isCompact ? "w-8" : "w-12")} /> {/* Time column spacer */}
-            {weekDays.map((day, idx) => {
-              const isToday = isSameDay(day, new Date());
-              const isSelected = isSameDay(day, selectedDate);
-              return (
-                <button
-                  key={idx}
-                  onClick={() => onDateSelect(day)}
-                  className={cn(
-                    "text-center py-1 rounded-md transition-colors",
-                    isToday && !isSelected && "bg-accent",
-                    isSelected && "bg-primary text-primary-foreground",
-                    !isSelected && "hover:bg-accent"
-                  )}
-                >
-                  <div className={cn(
-                    "font-medium uppercase",
-                    isCompact ? "text-[8px]" : "text-xs"
-                  )}>
-                    {format(day, 'EEE')}
-                  </div>
-                  <div className={cn(
-                    "font-bold",
-                    isCompact ? "text-sm" : "text-lg"
-                  )}>
-                    {format(day, 'd')}
-                  </div>
-                </button>
-              );
-            })}
+              <ChevronRight className="h-5 w-5" />
+            </button>
           </div>
 
-          {/* Timeline Grid */}
-          <div className="relative border rounded-md">
-            {/* Hour rows */}
-            {(isCompact ? HOURS.filter((_, i) => i % 2 === 0) : HOURS).map((hour, idx) => (
-              <div 
-                key={hour}
+          {/* Date Range Title */}
+          <h2 className="text-xl font-semibold text-slate-800">
+            {format(weekDays[0], 'MMMM d')} - {format(weekDays[6], 'd, yyyy')}
+          </h2>
+
+          {/* Week Badge */}
+          <span className="px-3 py-1 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-full shadow-sm">
+            Week {weekNumber}
+          </span>
+        </div>
+
+        {/* Create Button */}
+        <Button 
+          onClick={onCreateClick}
+          className="bg-teal-500 hover:bg-teal-600 text-white rounded-full px-5 py-2 h-auto shadow-sm"
+        >
+          <Plus className="h-4 w-4 mr-1.5" />
+          Create
+        </Button>
+      </div>
+
+      {/* Timeline Grid */}
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        {/* Days Header */}
+        <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-100">
+          <div className="p-3" /> {/* Time column spacer */}
+          {weekDays.map((day, idx) => {
+            const isToday = isSameDay(day, new Date());
+            const isSelected = isSameDay(day, selectedDate);
+            return (
+              <button
+                key={idx}
+                onClick={() => onDateSelect(day)}
                 className={cn(
-                  "grid grid-cols-8 gap-1 border-b last:border-b-0",
-                  isCompact ? "h-6" : "h-12"
+                  "py-4 text-center transition-colors border-l border-slate-100",
+                  isToday && "bg-teal-50/50",
+                  isSelected && "bg-teal-50"
                 )}
               >
                 <div className={cn(
-                  "flex items-center justify-end pr-2 text-muted-foreground border-r",
-                  isCompact ? "text-[8px] w-8" : "text-xs w-12"
+                  "text-xs font-medium uppercase tracking-wide mb-1",
+                  isToday ? "text-teal-600" : "text-slate-400"
                 )}>
-                  {`${hour.toString().padStart(2, '0')}:00`}
+                  {format(day, 'EEE')}
                 </div>
-                {weekDays.map((day, dayIdx) => {
-                  const dayTasks = getTasksForDate(day);
-                  const tasksInHour = dayTasks.filter(task => {
-                    const time = parseTime(task.time);
-                    if (time === null) return false;
-                    if (isCompact) {
-                      return time >= hour && time < hour + 2;
-                    }
-                    return time >= hour && time < hour + 1;
-                  });
-
-                  return (
-                    <div 
-                      key={dayIdx} 
-                      className="relative border-r last:border-r-0"
-                    >
-                      {tasksInHour.map((task, taskIdx) => {
-                        const colors = TASK_COLORS[task.type];
-                        
-                        const taskBlock = (
-                          <div
-                            key={task.id}
-                            className={cn(
-                              "absolute inset-x-0.5 rounded border-l-2",
-                              colors.bg,
-                              colors.border,
-                              colors.text,
-                              isCompact ? "text-[7px] px-0.5 py-0" : "text-[10px] px-1 py-0.5"
-                            )}
-                            style={{
-                              top: `${taskIdx * (isCompact ? 50 : 40)}%`,
-                              minHeight: isCompact ? '50%' : '80%',
-                              maxHeight: isCompact ? '50%' : '80%',
-                              overflow: 'hidden'
-                            }}
-                          >
-                            <div className="font-medium truncate">
-                              {task.type === 'delivery' 
-                                ? (language === 'el' ? 'Παράδοση' : 'Delivery')
-                                : task.type === 'return'
-                                ? (language === 'el' ? 'Επιστροφή' : 'Return')
-                                : task.title}
-                            </div>
-                            {!isCompact && task.time && (
-                              <div className="text-[8px] opacity-80">
-                                {task.time}
-                              </div>
-                            )}
-                          </div>
-                        );
-
-                        if (!isCompact) {
-                          return (
-                            <Tooltip key={task.id}>
-                              <TooltipTrigger asChild>
-                                {taskBlock}
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-[200px]">
-                                <div className="space-y-1">
-                                  <p className="font-medium">
-                                    {task.type === 'delivery' 
-                                      ? (language === 'el' ? 'Παράδοση' : 'Delivery')
-                                      : task.type === 'return'
-                                      ? (language === 'el' ? 'Επιστροφή' : 'Return')
-                                      : task.title}
-                                  </p>
-                                  {task.vehicleName && (
-                                    <p className="text-xs">{task.vehicleName}</p>
-                                  )}
-                                  {task.customerName && (
-                                    <p className="text-xs">{task.customerName}</p>
-                                  )}
-                                  {task.time && (
-                                    <p className="text-xs">{task.time}</p>
-                                  )}
-                                  {task.location && (
-                                    <p className="text-xs">{task.location}</p>
-                                  )}
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          );
-                        }
-
-                        return taskBlock;
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
+                <div className={cn(
+                  "text-2xl font-semibold",
+                  isToday ? "text-teal-600" : "text-slate-700"
+                )}>
+                  {format(day, 'd')}
+                </div>
+              </button>
+            );
+          })}
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Hour Rows */}
+        <div className="relative">
+          {HOURS.map((hour, hourIdx) => (
+            <div 
+              key={hour}
+              className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-50 last:border-b-0"
+              style={{ height: '72px' }}
+            >
+              {/* Time Label */}
+              <div className="flex items-start justify-end pr-3 pt-1 text-xs text-slate-400 font-medium">
+                {`${hour.toString().padStart(2, '0')}:00`}
+              </div>
+              
+              {/* Day Columns */}
+              {weekDays.map((day, dayIdx) => {
+                const dayTasks = getTasksForDate(day);
+                const isToday = isSameDay(day, new Date());
+                const tasksInHour = dayTasks.filter(task => {
+                  const time = parseTime(task.time);
+                  if (time === null) return hour === 9; // Default to 9am
+                  return Math.floor(time) === hour;
+                });
+
+                return (
+                  <div 
+                    key={dayIdx} 
+                    className={cn(
+                      "relative border-l border-slate-100",
+                      isToday && "bg-teal-50/30"
+                    )}
+                  >
+                    {tasksInHour.map((task, taskIdx) => {
+                      const colors = TASK_COLORS[task.type];
+                      const time = parseTime(task.time);
+                      const topOffset = time ? ((time - hour) * 100) : 0;
+                      
+                      return (
+                        <Tooltip key={task.id}>
+                          <TooltipTrigger asChild>
+                            <div
+                              className={cn(
+                                "absolute left-1 right-1 rounded-lg border-l-[3px] px-2 py-1.5 cursor-pointer transition-all",
+                                colors.bg,
+                                colors.border,
+                                colors.text,
+                                colors.hover
+                              )}
+                              style={{
+                                top: `${Math.max(topOffset, 2)}%`,
+                                minHeight: '60px',
+                                zIndex: taskIdx + 1
+                              }}
+                            >
+                              <div className="font-medium text-xs leading-tight">
+                                {task.type === 'delivery' 
+                                  ? 'Delivery'
+                                  : task.type === 'return'
+                                  ? 'Return'
+                                  : task.title}
+                              </div>
+                              {task.customerName && (
+                                <div className="text-[10px] opacity-80 mt-0.5 truncate">
+                                  {task.customerName}
+                                </div>
+                              )}
+                              {task.time && (
+                                <div className="text-[10px] opacity-70 mt-1">
+                                  {task.time}
+                                </div>
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-[220px] p-3 shadow-lg">
+                            <div className="space-y-1.5">
+                              <p className="font-semibold text-sm">
+                                {task.type === 'delivery' 
+                                  ? 'Delivery'
+                                  : task.type === 'return'
+                                  ? 'Return'
+                                  : task.title}
+                              </p>
+                              {task.vehicleName && (
+                                <p className="text-xs text-slate-600">{task.vehicleName}</p>
+                              )}
+                              {task.customerName && (
+                                <p className="text-xs text-slate-600">{task.customerName}</p>
+                              )}
+                              {task.time && (
+                                <p className="text-xs text-slate-500">{task.time}</p>
+                              )}
+                              {task.location && (
+                                <p className="text-xs text-slate-500">{task.location}</p>
+                              )}
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+          
+          {/* Current time indicator line */}
+          <CurrentTimeIndicator hours={HOURS} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CurrentTimeIndicator({ hours }: { hours: number[] }) {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinutes = now.getMinutes();
+  
+  // Only show if current time is within our displayed hours
+  if (currentHour < hours[0] || currentHour >= hours[hours.length - 1] + 1) {
+    return null;
+  }
+  
+  const hourIndex = currentHour - hours[0];
+  const minuteOffset = (currentMinutes / 60) * 72; // 72px per hour row
+  const topPosition = hourIndex * 72 + minuteOffset;
+  
+  return (
+    <div 
+      className="absolute left-[60px] right-0 flex items-center pointer-events-none z-50"
+      style={{ top: `${topPosition}px` }}
+    >
+      <div className="w-2 h-2 rounded-full bg-blue-500 -ml-1" />
+      <div className="flex-1 h-[2px] bg-blue-500" />
+    </div>
   );
 }
