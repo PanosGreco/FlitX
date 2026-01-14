@@ -26,8 +26,13 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    titleKey: "fleet",
+    titleKey: "home",
     href: "/",
+    icon: Calendar,
+  },
+  {
+    titleKey: "fleet",
+    href: "/fleet",
     icon: Car,
   },
   {
