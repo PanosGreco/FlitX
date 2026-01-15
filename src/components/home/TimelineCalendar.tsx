@@ -197,7 +197,7 @@ export function TimelineCalendar({
             minHeight: `${rowHeight}px`
           }}>
                 {/* Time Label - aligned with border */}
-                <div className="flex items-start justify-end pr-3 pt-1 text-xs text-slate-400 font-medium border-r border-slate-200">
+                <div className="flex items-start justify-end pr-3 pt-1 text-xs text-slate-400 font-medium border-r border-slate-200 mx-0 my-0 px-0">
                   {`${hour.toString().padStart(2, '0')}:00`}
                 </div>
                 
