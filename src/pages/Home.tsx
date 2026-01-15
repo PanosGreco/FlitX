@@ -117,12 +117,12 @@ export default function Home() {
 
   return (
     <MobileLayout>
-      {/* No page-level scroll - contained layout */}
+      {/* No page-level scroll - all scrolling happens inside timeline */}
       <div className="h-[calc(100vh-64px)] bg-slate-50/50 p-5 overflow-hidden">
         {/* Main Layout - Reference: Left sidebar (small calendar + widgets), Right main area (timeline) */}
         <div className="flex gap-5 h-full">
-          {/* Left Sidebar - Small Calendar + Widgets */}
-          <div className="w-[280px] flex-shrink-0 space-y-4 overflow-y-auto">
+          {/* Left Sidebar - Small Calendar + Widgets - no scroll, fixed height */}
+          <div className="w-[280px] flex-shrink-0 space-y-4 flex flex-col">
             {/* Small Monthly Calendar */}
             <MonthlyCalendar
               tasks={tasks}

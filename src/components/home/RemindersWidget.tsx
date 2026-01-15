@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { format, isToday, parseISO, startOfDay } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Clock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -9,138 +9,109 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
-interface ReminderItem {
+interface WeeklyReminderItem {
   id: string;
+  vehicleName: string;
   title: string;
   notes: string | null;
   time: string | null;
   is_completed: boolean;
-  source: 'daily_task' | 'vehicle_reminder';
 }
 
 export function RemindersWidget() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [reminders, setReminders] = useState<ReminderItem[]>([]);
+  const [reminders, setReminders] = useState<WeeklyReminderItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchReminders = useCallback(async () => {
+  const fetchWeeklyReminders = useCallback(async () => {
     if (!user) return;
     setLoading(true);
 
     const today = format(new Date(), 'yyyy-MM-dd');
 
     try {
-      // Fetch daily tasks for today
-      const { data: tasksData, error: tasksError } = await supabase
-        .from('daily_tasks')
-        .select('id, title, description, due_time, status')
+      // Fetch ONLY vehicle reminders for today (weekly vehicle-scoped reminders)
+      const { data: vehicleReminders, error: vehicleError } = await supabase
+        .from('vehicle_reminders')
+        .select(`
+          id, 
+          title, 
+          description, 
+          due_date, 
+          is_completed,
+          vehicle_id,
+          vehicles (
+            make,
+            model
+          )
+        `)
         .eq('user_id', user.id)
         .eq('due_date', today);
 
-      if (tasksError) {
-        console.error('Error fetching daily tasks:', tasksError);
-      }
-
-      // Fetch vehicle reminders for today
-      const { data: vehicleReminders, error: vehicleError } = await supabase
-        .from('vehicle_reminders')
-        .select('id, title, description, due_date, is_completed')
-        .eq('user_id', user.id)
-        .gte('due_date', `${today}T00:00:00`)
-        .lte('due_date', `${today}T23:59:59`);
-
       if (vehicleError) {
         console.error('Error fetching vehicle reminders:', vehicleError);
+        setLoading(false);
+        return;
       }
 
-      // Map daily tasks
-      const taskReminders: ReminderItem[] = (tasksData || []).map(task => ({
-        id: task.id,
-        title: task.title,
-        notes: task.description,
-        time: task.due_time,
-        is_completed: task.status === 'completed',
-        source: 'daily_task' as const
-      }));
-
-      // Map vehicle reminders
-      const vehicleReminderItems: ReminderItem[] = (vehicleReminders || []).map(reminder => {
-        const dueDate = parseISO(reminder.due_date);
+      // Map vehicle reminders with vehicle name
+      const mappedReminders: WeeklyReminderItem[] = (vehicleReminders || []).map((reminder: any) => {
         return {
           id: reminder.id,
+          vehicleName: reminder.vehicles 
+            ? `${reminder.vehicles.make} ${reminder.vehicles.model}`
+            : 'Unknown Vehicle',
           title: reminder.title,
           notes: reminder.description,
-          time: format(dueDate, 'HH:mm'),
-          is_completed: reminder.is_completed || false,
-          source: 'vehicle_reminder' as const
+          time: null, // Vehicle reminders use date only
+          is_completed: reminder.is_completed || false
         };
       });
 
-      // Combine and sort by completion status and time
-      const allReminders = [...taskReminders, ...vehicleReminderItems].sort((a, b) => {
-        // Completed items go to bottom
+      // Sort: incomplete first, then completed at bottom
+      const sortedReminders = mappedReminders.sort((a, b) => {
         if (a.is_completed !== b.is_completed) {
           return a.is_completed ? 1 : -1;
         }
-        // Sort by time
-        const timeA = a.time || '23:59';
-        const timeB = b.time || '23:59';
-        return timeA.localeCompare(timeB);
+        return 0;
       });
 
-      setReminders(allReminders);
+      setReminders(sortedReminders);
     } catch (error) {
-      console.error('Error fetching reminders:', error);
+      console.error('Error fetching weekly reminders:', error);
     } finally {
       setLoading(false);
     }
   }, [user]);
 
   useEffect(() => {
-    fetchReminders();
-  }, [fetchReminders]);
+    fetchWeeklyReminders();
+  }, [fetchWeeklyReminders]);
 
-  const handleToggleComplete = async (reminder: ReminderItem, completed: boolean) => {
+  const handleToggleComplete = async (reminder: WeeklyReminderItem, completed: boolean) => {
     try {
-      if (reminder.source === 'daily_task') {
-        const { error } = await supabase
-          .from('daily_tasks')
-          .update({
-            status: completed ? 'completed' : 'pending'
-          })
-          .eq('id', reminder.id);
+      const { error } = await supabase
+        .from('vehicle_reminders')
+        .update({
+          is_completed: completed
+        })
+        .eq('id', reminder.id);
 
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('vehicle_reminders')
-          .update({
-            is_completed: completed
-          })
-          .eq('id', reminder.id);
-
-        if (error) throw error;
-      }
-      fetchReminders();
+      if (error) throw error;
+      fetchWeeklyReminders();
     } catch (error) {
       console.error('Error updating reminder:', error);
       toast.error('Error updating reminder');
     }
   };
 
-  const formatTime = (time: string | null) => {
-    if (!time) return '';
-    const [hours, minutes] = time.split(':');
-    return `${hours}:${minutes}`;
-  };
-
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm">
-      {/* Header */}
+      {/* Header - No plus icon */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-base font-semibold text-slate-800">
-          Reminders
+          Weekly Reminders
         </h3>
       </div>
 
@@ -150,14 +121,19 @@ export function RemindersWidget() {
           <Loader2 className="h-5 w-5 animate-spin text-slate-300" />
         </div>
       ) : reminders.length === 0 ? (
-        <p className="text-sm text-slate-400 text-center py-4">
-          No reminders for today
-        </p>
+        <div className="py-4">
+          <p className="text-sm text-slate-500 leading-relaxed">
+            Weekly vehicle-related reminders will appear here.
+          </p>
+          <p className="text-sm text-slate-500 leading-relaxed mt-2">
+            You can manage and add reminders individually for each vehicle through the Vehicle Reminders section.
+          </p>
+        </div>
       ) : (
         <div className="max-h-[200px] overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
           {reminders.slice(0, 5).map((reminder) => (
             <div 
-              key={`${reminder.source}-${reminder.id}`}
+              key={reminder.id}
               className={cn(
                 "flex items-start gap-3 py-2 transition-opacity",
                 reminder.is_completed && "opacity-50"
@@ -174,12 +150,14 @@ export function RemindersWidget() {
               
               {/* Content */}
               <div className="flex-1 min-w-0">
+                {/* Vehicle – Reminder Title */}
                 <span className={cn(
-                  "block text-sm text-slate-700",
+                  "block text-sm text-slate-700 font-medium",
                   reminder.is_completed && "line-through"
                 )}>
-                  {reminder.title}
+                  {reminder.vehicleName} – {reminder.title}
                 </span>
+                {/* Notes */}
                 {reminder.notes && (
                   <span className="block text-xs text-slate-500 truncate mt-0.5">
                     {reminder.notes}
@@ -191,7 +169,7 @@ export function RemindersWidget() {
               {reminder.time && (
                 <div className="flex items-center gap-1 text-xs text-slate-900 font-medium flex-shrink-0">
                   <Clock className="h-3 w-3" />
-                  <span>{formatTime(reminder.time)}</span>
+                  <span>{reminder.time}</span>
                 </div>
               )}
             </div>
