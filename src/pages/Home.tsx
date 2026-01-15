@@ -22,6 +22,7 @@ export interface CalendarTask {
   bookingId: string | null;
   customerName?: string;
   notes?: string | null;
+  contractPath?: string | null;
 }
 
 export default function Home() {
@@ -73,31 +74,35 @@ export default function Home() {
         return;
       }
 
-      // Fetch bookings to get customer names
+      // Fetch bookings to get customer names and contract paths
       const { data: bookingsData } = await supabase
         .from('rental_bookings')
-        .select('id, customer_name')
+        .select('id, customer_name, contract_photo_path')
         .eq('user_id', user.id);
 
       const bookingsMap = new Map(
-        (bookingsData || []).map(b => [b.id, b.customer_name])
+        (bookingsData || []).map(b => [b.id, { customerName: b.customer_name, contractPath: b.contract_photo_path }])
       );
 
-      const mappedTasks: CalendarTask[] = (tasksData || []).map((task: any) => ({
-        id: task.id,
-        type: task.task_type as 'delivery' | 'return' | 'other',
-        title: task.title,
-        date: task.due_date,
-        time: task.due_time,
-        location: task.location,
-        vehicleId: task.vehicle_id,
-        vehicleName: task.vehicles
-          ? `${task.vehicles.make} ${task.vehicles.model}`
-          : null,
-        bookingId: task.booking_id,
-        customerName: task.booking_id ? bookingsMap.get(task.booking_id) : undefined,
-        notes: task.description
-      }));
+      const mappedTasks: CalendarTask[] = (tasksData || []).map((task: any) => {
+        const bookingInfo = task.booking_id ? bookingsMap.get(task.booking_id) : null;
+        return {
+          id: task.id,
+          type: task.task_type as 'delivery' | 'return' | 'other',
+          title: task.title,
+          date: task.due_date,
+          time: task.due_time,
+          location: task.location,
+          vehicleId: task.vehicle_id,
+          vehicleName: task.vehicles
+            ? `${task.vehicles.make} ${task.vehicles.model}`
+            : null,
+          bookingId: task.booking_id,
+          customerName: bookingInfo?.customerName,
+          notes: task.description,
+          contractPath: bookingInfo?.contractPath
+        };
+      });
 
       setTasks(mappedTasks);
     } catch (error) {
