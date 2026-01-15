@@ -178,11 +178,11 @@ export function TimelineCalendar({
           {weekDays.map((day, idx) => {
           const isToday = isSameDay(day, new Date());
           const isSelected = isSameDay(day, selectedDate);
-          return <button key={idx} onClick={() => onDateSelect(day)} className={cn("py-4 text-center transition-colors border-l border-slate-200 bg-[#acdcfb]", isToday && "bg-teal-50/50", isSelected && "bg-teal-50")}>
-                <div className={cn("text-xs font-medium uppercase tracking-wide mb-1 bg-[#acdcfb] text-secondary-foreground", isToday ? "text-teal-600" : "text-slate-400")}>
+          return <button key={idx} onClick={() => onDateSelect(day)} className={cn("py-4 text-center transition-colors border-l border-slate-200 bg-[#b9b9bb] text-secondary-foreground", isToday && "bg-teal-50/50", isSelected && "bg-teal-50")}>
+                <div className={cn("text-xs font-medium uppercase tracking-wide mb-1 bg-[#b9b9bb] text-secondary-foreground", isToday ? "text-teal-600" : "text-slate-400")}>
                   {format(day, 'EEE')}
                 </div>
-                <div className={cn("text-2xl font-semibold bg-[#acdcfb]", isToday ? "text-teal-600" : "text-slate-700")}>
+                <div className={cn("text-2xl font-semibold bg-[#b9b9bb]", isToday ? "text-teal-600" : "text-slate-700")}>
                   {format(day, 'd')}
                 </div>
               </button>;
