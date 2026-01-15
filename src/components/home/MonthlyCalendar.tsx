@@ -119,7 +119,9 @@ export function MonthlyCalendar({
                 !isCurrentMonth && "text-slate-300",
                 isCurrentMonth && "text-slate-700",
                 isToday && !isSelected && "bg-teal-50 text-teal-600 rounded-full font-medium",
-                isSelected && "bg-teal-500 text-white rounded-full font-medium",
+                // Changed: Selected date now uses soft gray instead of solid green
+                isSelected && !isToday && "bg-slate-200/60 rounded-full font-medium",
+                isSelected && isToday && "bg-teal-100 text-teal-600 rounded-full font-medium",
                 !isSelected && !isToday && "hover:bg-slate-50 rounded-full"
               )}
             >
@@ -135,39 +137,58 @@ export function MonthlyCalendar({
                 <PopoverTrigger asChild>
                   {dayContent}
                 </PopoverTrigger>
-                <PopoverContent className="w-56 p-3 shadow-lg" align="center" side="right">
+                <PopoverContent className="w-64 p-3 shadow-lg" align="center" side="right">
                   <div className="space-y-2">
                     <h4 className="font-medium text-sm text-slate-700">
                       {format(day, 'EEEE, MMM d')}
                     </h4>
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       {dayTasks.map((task) => (
                         <div 
                           key={task.id} 
-                          className="flex items-start gap-2 text-sm"
+                          className="flex items-start gap-2 text-sm p-2 bg-slate-50 rounded-lg"
                         >
                           <div className={cn(
                             "w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0",
                             TASK_COLORS[task.type]
                           )} />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-slate-700 truncate text-xs">
-                              {task.type === 'delivery' 
-                                ? 'Delivery'
-                                : task.type === 'return'
-                                ? 'Return'
-                                : task.title}
-                            </p>
-                            {task.vehicleName && (
-                              <p className="text-[10px] text-slate-500 truncate">
-                                {task.vehicleName}
+                          <div className="flex-1 min-w-0 space-y-1">
+                            {/* Task type and vehicle */}
+                            <div>
+                              <p className="font-medium text-slate-700 text-xs">
+                                {task.type === 'delivery' 
+                                  ? 'Delivery'
+                                  : task.type === 'return'
+                                  ? 'Return'
+                                  : task.title}
+                              </p>
+                              {task.vehicleName && (
+                                <p className="text-[11px] text-slate-600">
+                                  {task.vehicleName}
+                                </p>
+                              )}
+                            </div>
+                            
+                            {/* Notes if available */}
+                            {task.notes && (
+                              <p className="text-[11px] text-slate-500 line-clamp-2">
+                                {task.notes}
                               </p>
                             )}
-                            {task.time && (
-                              <p className="text-[10px] text-slate-500">
-                                {task.time}
-                              </p>
-                            )}
+                            
+                            {/* Time and location grouped */}
+                            <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+                              {task.time && (
+                                <p className="text-[11px] text-slate-500">
+                                  🕐 {task.time}
+                                </p>
+                              )}
+                              {task.location && (
+                                <p className="text-[11px] text-slate-500">
+                                  📍 {task.location}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}

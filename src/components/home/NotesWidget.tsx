@@ -1,132 +1,131 @@
-import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, Loader2, ChevronRight, Circle } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLanguage } from "@/contexts/LanguageContext";
 import { toast } from "sonner";
-
-interface Note {
-  id: string;
-  content: string;
-  updated_at: string;
-}
 
 export function NotesWidget() {
   const { user } = useAuth();
-  const { language } = useLanguage();
-  const [notes, setNotes] = useState<Note[]>([]);
+  const [content, setContent] = useState("");
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editContent, setEditContent] = useState("");
-  const [isAdding, setIsAdding] = useState(false);
-  const [newContent, setNewContent] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [noteId, setNoteId] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const fetchNotes = useCallback(async () => {
+  const fetchNote = useCallback(async () => {
     if (!user) return;
     setLoading(true);
 
     const { data, error } = await supabase
       .from('user_notes')
-      .select('id, content, updated_at')
+      .select('id, content')
       .eq('user_id', user.id)
-      .order('updated_at', { ascending: false });
+      .order('updated_at', { ascending: false })
+      .limit(1)
+      .single();
 
-    if (error) {
-      console.error('Error fetching notes:', error);
-    } else {
-      setNotes(data || []);
+    if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching note:', error);
+    } else if (data) {
+      setNoteId(data.id);
+      setContent(data.content);
     }
     setLoading(false);
   }, [user]);
 
   useEffect(() => {
-    fetchNotes();
-  }, [fetchNotes]);
+    fetchNote();
+  }, [fetchNote]);
 
-  const handleAddNote = async () => {
-    if (!user || !newContent.trim()) return;
-    setIsSaving(true);
+  const saveNote = useCallback(async (newContent: string) => {
+    if (!user) return;
+    setSaving(true);
 
-    const { error } = await supabase
-      .from('user_notes')
-      .insert({
-        user_id: user.id,
-        content: newContent.trim()
-      });
+    try {
+      if (noteId) {
+        // Update existing note
+        const { error } = await supabase
+          .from('user_notes')
+          .update({ content: newContent })
+          .eq('id', noteId);
 
-    if (error) {
-      console.error('Error adding note:', error);
-      toast.error('Error creating note');
-    } else {
-      toast.success('Note added');
-      setNewContent("");
-      setIsAdding(false);
-      fetchNotes();
+        if (error) throw error;
+      } else if (newContent.trim()) {
+        // Create new note
+        const { data, error } = await supabase
+          .from('user_notes')
+          .insert({
+            user_id: user.id,
+            content: newContent.trim()
+          })
+          .select('id')
+          .single();
+
+        if (error) throw error;
+        if (data) setNoteId(data.id);
+      }
+    } catch (error) {
+      console.error('Error saving note:', error);
+      toast.error('Error saving note');
+    } finally {
+      setSaving(false);
     }
-    setIsSaving(false);
-  };
+  }, [user, noteId]);
 
-  const handleUpdateNote = async (noteId: string) => {
-    if (!editContent.trim()) return;
-    setIsSaving(true);
-
-    const { error } = await supabase
-      .from('user_notes')
-      .update({ content: editContent.trim() })
-      .eq('id', noteId);
-
-    if (error) {
-      console.error('Error updating note:', error);
-      toast.error('Error updating note');
-    } else {
-      setEditingId(null);
-      fetchNotes();
+  const handleContentChange = (newContent: string) => {
+    setContent(newContent);
+    
+    // Debounced auto-save
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
-    setIsSaving(false);
+    saveTimeoutRef.current = setTimeout(() => {
+      saveNote(newContent);
+    }, 1000);
   };
 
-  const handleDeleteNote = async (noteId: string) => {
-    const { error } = await supabase
-      .from('user_notes')
-      .delete()
-      .eq('id', noteId);
+  const handleClick = () => {
+    setIsEditing(true);
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 0);
+  };
 
-    if (error) {
-      console.error('Error deleting note:', error);
-      toast.error('Error deleting note');
-    } else {
-      toast.success('Note deleted');
-      fetchNotes();
+  const handleBlur = () => {
+    if (!content.trim()) {
+      setIsEditing(false);
     }
+    // Save immediately on blur
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    saveNote(content);
   };
 
-  const startEditing = (note: Note) => {
-    setEditingId(note.id);
-    setEditContent(note.content);
-  };
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
-  const cancelEditing = () => {
-    setEditingId(null);
-    setEditContent("");
-  };
+  const showPlaceholder = !isEditing && !content.trim();
 
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm">
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-base font-semibold text-slate-800">
-          Prioritize
+          Notebook
         </h3>
-        <button 
-          className="p-1 hover:bg-slate-100 rounded text-slate-400 transition-colors"
-          onClick={() => setIsAdding(true)}
-        >
-          <Plus className="h-4 w-4" />
-        </button>
+        {saving && (
+          <Loader2 className="h-3 w-3 animate-spin text-slate-400" />
+        )}
       </div>
 
       {/* Content */}
@@ -135,100 +134,29 @@ export function NotesWidget() {
           <Loader2 className="h-5 w-5 animate-spin text-slate-300" />
         </div>
       ) : (
-        <div className="space-y-1">
-          {/* Add new note */}
-          {isAdding && (
-            <div className="space-y-2 p-2 bg-slate-50 rounded-lg mb-2">
-              <Textarea
-                value={newContent}
-                onChange={(e) => setNewContent(e.target.value)}
-                placeholder="Write quick notes here for anything you want to remember."
-                rows={2}
-                className="text-sm resize-none border-slate-200"
-                autoFocus
-              />
-              <div className="flex justify-end gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-7 text-xs"
-                  onClick={() => {
-                    setIsAdding(false);
-                    setNewContent("");
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  size="sm" 
-                  className="h-7 text-xs bg-teal-500 hover:bg-teal-600"
-                  onClick={handleAddNote}
-                  disabled={isSaving || !newContent.trim()}
-                >
-                  {isSaving && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                  Save
-                </Button>
-              </div>
-            </div>
+        <div 
+          className={cn(
+            "min-h-[100px] rounded-lg cursor-text transition-colors",
+            showPlaceholder && "hover:bg-slate-50"
           )}
-
-          {/* Notes list - styled like reference */}
-          {notes.length === 0 && !isAdding ? (
-            <p className="text-sm text-slate-400 text-center py-6">
-              Write quick notes here for anything you want to remember.
+          onClick={handleClick}
+        >
+          {showPlaceholder ? (
+            <p className="text-sm text-slate-400 italic py-2">
+              Write quick notes for anything you want to remember
             </p>
           ) : (
-            notes.slice(0, 4).map((note) => (
-              <div 
-                key={note.id}
-                className="group"
-              >
-                {editingId === note.id ? (
-                  <div className="space-y-2 p-2 bg-slate-50 rounded-lg">
-                    <Textarea
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      rows={2}
-                      className="text-sm resize-none border-slate-200"
-                      autoFocus
-                    />
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={cancelEditing}>
-                        Cancel
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        className="h-7 text-xs bg-teal-500 hover:bg-teal-600"
-                        onClick={() => handleUpdateNote(note.id)}
-                        disabled={isSaving}
-                      >
-                        {isSaving && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                        Save
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div 
-                    className="flex items-center gap-3 py-2.5 px-1 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors"
-                    onClick={() => startEditing(note)}
-                  >
-                    {/* Icon */}
-                    <div className="w-6 h-6 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
-                      <Circle className="h-3 w-3 text-teal-500 fill-teal-500" />
-                    </div>
-                    
-                    {/* Title */}
-                    <span className="flex-1 text-sm text-slate-700 truncate">
-                      {note.content.split('\n')[0].substring(0, 30)}
-                      {note.content.length > 30 && '...'}
-                    </span>
-                    
-                    {/* Arrow */}
-                    <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-slate-400 transition-colors" />
-                  </div>
-                )}
-              </div>
-            ))
+            <textarea
+              ref={textareaRef}
+              value={content}
+              onChange={(e) => handleContentChange(e.target.value)}
+              onBlur={handleBlur}
+              className={cn(
+                "w-full min-h-[100px] text-sm text-slate-700 bg-transparent resize-none border-0 p-0 focus:outline-none focus:ring-0",
+                "placeholder:text-slate-400 placeholder:italic"
+              )}
+              placeholder="Write quick notes for anything you want to remember"
+            />
           )}
         </div>
       )}
