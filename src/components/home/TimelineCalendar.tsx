@@ -184,7 +184,7 @@ export function TimelineCalendar({
       <div className="bg-white rounded-xl shadow-sm overflow-hidden flex-1 flex flex-col">
         {/* Days Header - Fixed, aligned with grid */}
         <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-200 flex-shrink-0">
-          <div className="p-3 border-r border-slate-200" /> {/* Time column spacer */}
+          <div className="border-r border-slate-200" /> {/* Time column spacer - no padding */}
           {weekDays.map((day, idx) => {
             const isToday = isSameDay(day, new Date());
             const isSelected = isSameDay(day, selectedDate);
