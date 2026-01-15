@@ -76,7 +76,7 @@ export function MonthlyCalendar({
 
       {/* Week Days Header */}
       <div className="grid grid-cols-7 mb-1">
-        {weekDays.map(day => <div key={day} className="text-center text-[11px] font-medium text-slate-400 py-1">
+        {weekDays.map(day => <div key={day} className="text-center text-[11px] font-medium py-1 text-primary">
             {day}
           </div>)}
       </div>
