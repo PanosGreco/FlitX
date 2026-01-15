@@ -164,7 +164,7 @@ export function TimelineCalendar({
         </div>
 
         {/* Create Button */}
-        <Button onClick={onCreateClick} className="bg-teal-500 hover:bg-teal-600 text-white rounded-full px-5 py-2 h-auto shadow-sm">
+        <Button onClick={onCreateClick} className="text-white rounded-full px-5 py-2 h-auto shadow-sm bg-primary">
           <Plus className="h-4 w-4 mr-1.5" />
           Create
         </Button>
