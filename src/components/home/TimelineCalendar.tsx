@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { format, addDays, subDays, startOfWeek, isSameDay, getWeek } from "date-fns";
-import { ChevronLeft, ChevronRight, Loader2, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Plus, X, MapPin, Clock, Car, User, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { CalendarTask } from "@/pages/Home";
@@ -15,7 +15,7 @@ interface TimelineCalendarProps {
   onCreateClick?: () => void;
 }
 
-// Soft pastel colors matching reference
+// Task colors - Other tasks now use blue, not purple
 const TASK_COLORS = {
   delivery: { 
     bg: 'bg-emerald-100/80', 
@@ -30,15 +30,16 @@ const TASK_COLORS = {
     hover: 'hover:bg-orange-100'
   },
   other: { 
-    bg: 'bg-violet-100/80', 
-    border: 'border-l-violet-500', 
-    text: 'text-violet-700',
-    hover: 'hover:bg-violet-100'
+    bg: 'bg-blue-100/80', 
+    border: 'border-l-blue-500', 
+    text: 'text-blue-700',
+    hover: 'hover:bg-blue-100'
   }
 };
 
 // Full day hours from 00:00 to 23:00
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const HOUR_HEIGHT = 72; // pixels per hour
 
 export function TimelineCalendar({ 
   tasks, 
@@ -49,12 +50,30 @@ export function TimelineCalendar({
 }: TimelineCalendarProps) {
   const { language } = useLanguage();
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }));
+  const [selectedTask, setSelectedTask] = useState<CalendarTask | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const weekDays = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   }, [weekStart]);
 
   const weekNumber = getWeek(weekStart, { weekStartsOn: 1 });
+
+  // Auto-scroll to current time on initial load
+  useEffect(() => {
+    if (!loading && scrollContainerRef.current) {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinutes = now.getMinutes();
+      
+      // Calculate scroll position to center current time
+      const scrollPosition = (currentHour * HOUR_HEIGHT) + ((currentMinutes / 60) * HOUR_HEIGHT);
+      const containerHeight = scrollContainerRef.current.clientHeight;
+      const centeredPosition = scrollPosition - (containerHeight / 2);
+      
+      scrollContainerRef.current.scrollTop = Math.max(0, centeredPosition);
+    }
+  }, [loading]);
 
   const getTasksForDate = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
@@ -66,6 +85,50 @@ export function TimelineCalendar({
     const [hours, minutes] = timeStr.split(':').map(Number);
     return hours + (minutes / 60);
   };
+
+  // Group tasks by hour and handle overlapping
+  const getTasksForHour = (dayTasks: CalendarTask[], hour: number) => {
+    return dayTasks.filter(task => {
+      const time = parseTime(task.time);
+      if (time === null) return hour === 9; // Default to 9am
+      return Math.floor(time) === hour;
+    });
+  };
+
+  // Calculate dynamic row height based on number of tasks
+  const getRowHeight = (dayIdx: number, hour: number) => {
+    const day = weekDays[dayIdx];
+    const dayTasks = getTasksForDate(day);
+    const tasksInHour = getTasksForHour(dayTasks, hour);
+    
+    // Calculate max tasks across all days for this hour
+    let maxTasksInHour = 0;
+    weekDays.forEach(d => {
+      const dt = getTasksForDate(d);
+      const th = getTasksForHour(dt, hour);
+      maxTasksInHour = Math.max(maxTasksInHour, th.length);
+    });
+    
+    // Minimum height is HOUR_HEIGHT, expand if more than 1 task
+    const minTaskHeight = 60;
+    if (maxTasksInHour <= 1) return HOUR_HEIGHT;
+    return Math.max(HOUR_HEIGHT, maxTasksInHour * minTaskHeight + 12);
+  };
+
+  // Calculate row heights for all hours
+  const rowHeights = useMemo(() => {
+    return HOURS.map(hour => {
+      let maxTasksInHour = 0;
+      weekDays.forEach(day => {
+        const dayTasks = getTasksForDate(day);
+        const tasksInHour = getTasksForHour(dayTasks, hour);
+        maxTasksInHour = Math.max(maxTasksInHour, tasksInHour.length);
+      });
+      const minTaskHeight = 60;
+      if (maxTasksInHour <= 1) return HOUR_HEIGHT;
+      return Math.max(HOUR_HEIGHT, maxTasksInHour * minTaskHeight + 12);
+    });
+  }, [tasks, weekDays]);
 
   if (loading) {
     return (
@@ -117,11 +180,11 @@ export function TimelineCalendar({
         </Button>
       </div>
 
-      {/* Timeline Grid - with internal scroll */}
+      {/* Timeline Grid - with internal scroll only */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden flex-1 flex flex-col">
-        {/* Days Header - Fixed */}
+        {/* Days Header - Fixed, aligned with grid */}
         <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-200 flex-shrink-0">
-          <div className="p-3" /> {/* Time column spacer */}
+          <div className="p-3 border-r border-slate-200" /> {/* Time column spacer */}
           {weekDays.map((day, idx) => {
             const isToday = isSameDay(day, new Date());
             const isSelected = isSameDay(day, selectedDate);
@@ -153,118 +216,191 @@ export function TimelineCalendar({
         </div>
 
         {/* Hour Rows - Scrollable */}
-        <div className="relative flex-1 overflow-y-auto">
-          {HOURS.map((hour) => (
-            <div 
-              key={hour}
-              className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-100 last:border-b-0"
-              style={{ height: '72px' }}
-            >
-              {/* Time Label */}
-              <div className="flex items-start justify-end pr-3 pt-1 text-xs text-slate-400 font-medium border-r border-slate-100">
-                {`${hour.toString().padStart(2, '0')}:00`}
-              </div>
-              
-              {/* Day Columns */}
-              {weekDays.map((day, dayIdx) => {
-                const dayTasks = getTasksForDate(day);
-                const isToday = isSameDay(day, new Date());
-                const tasksInHour = dayTasks.filter(task => {
-                  const time = parseTime(task.time);
-                  if (time === null) return hour === 9; // Default to 9am
-                  return Math.floor(time) === hour;
-                });
+        <div ref={scrollContainerRef} className="relative flex-1 overflow-y-auto">
+          {HOURS.map((hour, hourIdx) => {
+            const rowHeight = rowHeights[hourIdx];
+            
+            return (
+              <div 
+                key={hour}
+                className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-200"
+                style={{ minHeight: `${rowHeight}px` }}
+              >
+                {/* Time Label - aligned with border */}
+                <div className="flex items-start justify-end pr-3 pt-1 text-xs text-slate-400 font-medium border-r border-slate-200">
+                  {`${hour.toString().padStart(2, '0')}:00`}
+                </div>
+                
+                {/* Day Columns */}
+                {weekDays.map((day, dayIdx) => {
+                  const dayTasks = getTasksForDate(day);
+                  const isToday = isSameDay(day, new Date());
+                  const tasksInHour = getTasksForHour(dayTasks, hour);
 
-                return (
-                  <div 
-                    key={dayIdx} 
-                    className={cn(
-                      "relative border-l border-slate-200",
-                      isToday && "bg-teal-50/30"
-                    )}
-                  >
-                    {tasksInHour.map((task, taskIdx) => {
-                      const colors = TASK_COLORS[task.type];
-                      const time = parseTime(task.time);
-                      const topOffset = time ? ((time - hour) * 100) : 0;
-                      
-                      return (
-                        <Tooltip key={task.id}>
-                          <TooltipTrigger asChild>
+                  return (
+                    <div 
+                      key={dayIdx} 
+                      className={cn(
+                        "relative border-l border-slate-200 p-1",
+                        isToday && "bg-teal-50/30"
+                      )}
+                    >
+                      {/* Stack tasks vertically within the hour */}
+                      <div className="flex flex-col gap-1">
+                        {tasksInHour.map((task) => {
+                          const colors = TASK_COLORS[task.type];
+                          
+                          return (
                             <div
+                              key={task.id}
+                              onClick={() => setSelectedTask(task)}
                               className={cn(
-                                "absolute left-1 right-1 rounded-lg border-l-[3px] px-2 py-1.5 cursor-pointer transition-all",
+                                "rounded-lg border-l-[3px] px-2 py-1.5 cursor-pointer transition-all",
                                 colors.bg,
                                 colors.border,
                                 colors.text,
                                 colors.hover
                               )}
-                              style={{
-                                top: `${Math.max(topOffset, 2)}%`,
-                                minHeight: '60px',
-                                zIndex: taskIdx + 1
-                              }}
+                              style={{ minHeight: '56px' }}
                             >
+                              {/* Task Type Header */}
                               <div className="font-medium text-xs leading-tight">
                                 {task.type === 'delivery' 
                                   ? 'Delivery'
                                   : task.type === 'return'
                                   ? 'Return'
-                                  : task.title}
+                                  : 'Other Task'}
                               </div>
+                              {/* Vehicle name - visible for all task types */}
+                              {task.vehicleName && (
+                                <div className="text-[10px] opacity-90 mt-0.5 truncate font-medium">
+                                  {task.vehicleName}
+                                </div>
+                              )}
+                              {/* Customer name for delivery/return */}
                               {task.customerName && (
-                                <div className="text-[10px] opacity-80 mt-0.5 truncate">
+                                <div className="text-[10px] opacity-80 truncate">
                                   {task.customerName}
                                 </div>
                               )}
+                              {/* Time */}
                               {task.time && (
-                                <div className="text-[10px] opacity-70 mt-1">
+                                <div className="text-[10px] opacity-70 mt-0.5">
                                   {task.time}
                                 </div>
                               )}
                             </div>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-[220px] p-3 shadow-lg">
-                            <div className="space-y-1.5">
-                              <p className="font-semibold text-sm">
-                                {task.type === 'delivery' 
-                                  ? 'Delivery'
-                                  : task.type === 'return'
-                                  ? 'Return'
-                                  : task.title}
-                              </p>
-                              {task.vehicleName && (
-                                <p className="text-xs text-slate-600">{task.vehicleName}</p>
-                              )}
-                              {task.customerName && (
-                                <p className="text-xs text-slate-600">{task.customerName}</p>
-                              )}
-                              {task.time && (
-                                <p className="text-xs text-slate-500">{task.time}</p>
-                              )}
-                              {task.location && (
-                                <p className="text-xs text-slate-500">{task.location}</p>
-                              )}
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
           
           {/* Current time indicator line */}
-          <CurrentTimeIndicator hours={HOURS} />
+          <CurrentTimeIndicator hours={HOURS} rowHeights={rowHeights} />
         </div>
       </div>
+
+      {/* Task Details Popup */}
+      <Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span className={cn(
+                "px-2 py-0.5 rounded text-xs font-medium",
+                selectedTask?.type === 'delivery' && "bg-emerald-100 text-emerald-700",
+                selectedTask?.type === 'return' && "bg-orange-100 text-orange-700",
+                selectedTask?.type === 'other' && "bg-blue-100 text-blue-700"
+              )}>
+                {selectedTask?.type === 'delivery' 
+                  ? 'Delivery'
+                  : selectedTask?.type === 'return'
+                  ? 'Return'
+                  : 'Other Task'}
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedTask && (
+            <div className="space-y-4">
+              {/* Vehicle */}
+              {selectedTask.vehicleName && (
+                <div className="flex items-start gap-3">
+                  <Car className="h-4 w-4 text-slate-400 mt-0.5" />
+                  <div>
+                    <div className="text-xs text-slate-500 mb-0.5">Vehicle</div>
+                    <div className="text-sm font-medium text-slate-800">{selectedTask.vehicleName}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Customer */}
+              {selectedTask.customerName && (
+                <div className="flex items-start gap-3">
+                  <User className="h-4 w-4 text-slate-400 mt-0.5" />
+                  <div>
+                    <div className="text-xs text-slate-500 mb-0.5">Customer</div>
+                    <div className="text-sm font-medium text-slate-800">{selectedTask.customerName}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Time */}
+              {selectedTask.time && (
+                <div className="flex items-start gap-3">
+                  <Clock className="h-4 w-4 text-slate-400 mt-0.5" />
+                  <div>
+                    <div className="text-xs text-slate-500 mb-0.5">Time</div>
+                    <div className="text-sm font-medium text-slate-800">{selectedTask.time}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Location */}
+              {selectedTask.location && (
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
+                  <div>
+                    <div className="text-xs text-slate-500 mb-0.5">Location</div>
+                    <div className="text-sm font-medium text-slate-800">{selectedTask.location}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {selectedTask.notes && (
+                <div className="flex items-start gap-3">
+                  <FileText className="h-4 w-4 text-slate-400 mt-0.5" />
+                  <div>
+                    <div className="text-xs text-slate-500 mb-0.5">Notes</div>
+                    <div className="text-sm text-slate-700">{selectedTask.notes}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Title for other tasks */}
+              {selectedTask.type === 'other' && selectedTask.title && (
+                <div className="flex items-start gap-3">
+                  <FileText className="h-4 w-4 text-slate-400 mt-0.5" />
+                  <div>
+                    <div className="text-xs text-slate-500 mb-0.5">Title</div>
+                    <div className="text-sm font-medium text-slate-800">{selectedTask.title}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function CurrentTimeIndicator({ hours }: { hours: number[] }) {
+function CurrentTimeIndicator({ hours, rowHeights }: { hours: number[]; rowHeights: number[] }) {
   const now = new Date();
   const currentHour = now.getHours();
   const currentMinutes = now.getMinutes();
@@ -274,9 +410,14 @@ function CurrentTimeIndicator({ hours }: { hours: number[] }) {
     return null;
   }
   
-  const hourIndex = currentHour - hours[0];
-  const minuteOffset = (currentMinutes / 60) * 72; // 72px per hour row
-  const topPosition = hourIndex * 72 + minuteOffset;
+  // Calculate position based on dynamic row heights
+  let topPosition = 0;
+  for (let i = 0; i < currentHour - hours[0]; i++) {
+    topPosition += rowHeights[i];
+  }
+  const currentHourHeight = rowHeights[currentHour - hours[0]] || HOUR_HEIGHT;
+  const minuteOffset = (currentMinutes / 60) * currentHourHeight;
+  topPosition += minuteOffset;
   
   return (
     <div 
