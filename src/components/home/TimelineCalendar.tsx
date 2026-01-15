@@ -179,7 +179,7 @@ export function TimelineCalendar({
           const isToday = isSameDay(day, new Date());
           const isSelected = isSameDay(day, selectedDate);
           return <button key={idx} onClick={() => onDateSelect(day)} className={cn("py-4 text-center transition-colors border-l border-slate-200 bg-[#acdcfb]", isToday && "bg-teal-50/50", isSelected && "bg-teal-50")}>
-                <div className={cn("text-xs font-medium uppercase tracking-wide mb-1 text-secondary-foreground bg-[#acdcfb]", isToday ? "text-teal-600" : "text-slate-400")}>
+                <div className={cn("text-xs font-medium uppercase tracking-wide mb-1 bg-[#acdcfb] text-secondary-foreground", isToday ? "text-teal-600" : "text-slate-400")}>
                   {format(day, 'EEE')}
                 </div>
                 <div className={cn("text-2xl font-semibold bg-[#acdcfb]", isToday ? "text-teal-600" : "text-slate-700")}>
