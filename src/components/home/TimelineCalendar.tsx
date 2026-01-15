@@ -264,7 +264,7 @@ export function TimelineCalendar({
                               style={{ minHeight: '56px' }}
                             >
                               {/* Task Type Header */}
-                              <div className="font-medium text-xs leading-tight">
+                              <div className="font-semibold text-[11px] leading-tight text-slate-800">
                                 {task.type === 'delivery' 
                                   ? 'Delivery'
                                   : task.type === 'return'
@@ -273,19 +273,19 @@ export function TimelineCalendar({
                               </div>
                               {/* Vehicle name - visible for all task types */}
                               {task.vehicleName && (
-                                <div className="text-[10px] opacity-90 mt-0.5 truncate font-medium">
+                                <div className="text-[11px] mt-0.5 truncate font-semibold text-slate-700">
                                   {task.vehicleName}
                                 </div>
                               )}
                               {/* Customer name for delivery/return */}
                               {task.customerName && (
-                                <div className="text-[10px] opacity-80 truncate">
+                                <div className="text-[11px] truncate text-slate-600 font-medium">
                                   {task.customerName}
                                 </div>
                               )}
                               {/* Time */}
                               {task.time && (
-                                <div className="text-[10px] opacity-70 mt-0.5">
+                                <div className="text-[11px] mt-0.5 font-medium text-slate-600">
                                   {task.time}
                                 </div>
                               )}
