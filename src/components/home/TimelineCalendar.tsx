@@ -178,11 +178,11 @@ export function TimelineCalendar({
           {weekDays.map((day, idx) => {
           const isToday = isSameDay(day, new Date());
           const isSelected = isSameDay(day, selectedDate);
-          return <button key={idx} onClick={() => onDateSelect(day)} className={cn("py-4 text-center transition-colors border-l border-slate-200 text-secondary-foreground bg-[#d6d6d6]", isToday && "bg-teal-50/50", isSelected && "bg-teal-50")}>
-                <div className={cn("text-xs font-medium uppercase tracking-wide mb-1 bg-[#d6d6d6] text-secondary-foreground", isToday ? "text-teal-600" : "text-slate-400")}>
+          return <button key={idx} onClick={() => onDateSelect(day)} className={cn("py-4 text-center transition-colors border-l border-slate-200", isToday ? "bg-teal-50" : "bg-slate-100", isSelected && "bg-teal-50")}>
+                <div className={cn("text-xs font-bold uppercase tracking-wide mb-1", isToday ? "text-teal-600" : "text-slate-900")}>
                   {format(day, 'EEE')}
                 </div>
-                <div className={cn("text-2xl font-semibold bg-[#d6d6d6]", isToday ? "text-teal-600" : "text-slate-700")}>
+                <div className={cn("text-2xl font-semibold", isToday ? "text-teal-600" : "text-slate-900")}>
                   {format(day, 'd')}
                 </div>
               </button>;
@@ -211,23 +211,23 @@ export function TimelineCalendar({
                       <div className="flex flex-col gap-1">
                         {tasksInHour.map(task => {
                     const colors = TASK_COLORS[task.type];
-                    return <div key={task.id} onClick={() => setSelectedTask(task)} className={cn("rounded-lg border-l-[3px] px-2 py-1.5 cursor-pointer transition-all", colors.bg, colors.border, colors.text, colors.hover)} style={{
+                    return <div key={task.id} onClick={() => setSelectedTask(task)} className={cn("rounded-lg border-l-[3px] px-2 py-1.5 cursor-pointer transition-all", colors.bg, colors.border, colors.hover)} style={{
                       minHeight: '56px'
                     }}>
                               {/* Task Type Header */}
-                              <div className="font-semibold text-[11px] leading-tight text-slate-800">
+                              <div className={cn("font-bold text-[11px] leading-tight", colors.text)}>
                                 {task.type === 'delivery' ? 'Delivery' : task.type === 'return' ? 'Return' : 'Other Task'}
                               </div>
                               {/* Vehicle name - visible for all task types */}
-                              {task.vehicleName && <div className="text-[11px] mt-0.5 truncate font-semibold text-slate-700">
+                              {task.vehicleName && <div className={cn("text-[11px] mt-0.5 truncate font-bold", colors.text)}>
                                   {task.vehicleName}
                                 </div>}
                               {/* Customer name for delivery/return */}
-                              {task.customerName && <div className="text-[11px] truncate text-slate-600 font-medium">
+                              {task.customerName && <div className={cn("text-[11px] truncate font-semibold", colors.text)}>
                                   {task.customerName}
                                 </div>}
                               {/* Time */}
-                              {task.time && <div className="text-[11px] mt-0.5 font-medium text-slate-600">
+                              {task.time && <div className={cn("text-[11px] mt-0.5 font-semibold", colors.text)}>
                                   {task.time}
                                 </div>}
                             </div>;
