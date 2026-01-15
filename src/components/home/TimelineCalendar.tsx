@@ -37,7 +37,8 @@ const TASK_COLORS = {
   }
 };
 
-const HOURS = Array.from({ length: 9 }, (_, i) => i + 9); // 09:00 to 17:00
+// Full day hours from 00:00 to 23:00
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 export function TimelineCalendar({ 
   tasks, 
@@ -75,9 +76,9 @@ export function TimelineCalendar({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="h-full flex flex-col">
       {/* Header Row - Navigation, Title, Week Badge, Create Button */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           {/* Navigation Arrows */}
           <div className="flex items-center gap-1">
@@ -116,10 +117,10 @@ export function TimelineCalendar({
         </Button>
       </div>
 
-      {/* Timeline Grid */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        {/* Days Header */}
-        <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-100">
+      {/* Timeline Grid - with internal scroll */}
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden flex-1 flex flex-col">
+        {/* Days Header - Fixed */}
+        <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-200 flex-shrink-0">
           <div className="p-3" /> {/* Time column spacer */}
           {weekDays.map((day, idx) => {
             const isToday = isSameDay(day, new Date());
@@ -129,7 +130,7 @@ export function TimelineCalendar({
                 key={idx}
                 onClick={() => onDateSelect(day)}
                 className={cn(
-                  "py-4 text-center transition-colors border-l border-slate-100",
+                  "py-4 text-center transition-colors border-l border-slate-200",
                   isToday && "bg-teal-50/50",
                   isSelected && "bg-teal-50"
                 )}
@@ -151,16 +152,16 @@ export function TimelineCalendar({
           })}
         </div>
 
-        {/* Hour Rows */}
-        <div className="relative">
-          {HOURS.map((hour, hourIdx) => (
+        {/* Hour Rows - Scrollable */}
+        <div className="relative flex-1 overflow-y-auto">
+          {HOURS.map((hour) => (
             <div 
               key={hour}
-              className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-50 last:border-b-0"
+              className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-100 last:border-b-0"
               style={{ height: '72px' }}
             >
               {/* Time Label */}
-              <div className="flex items-start justify-end pr-3 pt-1 text-xs text-slate-400 font-medium">
+              <div className="flex items-start justify-end pr-3 pt-1 text-xs text-slate-400 font-medium border-r border-slate-100">
                 {`${hour.toString().padStart(2, '0')}:00`}
               </div>
               
@@ -178,7 +179,7 @@ export function TimelineCalendar({
                   <div 
                     key={dayIdx} 
                     className={cn(
-                      "relative border-l border-slate-100",
+                      "relative border-l border-slate-200",
                       isToday && "bg-teal-50/30"
                     )}
                   >

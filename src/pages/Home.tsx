@@ -1,6 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { MonthlyCalendar } from "@/components/home/MonthlyCalendar";
 import { TimelineCalendar } from "@/components/home/TimelineCalendar";
@@ -23,6 +21,7 @@ export interface CalendarTask {
   vehicleId: string | null;
   bookingId: string | null;
   customerName?: string;
+  notes?: string | null;
 }
 
 export default function Home() {
@@ -52,6 +51,7 @@ export default function Home() {
           id,
           task_type,
           title,
+          description,
           due_date,
           due_time,
           location,
@@ -95,7 +95,8 @@ export default function Home() {
           ? `${task.vehicles.make} ${task.vehicles.model}`
           : null,
         bookingId: task.booking_id,
-        customerName: task.booking_id ? bookingsMap.get(task.booking_id) : undefined
+        customerName: task.booking_id ? bookingsMap.get(task.booking_id) : undefined,
+        notes: task.description
       }));
 
       setTasks(mappedTasks);
@@ -116,11 +117,12 @@ export default function Home() {
 
   return (
     <MobileLayout>
-      <div className="min-h-full bg-slate-50/50 p-5">
+      {/* No page-level scroll - contained layout */}
+      <div className="h-[calc(100vh-64px)] bg-slate-50/50 p-5 overflow-hidden">
         {/* Main Layout - Reference: Left sidebar (small calendar + widgets), Right main area (timeline) */}
-        <div className="flex gap-5">
+        <div className="flex gap-5 h-full">
           {/* Left Sidebar - Small Calendar + Widgets */}
-          <div className="w-[280px] flex-shrink-0 space-y-4">
+          <div className="w-[280px] flex-shrink-0 space-y-4 overflow-y-auto">
             {/* Small Monthly Calendar */}
             <MonthlyCalendar
               tasks={tasks}
@@ -129,16 +131,15 @@ export default function Home() {
               loading={loading}
             />
 
-            {/* Reminders Widget (renamed from Categories) */}
+            {/* Reminders Widget */}
             <RemindersWidget />
 
-            {/* Notes Widget (renamed from Prioritize) */}
+            {/* Notes Widget (Notebook) */}
             <NotesWidget />
           </div>
 
           {/* Main Area - Timeline Calendar */}
-          <div className="flex-1 min-w-0">
-            {/* Header with navigation and Create button */}
+          <div className="flex-1 min-w-0 h-full">
             <TimelineCalendar
               tasks={tasks}
               selectedDate={selectedDate}
