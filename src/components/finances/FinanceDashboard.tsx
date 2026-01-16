@@ -5,7 +5,7 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Plus, Loader2, Eye, CalendarIcon, Trash2, X } from "lucide-react";
+import { TrendingUp, TrendingDown, Plus, Loader2, Eye, CalendarIcon, Trash2, X, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -35,6 +35,7 @@ import {
   TIMEFRAME_LABELS,
   DateRange
 } from "@/utils/dateRangeUtils";
+import { RecurringTransactionsModal } from "./RecurringTransactionsModal";
 
 interface FinancialRecord {
   id: string;
@@ -78,6 +79,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [deleteTransactionId, setDeleteTransactionId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isRecurringOpen, setIsRecurringOpen] = useState(false);
   const isBoats = isBoatBusiness();
   const { t, language, isLanguageLoading } = useLanguage();
   const { user } = useAuth();
@@ -394,6 +396,15 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           )}
           
           <Button 
+            variant="outline"
+            onClick={() => setIsRecurringOpen(true)}
+            disabled={isLanguageLoading}
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            {language === 'el' ? 'Επαναλαμβανόμενα' : 'Recurring'}
+          </Button>
+
+          <Button 
             onClick={onAddRecord}
             disabled={isLanguageLoading}
           >
@@ -402,6 +413,13 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           </Button>
         </div>
       </div>
+
+      {/* Recurring Transactions Modal */}
+      <RecurringTransactionsModal
+        open={isRecurringOpen}
+        onOpenChange={setIsRecurringOpen}
+        onTransactionsGenerated={onRecordDeleted}
+      />
       
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
