@@ -434,12 +434,12 @@ export function AddRecurringTransactionDialog({
               </p>
               <div className="space-y-2">
                 <Label>{language === 'el' ? 'Όχημα' : 'Vehicle'}</Label>
-                <Select value={vehicleId} onValueChange={setVehicleId}>
+                <Select value={vehicleId || "__none__"} onValueChange={(v) => setVehicleId(v === "__none__" ? "" : v)}>
                   <SelectTrigger>
                     <SelectValue placeholder={language === 'el' ? 'Κανένα (γενικό)' : 'None (general)'} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">{language === 'el' ? 'Κανένα (γενικό)' : 'None (general)'}</SelectItem>
+                    <SelectItem value="__none__">{language === 'el' ? 'Κανένα (γενικό)' : 'None (general)'}</SelectItem>
                     {vehicles.map((v) => (
                       <SelectItem key={v.id} value={v.id}>
                         {v.make} {v.model} ({v.year})
