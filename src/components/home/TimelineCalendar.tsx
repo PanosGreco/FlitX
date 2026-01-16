@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { format, addDays, subDays, startOfWeek, isSameDay, getWeek } from "date-fns";
-import { ChevronLeft, ChevronRight, Loader2, Plus, X, MapPin, Clock, Car, User, FileText, Image } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Plus, MapPin, Clock, Car, User, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { supabase } from "@/integrations/supabase/client";
+import { ContractPreview } from "@/components/home/ContractPreview";
 import type { CalendarTask } from "@/pages/Home";
 interface TimelineCalendarProps {
   tasks: CalendarTask[];
@@ -57,24 +57,7 @@ export function TimelineCalendar({
     weekStartsOn: 1
   }));
   const [selectedTask, setSelectedTask] = useState<CalendarTask | null>(null);
-  const [contractFullView, setContractFullView] = useState(false);
-  const [contractUrl, setContractUrl] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  // Get contract URL when task is selected
-  useEffect(() => {
-    const fetchContractUrl = async () => {
-      if (selectedTask?.contractPath) {
-        const { data } = supabase.storage
-          .from('contracts')
-          .getPublicUrl(selectedTask.contractPath);
-        setContractUrl(data?.publicUrl || null);
-      } else {
-        setContractUrl(null);
-      }
-    };
-    fetchContractUrl();
-  }, [selectedTask?.contractPath]);
   const weekDays = useMemo(() => {
     return Array.from({
       length: 7
@@ -263,124 +246,104 @@ export function TimelineCalendar({
 
       {/* Task Details Popup */}
       <Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
-        <DialogContent className="sm:max-w-[550px]">
+        <DialogContent className="sm:max-w-[520px] p-4 gap-3">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <span className={cn("px-2 py-0.5 rounded text-xs font-medium", selectedTask?.type === 'delivery' && "bg-emerald-100 text-emerald-700", selectedTask?.type === 'return' && "bg-orange-100 text-orange-700", selectedTask?.type === 'other' && "bg-blue-100 text-blue-700")}>
-                {selectedTask?.type === 'delivery' ? 'Delivery' : selectedTask?.type === 'return' ? 'Return' : 'Other Task'}
+              <span
+                className={cn(
+                  "px-2 py-0.5 rounded text-xs font-medium",
+                  selectedTask?.type === 'delivery' && "bg-emerald-100 text-emerald-700",
+                  selectedTask?.type === 'return' && "bg-orange-100 text-orange-700",
+                  selectedTask?.type === 'other' && "bg-blue-100 text-blue-700"
+                )}
+              >
+                {selectedTask?.type === 'delivery'
+                  ? 'Delivery'
+                  : selectedTask?.type === 'return'
+                    ? 'Return'
+                    : 'Other Task'}
               </span>
             </DialogTitle>
           </DialogHeader>
-          
-          {selectedTask && <div className="flex gap-4">
+
+          {selectedTask && (
+            <div className="flex gap-3">
               {/* Left side - Task details */}
-              <div className="flex-1 space-y-4">
+              <div className="flex-1 space-y-3">
                 {/* Vehicle */}
-                {selectedTask.vehicleName && <div className="flex items-start gap-3">
+                {selectedTask.vehicleName && (
+                  <div className="flex items-start gap-3">
                     <Car className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
                       <div className="text-xs text-slate-500 mb-0.5">Vehicle</div>
                       <div className="text-sm font-medium text-slate-800">{selectedTask.vehicleName}</div>
                     </div>
-                  </div>}
+                  </div>
+                )}
 
                 {/* Customer */}
-                {selectedTask.customerName && <div className="flex items-start gap-3">
+                {selectedTask.customerName && (
+                  <div className="flex items-start gap-3">
                     <User className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
                       <div className="text-xs text-slate-500 mb-0.5">Customer</div>
                       <div className="text-sm font-medium text-slate-800">{selectedTask.customerName}</div>
                     </div>
-                  </div>}
+                  </div>
+                )}
 
                 {/* Time */}
-                {selectedTask.time && <div className="flex items-start gap-3">
+                {selectedTask.time && (
+                  <div className="flex items-start gap-3">
                     <Clock className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
                       <div className="text-xs text-slate-500 mb-0.5">Time</div>
                       <div className="text-sm font-medium text-slate-800">{selectedTask.time}</div>
                     </div>
-                  </div>}
+                  </div>
+                )}
 
                 {/* Location */}
-                {selectedTask.location && <div className="flex items-start gap-3">
+                {selectedTask.location && (
+                  <div className="flex items-start gap-3">
                     <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
                       <div className="text-xs text-slate-500 mb-0.5">Location</div>
                       <div className="text-sm font-medium text-slate-800">{selectedTask.location}</div>
                     </div>
-                  </div>}
+                  </div>
+                )}
 
                 {/* Notes */}
-                {selectedTask.notes && <div className="flex items-start gap-3">
+                {selectedTask.notes && (
+                  <div className="flex items-start gap-3">
                     <FileText className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
                       <div className="text-xs text-slate-500 mb-0.5">Notes</div>
                       <div className="text-sm text-slate-700">{selectedTask.notes}</div>
                     </div>
-                  </div>}
+                  </div>
+                )}
 
                 {/* Title for other tasks */}
-                {selectedTask.type === 'other' && selectedTask.title && <div className="flex items-start gap-3">
+                {selectedTask.type === 'other' && selectedTask.title && (
+                  <div className="flex items-start gap-3">
                     <FileText className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
                       <div className="text-xs text-slate-500 mb-0.5">Title</div>
                       <div className="text-sm font-medium text-slate-800">{selectedTask.title}</div>
                     </div>
-                  </div>}
+                  </div>
+                )}
               </div>
 
-              {/* Right side - Contract Preview (only for delivery/return with contract) */}
-              {(selectedTask.type === 'delivery' || selectedTask.type === 'return') && (
-                <div className="w-[140px] flex-shrink-0">
-                  <div className="text-xs text-slate-500 mb-2 flex items-center gap-1">
-                    <Image className="h-3 w-3" />
-                    Contract
+              {/* Right side - Contract thumbnail (only when an actual contract exists) */}
+              {(selectedTask.type === 'delivery' || selectedTask.type === 'return') &&
+                selectedTask.contractPath && (
+                  <div className="w-[120px] flex-shrink-0">
+                    <ContractPreview contractPath={selectedTask.contractPath} />
                   </div>
-                  {contractUrl ? (
-                    <div 
-                      onClick={() => setContractFullView(true)}
-                      className="relative w-full h-[160px] rounded-lg border border-slate-200 overflow-hidden cursor-pointer hover:border-slate-300 hover:shadow-md transition-all group"
-                    >
-                      <img 
-                        src={contractUrl} 
-                        alt="Contract preview" 
-                        className="w-full h-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                        <span className="text-xs text-white bg-black/50 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                          View full
-                        </span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="w-full h-[160px] rounded-lg border border-dashed border-slate-200 bg-slate-50 flex flex-col items-center justify-center text-slate-400">
-                      <FileText className="h-8 w-8 mb-1" />
-                      <span className="text-xs">No contract</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>}
-        </DialogContent>
-      </Dialog>
-
-      {/* Contract Full View Overlay */}
-      <Dialog open={contractFullView} onOpenChange={setContractFullView}>
-        <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 overflow-hidden">
-          <DialogHeader className="p-4 border-b">
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Contract Document
-            </DialogTitle>
-          </DialogHeader>
-          {contractUrl && (
-            <div className="p-4 overflow-auto max-h-[calc(90vh-80px)] flex items-center justify-center bg-slate-100">
-              <img 
-                src={contractUrl} 
-                alt="Contract full view" 
-                className="max-w-full max-h-full object-contain shadow-lg rounded"
-              />
+                )}
             </div>
           )}
         </DialogContent>
