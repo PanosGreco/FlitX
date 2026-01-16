@@ -336,6 +336,77 @@ export type Database = {
         }
         Relationships: []
       }
+      recurring_transactions: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string | null
+          expense_subcategory: string | null
+          frequency_unit: string
+          frequency_value: number
+          id: string
+          income_source_specification: string | null
+          income_source_type: string | null
+          is_active: boolean
+          last_generated_date: string | null
+          next_generation_date: string
+          start_date: string
+          type: string
+          updated_at: string
+          user_id: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          description?: string | null
+          expense_subcategory?: string | null
+          frequency_unit: string
+          frequency_value?: number
+          id?: string
+          income_source_specification?: string | null
+          income_source_type?: string | null
+          is_active?: boolean
+          last_generated_date?: string | null
+          next_generation_date: string
+          start_date: string
+          type: string
+          updated_at?: string
+          user_id: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          expense_subcategory?: string | null
+          frequency_unit?: string
+          frequency_value?: number
+          id?: string
+          income_source_specification?: string | null
+          income_source_type?: string | null
+          is_active?: boolean
+          last_generated_date?: string | null
+          next_generation_date?: string
+          start_date?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recurring_transactions_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rental_bookings: {
         Row: {
           contract_photo_path: string | null
