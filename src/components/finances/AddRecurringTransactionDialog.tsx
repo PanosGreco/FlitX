@@ -89,7 +89,7 @@ export function AddRecurringTransactionDialog({
           if (!category) return false;
           if (category === 'maintenance' && !expenseSubcategory) return false;
           if (category === 'other' && !expenseSubcategory) return false;
-          if (category === 'marketing' && !expenseSubcategory) return false;
+          // Marketing specification is optional
         }
         return true;
       case 'vehicle': return true;
@@ -124,6 +124,37 @@ export function AddRecurringTransactionDialog({
         return;
       }
 
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split('T')[0];
+      const startDateObj = new Date(startDate);
+      startDateObj.setHours(0, 0, 0, 0);
+      
+      // Check if start date is today or in the past
+      const shouldGenerateImmediately = startDateObj <= today;
+
+      // Calculate initial next_generation_date
+      // If start_date <= today, we'll generate the first transaction now
+      // and set next_generation_date to the next cycle
+      let initialNextGenerationDate = startDate;
+      
+      if (shouldGenerateImmediately) {
+        // Calculate the next date after start_date
+        const nextDate = new Date(startDate);
+        switch (frequencyUnit) {
+          case 'week':
+            nextDate.setDate(nextDate.getDate() + (7 * parseInt(frequencyValue)));
+            break;
+          case 'month':
+            nextDate.setMonth(nextDate.getMonth() + parseInt(frequencyValue));
+            break;
+          case 'year':
+            nextDate.setFullYear(nextDate.getFullYear() + parseInt(frequencyValue));
+            break;
+        }
+        initialNextGenerationDate = nextDate.toISOString().split('T')[0];
+      }
+
       const record: any = {
         user_id: session.session.user.id,
         type,
@@ -133,7 +164,8 @@ export function AddRecurringTransactionDialog({
         start_date: startDate,
         frequency_value: parseInt(frequencyValue),
         frequency_unit: frequencyUnit,
-        next_generation_date: startDate,
+        next_generation_date: initialNextGenerationDate,
+        last_generated_date: shouldGenerateImmediately ? startDate : null,
         is_active: true,
       };
 
@@ -158,11 +190,55 @@ export function AddRecurringTransactionDialog({
 
       if (error) throw error;
 
+      // If start date is today or in the past, immediately generate the first transaction
+      if (shouldGenerateImmediately) {
+        const selectedVehicle = vehicles.find(v => v.id === vehicleId);
+        
+        const financialRecord: any = {
+          user_id: session.session.user.id,
+          type,
+          category: type === 'income' ? 'sales' : (category || 'other'),
+          amount: parseFloat(amount),
+          date: startDate,
+          description: description || `${type === 'income' ? 'Recurring Income' : 'Recurring Expense'}`,
+          source_section: 'recurring',
+          vehicle_id: vehicleId || null,
+        };
+
+        if (selectedVehicle) {
+          financialRecord.vehicle_fuel_type = selectedVehicle.fuel_type || 'petrol';
+          financialRecord.vehicle_year = selectedVehicle.year;
+        }
+
+        if (type === 'income' && incomeSourceType) {
+          financialRecord.income_source_type = incomeSourceType;
+          if ((incomeSourceType === 'collaboration' || incomeSourceType === 'other') && incomeSourceSpec) {
+            financialRecord.income_source_specification = incomeSourceSpec;
+          }
+        }
+
+        if (type === 'expense' && expenseSubcategory) {
+          financialRecord.expense_subcategory = expenseSubcategory;
+        }
+
+        const { error: recordError } = await supabase
+          .from('financial_records')
+          .insert(financialRecord);
+
+        if (recordError) {
+          console.error('Error creating first financial record:', recordError);
+        }
+      }
+
       toast({
         title: language === 'el' ? 'Επιτυχία' : 'Success',
-        description: language === 'el' 
-          ? 'Η επαναλαμβανόμενη συναλλαγή δημιουργήθηκε'
-          : 'Recurring transaction has been created',
+        description: shouldGenerateImmediately
+          ? (language === 'el' 
+              ? 'Η επαναλαμβανόμενη συναλλαγή δημιουργήθηκε και η πρώτη καταχώρηση προστέθηκε'
+              : 'Recurring transaction created and first record added')
+          : (language === 'el' 
+              ? 'Η επαναλαμβανόμενη συναλλαγή δημιουργήθηκε'
+              : 'Recurring transaction has been created'),
       });
 
       resetForm();
@@ -401,17 +477,24 @@ export function AddRecurringTransactionDialog({
                     </div>
                   )}
 
-                  {(category === 'other' || category === 'marketing') && (
+                  {category === 'other' && (
                     <div className="space-y-2">
                       <Label>{language === 'el' ? 'Προσδιορισμός' : 'Specification'} *</Label>
                       <Input
                         value={expenseSubcategory}
                         onChange={(e) => setExpenseSubcategory(e.target.value)}
-                        placeholder={
-                          category === 'marketing'
-                            ? (language === 'el' ? 'π.χ. Social Media, Google Ads...' : 'e.g. Social Media, Google Ads...')
-                            : (language === 'el' ? 'Περιγράψτε...' : 'Describe...')
-                        }
+                        placeholder={language === 'el' ? 'π.χ. Γραφική ύλη' : 'e.g. Office supplies'}
+                      />
+                    </div>
+                  )}
+
+                  {category === 'marketing' && (
+                    <div className="space-y-2">
+                      <Label>{language === 'el' ? 'Προσδιορισμός (προαιρετικό)' : 'Specification (optional)'}</Label>
+                      <Input
+                        value={expenseSubcategory}
+                        onChange={(e) => setExpenseSubcategory(e.target.value)}
+                        placeholder={language === 'el' ? 'π.χ. Social Media, Google Ads...' : 'e.g. Social Media, Google Ads...'}
                       />
                     </div>
                   )}

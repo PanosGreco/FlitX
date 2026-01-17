@@ -60,9 +60,39 @@ interface ExpenseBreakdownProps {
   timeframe?: string;
 }
 
-// Distinct expense colors: Purple, Red, Blue, Green, Teal, Pink, Brown, Orange
-const COLORS = ["#8b5cf6", "#ef4444", "#3b82f6", "#22c55e", "#14b8a6", "#ec4899", "#a16207", "#f97316"];
-// Additional colors for category breakdown
+// Parent category colors - all subcategories inherit parent color
+const PARENT_CATEGORY_COLORS: Record<string, string> = {
+  maintenance: "#ef4444", // Red
+  tax: "#eab308",         // Yellow
+  fuel: "#f97316",        // Orange
+  marketing: "#8b5cf6",   // Purple
+  other: "#3b82f6",       // Blue
+  insurance: "#06b6d4",   // Cyan
+  salary: "#22c55e",      // Green
+  carwash: "#ec4899",     // Pink
+  cleaning: "#14b8a6",    // Teal
+  docking: "#a16207",     // Brown
+  licensing: "#6366f1",   // Indigo
+};
+
+// Fallback colors for unknown categories
+const FALLBACK_COLORS = ["#8b5cf6", "#ef4444", "#3b82f6", "#22c55e", "#14b8a6", "#ec4899", "#a16207", "#f97316"];
+
+// Helper function to get parent category from key
+const getParentCategory = (key: string): string => {
+  if (key.startsWith('maintenance_')) return 'maintenance';
+  if (key.startsWith('other_')) return 'other';
+  if (key.startsWith('marketing_')) return 'marketing';
+  return key;
+};
+
+// Get color for a category (subcategories inherit parent color)
+const getCategoryColor = (key: string, index: number): string => {
+  const parentCategory = getParentCategory(key);
+  return PARENT_CATEGORY_COLORS[parentCategory] || FALLBACK_COLORS[index % FALLBACK_COLORS.length];
+};
+
+// Additional colors for vehicle category breakdown
 const CATEGORY_COLORS = ["#ef4444", "#f97316", "#8b5cf6", "#06b6d4", "#ec4899", "#14b8a6", "#6366f1", "#84cc16"];
 const EXPENSE_CATEGORY_LABELS: Record<string, {
   en: string;
@@ -265,13 +295,15 @@ export function ExpenseBreakdown({
     }).sort((a, b) => b.total - a.total);
   }, [filteredRecords, lang]);
 
-  // Prepare pie chart data
+  // Prepare pie chart data with parent-based colors
   const pieData = useMemo(() => {
     const total = expensesByCategory.reduce((sum, item) => sum + item.total, 0);
-    return expensesByCategory.map(item => ({
+    return expensesByCategory.map((item, index) => ({
       name: item.label,
       value: Math.round(item.total / total * 100) || 0,
-      amount: item.total
+      amount: item.total,
+      key: item.key,
+      color: getCategoryColor(item.key, index)
     }));
   }, [expensesByCategory]);
 
@@ -379,7 +411,7 @@ export function ExpenseBreakdown({
                     <TableCell className="px-2 py-1">
                       <div className="flex items-center gap-1">
                         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
-                      backgroundColor: COLORS[index % COLORS.length]
+                      backgroundColor: getCategoryColor(item.key, index)
                     }} />
                         <span className="truncate text-xs">
                           {item.label}
@@ -465,7 +497,7 @@ export function ExpenseBreakdown({
               }) => `${value}%`} labelLine={{
                 strokeWidth: 1
               }}>
-                    {pieData.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                    {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                   </Pie>
                   <Tooltip formatter={(value: number, name: string, props: any) => [`${value}% (${currencySymbol}${props.payload.amount.toLocaleString('el-GR', {
                 minimumFractionDigits: 0
