@@ -178,6 +178,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         cleaning: language === 'el' ? 'Καθαρισμός' : 'Cleaning',
         docking: language === 'el' ? 'Τέλη Ελλιμενισμού' : 'Docking Fees',
         licensing: language === 'el' ? 'Άδειες' : 'Licensing',
+        marketing: language === 'el' ? 'Μάρκετινγκ' : 'Marketing',
         other: language === 'el' ? 'Άλλο' : 'Other'
       };
       
@@ -396,7 +397,6 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           )}
           
           <Button 
-            variant="outline"
             onClick={() => setIsRecurringOpen(true)}
             disabled={isLanguageLoading}
           >

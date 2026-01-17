@@ -89,6 +89,7 @@ export function AddRecurringTransactionDialog({
           if (!category) return false;
           if (category === 'maintenance' && !expenseSubcategory) return false;
           if (category === 'other' && !expenseSubcategory) return false;
+          if (category === 'marketing' && !expenseSubcategory) return false;
         }
         return true;
       case 'vehicle': return true;
@@ -373,6 +374,7 @@ export function AddRecurringTransactionDialog({
                               <SelectItem value="insurance">{language === 'el' ? 'Ασφάλεια' : 'Insurance'}</SelectItem>
                               <SelectItem value="tax">{language === 'el' ? 'Φόροι/Τέλη' : 'Taxes/Fees'}</SelectItem>
                               <SelectItem value="salary">{language === 'el' ? 'Μισθοί' : 'Salaries'}</SelectItem>
+                              <SelectItem value="marketing">{language === 'el' ? 'Μάρκετινγκ' : 'Marketing'}</SelectItem>
                               <SelectItem value="other">{language === 'el' ? 'Άλλο' : 'Other'}</SelectItem>
                             </>
                           )}
@@ -399,13 +401,17 @@ export function AddRecurringTransactionDialog({
                     </div>
                   )}
 
-                  {category === 'other' && (
+                  {(category === 'other' || category === 'marketing') && (
                     <div className="space-y-2">
                       <Label>{language === 'el' ? 'Προσδιορισμός' : 'Specification'} *</Label>
                       <Input
                         value={expenseSubcategory}
                         onChange={(e) => setExpenseSubcategory(e.target.value)}
-                        placeholder={language === 'el' ? 'Περιγράψτε...' : 'Describe...'}
+                        placeholder={
+                          category === 'marketing'
+                            ? (language === 'el' ? 'π.χ. Social Media, Google Ads...' : 'e.g. Social Media, Google Ads...')
+                            : (language === 'el' ? 'Περιγράψτε...' : 'Describe...')
+                        }
                       />
                     </div>
                   )}

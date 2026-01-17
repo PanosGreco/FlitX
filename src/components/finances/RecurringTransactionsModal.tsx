@@ -141,13 +141,15 @@ export function RecurringTransactionsModal({
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      const todayStr = today.toISOString().split('T')[0];
 
-      // Get all active recurring transactions that are due
+      // Get all active recurring transactions that are due (next_generation_date <= today)
+      // This includes newly created transactions where next_generation_date = start_date
       const { data: dueTransactions, error } = await supabase
         .from('recurring_transactions')
         .select('*')
         .eq('is_active', true)
-        .lte('next_generation_date', today.toISOString().split('T')[0]);
+        .lte('next_generation_date', todayStr);
 
       if (error) throw error;
 
@@ -266,6 +268,18 @@ export function RecurringTransactionsModal({
     return `${value} ${label[form][language === 'el' ? 'el' : 'en']}`;
   };
 
+  const formatEuropeanDate = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}/${month}/${year}`;
+    } catch {
+      return dateStr;
+    }
+  };
+
   const isEmpty = incomeTransactions.length === 0 && expenseTransactions.length === 0;
 
   return (
@@ -350,6 +364,9 @@ export function RecurringTransactionsModal({
                             <p className="text-xs text-muted-foreground">
                               {language === 'el' ? 'Κάθε' : 'Every'} {getFrequencyLabel(t.frequency_value, t.frequency_unit)}
                             </p>
+                            <p className="text-xs text-muted-foreground">
+                              {language === 'el' ? 'Έναρξη' : 'Start'}: {formatEuropeanDate(t.start_date)}
+                            </p>
                             {getVehicleName(t.vehicle_id) && (
                               <p className="text-xs text-muted-foreground truncate">
                                 🚗 {getVehicleName(t.vehicle_id)}
@@ -395,6 +412,9 @@ export function RecurringTransactionsModal({
                             <p className="text-red-700 font-semibold">€{t.amount.toFixed(2)}</p>
                             <p className="text-xs text-muted-foreground">
                               {language === 'el' ? 'Κάθε' : 'Every'} {getFrequencyLabel(t.frequency_value, t.frequency_unit)}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {language === 'el' ? 'Έναρξη' : 'Start'}: {formatEuropeanDate(t.start_date)}
                             </p>
                             {getVehicleName(t.vehicle_id) && (
                               <p className="text-xs text-muted-foreground truncate">

@@ -104,6 +104,10 @@ const EXPENSE_CATEGORY_LABELS: Record<string, {
     en: "Licensing",
     el: "Αδειοδότηση"
   },
+  marketing: {
+    en: "Marketing",
+    el: "Μάρκετινγκ"
+  },
   other: {
     en: "Other",
     el: "Άλλο"
@@ -189,12 +193,14 @@ export function ExpenseBreakdown({
       const baseCategory = record.category || 'other';
       const month = getMonth(new Date(record.date));
 
-      // For maintenance, aggregate by subcategory (e.g., "maintenance_oil_change")
+      // For maintenance, other, and marketing, aggregate by subcategory
       let aggregationKey = baseCategory;
       if (baseCategory === 'maintenance' && record.expense_subcategory) {
         aggregationKey = `maintenance_${record.expense_subcategory}`;
       } else if (baseCategory === 'other' && record.expense_subcategory) {
         aggregationKey = `other_${record.expense_subcategory}`;
+      } else if (baseCategory === 'marketing' && record.expense_subcategory) {
+        aggregationKey = `marketing_${record.expense_subcategory}`;
       }
       if (!categoryData[aggregationKey]) {
         categoryData[aggregationKey] = {
@@ -231,6 +237,10 @@ export function ExpenseBreakdown({
       } else if (key.startsWith('other_')) {
         const subcategory = key.replace('other_', '');
         const categoryLabel = EXPENSE_CATEGORY_LABELS['other']?.[lang === 'el' ? 'el' : 'en'] || 'Other';
+        label = `${categoryLabel} (${subcategory})`;
+      } else if (key.startsWith('marketing_')) {
+        const subcategory = key.replace('marketing_', '');
+        const categoryLabel = EXPENSE_CATEGORY_LABELS['marketing']?.[lang === 'el' ? 'el' : 'en'] || 'Marketing';
         label = `${categoryLabel} (${subcategory})`;
       } else {
         label = EXPENSE_CATEGORY_LABELS[key]?.[lang === 'el' ? 'el' : 'en'] || key;
