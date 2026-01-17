@@ -196,7 +196,7 @@ const Finance = () => {
       
       // Add expense subcategory
       if (recordType === "expense") {
-        if (expenseCategory === 'maintenance' || expenseCategory === 'other') {
+        if (expenseCategory === 'maintenance' || expenseCategory === 'other' || expenseCategory === 'marketing') {
           newRecord.expense_subcategory = expenseSubcategory;
         }
       }
@@ -372,6 +372,7 @@ const Finance = () => {
                             <SelectItem value="insurance">{t.insurance}</SelectItem>
                             <SelectItem value="tax">{t.taxesFees}</SelectItem>
                             <SelectItem value="salary">{t.employeeSalaries}</SelectItem>
+                            <SelectItem value="marketing">{language === 'el' ? 'Μάρκετινγκ' : 'Marketing'}</SelectItem>
                             <SelectItem value="other">{t.other}</SelectItem>
                           </>
                         )}
@@ -402,15 +403,19 @@ const Finance = () => {
                 </div>
               )}
 
-              {/* Free-text subcategory only for 'other' expense category */}
-              {recordType === "expense" && expenseCategory === 'other' && (
+              {/* Free-text subcategory for 'other' and 'marketing' expense categories */}
+              {recordType === "expense" && (expenseCategory === 'other' || expenseCategory === 'marketing') && (
                 <div className="space-y-2">
                   <Label htmlFor="expenseSubcat">
                     {language === 'el' ? 'Προσδιορισμός' : 'Specification'} *
                   </Label>
                   <Input 
                     id="expenseSubcat"
-                    placeholder={language === 'el' ? 'Περιγράψτε το έξοδο...' : 'Describe the expense...'}
+                    placeholder={
+                      expenseCategory === 'marketing'
+                        ? (language === 'el' ? 'π.χ. Social Media, Google Ads...' : 'e.g. Social Media, Google Ads...')
+                        : (language === 'el' ? 'Περιγράψτε το έξοδο...' : 'Describe the expense...')
+                    }
                     value={expenseSubcategory}
                     onChange={(e) => setExpenseSubcategory(e.target.value)}
                     required
