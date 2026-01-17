@@ -403,22 +403,34 @@ const Finance = () => {
                 </div>
               )}
 
-              {/* Free-text subcategory for 'other' and 'marketing' expense categories */}
-              {recordType === "expense" && (expenseCategory === 'other' || expenseCategory === 'marketing') && (
+              {/* Free-text subcategory for 'other' expense category (required) */}
+              {recordType === "expense" && expenseCategory === 'other' && (
                 <div className="space-y-2">
                   <Label htmlFor="expenseSubcat">
                     {language === 'el' ? 'Προσδιορισμός' : 'Specification'} *
                   </Label>
                   <Input 
                     id="expenseSubcat"
-                    placeholder={
-                      expenseCategory === 'marketing'
-                        ? (language === 'el' ? 'π.χ. Social Media, Google Ads...' : 'e.g. Social Media, Google Ads...')
-                        : (language === 'el' ? 'Περιγράψτε το έξοδο...' : 'Describe the expense...')
-                    }
+                    placeholder={language === 'el' ? 'Περιγράψτε το έξοδο...' : 'Describe the expense...'}
                     value={expenseSubcategory}
                     onChange={(e) => setExpenseSubcategory(e.target.value)}
                     required
+                    disabled={isLanguageLoading}
+                  />
+                </div>
+              )}
+
+              {/* Optional specification for 'marketing' expense category */}
+              {recordType === "expense" && expenseCategory === 'marketing' && (
+                <div className="space-y-2">
+                  <Label htmlFor="expenseSubcat">
+                    {language === 'el' ? 'Προσδιορισμός (προαιρετικό)' : 'Specification (optional)'}
+                  </Label>
+                  <Input 
+                    id="expenseSubcat"
+                    placeholder={language === 'el' ? 'π.χ. Social Media, Google Ads...' : 'e.g. Social Media, Google Ads...'}
+                    value={expenseSubcategory}
+                    onChange={(e) => setExpenseSubcategory(e.target.value)}
                     disabled={isLanguageLoading}
                   />
                 </div>
