@@ -30,13 +30,30 @@ import {
   LogOut,
   Trash2,
   Loader2,
+  Building2,
+  MapPin,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+
+const COUNTRIES = [
+  { value: "greece", label: "Greece" },
+  { value: "italy", label: "Italy" },
+  { value: "spain", label: "Spain" },
+  { value: "germany", label: "Germany" },
+  { value: "france", label: "France" },
+];
 
 export function UserProfile() {
   const navigate = useNavigate();
@@ -54,6 +71,9 @@ export function UserProfile() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState("");
+  const [country, setCountry] = useState("");
+  const [city, setCity] = useState("");
 
   // Populate form from profile when it loads
   useEffect(() => {
@@ -62,6 +82,9 @@ export function UserProfile() {
       setEmail(profile.email || user?.email || "");
       setPhone(profile.phone || "");
       setAvatarUrl(profile.avatar_url);
+      setCompanyName(profile.company_name || "");
+      setCountry(profile.country || "");
+      setCity(profile.city || "");
     } else if (user) {
       setEmail(user.email || "");
       setName(user.user_metadata?.name || "");
@@ -133,6 +156,9 @@ export function UserProfile() {
       name,
       email,
       phone,
+      company_name: companyName,
+      country,
+      city,
     });
     setIsLoading(false);
 
@@ -323,6 +349,54 @@ export function UserProfile() {
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="Enter your phone number"
                       />
+                    </div>
+
+                    <Separator className="my-2" />
+
+                    <div className="space-y-2">
+                      <Label htmlFor="company-name" className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4" />
+                        {language === "el" ? "Επωνυμία Εταιρείας" : "Company Name"}
+                      </Label>
+                      <Input
+                        id="company-name"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        placeholder={language === "el" ? "Εισάγετε το όνομα της εταιρείας" : "Enter your company name"}
+                      />
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="country" className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          {language === "el" ? "Χώρα" : "Country"}
+                        </Label>
+                        <Select value={country} onValueChange={setCountry}>
+                          <SelectTrigger id="country">
+                            <SelectValue placeholder={language === "el" ? "Επιλέξτε χώρα" : "Select country"} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {COUNTRIES.map((c) => (
+                              <SelectItem key={c.value} value={c.value}>
+                                {c.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="city">
+                          {language === "el" ? "Πόλη" : "City"}
+                        </Label>
+                        <Input
+                          id="city"
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          placeholder={language === "el" ? "Εισάγετε πόλη" : "Enter your city"}
+                        />
+                      </div>
                     </div>
                   </div>
 

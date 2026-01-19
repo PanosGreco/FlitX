@@ -7,9 +7,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { Loader2, Mail, Lock, User, Eye, EyeOff, Building2, MapPin } from "lucide-react";
 import { z } from "zod";
+import fleetxLogo from "@/assets/fleetx-logo.png";
+
+const COUNTRIES = [
+  { value: "greece", label: "Greece" },
+  { value: "italy", label: "Italy" },
+  { value: "spain", label: "Spain" },
+  { value: "germany", label: "Germany" },
+  { value: "france", label: "France" },
+];
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -18,6 +28,9 @@ const loginSchema = z.object({
 
 const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
+  companyName: z.string().min(2, "Company name must be at least 2 characters"),
+  country: z.string().min(1, "Please select a country"),
+  city: z.string().min(2, "City must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string(),
@@ -37,10 +50,15 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  // Form states
+  // Login form states
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  
+  // Signup form states
   const [signupName, setSignupName] = useState("");
+  const [signupCompanyName, setSignupCompanyName] = useState("");
+  const [signupCountry, setSignupCountry] = useState("");
+  const [signupCity, setSignupCity] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
@@ -98,6 +116,9 @@ export default function Auth() {
     
     const result = signupSchema.safeParse({
       name: signupName,
+      companyName: signupCompanyName,
+      country: signupCountry,
+      city: signupCity,
       email: signupEmail,
       password: signupPassword,
       confirmPassword: signupConfirmPassword,
@@ -115,7 +136,11 @@ export default function Auth() {
     }
 
     setIsSubmitting(true);
-    const { error } = await signUp(signupEmail, signupPassword, signupName);
+    const { error } = await signUp(signupEmail, signupPassword, signupName, {
+      company_name: signupCompanyName,
+      country: signupCountry,
+      city: signupCity,
+    });
     setIsSubmitting(false);
 
     if (error) {
@@ -152,10 +177,13 @@ export default function Auth() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/10 p-4">
       <Card className="w-full max-w-md shadow-xl border-border/50">
         <CardHeader className="text-center space-y-2 pb-2">
-          <div className="mx-auto w-12 h-12 bg-primary rounded-xl flex items-center justify-center mb-2">
-            <span className="text-primary-foreground font-bold text-xl">F</span>
+          <div className="mx-auto mb-2">
+            <img 
+              src={fleetxLogo} 
+              alt="FleetX - Intelligent Fleet Management" 
+              className="h-16 w-auto object-contain"
+            />
           </div>
-          <CardTitle className="text-2xl font-bold">FleetManager</CardTitle>
           <CardDescription>
             {activeTab === "login" 
               ? "Welcome back! Sign in to your account" 
@@ -243,6 +271,59 @@ export default function Auth() {
                     />
                   </div>
                   {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signup-company">Company Name</Label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="signup-company"
+                      type="text"
+                      placeholder="Enter your company name"
+                      value={signupCompanyName}
+                      onChange={(e) => setSignupCompanyName(e.target.value)}
+                      className="pl-10"
+                      disabled={isSubmitting}
+                    />
+                  </div>
+                  {errors.companyName && <p className="text-sm text-destructive">{errors.companyName}</p>}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-country">Country</Label>
+                    <Select value={signupCountry} onValueChange={setSignupCountry} disabled={isSubmitting}>
+                      <SelectTrigger id="signup-country">
+                        <SelectValue placeholder="Select country" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {COUNTRIES.map((country) => (
+                          <SelectItem key={country.value} value={country.value}>
+                            {country.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {errors.country && <p className="text-sm text-destructive">{errors.country}</p>}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-city">City</Label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signup-city"
+                        type="text"
+                        placeholder="Enter city"
+                        value={signupCity}
+                        onChange={(e) => setSignupCity(e.target.value)}
+                        className="pl-10"
+                        disabled={isSubmitting}
+                      />
+                    </div>
+                    {errors.city && <p className="text-sm text-destructive">{errors.city}</p>}
+                  </div>
                 </div>
                 
                 <div className="space-y-2">
