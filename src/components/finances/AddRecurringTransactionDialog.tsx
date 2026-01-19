@@ -446,6 +446,7 @@ export function AddRecurringTransactionDialog({
                             <>
                               <SelectItem value="fuel">{language === 'el' ? 'Καύσιμα' : 'Fuel'}</SelectItem>
                               <SelectItem value="maintenance">{language === 'el' ? 'Συντήρηση' : 'Maintenance'}</SelectItem>
+                              <SelectItem value="vehicle_parts">{language === 'el' ? 'Ανταλλακτικά Οχήματος' : 'Vehicle Parts'}</SelectItem>
                               <SelectItem value="carwash">{language === 'el' ? 'Πλύσιμο' : 'Car Wash'}</SelectItem>
                               <SelectItem value="insurance">{language === 'el' ? 'Ασφάλεια' : 'Insurance'}</SelectItem>
                               <SelectItem value="tax">{language === 'el' ? 'Φόροι/Τέλη' : 'Taxes/Fees'}</SelectItem>

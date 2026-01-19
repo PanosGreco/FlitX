@@ -368,6 +368,7 @@ const Finance = () => {
                           <>
                             <SelectItem value="fuel">{t.fuel}</SelectItem>
                             <SelectItem value="maintenance">{t.vehicleMaintenance}</SelectItem>
+                            <SelectItem value="vehicle_parts">{language === 'el' ? 'Ανταλλακτικά Οχήματος' : 'Vehicle Parts'}</SelectItem>
                             <SelectItem value="carwash">{t.carWash}</SelectItem>
                             <SelectItem value="insurance">{t.insurance}</SelectItem>
                             <SelectItem value="tax">{t.taxesFees}</SelectItem>
