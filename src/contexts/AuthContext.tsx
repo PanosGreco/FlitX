@@ -10,6 +10,9 @@ interface Profile {
   phone: string | null;
   avatar_url: string | null;
   business_type: string | null;
+  company_name: string | null;
+  country: string | null;
+  city: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -19,7 +22,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   isLoading: boolean;
-  signUp: (email: string, password: string, name?: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, name?: string, extraData?: { company_name?: string; country?: string; city?: string }) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
@@ -95,11 +98,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, name?: string) => {
+  const signUp = async (email: string, password: string, name?: string, extraData?: { company_name?: string; country?: string; city?: string }) => {
     try {
       const redirectUrl = `${window.location.origin}/`;
       
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -112,6 +115,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         return { error };
+      }
+
+      // If we have extra data (company, location) and signup succeeded, update the profile
+      if (data.user && extraData && (extraData.company_name || extraData.country || extraData.city)) {
+        // Wait a bit for the trigger to create the profile
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            company_name: extraData.company_name,
+            country: extraData.country,
+            city: extraData.city,
+          })
+          .eq("user_id", data.user.id);
+
+        if (profileError) {
+          console.error("Failed to update profile with extra data:", profileError);
+        }
       }
 
       return { error: null };
