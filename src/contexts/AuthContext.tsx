@@ -156,10 +156,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // If email is changing, we need to update Auth first (atomic approach)
       if (isEmailChange) {
-        // Step 1: Update Auth email first
-        const { error: authError } = await supabase.auth.updateUser({
-          email: newEmail,
-        });
+        // Step 1: Update Auth email first (with redirect URL for confirmation)
+        const { error: authError } = await supabase.auth.updateUser(
+          { email: newEmail },
+          { emailRedirectTo: `${window.location.origin}/profile` }
+        );
 
         if (authError) {
           // Auth update failed - do not proceed with profile update

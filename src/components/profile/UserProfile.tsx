@@ -137,9 +137,13 @@ export function UserProfile() {
     setIsLoading(false);
 
     if (error) {
+      // Detect rate limit errors and show user-friendly message
+      const isRateLimited = error.message?.includes("security") || error.message?.includes("rate") || error.message?.includes("wait");
       toast({
-        title: "Error",
-        description: error.message || "Failed to update profile. Please try again.",
+        title: isRateLimited ? (language === "el" ? "Παρακαλώ περιμένετε" : "Please Wait") : "Error",
+        description: isRateLimited 
+          ? (language === "el" ? "Για λόγους ασφαλείας, περιμένετε 60 δευτερόλεπτα πριν δοκιμάσετε ξανά." : "For security, please wait 60 seconds before trying again.")
+          : (error.message || "Failed to update profile. Please try again."),
         variant: "destructive",
       });
     } else {
