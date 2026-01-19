@@ -152,8 +152,8 @@ export function UserProfile() {
         toast({
           title: t.profileUpdated,
           description: language === "el" 
-            ? "Ένας σύνδεσμος επιβεβαίωσης έχει σταλεί στο νέο email σας. Ελέγξτε τα εισερχόμενά σας."
-            : "A confirmation link has been sent to your new email. Please check your inbox to complete the change.",
+            ? "Το email σας ενημερώθηκε επιτυχώς."
+            : "Your email has been updated successfully.",
         });
       } else {
         toast({
