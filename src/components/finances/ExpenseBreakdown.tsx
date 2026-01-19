@@ -62,17 +62,18 @@ interface ExpenseBreakdownProps {
 
 // Parent category colors - all subcategories inherit parent color
 const PARENT_CATEGORY_COLORS: Record<string, string> = {
-  maintenance: "#ef4444", // Red
-  tax: "#eab308",         // Yellow
-  fuel: "#f97316",        // Orange
-  marketing: "#8b5cf6",   // Purple
-  other: "#3b82f6",       // Blue
-  insurance: "#06b6d4",   // Cyan
-  salary: "#22c55e",      // Green
-  carwash: "#ec4899",     // Pink
-  cleaning: "#14b8a6",    // Teal
-  docking: "#a16207",     // Brown
-  licensing: "#6366f1",   // Indigo
+  maintenance: "#ef4444",    // Red
+  tax: "#eab308",            // Yellow
+  fuel: "#f97316",           // Orange
+  marketing: "#8b5cf6",      // Purple
+  other: "#3b82f6",          // Blue
+  insurance: "#06b6d4",      // Cyan
+  salary: "#22c55e",         // Green
+  carwash: "#ec4899",        // Pink
+  cleaning: "#14b8a6",       // Teal
+  docking: "#a16207",        // Brown
+  licensing: "#6366f1",      // Indigo
+  vehicle_parts: "#d97706",  // Amber
 };
 
 // Fallback colors for unknown categories
@@ -83,6 +84,7 @@ const getParentCategory = (key: string): string => {
   if (key.startsWith('maintenance_')) return 'maintenance';
   if (key.startsWith('other_')) return 'other';
   if (key.startsWith('marketing_')) return 'marketing';
+  if (key.startsWith('vehicle_parts_')) return 'vehicle_parts';
   return key;
 };
 
@@ -137,6 +139,10 @@ const EXPENSE_CATEGORY_LABELS: Record<string, {
   marketing: {
     en: "Marketing",
     el: "Μάρκετινγκ"
+  },
+  vehicle_parts: {
+    en: "Vehicle Parts",
+    el: "Ανταλλακτικά Οχήματος"
   },
   other: {
     en: "Other",
