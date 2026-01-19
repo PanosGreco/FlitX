@@ -126,6 +126,8 @@ export function UserProfile() {
   const handleSaveProfile = async () => {
     if (!user) return;
 
+    const isEmailChanging = email !== (user.email || "");
+
     setIsLoading(true);
     const { error } = await updateProfile({
       name,
@@ -137,14 +139,24 @@ export function UserProfile() {
     if (error) {
       toast({
         title: "Error",
-        description: "Failed to update profile. Please try again.",
+        description: error.message || "Failed to update profile. Please try again.",
         variant: "destructive",
       });
     } else {
-      toast({
-        title: t.profileUpdated,
-        description: t.profileUpdateSuccess,
-      });
+      // Show appropriate message based on whether email changed
+      if (isEmailChanging) {
+        toast({
+          title: t.profileUpdated,
+          description: language === "el" 
+            ? "Ένας σύνδεσμος επιβεβαίωσης έχει σταλεί στο νέο email σας. Ελέγξτε τα εισερχόμενά σας."
+            : "A confirmation link has been sent to your new email. Please check your inbox to complete the change.",
+        });
+      } else {
+        toast({
+          title: t.profileUpdated,
+          description: t.profileUpdateSuccess,
+        });
+      }
     }
   };
 

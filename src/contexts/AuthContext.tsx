@@ -150,6 +150,54 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      const currentAuthEmail = user.email;
+      const newEmail = updates.email;
+      const isEmailChange = newEmail && newEmail !== currentAuthEmail;
+
+      // If email is changing, we need to update Auth first (atomic approach)
+      if (isEmailChange) {
+        // Step 1: Update Auth email first
+        const { error: authError } = await supabase.auth.updateUser({
+          email: newEmail,
+        });
+
+        if (authError) {
+          // Auth update failed - do not proceed with profile update
+          console.error("Auth email update failed:", authError);
+          return { 
+            error: new Error(
+              authError.message.includes("already registered")
+                ? "This email is already in use by another account"
+                : `Failed to update email: ${authError.message}`
+            ) 
+          };
+        }
+
+        // Step 2: Update profile table
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update(updates)
+          .eq("user_id", user.id);
+
+        if (profileError) {
+          // Profile update failed - attempt to rollback Auth email
+          console.error("Profile update failed, attempting rollback:", profileError);
+          
+          if (currentAuthEmail) {
+            await supabase.auth.updateUser({ email: currentAuthEmail });
+          }
+          
+          return { 
+            error: new Error("Failed to sync email. Please try again.") 
+          };
+        }
+
+        // Both succeeded - refresh profile
+        await refreshProfile();
+        return { error: null };
+      }
+
+      // Non-email updates - just update profile table
       const { error } = await supabase
         .from("profiles")
         .update(updates)
