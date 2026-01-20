@@ -7,7 +7,8 @@ import {
   Map, 
   User, 
   Calendar,
-  X 
+  X,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -29,6 +30,11 @@ const navItems: NavItem[] = [
     titleKey: "home",
     href: "/",
     icon: Calendar,
+  },
+  {
+    titleKey: "aiAssistant",
+    href: "/ai-assistant",
+    icon: Sparkles,
   },
   {
     titleKey: "dailyProgram",
@@ -103,12 +109,15 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
       }
       return value;
     }
-    // Add fallback for new dailyProgram key
+    // Add fallback for new keys
     if (key === 'dailyProgram') {
       return 'Daily Program';
     }
     if (key === 'home') {
       return 'Home';
+    }
+    if (key === 'aiAssistant') {
+      return 'AI Assistant';
     }
     return key; // Fallback to the key if translation is not a string
   };
