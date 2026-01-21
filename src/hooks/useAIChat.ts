@@ -163,7 +163,8 @@ export function useAIChat(): UseAIChatReturn {
             setError('You have reached your daily message limit. Try again tomorrow!');
             setUsage({ used: errorData.used || 20, limit: errorData.limit || 20 });
           } else {
-            setError('Rate limit exceeded. Please wait a moment.');
+            // AI provider rate limit - temporary, can retry
+            setError('The AI is currently busy. Please wait a few seconds and try again.');
           }
           setMessages(prev => prev.filter(m => m.id !== userMessage.id));
           setIsLoading(false);
