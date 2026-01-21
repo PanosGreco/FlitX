@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DAILY_MESSAGE_LIMIT = 10;
+const DAILY_MESSAGE_LIMIT = 20;
 const MAX_MESSAGE_LENGTH = 4000;
 const MAX_MESSAGES_PER_REQUEST = 20;
 

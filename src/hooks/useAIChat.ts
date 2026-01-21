@@ -37,7 +37,7 @@ export function useAIChat(): UseAIChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [usage, setUsage] = useState({ used: 0, limit: 10 });
+  const [usage, setUsage] = useState({ used: 0, limit: 20 });
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversation, setActiveConversation] = useState<string | null>(null);
 
