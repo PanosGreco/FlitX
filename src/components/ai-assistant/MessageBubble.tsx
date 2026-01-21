@@ -22,7 +22,7 @@ export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
         <img 
           src={aiAvatar} 
           alt="FlitX AI" 
-          className="flex-shrink-0 w-8 h-8 rounded-full object-cover"
+          className="flex-shrink-0 w-10 h-10 rounded-full object-cover"
         />
       )}
       
