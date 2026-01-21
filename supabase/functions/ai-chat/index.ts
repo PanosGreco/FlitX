@@ -7,6 +7,8 @@ const corsHeaders = {
 };
 
 const DAILY_MESSAGE_LIMIT = 10;
+const MAX_MESSAGE_LENGTH = 4000;
+const MAX_MESSAGES_PER_REQUEST = 20;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -29,6 +31,20 @@ serve(async (req) => {
     }
 
     const { messages, conversationId, presetType } = await req.json();
+
+    // === SECURITY: Input Validation ===
+    // Validate message length to prevent abuse
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.content && lastMessage.content.length > MAX_MESSAGE_LENGTH) {
+      return new Response(JSON.stringify({ 
+        error: "Message too long. Please keep messages under 4000 characters." 
+      }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    // Trim conversation history to prevent token overflow
+    const trimmedMessages = messages.slice(-MAX_MESSAGES_PER_REQUEST);
 
     // Check/update daily usage
     const today = new Date().toISOString().split("T")[0];
@@ -89,7 +105,7 @@ serve(async (req) => {
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
-          ...messages
+          ...trimmedMessages
         ],
         stream: true,
       }),
@@ -118,7 +134,10 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("AI chat error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    // Never expose internal error details to client
+    return new Response(JSON.stringify({ 
+      error: "An error occurred. Please try again." 
+    }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   }
