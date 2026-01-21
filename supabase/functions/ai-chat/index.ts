@@ -66,7 +66,7 @@ serve(async (req) => {
       supabaseClient.from("recurring_transactions").select("*").eq("user_id", user.id)
     ]);
 
-    // Build business context summary
+    // Build business context summary with enhanced per-vehicle analytics
     const businessContext = buildBusinessContext(
       financials.data || [],
       vehicles.data || [],
@@ -75,7 +75,7 @@ serve(async (req) => {
       recurringTransactions.data || []
     );
 
-    // Build system prompt with business context
+    // Build system prompt with business context and data dictionary
     const systemPrompt = buildSystemPrompt(businessContext, presetType);
 
     // Call Lovable AI Gateway
@@ -124,12 +124,16 @@ serve(async (req) => {
   }
 });
 
+// ============= TYPE DEFINITIONS =============
+
 interface FinancialRecord {
   type: string;
   amount: number;
   category: string;
   expense_subcategory?: string;
   date: string;
+  vehicle_id?: string;
+  income_source_type?: string;
 }
 
 interface Vehicle {
@@ -138,6 +142,9 @@ interface Vehicle {
   model: string;
   license_plate: string;
   daily_rate?: number;
+  type?: string;
+  year?: number;
+  status?: string;
 }
 
 interface Booking {
@@ -146,6 +153,7 @@ interface Booking {
   start_date: string;
   end_date: string;
   total_amount?: number;
+  status?: string;
 }
 
 interface Profile {
@@ -163,6 +171,39 @@ interface RecurringTransaction {
   frequency_value: number;
 }
 
+// ============= ENHANCED VEHICLE FINANCIAL ANALYTICS =============
+
+interface VehicleFinancials {
+  id: string;
+  name: string;
+  plate: string;
+  dailyRate: number;
+  totalIncome: number;
+  totalExpenses: number;
+  netProfit: number;
+  profitMargin: number;
+  bookingCount: number;
+  bookingRevenue: number;
+  daysRented: number;
+  avgRevenuePerBooking: number;
+}
+
+interface ExpenseCategory {
+  name: string;
+  amount: number;
+  percentage: number;
+}
+
+interface MonthlyPerformance {
+  month: string;
+  income: number;
+  expenses: number;
+  netProfit: number;
+  bookings: number;
+}
+
+// ============= CORE BUSINESS CONTEXT BUILDER =============
+
 function buildBusinessContext(
   financials: FinancialRecord[],
   vehicles: Vehicle[],
@@ -170,27 +211,134 @@ function buildBusinessContext(
   profile: Profile | null,
   recurringTransactions: RecurringTransaction[]
 ) {
-  // Aggregate financial summary
+  // === AGGREGATE FINANCIAL TOTALS ===
   const totalIncome = financials.filter(f => f.type === 'income').reduce((sum, f) => sum + Number(f.amount), 0);
   const totalExpenses = financials.filter(f => f.type === 'expense').reduce((sum, f) => sum + Number(f.amount), 0);
   const netIncome = totalIncome - totalExpenses;
+
+  // === PER-VEHICLE FINANCIAL BREAKDOWN (CRITICAL FOR ACCURACY) ===
+  const vehicleFinancials: VehicleFinancials[] = vehicles.map(v => {
+    // Income attributed to this vehicle
+    const vIncome = financials
+      .filter(f => f.vehicle_id === v.id && f.type === 'income')
+      .reduce((sum, f) => sum + Number(f.amount), 0);
+    
+    // Expenses attributed to this vehicle
+    const vExpenses = financials
+      .filter(f => f.vehicle_id === v.id && f.type === 'expense')
+      .reduce((sum, f) => sum + Number(f.amount), 0);
+    
+    // Bookings for this vehicle
+    const vBookings = bookings.filter(b => b.vehicle_id === v.id);
+    const bookingRevenue = vBookings.reduce((sum, b) => sum + Number(b.total_amount || 0), 0);
+    
+    // Calculate days rented
+    let daysRented = 0;
+    vBookings.forEach(b => {
+      const start = new Date(b.start_date);
+      const end = new Date(b.end_date);
+      daysRented += Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+    });
+
+    const netProfit = vIncome - vExpenses;
+    const profitMargin = vIncome > 0 ? ((netProfit / vIncome) * 100) : 0;
+    const avgRevenuePerBooking = vBookings.length > 0 ? (vIncome / vBookings.length) : 0;
+
+    return {
+      id: v.id,
+      name: `${v.make} ${v.model}`,
+      plate: v.license_plate || 'No plate',
+      dailyRate: Number(v.daily_rate) || 0,
+      totalIncome: vIncome,
+      totalExpenses: vExpenses,
+      netProfit,
+      profitMargin,
+      bookingCount: vBookings.length,
+      bookingRevenue,
+      daysRented,
+      avgRevenuePerBooking
+    };
+  });
+
+  // === PRE-COMPUTED VEHICLE RANKINGS ===
+  const sortedByProfit = [...vehicleFinancials].sort((a, b) => b.netProfit - a.netProfit);
+  const sortedByBookings = [...vehicleFinancials].sort((a, b) => b.bookingCount - a.bookingCount);
+  const sortedByRevenue = [...vehicleFinancials].sort((a, b) => b.totalIncome - a.totalIncome);
   
-  // Expense breakdown by category
+  const mostProfitableVehicle = sortedByProfit[0] || null;
+  const leastProfitableVehicle = sortedByProfit.length > 0 ? sortedByProfit[sortedByProfit.length - 1] : null;
+  const mostBookedVehicle = sortedByBookings[0] || null;
+  const highestRevenueVehicle = sortedByRevenue[0] || null;
+
+  // === EXPENSE CATEGORY BREAKDOWN ===
   const expensesByCategory: Record<string, number> = {};
   financials.filter(f => f.type === 'expense').forEach(f => {
     const cat = f.category || 'other';
     expensesByCategory[cat] = (expensesByCategory[cat] || 0) + Number(f.amount);
   });
 
-  // Vehicle utilization
-  const vehicleStats = vehicles.map(v => ({
-    name: `${v.make} ${v.model}`,
-    plate: v.license_plate,
-    dailyRate: v.daily_rate,
-    bookingCount: bookings.filter(b => b.vehicle_id === v.id).length
-  }));
+  const sortedExpenseCategories: ExpenseCategory[] = Object.entries(expensesByCategory)
+    .map(([name, amount]) => ({
+      name,
+      amount,
+      percentage: totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0
+    }))
+    .sort((a, b) => b.amount - a.amount);
 
-  // Recurring expenses summary
+  const topExpenseCategory = sortedExpenseCategories[0] || { name: 'none', amount: 0, percentage: 0 };
+
+  // === INCOME SOURCE BREAKDOWN ===
+  const incomeBySource: Record<string, number> = {};
+  financials.filter(f => f.type === 'income').forEach(f => {
+    const source = f.income_source_type || f.category || 'other';
+    incomeBySource[source] = (incomeBySource[source] || 0) + Number(f.amount);
+  });
+
+  const sortedIncomeSources = Object.entries(incomeBySource)
+    .map(([name, amount]) => ({
+      name,
+      amount,
+      percentage: totalIncome > 0 ? (amount / totalIncome) * 100 : 0
+    }))
+    .sort((a, b) => b.amount - a.amount);
+
+  // === MONTHLY PERFORMANCE ANALYSIS ===
+  const monthlyPerformance: Record<string, { income: number; expenses: number; bookings: number }> = {};
+  
+  financials.forEach(f => {
+    const month = f.date.substring(0, 7);
+    if (!monthlyPerformance[month]) {
+      monthlyPerformance[month] = { income: 0, expenses: 0, bookings: 0 };
+    }
+    if (f.type === 'income') {
+      monthlyPerformance[month].income += Number(f.amount);
+    } else {
+      monthlyPerformance[month].expenses += Number(f.amount);
+    }
+  });
+
+  bookings.forEach(b => {
+    const month = b.start_date.substring(0, 7);
+    if (!monthlyPerformance[month]) {
+      monthlyPerformance[month] = { income: 0, expenses: 0, bookings: 0 };
+    }
+    monthlyPerformance[month].bookings += 1;
+  });
+
+  const sortedMonths: MonthlyPerformance[] = Object.entries(monthlyPerformance)
+    .map(([month, data]) => ({
+      month,
+      income: data.income,
+      expenses: data.expenses,
+      netProfit: data.income - data.expenses,
+      bookings: data.bookings
+    }))
+    .sort((a, b) => b.netProfit - a.netProfit);
+
+  const bestMonth = sortedMonths[0] || null;
+  const worstMonth = sortedMonths.length > 0 ? sortedMonths[sortedMonths.length - 1] : null;
+
+  // === RECURRING EXPENSES SUMMARY ===
   const monthlyRecurring = recurringTransactions
     .filter(r => r.type === 'expense')
     .reduce((sum, r) => {
@@ -201,11 +349,11 @@ function buildBusinessContext(
       return sum + monthlyAmount;
     }, 0);
 
-  // Booking analysis
-  const bookingsByMonth: Record<string, number> = {};
+  // === BOOKINGS BY STATUS ===
+  const bookingsByStatus: Record<string, number> = {};
   bookings.forEach(b => {
-    const month = b.start_date.substring(0, 7);
-    bookingsByMonth[month] = (bookingsByMonth[month] || 0) + 1;
+    const status = b.status || 'unknown';
+    bookingsByStatus[status] = (bookingsByStatus[status] || 0) + 1;
   });
 
   return {
@@ -221,63 +369,155 @@ function buildBusinessContext(
       totalExpenses, 
       netIncome,
       expensesByCategory,
+      sortedExpenseCategories,
+      topExpenseCategory,
+      incomeBySource,
+      sortedIncomeSources,
       monthlyRecurring,
       recordCount: financials.length
     },
     fleet: { 
       count: vehicles.length, 
-      vehicles: vehicleStats 
+      vehicles: vehicleFinancials,
+      rankings: {
+        byProfit: sortedByProfit,
+        byBookings: sortedByBookings,
+        byRevenue: sortedByRevenue
+      },
+      mostProfitable: mostProfitableVehicle,
+      leastProfitable: leastProfitableVehicle,
+      mostBooked: mostBookedVehicle,
+      highestRevenue: highestRevenueVehicle
     },
     bookings: { 
       total: bookings.length,
-      byMonth: bookingsByMonth
+      byStatus: bookingsByStatus
+    },
+    performance: {
+      monthlyBreakdown: sortedMonths,
+      bestMonth,
+      worstMonth
     }
   };
 }
 
+// ============= ENHANCED SYSTEM PROMPT WITH DATA DICTIONARY =============
+
 function buildSystemPrompt(context: ReturnType<typeof buildBusinessContext>, presetType?: string) {
-  const expenseBreakdown = Object.entries(context.financials.expensesByCategory)
-    .map(([cat, amount]) => `  - ${cat}: €${amount.toFixed(2)} (${((amount / context.financials.totalExpenses) * 100).toFixed(1)}%)`)
-    .join('\n');
-
-  const bookingTrends = Object.entries(context.bookings.byMonth)
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .slice(-6)
-    .map(([month, count]) => `  - ${month}: ${count} bookings`)
-    .join('\n');
-
-  const basePrompt = `You are FleetX AI Assistant, a business intelligence assistant for ${context.profile.company || 'this fleet management company'} located in ${context.profile.location}.
-
-BUSINESS CONTEXT:
-- Fleet Size: ${context.fleet.count} vehicles
-- Total Income: €${context.financials.totalIncome.toFixed(2)}
-- Total Expenses: €${context.financials.totalExpenses.toFixed(2)}
-- Net Income: €${context.financials.netIncome.toFixed(2)}
-- Monthly Recurring Expenses: €${context.financials.monthlyRecurring.toFixed(2)}
-- Total Bookings: ${context.bookings.total}
-- Financial Records Available: ${context.financials.recordCount}
-
-Expense Breakdown by Category:
-${expenseBreakdown || '  No expense data available'}
-
-Recent Booking Trends:
-${bookingTrends || '  No booking data available'}
-
-Vehicle Performance:
-${context.fleet.vehicles.map(v => `- ${v.name} (${v.plate}): ${v.bookingCount} bookings, €${v.dailyRate || 0}/day`).join('\n') || 'No vehicles registered'}
-
-GUIDELINES:
-- Provide data-driven insights based on the business context above
-- Analyze income trends and identify optimization opportunities
-- Identify underperforming vehicles and suggest improvements
-- Recommend pricing strategies based on market conditions
-- Keep responses concise and actionable
-- Use the user's location for market-relevant suggestions
-- Format responses with bullet points and clear sections`;
-
-  // DEVELOPER NOTE: This is where predefined instruction prompts are pasted.
-  // Each preset action button sends its full instruction prompt directly to the AI chat endpoint when clicked.
   
+  // === DATA DICTIONARY FOR SEMANTIC MAPPING ===
+  const dataDictionary = `
+DATA DICTIONARY - Use these terms interchangeably when users ask questions:
+• "profit" / "net profit" / "earnings" / "net income" / "gain" = totalIncome - totalExpenses
+• "revenue" / "income" / "money earned" / "sales" = totalIncome
+• "costs" / "spending" / "expenses" / "outgoing" = totalExpenses
+• "car" / "vehicle" / "automobile" / "fleet member" = vehicle
+• "booking" / "rental" / "reservation" / "hire" = rental booking
+• "margin" / "profit margin" = (netProfit / totalIncome) × 100
+• "best" / "top" / "highest" / "most" = ranked #1 in that metric
+• "worst" / "lowest" / "least" = ranked last in that metric
+
+EXPENSE CATEGORIES IN DATABASE:
+maintenance, insurance, fuel, taxes, salaries, marketing, vehicle_parts, office, utilities, other
+
+INCOME SOURCES IN DATABASE:
+rental, booking, deposit, other
+`;
+
+  // === PRE-COMPUTED VEHICLE RANKINGS (DETERMINISTIC ANSWERS) ===
+  const vehicleRankings = context.fleet.vehicles.length > 0 ? `
+VEHICLE PROFITABILITY RANKING (from highest to lowest):
+${context.fleet.rankings.byProfit.map((v, i) => 
+  `${i + 1}. ${v.name} (${v.plate}): Net Profit €${v.netProfit.toFixed(2)} | Income €${v.totalIncome.toFixed(2)} | Expenses €${v.totalExpenses.toFixed(2)} | ${v.bookingCount} bookings | ${v.daysRented} days rented`
+).join('\n')}
+
+MOST PROFITABLE VEHICLE: ${context.fleet.mostProfitable ? `${context.fleet.mostProfitable.name} (${context.fleet.mostProfitable.plate}) with €${context.fleet.mostProfitable.netProfit.toFixed(2)} net profit` : 'No data available'}
+LEAST PROFITABLE VEHICLE: ${context.fleet.leastProfitable ? `${context.fleet.leastProfitable.name} (${context.fleet.leastProfitable.plate}) with €${context.fleet.leastProfitable.netProfit.toFixed(2)} net profit` : 'No data available'}
+MOST BOOKED VEHICLE: ${context.fleet.mostBooked ? `${context.fleet.mostBooked.name} (${context.fleet.mostBooked.plate}) with ${context.fleet.mostBooked.bookingCount} bookings` : 'No data available'}
+HIGHEST REVENUE VEHICLE: ${context.fleet.highestRevenue ? `${context.fleet.highestRevenue.name} (${context.fleet.highestRevenue.plate}) with €${context.fleet.highestRevenue.totalIncome.toFixed(2)} total income` : 'No data available'}
+` : 'VEHICLE DATA: No vehicles registered yet.';
+
+  // === PRE-COMPUTED EXPENSE RANKINGS ===
+  const expenseRankings = context.financials.sortedExpenseCategories.length > 0 ? `
+EXPENSE CATEGORY RANKING (from highest to lowest):
+${context.financials.sortedExpenseCategories.map((c, i) => 
+  `${i + 1}. ${c.name}: €${c.amount.toFixed(2)} (${c.percentage.toFixed(1)}% of total expenses)`
+).join('\n')}
+
+HIGHEST EXPENSE CATEGORY: ${context.financials.topExpenseCategory.name} at €${context.financials.topExpenseCategory.amount.toFixed(2)} (${context.financials.topExpenseCategory.percentage.toFixed(1)}%)
+` : 'EXPENSE DATA: No expense records available yet.';
+
+  // === PRE-COMPUTED MONTHLY PERFORMANCE ===
+  const monthlyRankings = context.performance.monthlyBreakdown.length > 0 ? `
+MONTHLY PERFORMANCE RANKING (by net profit):
+${context.performance.monthlyBreakdown.slice(0, 12).map((m, i) => 
+  `${i + 1}. ${m.month}: Net Profit €${m.netProfit.toFixed(2)} | Income €${m.income.toFixed(2)} | Expenses €${m.expenses.toFixed(2)} | ${m.bookings} bookings`
+).join('\n')}
+
+BEST PERFORMING MONTH: ${context.performance.bestMonth ? `${context.performance.bestMonth.month} with €${context.performance.bestMonth.netProfit.toFixed(2)} net profit` : 'Insufficient data'}
+WORST PERFORMING MONTH: ${context.performance.worstMonth ? `${context.performance.worstMonth.month} with €${context.performance.worstMonth.netProfit.toFixed(2)} net profit` : 'Insufficient data'}
+` : 'MONTHLY DATA: Insufficient records to analyze monthly trends.';
+
+  // === INCOME SOURCE BREAKDOWN ===
+  const incomeBreakdown = context.financials.sortedIncomeSources.length > 0 ? `
+INCOME SOURCE BREAKDOWN:
+${context.financials.sortedIncomeSources.map((s, i) => 
+  `${i + 1}. ${s.name}: €${s.amount.toFixed(2)} (${s.percentage.toFixed(1)}% of total income)`
+).join('\n')}
+` : '';
+
+  // === RESPONSE GUIDELINES ===
+  const responseGuidelines = `
+CRITICAL RESPONSE RULES:
+1. When asked about "best", "highest", "top", "most" - ALWAYS use the pre-computed rankings above. DO NOT calculate or estimate.
+2. ALWAYS cite exact numbers from the data provided. Example: "Your most profitable vehicle is [NAME] with €[AMOUNT] net profit."
+3. If data is insufficient or missing, clearly state: "I don't have enough data to answer this question. You need to add more [financial records/bookings/vehicles]."
+4. NEVER guess, approximate, or make up numbers. Only use facts from the data above.
+5. For complex questions, show your reasoning step by step using the actual data.
+6. When comparing vehicles, always include the specific numbers for each vehicle.
+7. Use Euro (€) currency and format numbers to 2 decimal places.
+`;
+
+  // === BUILD COMPLETE SYSTEM PROMPT ===
+  const basePrompt = `You are FleetX AI Assistant, a precise business intelligence assistant for ${context.profile.company || 'this fleet management company'} located in ${context.profile.location}.
+
+${dataDictionary}
+
+═══════════════════════════════════════════════════════════
+BUSINESS OVERVIEW
+═══════════════════════════════════════════════════════════
+• Company: ${context.profile.company || 'Not specified'}
+• Location: ${context.profile.location}
+• Fleet Size: ${context.fleet.count} vehicles
+• Total Bookings: ${context.bookings.total}
+• Financial Records: ${context.financials.recordCount}
+
+FINANCIAL SUMMARY:
+• Total Income: €${context.financials.totalIncome.toFixed(2)}
+• Total Expenses: €${context.financials.totalExpenses.toFixed(2)}
+• Net Income: €${context.financials.netIncome.toFixed(2)}
+• Monthly Recurring Expenses: €${context.financials.monthlyRecurring.toFixed(2)}
+
+═══════════════════════════════════════════════════════════
+VEHICLE ANALYTICS (Per-Vehicle Financial Breakdown)
+═══════════════════════════════════════════════════════════
+${vehicleRankings}
+
+═══════════════════════════════════════════════════════════
+EXPENSE ANALYTICS
+═══════════════════════════════════════════════════════════
+${expenseRankings}
+
+═══════════════════════════════════════════════════════════
+MONTHLY PERFORMANCE ANALYTICS
+═══════════════════════════════════════════════════════════
+${monthlyRankings}
+
+${incomeBreakdown}
+
+${responseGuidelines}`;
+
+  // === PRESET-SPECIFIC PROMPTS ===
   const presetPrompts: Record<string, string> = {
     marketing_growth: `
 
