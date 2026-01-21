@@ -1,6 +1,8 @@
 import { cn } from '@/lib/utils';
-import { Sparkles, User } from 'lucide-react';
+import { User } from 'lucide-react';
 import type { Message } from '@/hooks/useAIChat';
+import { useAuth } from '@/contexts/AuthContext';
+import aiAvatar from '@/assets/ai-avatar.webp';
 
 interface MessageBubbleProps {
   message: Message;
@@ -9,6 +11,7 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
   const isUser = message.role === 'user';
+  const { profile } = useAuth();
 
   return (
     <div className={cn(
@@ -16,9 +19,11 @@ export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
       isUser ? "justify-end" : "justify-start"
     )}>
       {!isUser && (
-        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-md shadow-blue-500/20">
-          <Sparkles className="w-4 h-4 text-white" />
-        </div>
+        <img 
+          src={aiAvatar} 
+          alt="FlitX AI" 
+          className="flex-shrink-0 w-8 h-8 rounded-full object-cover"
+        />
       )}
       
       <div className={cn(
@@ -43,9 +48,17 @@ export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
       </div>
 
       {isUser && (
-        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-          <User className="w-4 h-4 text-gray-600" />
-        </div>
+        profile?.avatar_url ? (
+          <img 
+            src={profile.avatar_url} 
+            alt="User" 
+            className="flex-shrink-0 w-8 h-8 rounded-full object-cover"
+          />
+        ) : (
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+            <User className="w-4 h-4 text-gray-600" />
+          </div>
+        )
       )}
     </div>
   );

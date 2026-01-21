@@ -73,7 +73,7 @@ export function useAIChat(): UseAIChatReturn {
       .single();
 
     if (data) {
-      setUsage({ used: data.message_count, limit: 10 });
+      setUsage({ used: data.message_count, limit: 20 });
     }
   };
 
@@ -161,7 +161,7 @@ export function useAIChat(): UseAIChatReturn {
         if (response.status === 429) {
           if (errorData.error === 'Daily limit reached') {
             setError('You have reached your daily message limit. Try again tomorrow!');
-            setUsage({ used: errorData.used || 10, limit: errorData.limit || 10 });
+            setUsage({ used: errorData.used || 20, limit: errorData.limit || 20 });
           } else {
             setError('Rate limit exceeded. Please wait a moment.');
           }
