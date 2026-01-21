@@ -7,7 +7,7 @@ export function ThinkingIndicator() {
       <img 
         src={aiAvatar} 
         alt="FlitX AI" 
-        className="flex-shrink-0 w-8 h-8 rounded-full object-cover"
+        className="flex-shrink-0 w-10 h-10 rounded-full object-cover"
       />
       <div className="bg-card border border-border rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
         <TextShimmerWave 
