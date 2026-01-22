@@ -33,7 +33,7 @@ interface PresetActionButtonsProps {
 
 export function PresetActionButtons({ onSelect, disabled }: PresetActionButtonsProps) {
   return (
-    <div className="flex flex-col sm:flex-row gap-4 w-full max-w-2xl px-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
       {PRESET_BUTTONS.map((button) => {
         const Icon = button.icon;
         return (
@@ -42,7 +42,7 @@ export function PresetActionButtons({ onSelect, disabled }: PresetActionButtonsP
             onClick={() => onSelect(button.presetType, button.title)}
             disabled={disabled}
             className={cn(
-              "flex-1 group relative overflow-hidden rounded-2xl p-5",
+              "group relative overflow-hidden rounded-2xl p-5",
               "bg-white/80 backdrop-blur-sm",
               "border border-gray-200/60",
               "shadow-sm",

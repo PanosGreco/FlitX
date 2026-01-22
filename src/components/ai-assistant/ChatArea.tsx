@@ -21,17 +21,14 @@ export function ChatArea({ messages, isLoading, error, onSendMessage }: ChatArea
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-gradient-to-b from-slate-50 to-white">
       {isEmpty ? (
-        <>
-          <EmptyStateView 
-            onPresetSelect={handlePresetSelect}
-            disabled={isLoading}
-          />
-          <ChatInput 
-            onSend={(msg) => onSendMessage(msg)}
-            disabled={isLoading}
-          />
-        </>
+        // INTRO STATE: Everything centered, input embedded in EmptyStateView
+        <EmptyStateView 
+          onPresetSelect={handlePresetSelect}
+          onSendMessage={(msg) => onSendMessage(msg)}
+          disabled={isLoading}
+        />
       ) : (
+        // ACTIVE CHAT STATE: Normal layout with input at bottom
         <>
           <MessageList messages={messages} isLoading={isLoading} />
           
