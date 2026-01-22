@@ -33,14 +33,13 @@ export function ChatInput({ onSend, disabled, placeholder = "Ask me anything..."
   };
 
   return (
-    <div className="p-4 bg-gradient-to-t from-white via-white to-transparent">
+    <div className="w-full">
       <div className={cn(
         "relative flex items-end gap-2",
-        "bg-white/90 backdrop-blur-xl",
-        "border border-blue-100/50",
+        "bg-gray-100",
+        "border border-gray-200/80",
         "rounded-2xl",
-        "shadow-lg shadow-blue-500/5",
-        "p-2 pr-3"
+        "p-3 pr-3"
       )}>
         <div className="flex-shrink-0 pl-2 pb-2">
           <Sparkles className="w-5 h-5 text-blue-400" />
