@@ -56,7 +56,7 @@ export function EmptyStateView({ onPresetSelect, onSendMessage, disabled }: Empt
         </p>
 
         {/* 4. CENTERED INPUT BAR */}
-        <div className="w-full max-w-xl mb-6">
+        <div className="w-full max-w-2xl mb-6">
           <ChatInput 
             onSend={onSendMessage}
             disabled={disabled}
