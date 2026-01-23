@@ -73,13 +73,17 @@ serve(async (req) => {
       message_count: currentCount + 1
     }, { onConflict: "user_id,date" });
 
-    // Fetch business context data
-    const [financials, vehicles, bookings, profile, recurringTransactions] = await Promise.all([
+    // Fetch business context data (ENHANCED: includes maintenance & damage data)
+    const [financials, vehicles, bookings, profile, recurringTransactions, maintenanceRecords, damageReports] = await Promise.all([
       supabaseClient.from("financial_records").select("*").eq("user_id", user.id),
       supabaseClient.from("vehicles").select("*").eq("user_id", user.id),
-      supabaseClient.from("rental_bookings").select("*").eq("user_id", user.id),
-      supabaseClient.from("profiles").select("*").eq("user_id", user.id).single(),
-      supabaseClient.from("recurring_transactions").select("*").eq("user_id", user.id)
+      supabaseClient.from("rental_bookings").select("id, vehicle_id, start_date, end_date, total_amount, status, customer_name, pickup_time, return_time, pickup_location, dropoff_location, notes").eq("user_id", user.id),
+      supabaseClient.from("profiles").select("name, company_name, city, country").eq("user_id", user.id).single(),
+      supabaseClient.from("recurring_transactions").select("*").eq("user_id", user.id),
+      // NEW: Maintenance records (exclude sensitive fields)
+      supabaseClient.from("vehicle_maintenance").select("id, vehicle_id, type, cost, date, next_date, description").eq("user_id", user.id),
+      // NEW: Damage reports (explicitly EXCLUDE images column for privacy)
+      supabaseClient.from("damage_reports").select("id, vehicle_id, severity, location, reported_at, repair_cost, description").eq("user_id", user.id)
     ]);
 
     // Build business context summary with enhanced per-vehicle analytics
@@ -88,7 +92,9 @@ serve(async (req) => {
       vehicles.data || [],
       bookings.data || [],
       profile.data,
-      recurringTransactions.data || []
+      recurringTransactions.data || [],
+      maintenanceRecords.data || [],
+      damageReports.data || []
     );
 
     // Build system prompt with business context and data dictionary
@@ -153,6 +159,7 @@ interface FinancialRecord {
   date: string;
   vehicle_id?: string;
   income_source_type?: string;
+  income_source_specification?: string;
 }
 
 interface Vehicle {
@@ -173,6 +180,10 @@ interface Booking {
   end_date: string;
   total_amount?: number;
   status?: string;
+  pickup_time?: string;
+  return_time?: string;
+  pickup_location?: string;
+  dropoff_location?: string;
 }
 
 interface Profile {
@@ -188,6 +199,27 @@ interface RecurringTransaction {
   category: string;
   frequency_unit: string;
   frequency_value: number;
+  expense_subcategory?: string;
+}
+
+interface MaintenanceRecord {
+  id: string;
+  vehicle_id: string;
+  type: string;
+  cost: number;
+  date: string;
+  next_date?: string;
+  description?: string;
+}
+
+interface DamageReport {
+  id: string;
+  vehicle_id: string;
+  severity: string;
+  location?: string;
+  reported_at: string;
+  repair_cost?: number;
+  description?: string;
 }
 
 // ============= ENHANCED VEHICLE FINANCIAL ANALYTICS =============
@@ -213,12 +245,35 @@ interface ExpenseCategory {
   percentage: number;
 }
 
+interface ExpenseSubcategoryBreakdown {
+  category: string;
+  subcategories: { name: string; amount: number }[];
+}
+
 interface MonthlyPerformance {
   month: string;
   income: number;
   expenses: number;
   netProfit: number;
   bookings: number;
+}
+
+interface MaintenanceSummary {
+  vehicleId: string;
+  vehicleName: string;
+  recordCount: number;
+  totalCost: number;
+  maintenanceTypes: string[];
+  lastMaintenanceDate?: string;
+  nextScheduledDate?: string;
+}
+
+interface DamageSummary {
+  vehicleId: string;
+  vehicleName: string;
+  totalReports: number;
+  bySeverity: Record<string, number>;
+  totalRepairCost: number;
 }
 
 // ============= CORE BUSINESS CONTEXT BUILDER =============
@@ -228,7 +283,9 @@ function buildBusinessContext(
   vehicles: Vehicle[],
   bookings: Booking[],
   profile: Profile | null,
-  recurringTransactions: RecurringTransaction[]
+  recurringTransactions: RecurringTransaction[],
+  maintenanceRecords: MaintenanceRecord[],
+  damageReports: DamageReport[]
 ) {
   // === AGGREGATE FINANCIAL TOTALS ===
   const totalIncome = financials.filter(f => f.type === 'income').reduce((sum, f) => sum + Number(f.amount), 0);
@@ -306,6 +363,27 @@ function buildBusinessContext(
 
   const topExpenseCategory = sortedExpenseCategories[0] || { name: 'none', amount: 0, percentage: 0 };
 
+  // === NEW: EXPENSE SUBCATEGORY BREAKDOWN (CRITICAL FOR ACCURACY) ===
+  const expensesBySubcategory: Record<string, Record<string, number>> = {};
+  financials.filter(f => f.type === 'expense').forEach(f => {
+    const cat = f.category || 'other';
+    if (!expensesBySubcategory[cat]) {
+      expensesBySubcategory[cat] = {};
+    }
+    const subcat = f.expense_subcategory || 'unspecified';
+    expensesBySubcategory[cat][subcat] = (expensesBySubcategory[cat][subcat] || 0) + Number(f.amount);
+  });
+
+  // Convert to structured format
+  const subcategoryBreakdown: ExpenseSubcategoryBreakdown[] = Object.entries(expensesBySubcategory)
+    .map(([category, subs]) => ({
+      category,
+      subcategories: Object.entries(subs)
+        .map(([name, amount]) => ({ name, amount }))
+        .sort((a, b) => b.amount - a.amount)
+    }))
+    .filter(cat => cat.subcategories.length > 0);
+
   // === INCOME SOURCE BREAKDOWN ===
   const incomeBySource: Record<string, number> = {};
   financials.filter(f => f.type === 'income').forEach(f => {
@@ -375,6 +453,71 @@ function buildBusinessContext(
     bookingsByStatus[status] = (bookingsByStatus[status] || 0) + 1;
   });
 
+  // === NEW: MAINTENANCE SUMMARY PER VEHICLE ===
+  const vehicleMap = new Map(vehicles.map(v => [v.id, `${v.make} ${v.model}`]));
+  
+  const maintenanceByVehicle: Record<string, MaintenanceSummary> = {};
+  maintenanceRecords.forEach(m => {
+    if (!maintenanceByVehicle[m.vehicle_id]) {
+      maintenanceByVehicle[m.vehicle_id] = {
+        vehicleId: m.vehicle_id,
+        vehicleName: vehicleMap.get(m.vehicle_id) || 'Unknown Vehicle',
+        recordCount: 0,
+        totalCost: 0,
+        maintenanceTypes: [],
+        lastMaintenanceDate: undefined,
+        nextScheduledDate: undefined
+      };
+    }
+    const summary = maintenanceByVehicle[m.vehicle_id];
+    summary.recordCount++;
+    summary.totalCost += Number(m.cost || 0);
+    if (!summary.maintenanceTypes.includes(m.type)) {
+      summary.maintenanceTypes.push(m.type);
+    }
+    // Track latest maintenance date
+    if (!summary.lastMaintenanceDate || m.date > summary.lastMaintenanceDate) {
+      summary.lastMaintenanceDate = m.date;
+    }
+    // Track next scheduled date
+    if (m.next_date && (!summary.nextScheduledDate || m.next_date < summary.nextScheduledDate)) {
+      summary.nextScheduledDate = m.next_date;
+    }
+  });
+
+  const maintenanceSummaries = Object.values(maintenanceByVehicle);
+  const totalMaintenanceCost = maintenanceSummaries.reduce((sum, s) => sum + s.totalCost, 0);
+
+  // === NEW: DAMAGE SUMMARY PER VEHICLE ===
+  const damageByVehicle: Record<string, DamageSummary> = {};
+  damageReports.forEach(d => {
+    if (!damageByVehicle[d.vehicle_id]) {
+      damageByVehicle[d.vehicle_id] = {
+        vehicleId: d.vehicle_id,
+        vehicleName: vehicleMap.get(d.vehicle_id) || 'Unknown Vehicle',
+        totalReports: 0,
+        bySeverity: {},
+        totalRepairCost: 0
+      };
+    }
+    const summary = damageByVehicle[d.vehicle_id];
+    summary.totalReports++;
+    const severity = d.severity || 'unknown';
+    summary.bySeverity[severity] = (summary.bySeverity[severity] || 0) + 1;
+    summary.totalRepairCost += Number(d.repair_cost || 0);
+  });
+
+  const damageSummaries = Object.values(damageByVehicle);
+  const totalDamageReports = damageReports.length;
+  const totalRepairCosts = damageSummaries.reduce((sum, s) => sum + s.totalRepairCost, 0);
+
+  // === DATA AVAILABILITY FLAGS ===
+  const hasPickupTimes = bookings.some(b => b.pickup_time);
+  const hasPickupLocations = bookings.some(b => b.pickup_location);
+  const hasMaintenanceData = maintenanceRecords.length > 0;
+  const hasDamageData = damageReports.length > 0;
+  const hasRecurringData = recurringTransactions.length > 0;
+
   return {
     profile: {
       name: profile?.name,
@@ -390,6 +533,7 @@ function buildBusinessContext(
       expensesByCategory,
       sortedExpenseCategories,
       topExpenseCategory,
+      subcategoryBreakdown, // NEW
       incomeBySource,
       sortedIncomeSources,
       monthlyRecurring,
@@ -416,6 +560,25 @@ function buildBusinessContext(
       monthlyBreakdown: sortedMonths,
       bestMonth,
       worstMonth
+    },
+    // NEW: Maintenance & Damage Context
+    maintenance: {
+      totalRecords: maintenanceRecords.length,
+      totalCost: totalMaintenanceCost,
+      byVehicle: maintenanceSummaries
+    },
+    damage: {
+      totalReports: totalDamageReports,
+      totalRepairCosts,
+      byVehicle: damageSummaries
+    },
+    // NEW: Data Availability Flags
+    dataAvailability: {
+      hasPickupTimes,
+      hasPickupLocations,
+      hasMaintenanceData,
+      hasDamageData,
+      hasRecurringData
     }
   };
 }
@@ -436,11 +599,28 @@ DATA DICTIONARY - Use these terms interchangeably when users ask questions:
 • "best" / "top" / "highest" / "most" = ranked #1 in that metric
 • "worst" / "lowest" / "least" = ranked last in that metric
 
-EXPENSE CATEGORIES IN DATABASE:
-maintenance, insurance, fuel, taxes, salaries, marketing, vehicle_parts, office, utilities, other
+═══════════════════════════════════════════════════════════
+EXPENSE CATEGORY DEFINITIONS (CRITICAL - NEVER MERGE THESE)
+═══════════════════════════════════════════════════════════
+• "maintenance" = Service work performed on vehicles (oil changes, brake work, engine repairs, general service)
+   → Has subcategories: oil_change, tires, brakes, engine, general_service, etc.
+• "vehicle_parts" = Spare parts purchases (SEPARATE from maintenance - these are parts inventory)
+   → Standalone category, no subcategories
+• "insurance" = Vehicle or business insurance premiums
+• "fuel" = Fuel/petrol/diesel costs
+• "tax" = Vehicle taxes, road taxes, business taxes
+• "salary" = Staff wages and payroll
+• "marketing" = Advertising, promotions (optional subcategory: billboard, social_media, etc.)
+• "carwash" = Vehicle cleaning services
+• "other" = Miscellaneous expenses
 
-INCOME SOURCES IN DATABASE:
-rental, booking, deposit, other
+CRITICAL: "maintenance" ≠ "vehicle_parts" - These are DIFFERENT categories. Never combine them.
+
+INCOME SOURCE DEFINITIONS:
+• "rental" = Income from vehicle rentals
+• "booking" = Booking fees
+• "deposit" = Security deposits (if kept)
+• "other" = Other income sources
 `;
 
   // === PRE-COMPUTED VEHICLE RANKINGS (DETERMINISTIC ANSWERS) ===
@@ -466,6 +646,16 @@ ${context.financials.sortedExpenseCategories.map((c, i) =>
 HIGHEST EXPENSE CATEGORY: ${context.financials.topExpenseCategory.name} at €${context.financials.topExpenseCategory.amount.toFixed(2)} (${context.financials.topExpenseCategory.percentage.toFixed(1)}%)
 ` : 'EXPENSE DATA: No expense records available yet.';
 
+  // === NEW: EXPENSE SUBCATEGORY BREAKDOWN ===
+  const subcategoryBreakdown = context.financials.subcategoryBreakdown.length > 0 ? `
+EXPENSE SUBCATEGORY BREAKDOWN (detailed):
+${context.financials.subcategoryBreakdown.map(cat => 
+  `${cat.category.toUpperCase()}:\n${cat.subcategories.map(sub => 
+    `  • ${sub.name}: €${sub.amount.toFixed(2)}`
+  ).join('\n')}`
+).join('\n\n')}
+` : '';
+
   // === PRE-COMPUTED MONTHLY PERFORMANCE ===
   const monthlyRankings = context.performance.monthlyBreakdown.length > 0 ? `
 MONTHLY PERFORMANCE RANKING (by net profit):
@@ -485,16 +675,102 @@ ${context.financials.sortedIncomeSources.map((s, i) =>
 ).join('\n')}
 ` : '';
 
-  // === RESPONSE GUIDELINES ===
+  // === NEW: MAINTENANCE DATA ===
+  const maintenanceSection = context.maintenance.totalRecords > 0 ? `
+═══════════════════════════════════════════════════════════
+MAINTENANCE HISTORY
+═══════════════════════════════════════════════════════════
+• Total Maintenance Records: ${context.maintenance.totalRecords}
+• Total Maintenance Cost: €${context.maintenance.totalCost.toFixed(2)}
+
+BY VEHICLE:
+${context.maintenance.byVehicle.map(m => 
+  `• ${m.vehicleName}: ${m.recordCount} records | €${m.totalCost.toFixed(2)} total | Types: ${m.maintenanceTypes.join(', ')}${m.nextScheduledDate ? ` | Next scheduled: ${m.nextScheduledDate}` : ''}`
+).join('\n')}
+` : '';
+
+  // === NEW: DAMAGE DATA ===
+  const damageSection = context.damage.totalReports > 0 ? `
+═══════════════════════════════════════════════════════════
+DAMAGE REPORTS
+═══════════════════════════════════════════════════════════
+• Total Damage Reports: ${context.damage.totalReports}
+• Total Repair Costs: €${context.damage.totalRepairCosts.toFixed(2)}
+
+BY VEHICLE:
+${context.damage.byVehicle.map(d => 
+  `• ${d.vehicleName}: ${d.totalReports} reports | €${d.totalRepairCost.toFixed(2)} repair costs | Severity: ${Object.entries(d.bySeverity).map(([s, c]) => `${s}(${c})`).join(', ')}`
+).join('\n')}
+` : '';
+
+  // === NEW: DATA AVAILABILITY STATUS ===
+  const dataAvailabilitySection = `
+═══════════════════════════════════════════════════════════
+DATA AVAILABILITY STATUS (CHECK THIS BEFORE ANSWERING)
+═══════════════════════════════════════════════════════════
+• Real-time booking calendar: ❌ NOT AVAILABLE
+• Today's pickup schedule: ❌ NOT AVAILABLE
+• Pickup/return exact times: ${context.dataAvailability.hasPickupTimes ? '⚠️ PARTIAL DATA' : '❌ NOT AVAILABLE'}
+• Pickup locations: ${context.dataAvailability.hasPickupLocations ? '⚠️ PARTIAL DATA' : '❌ NOT AVAILABLE'}
+• Maintenance history: ${context.dataAvailability.hasMaintenanceData ? `✅ ${context.maintenance.totalRecords} records available` : '❌ NO DATA'}
+• Damage reports: ${context.dataAvailability.hasDamageData ? `✅ ${context.damage.totalReports} reports available` : '❌ NO DATA'}
+• Recurring transactions: ${context.dataAvailability.hasRecurringData ? '✅ AVAILABLE' : '❌ NO DATA'}
+• Billing cycles / contract duration: ❌ NOT TRACKED IN DATABASE
+• Rental type (short/long term): ❌ NOT TRACKED IN DATABASE
+• Recurring rental flag: ❌ NOT TRACKED IN DATABASE
+`;
+
+  // === STRICT BEHAVIORAL RULES ===
   const responseGuidelines = `
-CRITICAL RESPONSE RULES:
-1. When asked about "best", "highest", "top", "most" - ALWAYS use the pre-computed rankings above. DO NOT calculate or estimate.
-2. ALWAYS cite exact numbers from the data provided. Example: "Your most profitable vehicle is [NAME] with €[AMOUNT] net profit."
-3. If data is insufficient or missing, clearly state: "I don't have enough data to answer this question. You need to add more [financial records/bookings/vehicles]."
-4. NEVER guess, approximate, or make up numbers. Only use facts from the data above.
-5. For complex questions, show your reasoning step by step using the actual data.
-6. When comparing vehicles, always include the specific numbers for each vehicle.
-7. Use Euro (€) currency and format numbers to 2 decimal places.
+═══════════════════════════════════════════════════════════
+CRITICAL BEHAVIORAL RULES (MUST FOLLOW EXACTLY)
+═══════════════════════════════════════════════════════════
+
+1. DATA-ONLY RESPONSES:
+   • ONLY use numbers from the data above
+   • NEVER invent, estimate, or approximate values
+   • If a specific value is missing, state exactly what is missing
+
+2. MISSING DATA RULE (CRITICAL - ENFORCED STRICTLY):
+   • If required data is marked ❌ NOT AVAILABLE above, say ONE clear limitation sentence
+   • Then STOP IMMEDIATELY
+   • DO NOT add "however...", "but based on...", "alternatively...", or any additional context
+   • DO NOT inject unrelated KPIs, utilization stats, or expense data
+   • DO NOT offer workarounds or suggestions when data is unavailable
+   
+   ✓ CORRECT: "I don't have access to real-time booking schedules or today's pickup times."
+   ✗ WRONG: "I don't have booking schedules, but based on your utilization trends..."
+   ✗ WRONG: "I can't see today's schedule, however your most popular vehicle is..."
+
+3. NO INFERENCE RULE (CRITICAL):
+   • NEVER assume recurring rentals unless a rental_type field explicitly exists
+   • NEVER infer vehicle condition from expense data
+   • NEVER guess booking status if not explicitly provided
+   • NEVER assume documents exist or were uploaded
+   • NEVER infer maintenance needs from expense categories
+
+4. CATEGORY DISTINCTION (CRITICAL):
+   • 'maintenance' = service work (oil change, brakes, engine repairs)
+   • 'vehicle_parts' = spare parts purchases (SEPARATE category)
+   • NEVER merge or combine these categories
+   • When asked about maintenance costs, use ONLY the 'maintenance' category
+   • When asked about parts costs, use ONLY the 'vehicle_parts' category
+
+5. AGGREGATION RULES:
+   • Only calculate totals when ALL required fields exist in the data above
+   • ALWAYS use the pre-computed rankings - DO NOT recalculate
+   • For expense breakdowns, ALWAYS include subcategory details when available
+   • Use explicit date filters from the data
+
+6. CURRENCY & FORMAT:
+   • Use Euro (€) currency
+   • Format numbers to 2 decimal places
+   • Always cite the exact source data section
+
+7. COMPARISON QUESTIONS:
+   • When asked to compare vehicles, show exact numbers for each
+   • When asked "which is better", use the pre-computed rankings
+   • Never make subjective judgments without data backing
 `;
 
   // === BUILD COMPLETE SYSTEM PROMPT ===
@@ -517,6 +793,8 @@ FINANCIAL SUMMARY:
 • Net Income: €${context.financials.netIncome.toFixed(2)}
 • Monthly Recurring Expenses: €${context.financials.monthlyRecurring.toFixed(2)}
 
+${dataAvailabilitySection}
+
 ═══════════════════════════════════════════════════════════
 VEHICLE ANALYTICS (Per-Vehicle Financial Breakdown)
 ═══════════════════════════════════════════════════════════
@@ -526,6 +804,7 @@ ${vehicleRankings}
 EXPENSE ANALYTICS
 ═══════════════════════════════════════════════════════════
 ${expenseRankings}
+${subcategoryBreakdown}
 
 ═══════════════════════════════════════════════════════════
 MONTHLY PERFORMANCE ANALYTICS
@@ -533,6 +812,8 @@ MONTHLY PERFORMANCE ANALYTICS
 ${monthlyRankings}
 
 ${incomeBreakdown}
+${maintenanceSection}
+${damageSection}
 
 ${responseGuidelines}`;
 
@@ -749,6 +1030,8 @@ Use percentages and simple comparisons:
 "Maintenance accounts for ~32% of your total expenses."
 
 Prioritize the highest-cost categories first.
+
+CRITICAL: Always distinguish between 'maintenance' (service work) and 'vehicle_parts' (spare parts) - these are SEPARATE categories.
 
 Step 3: Optimization Suggestions (Core Logic)
 
