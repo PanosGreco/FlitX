@@ -168,7 +168,8 @@ interface Vehicle {
   model: string;
   license_plate: string;
   daily_rate?: number;
-  type?: string;
+  type?: string;           // category (suv, economy, etc.)
+  vehicle_type?: string;   // top-level type (car, motorbike, atv) - PHASE 2
   year?: number;
   status?: string;
 }
@@ -256,6 +257,41 @@ interface MonthlyPerformance {
   expenses: number;
   netProfit: number;
   bookings: number;
+}
+
+// PHASE 2: Monthly Subcategory Breakdown
+interface MonthlySubcategoryBreakdown {
+  month: string;
+  category: string;
+  subcategory: string;
+  amount: number;
+}
+
+// PHASE 2: Collaboration Partner Breakdown
+interface CollaborationPartner {
+  partner: string;
+  totalIncome: number;
+  recordCount: number;
+  ytdIncome: number;
+}
+
+// PHASE 2: Monthly Vehicle Profitability
+interface MonthlyVehicleProfitability {
+  month: string;
+  vehicleId: string;
+  vehicleName: string;
+  income: number;
+  expenses: number;
+  netProfit: number;
+}
+
+// PHASE 2: Fleet by Vehicle Type
+interface FleetByType {
+  type: string;
+  count: number;
+  vehicles: string[];
+  maintenanceCost: number;
+  maintenanceRecords: number;
 }
 
 interface MaintenanceSummary {
@@ -384,6 +420,37 @@ function buildBusinessContext(
     }))
     .filter(cat => cat.subcategories.length > 0);
 
+  // === PHASE 2A: MONTHLY SUBCATEGORY AGGREGATION ===
+  const monthlySubcategories: MonthlySubcategoryBreakdown[] = [];
+  financials.filter(f => f.type === 'expense').forEach(f => {
+    const month = f.date.substring(0, 7);
+    const category = f.category || 'other';
+    // Normalize subcategory: lowercase, trim, handle common variations
+    const rawSubcat = f.expense_subcategory || 'unspecified';
+    const subcategory = rawSubcat.toLowerCase().trim().replace(/\s+/g, '_');
+    
+    const existing = monthlySubcategories.find(
+      m => m.month === month && m.category === category && m.subcategory === subcategory
+    );
+    if (existing) {
+      existing.amount += Number(f.amount);
+    } else {
+      monthlySubcategories.push({ month, category, subcategory, amount: Number(f.amount) });
+    }
+  });
+
+  // Group monthly subcategories by month for display
+  const monthlySubcategoryByMonth: Record<string, Record<string, Record<string, number>>> = {};
+  monthlySubcategories.forEach(ms => {
+    if (!monthlySubcategoryByMonth[ms.month]) {
+      monthlySubcategoryByMonth[ms.month] = {};
+    }
+    if (!monthlySubcategoryByMonth[ms.month][ms.category]) {
+      monthlySubcategoryByMonth[ms.month][ms.category] = {};
+    }
+    monthlySubcategoryByMonth[ms.month][ms.category][ms.subcategory] = ms.amount;
+  });
+
   // === INCOME SOURCE BREAKDOWN ===
   const incomeBySource: Record<string, number> = {};
   financials.filter(f => f.type === 'income').forEach(f => {
@@ -398,6 +465,32 @@ function buildBusinessContext(
       percentage: totalIncome > 0 ? (amount / totalIncome) * 100 : 0
     }))
     .sort((a, b) => b.amount - a.amount);
+
+  // === PHASE 2C: COLLABORATION INCOME BY PARTNER (with YTD) ===
+  const currentYear = new Date().getFullYear();
+  const collaborationPartners: CollaborationPartner[] = [];
+  
+  financials
+    .filter(f => f.type === 'income' && f.income_source_type === 'collaboration')
+    .forEach(f => {
+      const partner = f.income_source_specification || 'Unknown Partner';
+      const isCurrentYear = f.date.startsWith(String(currentYear));
+      
+      let existing = collaborationPartners.find(p => p.partner === partner);
+      if (!existing) {
+        existing = { partner, totalIncome: 0, recordCount: 0, ytdIncome: 0 };
+        collaborationPartners.push(existing);
+      }
+      existing.totalIncome += Number(f.amount);
+      existing.recordCount++;
+      if (isCurrentYear) {
+        existing.ytdIncome += Number(f.amount);
+      }
+    });
+  
+  // Sort by YTD income (most relevant for "this year" queries)
+  collaborationPartners.sort((a, b) => b.ytdIncome - a.ytdIncome);
+  const topCollaborationPartner = collaborationPartners[0] || null;
 
   // === MONTHLY PERFORMANCE ANALYSIS ===
   const monthlyPerformance: Record<string, { income: number; expenses: number; bookings: number }> = {};
@@ -435,6 +528,54 @@ function buildBusinessContext(
   const bestMonth = sortedMonths[0] || null;
   const worstMonth = sortedMonths.length > 0 ? sortedMonths[sortedMonths.length - 1] : null;
 
+  // === VEHICLE MAP (used by multiple sections - MUST BE DEFINED EARLY) ===
+  const vehicleMap = new Map(vehicles.map(v => [v.id, `${v.make} ${v.model}`]));
+  const vehicleTypeMap = new Map(vehicles.map(v => [v.id, v.vehicle_type || 'car']));
+
+  // === PHASE 2D: MONTHLY VEHICLE PROFITABILITY ===
+  const mvpMap: Record<string, Record<string, { income: number; expenses: number }>> = {};
+  financials.forEach(f => {
+    if (!f.vehicle_id) return;
+    const month = f.date.substring(0, 7);
+    if (!mvpMap[month]) mvpMap[month] = {};
+    if (!mvpMap[month][f.vehicle_id]) {
+      mvpMap[month][f.vehicle_id] = { income: 0, expenses: 0 };
+    }
+    if (f.type === 'income') {
+      mvpMap[month][f.vehicle_id].income += Number(f.amount);
+    } else {
+      mvpMap[month][f.vehicle_id].expenses += Number(f.amount);
+    }
+  });
+
+  const monthlyVehicleProfitability: MonthlyVehicleProfitability[] = [];
+  Object.entries(mvpMap).forEach(([month, vehiclesData]) => {
+    Object.entries(vehiclesData).forEach(([vehicleId, data]) => {
+      monthlyVehicleProfitability.push({
+        month,
+        vehicleId,
+        vehicleName: vehicleMap.get(vehicleId) || 'Unknown',
+        income: data.income,
+        expenses: data.expenses,
+        netProfit: data.income - data.expenses
+      });
+    });
+  });
+
+  // Sort by month desc, then by profit desc within each month
+  monthlyVehicleProfitability.sort((a, b) => {
+    if (a.month !== b.month) return b.month.localeCompare(a.month);
+    return b.netProfit - a.netProfit;
+  });
+
+  // Get most profitable vehicle per month (for quick lookup)
+  const mostProfitableByMonth: Record<string, MonthlyVehicleProfitability> = {};
+  monthlyVehicleProfitability.forEach(mvp => {
+    if (!mostProfitableByMonth[mvp.month] || mvp.netProfit > mostProfitableByMonth[mvp.month].netProfit) {
+      mostProfitableByMonth[mvp.month] = mvp;
+    }
+  });
+
   // === RECURRING EXPENSES SUMMARY ===
   const monthlyRecurring = recurringTransactions
     .filter(r => r.type === 'expense')
@@ -452,10 +593,36 @@ function buildBusinessContext(
     const status = b.status || 'unknown';
     bookingsByStatus[status] = (bookingsByStatus[status] || 0) + 1;
   });
-
-  // === NEW: MAINTENANCE SUMMARY PER VEHICLE ===
-  const vehicleMap = new Map(vehicles.map(v => [v.id, `${v.make} ${v.model}`]));
   
+  // === PHASE 2B: FLEET BY VEHICLE TYPE ===
+  const fleetByType: Record<string, FleetByType> = {};
+  vehicles.forEach(v => {
+    const vType = v.vehicle_type || 'car';
+    if (!fleetByType[vType]) {
+      fleetByType[vType] = {
+        type: vType,
+        count: 0,
+        vehicles: [],
+        maintenanceCost: 0,
+        maintenanceRecords: 0
+      };
+    }
+    fleetByType[vType].count++;
+    fleetByType[vType].vehicles.push(`${v.make} ${v.model}`);
+  });
+
+  // Add maintenance costs by vehicle type
+  maintenanceRecords.forEach(m => {
+    const vType = vehicleTypeMap.get(m.vehicle_id) || 'car';
+    if (fleetByType[vType]) {
+      fleetByType[vType].maintenanceCost += Number(m.cost || 0);
+      fleetByType[vType].maintenanceRecords++;
+    }
+  });
+
+  const fleetByTypeArray = Object.values(fleetByType);
+  
+  // === MAINTENANCE SUMMARY PER VEHICLE ===
   const maintenanceByVehicle: Record<string, MaintenanceSummary> = {};
   maintenanceRecords.forEach(m => {
     if (!maintenanceByVehicle[m.vehicle_id]) {
@@ -488,7 +655,7 @@ function buildBusinessContext(
   const maintenanceSummaries = Object.values(maintenanceByVehicle);
   const totalMaintenanceCost = maintenanceSummaries.reduce((sum, s) => sum + s.totalCost, 0);
 
-  // === NEW: DAMAGE SUMMARY PER VEHICLE ===
+  // === DAMAGE SUMMARY PER VEHICLE ===
   const damageByVehicle: Record<string, DamageSummary> = {};
   damageReports.forEach(d => {
     if (!damageByVehicle[d.vehicle_id]) {
@@ -533,11 +700,14 @@ function buildBusinessContext(
       expensesByCategory,
       sortedExpenseCategories,
       topExpenseCategory,
-      subcategoryBreakdown, // NEW
+      subcategoryBreakdown,
+      monthlySubcategoryByMonth, // PHASE 2A: Monthly subcategory breakdown
       incomeBySource,
       sortedIncomeSources,
       monthlyRecurring,
-      recordCount: financials.length
+      recordCount: financials.length,
+      collaborationPartners, // PHASE 2C: Collaboration partner breakdown
+      topCollaborationPartner // PHASE 2C: Top partner
     },
     fleet: { 
       count: vehicles.length, 
@@ -550,7 +720,8 @@ function buildBusinessContext(
       mostProfitable: mostProfitableVehicle,
       leastProfitable: leastProfitableVehicle,
       mostBooked: mostBookedVehicle,
-      highestRevenue: highestRevenueVehicle
+      highestRevenue: highestRevenueVehicle,
+      byType: fleetByTypeArray // PHASE 2B: Fleet by vehicle type
     },
     bookings: { 
       total: bookings.length,
@@ -559,9 +730,11 @@ function buildBusinessContext(
     performance: {
       monthlyBreakdown: sortedMonths,
       bestMonth,
-      worstMonth
+      worstMonth,
+      monthlyVehicleProfitability, // PHASE 2D: Monthly vehicle profitability
+      mostProfitableByMonth // PHASE 2D: Most profitable vehicle per month
     },
-    // NEW: Maintenance & Damage Context
+    // Maintenance & Damage Context
     maintenance: {
       totalRecords: maintenanceRecords.length,
       totalCost: totalMaintenanceCost,
@@ -572,7 +745,7 @@ function buildBusinessContext(
       totalRepairCosts,
       byVehicle: damageSummaries
     },
-    // NEW: Data Availability Flags
+    // Data Availability Flags
     dataAvailability: {
       hasPickupTimes,
       hasPickupLocations,
@@ -646,14 +819,85 @@ ${context.financials.sortedExpenseCategories.map((c, i) =>
 HIGHEST EXPENSE CATEGORY: ${context.financials.topExpenseCategory.name} at €${context.financials.topExpenseCategory.amount.toFixed(2)} (${context.financials.topExpenseCategory.percentage.toFixed(1)}%)
 ` : 'EXPENSE DATA: No expense records available yet.';
 
-  // === NEW: EXPENSE SUBCATEGORY BREAKDOWN ===
+  // === EXPENSE SUBCATEGORY BREAKDOWN (GLOBAL) ===
   const subcategoryBreakdown = context.financials.subcategoryBreakdown.length > 0 ? `
-EXPENSE SUBCATEGORY BREAKDOWN (detailed):
+EXPENSE SUBCATEGORY BREAKDOWN (detailed - ALL TIME):
 ${context.financials.subcategoryBreakdown.map(cat => 
   `${cat.category.toUpperCase()}:\n${cat.subcategories.map(sub => 
     `  • ${sub.name}: €${sub.amount.toFixed(2)}`
   ).join('\n')}`
 ).join('\n\n')}
+` : '';
+
+  // === PHASE 2A: MONTHLY EXPENSE SUBCATEGORY BREAKDOWN ===
+  const monthlySubcategorySection = Object.keys(context.financials.monthlySubcategoryByMonth).length > 0 ? `
+═══════════════════════════════════════════════════════════
+MONTHLY EXPENSE SUBCATEGORY BREAKDOWN (for specific month queries)
+═══════════════════════════════════════════════════════════
+${Object.entries(context.financials.monthlySubcategoryByMonth)
+  .sort(([a], [b]) => b.localeCompare(a)) // Sort by month descending
+  .slice(0, 6) // Show last 6 months
+  .map(([month, categories]) => 
+    `${month}:\n${Object.entries(categories).map(([cat, subs]) => 
+      `  ${cat}:\n${Object.entries(subs).map(([sub, amount]) => 
+        `    • ${sub}: €${amount.toFixed(2)}`
+      ).join('\n')}`
+    ).join('\n')}`
+  ).join('\n\n')}
+
+USE THIS SECTION when user asks for subcategories in a specific month (e.g., "maintenance breakdown for January").
+` : '';
+
+  // === PHASE 2B: FLEET BY VEHICLE TYPE ===
+  const fleetByTypeSection = context.fleet.byType && context.fleet.byType.length > 0 ? `
+═══════════════════════════════════════════════════════════
+FLEET BY VEHICLE TYPE (car, motorbike, atv)
+═══════════════════════════════════════════════════════════
+${context.fleet.byType.map(ft => 
+  `• ${ft.type.toUpperCase()}: ${ft.count} vehicles (${ft.vehicles.join(', ')})
+    - Maintenance: €${ft.maintenanceCost.toFixed(2)} from ${ft.maintenanceRecords} records`
+).join('\n')}
+
+USE THIS SECTION when user asks about specific vehicle types (e.g., "SUVs", "motorbikes", "cars only").
+` : '';
+
+  // === PHASE 2C: COLLABORATION INCOME BY PARTNER ===
+  const currentYear = new Date().getFullYear();
+  const collaborationSection = context.financials.collaborationPartners && context.financials.collaborationPartners.length > 0 ? `
+═══════════════════════════════════════════════════════════
+COLLABORATION INCOME BY PARTNER
+═══════════════════════════════════════════════════════════
+${context.financials.collaborationPartners.map((p, i) => 
+  `${i + 1}. ${p.partner}: €${p.ytdIncome.toFixed(2)} (${currentYear} YTD) | €${p.totalIncome.toFixed(2)} (all time) | ${p.recordCount} records`
+).join('\n')}
+
+TOP COLLABORATION PARTNER (${currentYear} YTD): ${context.financials.topCollaborationPartner ? 
+  `${context.financials.topCollaborationPartner.partner} with €${context.financials.topCollaborationPartner.ytdIncome.toFixed(2)}` : 
+  'No collaboration income recorded'}
+
+USE THIS SECTION when user asks "which partner generated most income" or "collaboration breakdown".
+For "this year" / "YTD" / "year so far" queries, ALWAYS use the YTD values above.
+` : '';
+
+  // === PHASE 2D: MONTHLY VEHICLE PROFITABILITY ===
+  const monthlyVehicleProfitSection = context.performance.monthlyVehicleProfitability && context.performance.monthlyVehicleProfitability.length > 0 ? `
+═══════════════════════════════════════════════════════════
+MONTHLY VEHICLE PROFITABILITY (for "most profitable in [month]" queries)
+═══════════════════════════════════════════════════════════
+${Object.entries(context.performance.mostProfitableByMonth)
+  .sort(([a], [b]) => b.localeCompare(a))
+  .slice(0, 6)
+  .map(([month, mvp]) => 
+    `${month}: TOP = ${mvp.vehicleName} with €${mvp.netProfit.toFixed(2)} net profit (Income €${mvp.income.toFixed(2)} - Expenses €${mvp.expenses.toFixed(2)})`
+  ).join('\n')}
+
+DETAILED BREAKDOWN (recent months):
+${context.performance.monthlyVehicleProfitability
+  .slice(0, 20) // Show recent data
+  .map(mvp => `  ${mvp.month}: ${mvp.vehicleName} → €${mvp.netProfit.toFixed(2)} (€${mvp.income.toFixed(2)} income - €${mvp.expenses.toFixed(2)} expenses)`)
+  .join('\n')}
+
+USE THIS SECTION when user asks "most profitable vehicle in January" or "which vehicle performed best last month".
 ` : '';
 
   // === PRE-COMPUTED MONTHLY PERFORMANCE ===
@@ -675,7 +919,7 @@ ${context.financials.sortedIncomeSources.map((s, i) =>
 ).join('\n')}
 ` : '';
 
-  // === NEW: MAINTENANCE DATA ===
+  // === MAINTENANCE DATA ===
   const maintenanceSection = context.maintenance.totalRecords > 0 ? `
 ═══════════════════════════════════════════════════════════
 MAINTENANCE HISTORY
@@ -689,7 +933,7 @@ ${context.maintenance.byVehicle.map(m =>
 ).join('\n')}
 ` : '';
 
-  // === NEW: DAMAGE DATA ===
+  // === DAMAGE DATA ===
   const damageSection = context.damage.totalReports > 0 ? `
 ═══════════════════════════════════════════════════════════
 DAMAGE REPORTS
@@ -703,7 +947,7 @@ ${context.damage.byVehicle.map(d =>
 ).join('\n')}
 ` : '';
 
-  // === NEW: DATA AVAILABILITY STATUS ===
+  // === DATA AVAILABILITY STATUS ===
   const dataAvailabilitySection = `
 ═══════════════════════════════════════════════════════════
 DATA AVAILABILITY STATUS (CHECK THIS BEFORE ANSWERING)
@@ -720,7 +964,7 @@ DATA AVAILABILITY STATUS (CHECK THIS BEFORE ANSWERING)
 • Recurring rental flag: ❌ NOT TRACKED IN DATABASE
 `;
 
-  // === STRICT BEHAVIORAL RULES ===
+  // === STRICT BEHAVIORAL RULES (ENHANCED WITH PHASE 2 RULES) ===
   const responseGuidelines = `
 ═══════════════════════════════════════════════════════════
 CRITICAL BEHAVIORAL RULES (MUST FOLLOW EXACTLY)
@@ -771,6 +1015,28 @@ CRITICAL BEHAVIORAL RULES (MUST FOLLOW EXACTLY)
    • When asked to compare vehicles, show exact numbers for each
    • When asked "which is better", use the pre-computed rankings
    • Never make subjective judgments without data backing
+
+8. MONTHLY FILTERING RULES (PHASE 2):
+   • When asked about a SPECIFIC MONTH, use MONTHLY EXPENSE SUBCATEGORY BREAKDOWN
+   • "January maintenance" = use the 2026-01 section from monthly breakdown
+   • "Maintenance subcategories for last month" = use monthly breakdown, NOT global totals
+   • DO NOT calculate monthly values from global totals
+
+9. VEHICLE TYPE FILTERING RULES (PHASE 2):
+   • "SUVs" / "cars only" / "motorbikes" = use FLEET BY VEHICLE TYPE section
+   • "SUV maintenance" = cross-reference vehicle type with maintenance data
+   • For vehicle type queries, ONLY report data for that specific type
+
+10. COLLABORATION & YTD RULES (PHASE 2):
+    • "Which partner" / "collaboration breakdown" = use COLLABORATION INCOME BY PARTNER
+    • "This year" / "YTD" / "year so far" = use the YTD values from pre-computed data
+    • ALWAYS distinguish between YTD and all-time totals
+    • DO NOT manually calculate YTD - use provided values
+
+11. MONTHLY VEHICLE PROFITABILITY RULES (PHASE 2):
+    • "Most profitable vehicle in January" = use MONTHLY VEHICLE PROFITABILITY section
+    • "Which vehicle performed best last month" = use mostProfitableByMonth
+    • DO NOT use overall profitability when asked about a specific month
 `;
 
   // === BUILD COMPLETE SYSTEM PROMPT ===
@@ -805,13 +1071,20 @@ EXPENSE ANALYTICS
 ═══════════════════════════════════════════════════════════
 ${expenseRankings}
 ${subcategoryBreakdown}
+${monthlySubcategorySection}
+
+${fleetByTypeSection}
 
 ═══════════════════════════════════════════════════════════
 MONTHLY PERFORMANCE ANALYTICS
 ═══════════════════════════════════════════════════════════
 ${monthlyRankings}
 
+${monthlyVehicleProfitSection}
+
 ${incomeBreakdown}
+${collaborationSection}
+
 ${maintenanceSection}
 ${damageSection}
 
