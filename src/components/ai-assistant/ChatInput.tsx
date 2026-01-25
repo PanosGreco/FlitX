@@ -36,8 +36,8 @@ export function ChatInput({ onSend, disabled, placeholder = "Ask me anything..."
     <div className="w-full">
       <div className={cn(
         "relative flex items-end gap-2",
-        "bg-gray-100",
-        "border border-gray-200/80",
+        "bg-white",
+        "border border-gray-200",
         "rounded-2xl",
         "p-3 pr-3"
       )}>
