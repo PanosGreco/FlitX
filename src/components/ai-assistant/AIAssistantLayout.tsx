@@ -20,7 +20,8 @@ export function AIAssistantLayout() {
     sendMessage,
     createNewChat,
     switchConversation,
-    deleteConversation
+    deleteConversation,
+    renameConversation
   } = useAIChat();
 
   const handleSendMessage = (content: string, presetType?: string) => {
@@ -58,6 +59,7 @@ export function AIAssistantLayout() {
             if (isMobile) setSidebarOpen(false);
           }}
           onDeleteConversation={deleteConversation}
+          onRenameConversation={renameConversation}
         />
       </div>
 

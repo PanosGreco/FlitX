@@ -1165,7 +1165,7 @@ CRITICAL BEHAVIORAL RULES (MUST FOLLOW EXACTLY)
 `;
 
   // === BUILD COMPLETE SYSTEM PROMPT ===
-  const basePrompt = `You are FleetX AI Assistant, a precise business intelligence assistant for ${context.profile.company || 'this fleet management company'} located in ${context.profile.location}.
+  const basePrompt = `You are FlitX AI Assistant, a precise business intelligence assistant for ${context.profile.company || 'this fleet management company'} located in ${context.profile.location}.
 
 ${dataDictionary}
 

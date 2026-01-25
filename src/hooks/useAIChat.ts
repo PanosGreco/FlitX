@@ -27,6 +27,7 @@ interface UseAIChatReturn {
   createNewChat: () => void;
   switchConversation: (id: string) => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
+  renameConversation: (id: string, newTitle: string) => Promise<void>;
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-chat`;
@@ -117,6 +118,22 @@ export function useAIChat(): UseAIChatReturn {
       toast.success('Conversation deleted');
     }
   }, [activeConversation, createNewChat]);
+
+  const renameConversation = useCallback(async (id: string, newTitle: string) => {
+    const { error } = await supabase
+      .from('ai_chat_conversations')
+      .update({ title: newTitle, updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (!error) {
+      setConversations(prev => prev.map(c => 
+        c.id === id ? { ...c, title: newTitle } : c
+      ));
+      toast.success('Conversation renamed');
+    } else {
+      toast.error('Failed to rename conversation');
+    }
+  }, []);
 
   const sendMessage = useCallback(async (content: string, presetType?: string) => {
     if (!user) return;
@@ -280,6 +297,7 @@ export function useAIChat(): UseAIChatReturn {
     sendMessage,
     createNewChat,
     switchConversation,
-    deleteConversation
+    deleteConversation,
+    renameConversation
   };
 }
