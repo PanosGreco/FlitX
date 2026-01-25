@@ -170,6 +170,7 @@ interface Vehicle {
   daily_rate?: number;
   type?: string;           // category (suv, economy, etc.)
   vehicle_type?: string;   // top-level type (car, motorbike, atv) - PHASE 2
+  fuel_type?: string;      // PHASE 3: petrol, diesel, hybrid, electric
   year?: number;
   status?: string;
 }
@@ -288,6 +289,25 @@ interface MonthlyVehicleProfitability {
 // PHASE 2: Fleet by Vehicle Type
 interface FleetByType {
   type: string;
+  count: number;
+  vehicles: string[];
+  maintenanceCost: number;
+  maintenanceRecords: number;
+}
+
+// PHASE 3: Fleet by Vehicle Category (SUV, Economy, Sedan, etc.)
+interface FleetByCategory {
+  category: string;
+  vehicleType: string;
+  count: number;
+  vehicles: string[];
+  maintenanceCost: number;
+  maintenanceRecords: number;
+}
+
+// PHASE 3: Fleet by Fuel Type
+interface FleetByFuelType {
+  fuelType: string;
   count: number;
   vehicles: string[];
   maintenanceCost: number;
@@ -621,6 +641,67 @@ function buildBusinessContext(
   });
 
   const fleetByTypeArray = Object.values(fleetByType);
+
+  // === PHASE 3A: FLEET BY VEHICLE CATEGORY (SUV, Economy, Sedan, etc.) ===
+  const vehicleCategoryMap = new Map(vehicles.map(v => [v.id, (v.type || 'uncategorized').toLowerCase()]));
+  const fleetByCategory: Record<string, FleetByCategory> = {};
+  
+  vehicles.forEach(v => {
+    const category = (v.type || 'uncategorized').toLowerCase();
+    if (!fleetByCategory[category]) {
+      fleetByCategory[category] = {
+        category: category,
+        vehicleType: v.vehicle_type || 'car',
+        count: 0,
+        vehicles: [],
+        maintenanceCost: 0,
+        maintenanceRecords: 0
+      };
+    }
+    fleetByCategory[category].count++;
+    fleetByCategory[category].vehicles.push(`${v.make} ${v.model}`);
+  });
+
+  // Add maintenance costs by category
+  maintenanceRecords.forEach(m => {
+    const category = vehicleCategoryMap.get(m.vehicle_id) || 'uncategorized';
+    if (fleetByCategory[category]) {
+      fleetByCategory[category].maintenanceCost += Number(m.cost || 0);
+      fleetByCategory[category].maintenanceRecords++;
+    }
+  });
+
+  const fleetByCategoryArray = Object.values(fleetByCategory);
+
+  // === PHASE 3B: FLEET BY FUEL TYPE ===
+  const vehicleFuelMap = new Map(vehicles.map(v => [v.id, (v.fuel_type || 'unknown').toLowerCase()]));
+  const fleetByFuelType: Record<string, FleetByFuelType> = {};
+  
+  vehicles.forEach(v => {
+    const fuel = (v.fuel_type || 'unknown').toLowerCase();
+    if (!fleetByFuelType[fuel]) {
+      fleetByFuelType[fuel] = {
+        fuelType: fuel,
+        count: 0,
+        vehicles: [],
+        maintenanceCost: 0,
+        maintenanceRecords: 0
+      };
+    }
+    fleetByFuelType[fuel].count++;
+    fleetByFuelType[fuel].vehicles.push(`${v.make} ${v.model}`);
+  });
+
+  // Add maintenance costs by fuel type
+  maintenanceRecords.forEach(m => {
+    const fuel = vehicleFuelMap.get(m.vehicle_id) || 'unknown';
+    if (fleetByFuelType[fuel]) {
+      fleetByFuelType[fuel].maintenanceCost += Number(m.cost || 0);
+      fleetByFuelType[fuel].maintenanceRecords++;
+    }
+  });
+
+  const fleetByFuelTypeArray = Object.values(fleetByFuelType);
   
   // === MAINTENANCE SUMMARY PER VEHICLE ===
   const maintenanceByVehicle: Record<string, MaintenanceSummary> = {};
@@ -721,7 +802,9 @@ function buildBusinessContext(
       leastProfitable: leastProfitableVehicle,
       mostBooked: mostBookedVehicle,
       highestRevenue: highestRevenueVehicle,
-      byType: fleetByTypeArray // PHASE 2B: Fleet by vehicle type
+      byType: fleetByTypeArray, // PHASE 2B: Fleet by vehicle type
+      byCategory: fleetByCategoryArray, // PHASE 3A: Fleet by vehicle category
+      byFuelType: fleetByFuelTypeArray // PHASE 3B: Fleet by fuel type
     },
     bookings: { 
       total: bookings.length,
@@ -858,7 +941,36 @@ ${context.fleet.byType.map(ft =>
     - Maintenance: €${ft.maintenanceCost.toFixed(2)} from ${ft.maintenanceRecords} records`
 ).join('\n')}
 
-USE THIS SECTION when user asks about specific vehicle types (e.g., "SUVs", "motorbikes", "cars only").
+USE THIS SECTION when user asks about broad vehicle types like "cars", "motorbikes", "atvs".
+NOTE: This is DIFFERENT from vehicle category (SUV, Economy, Sedan). For category queries, use FLEET BY VEHICLE CATEGORY below.
+` : '';
+
+  // === PHASE 3A: FLEET BY VEHICLE CATEGORY ===
+  const fleetByCategorySection = context.fleet.byCategory && context.fleet.byCategory.length > 0 ? `
+═══════════════════════════════════════════════════════════
+FLEET BY VEHICLE CATEGORY (SUV, Economy, Sedan, etc.)
+═══════════════════════════════════════════════════════════
+${context.fleet.byCategory.map(fc => 
+  `• ${fc.category.toUpperCase()}: ${fc.count} vehicles (${fc.vehicles.join(', ')})
+    - Parent Type: ${fc.vehicleType}
+    - Maintenance: €${fc.maintenanceCost.toFixed(2)} from ${fc.maintenanceRecords} records`
+).join('\n')}
+
+USE THIS SECTION when user asks about "SUVs", "economy cars", "sedans", "luxury vehicles", etc.
+CRITICAL: SUV is a CATEGORY, not a vehicle type. "SUV maintenance" = use this section, NOT fleet by type.
+` : '';
+
+  // === PHASE 3B: FLEET BY FUEL TYPE ===
+  const fleetByFuelTypeSection = context.fleet.byFuelType && context.fleet.byFuelType.length > 0 ? `
+═══════════════════════════════════════════════════════════
+FLEET BY FUEL TYPE
+═══════════════════════════════════════════════════════════
+${context.fleet.byFuelType.map(ff => 
+  `• ${ff.fuelType.toUpperCase()}: ${ff.count} vehicles (${ff.vehicles.join(', ')})
+    - Maintenance: €${ff.maintenanceCost.toFixed(2)} from ${ff.maintenanceRecords} records`
+).join('\n')}
+
+USE THIS SECTION when user asks about "petrol vehicles", "diesel cars", "hybrid maintenance", "electric vehicles".
 ` : '';
 
   // === PHASE 2C: COLLABORATION INCOME BY PARTNER ===
@@ -1023,9 +1135,9 @@ CRITICAL BEHAVIORAL RULES (MUST FOLLOW EXACTLY)
    • DO NOT calculate monthly values from global totals
 
 9. VEHICLE TYPE FILTERING RULES (PHASE 2):
-   • "SUVs" / "cars only" / "motorbikes" = use FLEET BY VEHICLE TYPE section
-   • "SUV maintenance" = cross-reference vehicle type with maintenance data
-   • For vehicle type queries, ONLY report data for that specific type
+    • "cars only" / "motorbikes" / "atvs" = use FLEET BY VEHICLE TYPE section
+    • This is for BROAD types (car, motorbike, atv), NOT categories (SUV, economy)
+    • For vehicle type queries, ONLY report data for that specific type
 
 10. COLLABORATION & YTD RULES (PHASE 2):
     • "Which partner" / "collaboration breakdown" = use COLLABORATION INCOME BY PARTNER
@@ -1037,6 +1149,19 @@ CRITICAL BEHAVIORAL RULES (MUST FOLLOW EXACTLY)
     • "Most profitable vehicle in January" = use MONTHLY VEHICLE PROFITABILITY section
     • "Which vehicle performed best last month" = use mostProfitableByMonth
     • DO NOT use overall profitability when asked about a specific month
+
+12. VEHICLE CATEGORY FILTERING RULES (PHASE 3 - CRITICAL):
+    • "SUVs" / "SUV maintenance" / "economy cars" / "sedans" / "luxury" = use FLEET BY VEHICLE CATEGORY section
+    • SUV is a CATEGORY (under car type), NOT a vehicle type
+    • ALWAYS use the pre-computed category breakdown for category queries
+    • Include ALL vehicles in that category when reporting totals
+    • Example: "SUV maintenance" → sum maintenance for ALL SUV category vehicles
+
+13. FUEL TYPE FILTERING RULES (PHASE 3):
+    • "petrol vehicles" / "diesel cars" / "hybrid" / "electric" = use FLEET BY FUEL TYPE section
+    • Never claim fuel data is unavailable - it IS provided in FLEET BY FUEL TYPE
+    • Filter maintenance/expenses by the fuel type group
+    • Example: "petrol vehicle maintenance" → use maintenance cost from petrol fuel type group
 `;
 
   // === BUILD COMPLETE SYSTEM PROMPT ===
@@ -1074,6 +1199,8 @@ ${subcategoryBreakdown}
 ${monthlySubcategorySection}
 
 ${fleetByTypeSection}
+${fleetByCategorySection}
+${fleetByFuelTypeSection}
 
 ═══════════════════════════════════════════════════════════
 MONTHLY PERFORMANCE ANALYTICS
