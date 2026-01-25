@@ -14,6 +14,10 @@ const corsHeaders = {
  * - NEVER deletes: bookings, daily tasks, financial records, vehicles, maintenance, damages
  * - Contract files are deleted 30 days AFTER the booking end_date
  * - Booking records remain intact, only the contract_photo_path reference is cleared
+ * 
+ * SECURITY:
+ * - Requires authentication (valid JWT token)
+ * - Requires admin role to execute
  */
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -23,9 +27,103 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // === AUTHENTICATION CHECK ===
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Missing or invalid authorization header" 
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 401,
+        }
+      );
+    }
+
+    // Create client with user's token to verify authentication
+    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Validate the JWT token and get claims
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+
+    if (claimsError || !claimsData?.claims) {
+      console.error("Authentication failed:", claimsError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Invalid or expired authentication token" 
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 401,
+        }
+      );
+    }
+
+    const userId = claimsData.claims.sub;
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "User ID not found in token" 
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 401,
+        }
+      );
+    }
+
+    // === AUTHORIZATION CHECK (Admin Role Required) ===
+    // Use service role client to check user roles (bypasses RLS)
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
     
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: roleData, error: roleError } = await adminClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (roleError) {
+      console.error("Role check failed:", roleError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Failed to verify user permissions" 
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 500,
+        }
+      );
+    }
+
+    if (!roleData || roleData.role !== "admin") {
+      console.log(`Access denied for user ${userId}. Role: ${roleData?.role || 'none'}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Forbidden: Admin access required to perform cleanup operations" 
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 403,
+        }
+      );
+    }
+
+    console.log(`Cleanup initiated by admin user: ${userId}`);
+
+    // === CLEANUP LOGIC (using service role for admin operations) ===
+    const supabase = adminClient;
 
     // Calculate the date 30 days ago (for bookings that ended 30+ days ago)
     const thirtyDaysAgo = new Date();
@@ -94,6 +192,7 @@ serve(async (req) => {
         filesDeleted: filesDeleted,
         bookingsUpdated: bookingsUpdated,
         cutoffDate: cutoffDate,
+        executedBy: userId,
         note: "Only contract files were deleted. All bookings, tasks, and records remain intact."
       }),
       {
@@ -106,7 +205,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
+        error: "An error occurred during cleanup",
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
