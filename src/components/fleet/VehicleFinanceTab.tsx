@@ -218,6 +218,11 @@ export function VehicleFinanceTab({ vehicleId, vehicleName, purchasePrice }: Veh
                           €{depreciationStatus.remainingForDepreciation.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                         </span>
                       }
+                      tooltipContent={
+                        <span className="text-sm">
+                          €{netIncome.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} depreciated
+                        </span>
+                      }
                     />
                   </>
                 ) : (
