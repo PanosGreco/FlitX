@@ -1,4 +1,11 @@
 import { cn } from "@/lib/utils"
+import { useState } from "react"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface Props {
   max: number
@@ -8,6 +15,7 @@ interface Props {
   gaugeSecondaryColor: string
   className?: string
   displayValue?: React.ReactNode
+  tooltipContent?: React.ReactNode
 }
 
 export function AnimatedCircularProgressBar({
@@ -18,10 +26,38 @@ export function AnimatedCircularProgressBar({
   gaugeSecondaryColor,
   className,
   displayValue,
+  tooltipContent,
 }: Props) {
   const circumference = 2 * Math.PI * 45
   const percentPx = circumference / 100
   const currentPercent = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100))
+
+  const progressCircle = (
+    <circle
+      cx="50"
+      cy="50"
+      r="45"
+      strokeWidth="10"
+      strokeDashoffset="0"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="opacity-100"
+      style={
+        {
+          stroke: gaugePrimaryColor,
+          "--stroke-percent": currentPercent,
+          "--offset-factor-secondary": "calc(1 - var(--offset-factor))",
+          strokeDasharray:
+            "calc(var(--stroke-percent) * var(--percent-to-px) - var(--gap-percent-to-deg)) var(--circumference)",
+          transform:
+            "rotate(calc(1turn - 90deg - (var(--gap-percent) * var(--percent-to-deg) * var(--offset-factor-secondary)))) scaleY(-1)",
+          transition:
+            "all var(--transition-length) ease var(--delay),stroke var(--transition-length) ease var(--delay)",
+          transformOrigin: "calc(var(--circle-size) / 2) calc(var(--circle-size) / 2)",
+        } as React.CSSProperties
+      }
+    />
+  )
 
   return (
     <div
@@ -47,32 +83,23 @@ export function AnimatedCircularProgressBar({
         strokeWidth="2"
         viewBox="0 0 100 100"
       >
-        {currentPercent <= 90 && currentPercent >= 0 && (
-          <circle
-            cx="50"
-            cy="50"
-            r="45"
-            strokeWidth="10"
-            strokeDashoffset="0"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="opacity-100"
-            style={
-              {
-                stroke: gaugePrimaryColor,
-                "--stroke-percent": currentPercent,
-                "--offset-factor-secondary": "calc(1 - var(--offset-factor))",
-                strokeDasharray:
-                  "calc(var(--stroke-percent) * var(--percent-to-px) - var(--gap-percent-to-deg)) var(--circumference)",
-                transform:
-                  "rotate(calc(1turn - 90deg - (var(--gap-percent) * var(--percent-to-deg) * var(--offset-factor-secondary)))) scaleY(-1)",
-                transition:
-                  "all var(--transition-length) ease var(--delay),stroke var(--transition-length) ease var(--delay)",
-                transformOrigin: "calc(var(--circle-size) / 2) calc(var(--circle-size) / 2)",
-              } as React.CSSProperties
-            }
-          />
-        )}
+        {/* Primary (Blue) - Depreciated amount */}
+        {currentPercent <= 90 && currentPercent >= 0 && tooltipContent ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <g className="cursor-pointer">{progressCircle}</g>
+              </TooltipTrigger>
+              <TooltipContent>
+                {tooltipContent}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : currentPercent <= 90 && currentPercent >= 0 ? (
+          progressCircle
+        ) : null}
+        
+        {/* Secondary (Gray/White) - Remaining amount */}
         <circle
           cx="50"
           cy="50"
