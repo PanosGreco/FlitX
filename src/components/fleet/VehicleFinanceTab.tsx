@@ -180,12 +180,12 @@ export function VehicleFinanceTab({ vehicleId, vehicleName, purchasePrice }: Veh
       {/* New Finance Container: Purchase Value + Depreciation/Profit + Reserved Space */}
       {purchasePrice && purchasePrice > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Vehicle Purchase Value Card */}
+          {/* Purchase Value Card */}
           <Card className="border-border bg-card">
             <CardContent className="p-5">
               <div className="flex items-center gap-2 text-muted-foreground mb-2">
                 <DollarSign className="h-4 w-4" />
-                <span className="text-xs font-medium uppercase tracking-wide">Vehicle Purchase Value</span>
+                <span className="text-xs font-medium uppercase tracking-wide">Purchase Value</span>
               </div>
               <div className="text-3xl font-bold text-foreground">
                 €{purchasePrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -210,13 +210,15 @@ export function VehicleFinanceTab({ vehicleId, vehicleName, purchasePrice }: Veh
                       max={100}
                       min={0}
                       value={depreciationStatus.depreciationPercentage}
-                      gaugePrimaryColor="hsl(var(--primary))"
-                      gaugeSecondaryColor="hsl(var(--muted))"
-                      className="size-28"
+                      gaugePrimaryColor="rgb(79 70 229)"
+                      gaugeSecondaryColor="rgba(0, 0, 0, 0.1)"
+                      className="size-32"
+                      displayValue={
+                        <span className="text-base font-semibold text-foreground">
+                          €{depreciationStatus.remainingForDepreciation.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                        </span>
+                      }
                     />
-                    <div className="mt-3 text-lg font-semibold text-amber-600">
-                      €{depreciationStatus.remainingForDepreciation.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </div>
                   </>
                 ) : (
                   // Fully depreciated - Show Net Profit
