@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BarChart3, TrendingUp, TrendingDown, DollarSign, ChevronLeft, ChevronRight, Eye } from "lucide-react";
+import { BarChart3, TrendingUp, TrendingDown, DollarSign, ChevronLeft, ChevronRight, Eye, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AnimatedCircularProgressBar } from "@/components/ui/animated-circular-progress-bar";
 
 interface FinanceRecord {
   id: string;
@@ -93,37 +94,33 @@ export function VehicleFinanceTab({ vehicleId, vehicleName, purchasePrice }: Veh
     }
   };
 
-  const netProfit = totalRevenue - totalExpenses;
+  const netIncome = totalRevenue - totalExpenses;
   const totalPages = Math.ceil(records.length / ITEMS_PER_PAGE);
   const paginatedRecords = records.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
 
-  // Calculate break-even / profit status
-  const getBreakEvenStatus = () => {
+  // Calculate depreciation status
+  const getDepreciationStatus = () => {
     if (!purchasePrice || purchasePrice <= 0) {
       return null;
     }
     
-    const remainingToBreakEven = purchasePrice - netProfit;
+    const remainingForDepreciation = Math.max(0, purchasePrice - netIncome);
+    const depreciationPercentage = Math.min(100, (netIncome / purchasePrice) * 100);
+    const isFullyDepreciated = netIncome >= purchasePrice;
+    const netProfitAfterDepreciation = isFullyDepreciated ? netIncome - purchasePrice : 0;
     
-    if (remainingToBreakEven > 0) {
-      return {
-        type: 'remaining' as const,
-        amount: remainingToBreakEven,
-        percentage: Math.min(100, (netProfit / purchasePrice) * 100)
-      };
-    } else {
-      return {
-        type: 'profit' as const,
-        amount: Math.abs(remainingToBreakEven),
-        percentage: 100
-      };
-    }
+    return {
+      remainingForDepreciation,
+      depreciationPercentage,
+      isFullyDepreciated,
+      netProfitAfterDepreciation
+    };
   };
 
-  const breakEvenStatus = getBreakEvenStatus();
+  const depreciationStatus = getDepreciationStatus();
 
   if (isLoading) {
     return (
@@ -135,7 +132,7 @@ export function VehicleFinanceTab({ vehicleId, vehicleName, purchasePrice }: Veh
 
   return (
     <div className="space-y-4">
-      {/* Summary Cards */}
+      {/* Summary Cards - Unchanged */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-green-50 border-green-200">
           <CardContent className="p-4">
@@ -167,36 +164,84 @@ export function VehicleFinanceTab({ vehicleId, vehicleName, purchasePrice }: Veh
           </CardContent>
         </Card>
         
-        <Card className={netProfit >= 0 ? "bg-blue-50 border-blue-200" : "bg-orange-50 border-orange-200"}>
+        <Card className={netIncome >= 0 ? "bg-blue-50 border-blue-200" : "bg-orange-50 border-orange-200"}>
           <CardContent className="p-4">
-            <div className={`flex items-center gap-2 mb-1 ${netProfit >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
+            <div className={`flex items-center gap-2 mb-1 ${netIncome >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
               <DollarSign className="h-4 w-4" />
               <span className="text-sm font-medium">Net Income</span>
             </div>
-            <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
-              €{netProfit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            <div className={`text-2xl font-bold ${netIncome >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
+              €{netIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Merged Vehicle Value & Profitability Card */}
+      {/* New Finance Container: Purchase Value + Depreciation/Profit + Reserved Space */}
       {purchasePrice && purchasePrice > 0 && (
-        <Card className="border-muted">
-          <CardContent className="py-3 px-4">
-            <div className="text-sm text-muted-foreground">
-              Vehicle purchase value: <span className="font-medium text-foreground">€{purchasePrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-            </div>
-            {breakEvenStatus && (
-              <div className={`text-sm mt-1 ${breakEvenStatus.type === 'profit' ? 'text-green-600' : 'text-amber-600'}`}>
-                {breakEvenStatus.type === 'profit' 
-                  ? <>Profit: <span className="font-semibold">€{breakEvenStatus.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></>
-                  : <>Remaining for depreciation: <span className="font-semibold">€{breakEvenStatus.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span></>
-                }
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Vehicle Purchase Value Card */}
+          <Card className="border-border bg-card">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                <DollarSign className="h-4 w-4" />
+                <span className="text-xs font-medium uppercase tracking-wide">Vehicle Purchase Value</span>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <div className="text-3xl font-bold text-foreground">
+                €{purchasePrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </div>
+              <div className="text-xs text-muted-foreground mt-2">
+                Initial investment
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Depreciation Circle OR Net Profit Card */}
+          {depreciationStatus && (
+            <Card className="border-border bg-card">
+              <CardContent className="p-5 flex flex-col items-center justify-center">
+                {!depreciationStatus.isFullyDepreciated ? (
+                  // Depreciation in progress - Show circular progress
+                  <>
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">
+                      Remaining for Depreciation
+                    </span>
+                    <AnimatedCircularProgressBar
+                      max={100}
+                      min={0}
+                      value={depreciationStatus.depreciationPercentage}
+                      gaugePrimaryColor="hsl(var(--primary))"
+                      gaugeSecondaryColor="hsl(var(--muted))"
+                      className="size-28"
+                    />
+                    <div className="mt-3 text-lg font-semibold text-amber-600">
+                      €{depreciationStatus.remainingForDepreciation.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </div>
+                  </>
+                ) : (
+                  // Fully depreciated - Show Net Profit
+                  <>
+                    <div className="flex items-center gap-2 text-green-600 mb-2">
+                      <Sparkles className="h-4 w-4" />
+                      <span className="text-xs font-medium uppercase tracking-wide">Vehicle Fully Depreciated</span>
+                    </div>
+                    <div className="text-3xl font-bold text-green-600">
+                      +€{depreciationStatus.netProfitAfterDepreciation.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </div>
+                    <div className="text-xs text-green-600 mt-2">
+                      Net Profit since depreciation completed
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Reserved Empty Space */}
+          <div className="hidden md:block">
+            {/* Intentionally empty for future use */}
+          </div>
+        </div>
       )}
 
       {/* Transaction History */}
