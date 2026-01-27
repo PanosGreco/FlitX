@@ -107,11 +107,9 @@ export function RemindersWidget() {
           <Loader2 className="h-5 w-5 animate-spin text-slate-300" />
         </div> : reminders.length === 0 ? <div className="py-4">
           <p className="text-sm text-slate-500 leading-relaxed">
-            Weekly vehicle-related reminders will appear here.
+            Daily vehicle-related reminders will appear here.
           </p>
-          <p className="text-sm text-slate-500 leading-relaxed mt-2">
-            You can manage and add reminders individually for each vehicle through the Vehicle Reminders section.
-          </p>
+          <p className="text-sm text-slate-500 leading-relaxed mt-2">You can manage and add reminders individually for each vehicle through the Vehicle's Reminders section.</p>
         </div> : <div className="max-h-[200px] overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
           {reminders.slice(0, 5).map(reminder => <div key={reminder.id} className={cn("flex items-start gap-3 py-2 transition-opacity", reminder.is_completed && "opacity-50")}>
               {/* Checkbox */}
