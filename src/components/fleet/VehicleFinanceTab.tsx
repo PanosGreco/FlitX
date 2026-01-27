@@ -95,6 +95,10 @@ export function VehicleFinanceTab({ vehicleId, vehicleName, purchasePrice }: Veh
   };
 
   const netIncome = totalRevenue - totalExpenses;
+
+  // UI wiring: treat purchasePrice as a numeric max value for the progress ring
+  // (does not change depreciation logic; only ensures correct prop typing)
+  const purchaseValue = typeof purchasePrice === "number" ? purchasePrice : Number(purchasePrice);
   const totalPages = Math.ceil(records.length / ITEMS_PER_PAGE);
   const paginatedRecords = records.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
@@ -103,14 +107,14 @@ export function VehicleFinanceTab({ vehicleId, vehicleName, purchasePrice }: Veh
 
   // Calculate depreciation status
   const getDepreciationStatus = () => {
-    if (!purchasePrice || purchasePrice <= 0) {
+    if (!purchaseValue || purchaseValue <= 0) {
       return null;
     }
     
-    const remainingForDepreciation = Math.max(0, purchasePrice - netIncome);
-    const depreciationPercentage = Math.min(100, (netIncome / purchasePrice) * 100);
-    const isFullyDepreciated = netIncome >= purchasePrice;
-    const netProfitAfterDepreciation = isFullyDepreciated ? netIncome - purchasePrice : 0;
+    const remainingForDepreciation = Math.max(0, purchaseValue - netIncome);
+    const depreciationPercentage = Math.min(100, (netIncome / purchaseValue) * 100);
+    const isFullyDepreciated = netIncome >= purchaseValue;
+    const netProfitAfterDepreciation = isFullyDepreciated ? netIncome - purchaseValue : 0;
     
     return {
       remainingForDepreciation,
@@ -178,7 +182,7 @@ export function VehicleFinanceTab({ vehicleId, vehicleName, purchasePrice }: Veh
       </div>
 
       {/* New Finance Container: Purchase Value + Depreciation/Profit + Reserved Space */}
-      {purchasePrice && purchasePrice > 0 && (
+      {purchaseValue && purchaseValue > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Purchase Value Card */}
           <Card className="border-border bg-card">
@@ -188,7 +192,7 @@ export function VehicleFinanceTab({ vehicleId, vehicleName, purchasePrice }: Veh
                 <span className="text-xs font-medium uppercase tracking-wide">Purchase Value</span>
               </div>
               <div className="text-3xl font-bold text-foreground">
-                €{purchasePrice.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                €{purchaseValue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </div>
               <div className="text-xs text-muted-foreground mt-2">
                 Initial investment
@@ -207,11 +211,12 @@ export function VehicleFinanceTab({ vehicleId, vehicleName, purchasePrice }: Veh
                       Remaining for Depreciation
                     </span>
                     <AnimatedCircularProgressBar
-                      max={100}
+                      // Critical wiring: min=0, max=purchase value, value=net income
                       min={0}
-                      value={depreciationStatus.depreciationPercentage}
-                      gaugePrimaryColor="rgb(79 70 229)"
-                      gaugeSecondaryColor="rgba(0, 0, 0, 0.1)"
+                      max={purchaseValue}
+                      value={netIncome}
+                      gaugePrimaryColor="hsl(var(--primary))"
+                      gaugeSecondaryColor="hsl(var(--foreground) / 0.12)"
                       className="size-32"
                       displayValue={
                         <span className="text-base font-semibold text-foreground">
