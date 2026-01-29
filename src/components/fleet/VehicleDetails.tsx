@@ -25,6 +25,7 @@ const getFuelTypeLabel = (fuelType: string | undefined, lang: string): string =>
   if (!fuelType) return '';
   return FUEL_TYPE_LABELS[fuelType]?.[lang === 'el' ? 'el' : 'en'] || fuelType;
 };
+import { getTransmissionTypeLabel } from "@/constants/transmissionTypes";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -307,6 +308,10 @@ export function VehicleDetails({
                   {getFuelTypeLabel(vehicle.fuelType, language) && <>
                     <span className="mx-2">•</span>
                     <span>{getFuelTypeLabel(vehicle.fuelType, language)}</span>
+                  </>}
+                  {vehicle.transmission_type && <>
+                    <span className="mx-2">•</span>
+                    <span>{getTransmissionTypeLabel(vehicle.transmission_type, language)}</span>
                   </>}
                   {vehicle.passengerCapacity && <>
                       <span className="mx-2">•</span>

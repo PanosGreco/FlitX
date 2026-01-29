@@ -812,6 +812,7 @@ export type Database = {
           passenger_capacity: number | null
           purchase_price: number | null
           status: Database["public"]["Enums"]["vehicle_status"]
+          transmission_type: string
           type: string
           updated_at: string
           user_id: string
@@ -832,6 +833,7 @@ export type Database = {
           passenger_capacity?: number | null
           purchase_price?: number | null
           status?: Database["public"]["Enums"]["vehicle_status"]
+          transmission_type?: string
           type: string
           updated_at?: string
           user_id: string
@@ -852,6 +854,7 @@ export type Database = {
           passenger_capacity?: number | null
           purchase_price?: number | null
           status?: Database["public"]["Enums"]["vehicle_status"]
+          transmission_type?: string
           type?: string
           updated_at?: string
           user_id?: string

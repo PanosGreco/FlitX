@@ -31,6 +31,7 @@ import {
   normalizeCategory,
   isStandardCategory
 } from "@/constants/vehicleTypes";
+import { TRANSMISSION_TYPES, TRANSMISSION_TYPE_LABELS, TransmissionType } from "@/constants/transmissionTypes";
 
 interface EditVehicleDialogProps {
   isOpen: boolean;
@@ -44,6 +45,7 @@ interface EditVehicleDialogProps {
     image?: string;
     purchase_price?: number | null;
     fuel_type?: string;
+    transmission_type?: string;
     passenger_capacity?: number;
     vehicle_type?: string;
     type?: string;
@@ -60,6 +62,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
   const [purchasePrice, setPurchasePrice] = useState<string>(vehicle.purchase_price?.toString() || '');
   const [vehicleImage, setVehicleImage] = useState<string | null>(vehicle.image || null);
   const [fuelType, setFuelType] = useState(vehicle.fuel_type || 'petrol');
+  const [transmissionType, setTransmissionType] = useState<TransmissionType>((vehicle.transmission_type as TransmissionType) || 'manual');
   const [passengerCapacity, setPassengerCapacity] = useState(vehicle.passenger_capacity?.toString() || '5');
   const [vehicleType, setVehicleType] = useState<VehicleType>((vehicle.vehicle_type as VehicleType) || 'car');
   const [vehicleCategory, setVehicleCategory] = useState(vehicle.type || '');
@@ -77,6 +80,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     setPurchasePrice(vehicle.purchase_price?.toString() || '');
     setVehicleImage(vehicle.image || null);
     setFuelType(vehicle.fuel_type || 'petrol');
+    setTransmissionType((vehicle.transmission_type as TransmissionType) || 'manual');
     setPassengerCapacity(vehicle.passenger_capacity?.toString() || '5');
     
     const vType = (vehicle.vehicle_type as VehicleType) || 'car';
@@ -163,6 +167,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
           purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
           image: vehicleImage,
           fuel_type: fuelType,
+          transmission_type: transmissionType,
           passenger_capacity: parseInt(passengerCapacity),
           vehicle_type: vehicleType,
           type: finalCategory,
@@ -321,6 +326,23 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
                 <SelectItem value="diesel">{language === 'el' ? 'Diesel' : 'Diesel'}</SelectItem>
                 <SelectItem value="electric">{language === 'el' ? 'Ηλεκτρικό' : 'Electric'}</SelectItem>
                 <SelectItem value="hybrid">{language === 'el' ? 'Υβριδικό' : 'Hybrid'}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Transmission Type */}
+          <div className="space-y-2">
+            <Label htmlFor="transmission-type">{language === 'el' ? 'Κιβώτιο Ταχυτήτων' : 'Transmission Type'}</Label>
+            <Select value={transmissionType} onValueChange={(v) => setTransmissionType(v as TransmissionType)}>
+              <SelectTrigger>
+                <SelectValue placeholder={language === 'el' ? 'Επιλέξτε...' : 'Select transmission'} />
+              </SelectTrigger>
+              <SelectContent>
+                {TRANSMISSION_TYPES.map((tt) => (
+                  <SelectItem key={tt} value={tt}>
+                    {TRANSMISSION_TYPE_LABELS[tt][language === 'el' ? 'el' : 'en']}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

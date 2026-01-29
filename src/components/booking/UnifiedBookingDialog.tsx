@@ -35,6 +35,7 @@ interface Vehicle {
   license_plate: string | null;
   daily_rate: number;
   fuel_type: string | null;
+  transmission_type: string | null;
   vehicle_type: string;
   type: string;
 }
@@ -114,6 +115,7 @@ export function UnifiedBookingDialog({
   const [vehicleFilterOpen, setVehicleFilterOpen] = useState(false);
   const [fuelTypeFilter, setFuelTypeFilter] = useState<string[]>([]);
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState<string[]>([]);
+  const [transmissionTypeFilter, setTransmissionTypeFilter] = useState<string[]>([]);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -153,7 +155,7 @@ export function UnifiedBookingDialog({
       const [vehiclesResult, bookingsResult, maintenanceResult] = await Promise.all([
         supabase
           .from('vehicles')
-          .select('id, make, model, year, license_plate, daily_rate, fuel_type, vehicle_type, type')
+          .select('id, make, model, year, license_plate, daily_rate, fuel_type, transmission_type, vehicle_type, type')
           .eq('user_id', user.id),
         supabase
           .from('rental_bookings')
@@ -242,6 +244,14 @@ export function UnifiedBookingDialog({
       filtered = filtered.filter(v => vehicleTypeFilter.includes(v.vehicle_type));
     }
 
+    // Apply transmission type filter
+    if (transmissionTypeFilter.length > 0) {
+      filtered = filtered.filter(v => {
+        const transmission = v.transmission_type || 'manual';
+        return transmissionTypeFilter.includes(transmission);
+      });
+    }
+
     // Sort: available vehicles first, then unavailable
     return filtered.sort((a, b) => {
       const availabilityA = getVehicleAvailability(a.id);
@@ -251,7 +261,9 @@ export function UnifiedBookingDialog({
       if (!availabilityA.available && availabilityB.available) return 1;
       return 0;
     });
-  }, [vehicles, vehicleSearch, fuelTypeFilter, vehicleTypeFilter, startDate, endDate, allBookings, allMaintenanceBlocks]);
+  }, [vehicles, vehicleSearch, fuelTypeFilter, vehicleTypeFilter, transmissionTypeFilter, startDate, endDate, allBookings, allMaintenanceBlocks]);
+
+  const hasActiveFilters = fuelTypeFilter.length > 0 || vehicleTypeFilter.length > 0 || transmissionTypeFilter.length > 0;
 
   // Check for conflicts when vehicle or dates change
   useEffect(() => {
@@ -524,9 +536,8 @@ export function UnifiedBookingDialog({
     setVehicleSearch("");
     setFuelTypeFilter([]);
     setVehicleTypeFilter([]);
+    setTransmissionTypeFilter([]);
   };
-
-  const hasActiveFilters = fuelTypeFilter.length > 0 || vehicleTypeFilter.length > 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) { resetForm(); onClose(); } }}>
@@ -725,6 +736,7 @@ export function UnifiedBookingDialog({
                         <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => {
                           setFuelTypeFilter([]);
                           setVehicleTypeFilter([]);
+                          setTransmissionTypeFilter([]);
                         }}>
                           {language === 'el' ? 'Καθαρισμός' : 'Clear'}
                         </Button>
@@ -768,14 +780,36 @@ export function UnifiedBookingDialog({
                               }}
                               className="h-3.5 w-3.5"
                             />
-                            <span className="capitalize">{fuel === 'petrol' ? (language === 'el' ? 'Βενζίνη' : 'Petrol') : fuel}</span>
-                          </label>
-                        ))}
+                                <span className="capitalize">{fuel === 'petrol' ? (language === 'el' ? 'Βενζίνη' : 'Petrol') : fuel}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Transmission Type Filter */}
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground">{language === 'el' ? 'Κιβώτιο' : 'Transmission'}</Label>
+                          <div className="flex gap-2">
+                            {['manual', 'automatic'].map(transmission => (
+                              <Button
+                                key={transmission}
+                                variant={transmissionTypeFilter.includes(transmission) ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => {
+                                  setTransmissionTypeFilter(prev => 
+                                    prev.includes(transmission) ? prev.filter(t => t !== transmission) : [...prev, transmission]
+                                  );
+                                }}
+                                className="flex-1 text-xs h-7"
+                              >
+                                {transmission === 'manual' ? (language === 'el' ? 'Χειροκίνητο' : 'Manual') : (language === 'el' ? 'Αυτόματο' : 'Automatic')}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
+                    </PopoverContent>
+                  </Popover>
             </div>
 
             {/* Search Input */}

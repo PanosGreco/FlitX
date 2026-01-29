@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { ComputedStatus } from "@/hooks/useVehicleStatus";
 import { getVehicleCategoryLabel } from "@/constants/vehicleTypes";
+import { getTransmissionTypeLabel } from "@/constants/transmissionTypes";
 
 const FUEL_TYPE_LABELS: Record<string, { en: string; el: string }> = {
   petrol: { en: "Petrol", el: "Βενζίνη" },
@@ -31,6 +32,7 @@ export interface VehicleData {
   rented_until?: string;
   fuelType?: string;
   passengerCapacity?: number;
+  transmissionType?: string;
 }
 interface VehicleCardProps {
   vehicle: VehicleData;
@@ -83,6 +85,7 @@ export function VehicleCard({
         <div className="mt-1 text-sm text-flitx-gray-500">
           {getVehicleCategoryLabel(vehicle.type, language)} • {vehicle.licensePlate}
           {vehicle.fuelType ? ` • ${getFuelTypeLabel(vehicle.fuelType, language)}` : ''}
+          {vehicle.transmissionType ? ` • ${getTransmissionTypeLabel(vehicle.transmissionType, language)}` : ''}
           {vehicle.passengerCapacity ? ` • ${vehicle.passengerCapacity >= 7 ? '7+' : vehicle.passengerCapacity} ${language === 'el' ? 'άτομα' : 'people'}` : ''}
         </div>
         
