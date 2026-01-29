@@ -1,147 +1,266 @@
 
-# Depreciation Progress Circle - Logic & Visual Fix
+# Transmission Type - End-to-End Implementation Plan
 
-## Problem Analysis
+## Overview
 
-After reviewing the current implementation, I've identified the following issues:
-
-### Current Issues
-
-| Issue | Description |
-|-------|-------------|
-| **Progress Logic** | The component is working correctly for percentage calculation, but the visual rendering shows the blue segment filling from bottom-right instead of matching the reference |
-| **Color Semantics** | The colors are semantically correct (blue = depreciated, secondary = remaining), but the visual gap and styling don't match the 21st.dev reference |
-| **Visual Styling** | The current component lacks the distinct gap between segments that the reference shows |
-| **Missing Tooltip** | No hover interaction showing the depreciated amount |
-
-### Reference Analysis (from screenshot)
-
-The 21st.dev component shows:
-- A clear gap between the blue (progress) and gray (remaining) segments
-- Rounded stroke endings on both segments
-- The blue segment represents the filled/completed portion
-- The gray segment represents the remaining portion
-- Value displayed centered inside the circle
+This plan adds **Transmission Type** (Manual / Automatic) as a first-class vehicle attribute across the entire FlitX system, including database schema, UI components, filters, calendar booking logic, and AI Assistant awareness.
 
 ---
 
-## Implementation Plan
+## Database Changes
 
-### Step 1: Fix AnimatedCircularProgressBar Component
+### Schema Migration
 
-**File:** `src/components/ui/animated-circular-progress-bar.tsx`
+Add a new column to the `vehicles` table:
+
+```sql
+ALTER TABLE public.vehicles 
+ADD COLUMN transmission_type text NOT NULL DEFAULT 'manual'
+CONSTRAINT transmission_type_check CHECK (transmission_type IN ('manual', 'automatic'));
+```
+
+**Column Details:**
+- Type: `text` with check constraint
+- Values: `manual`, `automatic`
+- Default: `manual` (for backward compatibility with existing vehicles)
+- NOT NULL: Yes (mandatory field going forward)
+
+---
+
+## File-by-File Implementation
+
+### 1. Constants File (NEW)
+
+**File:** `src/constants/transmissionTypes.ts`
+
+Create a centralized constants file for transmission type definitions:
+
+```text
+- TRANSMISSION_TYPES constant array: ['manual', 'automatic']
+- TRANSMISSION_TYPE_LABELS with bilingual labels (English/Greek)
+- getTransmissionTypeLabel(type, language) helper function
+```
+
+---
+
+### 2. Vehicle Card Component
+
+**File:** `src/components/fleet/VehicleCard.tsx`
 
 **Changes:**
-1. Add `onHover` callback prop for tooltip functionality
-2. Ensure the primary color circle (blue) represents the **depreciated amount**
-3. Ensure the secondary color circle (white/light gray) represents the **remaining amount**
-4. The visual rendering already has gaps between segments via the `--gap-percent` CSS variable
-5. Add a wrapper element for the primary circle to enable hover detection
+- Add `transmissionType?: string` to the `VehicleData` interface
+- Display transmission type in the vehicle info line alongside category, fuel type, and passenger capacity
+- Add bilingual labels using the constants file
+- Use a compact icon + text format (e.g., gear icon or just text)
 
-**Updated Props Interface:**
+**UI Placement:**
+```text
+{category} • {licensePlate} • {fuelType} • {passengerCapacity} • {transmissionType}
+```
+
+---
+
+### 3. Vehicle Details Page
+
+**File:** `src/components/fleet/VehicleDetails.tsx`
+
+**Changes:**
+- Display transmission type in the vehicle header info section
+- Add it after fuel type and passenger capacity
+- Format: `Manual` or `Automatic` with bilingual support
+
+---
+
+### 4. Edit Vehicle Dialog
+
+**File:** `src/components/fleet/EditVehicleDialog.tsx`
+
+**Changes:**
+- Add `transmissionType` to the component's props interface
+- Add state: `const [transmissionType, setTransmissionType] = useState(vehicle.transmission_type || 'manual')`
+- Add a dropdown/select field for transmission type selection between Fuel Type and Passenger Capacity fields
+- Include in the `handleSave` update query
+- Add bilingual labels
+
+**UI Field:**
+```text
+Label: "Transmission Type" / "Τύπος Κιβωτίου"
+Options: Manual/Χειροκίνητο, Automatic/Αυτόματο
+```
+
+---
+
+### 5. Fleet Page - Add Vehicle Dialog
+
+**File:** `src/pages/Fleet.tsx`
+
+**Changes:**
+- Add form state: `const [transmissionType, setTransmissionType] = useState<string>("manual")`
+- Add transmission type select field in the form (after fuel type)
+- Include in `resetForm()` function
+- Include in the `supabase.from('vehicles').insert({...})` call
+- Use bilingual labels from constants
+
+**Form Position:** Between Fuel Type and Passenger Capacity selectors
+
+---
+
+### 6. Vehicle Filter Panel
+
+**File:** `src/components/fleet/VehicleFilterPanel.tsx`
+
+**Changes:**
+- Add `transmissionTypes: string[]` to `VehicleFilters` interface
+- Add `TRANSMISSION_TYPES` constant import
+- Add transmission type filter section with checkboxes (similar to fuel type)
+- Add `handleTransmissionTypeToggle` function
+- Update `hasActiveFilters` check
+- Update `clearFilters` to reset `transmissionTypes: []`
+
+**Filter UI:**
+```text
+Label: "Transmission" / "Κιβώτιο"
+Options: [x] Manual [x] Automatic
+```
+
+---
+
+### 7. Vehicle Grid Component
+
+**File:** `src/components/fleet/VehicleGrid.tsx`
+
+**Changes:**
+- Update filtering logic to include transmission type filter
+- Add filter condition: `if (filters.transmissionTypes.length > 0) { ... }`
+
+---
+
+### 8. Unified Booking Dialog
+
+**File:** `src/components/booking/UnifiedBookingDialog.tsx`
+
+**Changes:**
+- Add `transmission_type` to the Vehicle interface
+- Add `transmissionTypeFilter` state: `useState<string[]>([])`
+- Add transmission type filter UI in the vehicle filter popover (alongside fuel type and vehicle type)
+- Update `filteredAndSortedVehicles` to filter by transmission type
+- Display transmission type in vehicle selection list items
+
+**Filter Logic:**
 ```typescript
-interface Props {
-  max: number
-  value: number
-  min: number
-  gaugePrimaryColor: string
-  gaugeSecondaryColor: string
-  className?: string
-  displayValue?: React.ReactNode
-  onPrimaryHover?: (isHovering: boolean) => void  // NEW: for tooltip
-  primaryHoverContent?: React.ReactNode  // NEW: tooltip content
+if (transmissionTypeFilter.length > 0) {
+  filtered = filtered.filter(v => 
+    v.transmission_type && transmissionTypeFilter.includes(v.transmission_type)
+  );
 }
 ```
 
-### Step 2: Update VehicleFinanceTab Usage
+---
 
-**File:** `src/components/fleet/VehicleFinanceTab.tsx`
+### 9. AI Chat Edge Function
+
+**File:** `supabase/functions/ai-chat/index.ts`
 
 **Changes:**
 
-1. **Verify Correct Values Are Passed:**
-   - `value` = `depreciationPercentage` (this is correct)
-   - Blue (primary) shows depreciated amount
-   - White/gray (secondary) shows remaining
-
-2. **Add Hover Tooltip State:**
+#### A. Vehicle Interface Update
+Add to the `Vehicle` interface:
 ```typescript
-const [showDepreciatedTooltip, setShowDepreciatedTooltip] = useState(false);
+transmission_type?: string; // 'manual' or 'automatic'
 ```
 
-3. **Add Tooltip Component:**
-   - Show on hover over the blue section
-   - Display: "€X depreciated" where X = Net Income (the depreciated amount)
+#### B. Fleet Grouping by Transmission Type
+Add a new section similar to `FleetByFuelType`:
 
-4. **Pass Depreciated Amount for Tooltip:**
 ```typescript
-const depreciatedAmount = netIncome; // This equals the blue portion
+interface FleetByTransmissionType {
+  transmissionType: string;
+  count: number;
+  vehicles: string[];
+  maintenanceCost: number;
+  maintenanceRecords: number;
+}
+```
+
+#### C. Business Context Builder
+- Create `vehicleTransmissionMap`
+- Build `fleetByTransmissionType` aggregation
+- Add maintenance cost breakdowns by transmission type
+- Include in the returned context object
+
+#### D. System Prompt Section
+Add new section:
+```text
+═══════════════════════════════════════════════════════════
+FLEET BY TRANSMISSION TYPE
+═══════════════════════════════════════════════════════════
+• MANUAL: X vehicles (Vehicle1, Vehicle2, ...)
+  - Maintenance: €XXX from Y records
+• AUTOMATIC: X vehicles (Vehicle3, Vehicle4, ...)
+  - Maintenance: €XXX from Y records
+
+USE THIS SECTION when user asks about "manual vehicles", "automatic cars", 
+"transmission type comparison", etc.
+```
+
+#### E. Behavioral Rules
+Add Rule 14:
+```text
+14. TRANSMISSION TYPE FILTERING RULES:
+    • "manual vehicles" / "automatic cars" = use FLEET BY TRANSMISSION TYPE section
+    • Never claim transmission data is unavailable - it IS provided
+    • Filter maintenance/expenses by transmission type group
+```
+
+#### F. Data Dictionary Update
+Add to the data dictionary:
+```text
+• "manual" / "stick shift" = vehicles with manual transmission
+• "automatic" / "auto" = vehicles with automatic transmission
 ```
 
 ---
 
-## Technical Details
+## Technical Summary
 
-### Progress Logic Verification
+### Files to Modify
 
-The current formula is correct:
-```typescript
-// Depreciation Progress (%) = (Net Income / Purchase Value) * 100
-const depreciationPercentage = Math.min(100, (netIncome / purchasePrice) * 100);
+| File | Type of Change |
+|------|----------------|
+| Database migration | Add `transmission_type` column |
+| `src/constants/transmissionTypes.ts` | NEW FILE - constants |
+| `src/components/fleet/VehicleCard.tsx` | Add to interface & display |
+| `src/components/fleet/VehicleDetails.tsx` | Add to header display |
+| `src/components/fleet/EditVehicleDialog.tsx` | Add form field |
+| `src/pages/Fleet.tsx` | Add to create form |
+| `src/components/fleet/VehicleFilterPanel.tsx` | Add filter option |
+| `src/components/fleet/VehicleGrid.tsx` | Update filter logic |
+| `src/components/booking/UnifiedBookingDialog.tsx` | Add filter for bookings |
+| `supabase/functions/ai-chat/index.ts` | Add AI awareness & analytics |
 
-// Remaining = Purchase Value - Net Income
-const remainingForDepreciation = Math.max(0, purchasePrice - netIncome);
-```
+### Backward Compatibility
 
-### Color Semantics (Correct Mapping)
-
-| Color | Represents | Value |
-|-------|-----------|-------|
-| Blue (Primary) | Depreciated Amount | Net Income |
-| Light Gray (Secondary) | Remaining for Depreciation | Purchase Value - Net Income |
-
-### Visual Improvements
-
-1. Keep the indigo blue color: `rgb(79 70 229)`
-2. Use a lighter gray for better contrast: `rgba(0, 0, 0, 0.1)` 
-3. The gap between segments is controlled by `--gap-percent: "5"`
-4. Both segments already have `strokeLinecap="round"` for curved edges
+- Default value `'manual'` ensures existing vehicles remain valid
+- UI gracefully handles missing transmission data with fallback
+- AI Assistant uses `|| 'unknown'` pattern for null safety
 
 ---
 
-## Files to Modify
+## AI Assistant Test Questions
 
-1. **`src/components/ui/animated-circular-progress-bar.tsx`**
-   - Add hover state detection for the primary (blue) circle
-   - Add optional tooltip/hover content props
-   - Maintain exact visual structure from 21st.dev
+After implementation, verify with these test questions:
 
-2. **`src/components/fleet/VehicleFinanceTab.tsx`**
-   - Add tooltip state management
-   - Wrap the progress bar with a tooltip-enabled container
-   - Show "€X depreciated" on hover over the blue section
-   - Display the depreciated amount (Net Income) in the tooltip
+1. **"How many manual vehicles do I have?"**
+   - Expected: Returns count from FLEET BY TRANSMISSION TYPE section
 
----
+2. **"What are the total maintenance costs for automatic vehicles?"**
+   - Expected: Returns pre-computed maintenance cost for automatic transmission group
 
-## Expected Results
+3. **"Compare net profit between manual and automatic cars."**
+   - Expected: Filters vehicle profitability by transmission type and compares
 
-After implementation:
+4. **"Which transmission type has more bookings?"**
+   - Expected: Compares booking counts aggregated by transmission type
 
-| State | Blue Section | White Section | Center Display | Tooltip on Hover |
-|-------|-------------|---------------|----------------|------------------|
-| 0% depreciated | Empty | 100% | €10,000 remaining | "€0 depreciated" |
-| 25% depreciated | 25% | 75% | €7,500 remaining | "€2,500 depreciated" |
-| 50% depreciated | 50% | 50% | €5,000 remaining | "€5,000 depreciated" |
-| 100% depreciated | Replaced by Net Profit Card | N/A | N/A | N/A |
-
----
-
-## Implementation Checklist
-
-- [ ] Update AnimatedCircularProgressBar with hover detection
-- [ ] Add tooltip state in VehicleFinanceTab
-- [ ] Implement Tooltip component showing depreciated amount
-- [ ] Verify visual matches 21st.dev reference (gap between segments, rounded ends)
-- [ ] Test with various depreciation percentages
-- [ ] Ensure existing metrics (Total Revenue, Total Expenses, Net Income) are unchanged
+5. **"Show me my diesel automatic SUVs."**
+   - Expected: Cross-filters by fuel type, transmission type, and category
