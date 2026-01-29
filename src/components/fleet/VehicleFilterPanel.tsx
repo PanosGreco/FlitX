@@ -24,6 +24,7 @@ import {
   getVehicleCategoryLabel,
   VehicleType 
 } from "@/constants/vehicleTypes";
+import { TRANSMISSION_TYPES, TRANSMISSION_TYPE_LABELS } from "@/constants/transmissionTypes";
 
 export interface VehicleFilters {
   yearSort: 'asc' | 'desc' | null;
@@ -31,6 +32,7 @@ export interface VehicleFilters {
   passengerCounts: number[];
   vehicleTypes: string[];
   vehicleCategories: string[];
+  transmissionTypes: string[];
 }
 
 interface VehicleFilterPanelProps {
@@ -162,13 +164,21 @@ export function VehicleFilterPanel({
     }
   };
 
+  const handleTransmissionTypeToggle = (transmissionType: string) => {
+    const newTransmissionTypes = filters.transmissionTypes.includes(transmissionType)
+      ? filters.transmissionTypes.filter(t => t !== transmissionType)
+      : [...filters.transmissionTypes, transmissionType];
+    onFiltersChange({ ...filters, transmissionTypes: newTransmissionTypes });
+  };
+
   const clearFilters = () => {
     onFiltersChange({ 
       yearSort: null, 
       fuelTypes: [], 
       passengerCounts: [],
       vehicleTypes: [],
-      vehicleCategories: []
+      vehicleCategories: [],
+      transmissionTypes: []
     });
   };
 
@@ -176,7 +186,8 @@ export function VehicleFilterPanel({
     filters.fuelTypes.length > 0 || 
     filters.passengerCounts.length > 0 ||
     filters.vehicleTypes.length > 0 ||
-    filters.vehicleCategories.length > 0;
+    filters.vehicleCategories.length > 0 ||
+    filters.transmissionTypes.length > 0;
 
   return (
     <Popover open={isOpen} onOpenChange={onOpenChange}>
@@ -306,6 +317,26 @@ export function VehicleFilterPanel({
                   />
                   <span>{fuelTypeLabels[fuelType]}</span>
                 </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Transmission Type */}
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">
+              {language === 'el' ? 'Κιβώτιο' : 'Transmission'}
+            </Label>
+            <div className="flex gap-2">
+              {TRANSMISSION_TYPES.map(tt => (
+                <Button
+                  key={tt}
+                  variant={filters.transmissionTypes.includes(tt) ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => handleTransmissionTypeToggle(tt)}
+                  className="flex-1 text-xs h-8"
+                >
+                  {TRANSMISSION_TYPE_LABELS[tt][language === 'el' ? 'el' : 'en']}
+                </Button>
               ))}
             </div>
           </div>

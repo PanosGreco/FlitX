@@ -37,6 +37,7 @@ import {
   normalizeCategory,
   formatCustomCategory
 } from "@/constants/vehicleTypes";
+import { TRANSMISSION_TYPES, TRANSMISSION_TYPE_LABELS, TransmissionType } from "@/constants/transmissionTypes";
 
 const Fleet = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -57,6 +58,7 @@ const Fleet = () => {
   const [customCategory, setCustomCategory] = useState("");
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [fuelType, setFuelType] = useState("petrol");
+  const [transmissionType, setTransmissionType] = useState<TransmissionType>("manual");
   const [passengerCapacity, setPassengerCapacity] = useState("5");
   const [licensePlate, setLicensePlate] = useState("");
   const [dailyRate, setDailyRate] = useState("");
@@ -99,6 +101,7 @@ const Fleet = () => {
         fuelLevel: v.fuel_level || 0,
         dailyRate: v.daily_rate || 0,
         fuelType: v.fuel_type || 'petrol',
+        transmissionType: v.transmission_type || 'manual',
         passengerCapacity: v.passenger_capacity || undefined,
       }));
 
@@ -161,6 +164,7 @@ const Fleet = () => {
     setCustomCategory("");
     setIsCustomCategory(false);
     setFuelType("petrol");
+    setTransmissionType("manual");
     setPassengerCapacity("5");
     setLicensePlate("");
     setDailyRate("");
@@ -237,6 +241,7 @@ const Fleet = () => {
           vehicle_type: vehicleType,
           type: finalCategory,
           fuel_type: fuelType,
+          transmission_type: transmissionType,
           passenger_capacity: parseInt(passengerCapacity),
           license_plate: licensePlate,
           daily_rate: parseFloat(dailyRate),
@@ -450,6 +455,29 @@ const Fleet = () => {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              {/* Transmission Type */}
+              <div className="space-y-1">
+                <Label htmlFor="transmissionType">{language === 'el' ? 'Κιβώτιο Ταχυτήτων' : 'Transmission Type'}</Label>
+                <Select 
+                  disabled={isLanguageLoading || isSubmitting}
+                  value={transmissionType}
+                  onValueChange={(v) => setTransmissionType(v as TransmissionType)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={language === 'el' ? 'Επιλέξτε...' : 'Select...'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {TRANSMISSION_TYPES.map((tt) => (
+                        <SelectItem key={tt} value={tt}>
+                          {TRANSMISSION_TYPE_LABELS[tt][language === 'el' ? 'el' : 'en']}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

@@ -171,6 +171,7 @@ interface Vehicle {
   type?: string;           // category (suv, economy, etc.)
   vehicle_type?: string;   // top-level type (car, motorbike, atv) - PHASE 2
   fuel_type?: string;      // PHASE 3: petrol, diesel, hybrid, electric
+  transmission_type?: string; // PHASE 4: manual, automatic
   year?: number;
   status?: string;
 }
@@ -308,6 +309,15 @@ interface FleetByCategory {
 // PHASE 3: Fleet by Fuel Type
 interface FleetByFuelType {
   fuelType: string;
+  count: number;
+  vehicles: string[];
+  maintenanceCost: number;
+  maintenanceRecords: number;
+}
+
+// PHASE 4: Fleet by Transmission Type
+interface FleetByTransmissionType {
+  transmissionType: string;
   count: number;
   vehicles: string[];
   maintenanceCost: number;
@@ -551,6 +561,7 @@ function buildBusinessContext(
   // === VEHICLE MAP (used by multiple sections - MUST BE DEFINED EARLY) ===
   const vehicleMap = new Map(vehicles.map(v => [v.id, `${v.make} ${v.model}`]));
   const vehicleTypeMap = new Map(vehicles.map(v => [v.id, v.vehicle_type || 'car']));
+  const vehicleTransmissionMap = new Map(vehicles.map(v => [v.id, (v.transmission_type || 'manual').toLowerCase()]));
 
   // === PHASE 2D: MONTHLY VEHICLE PROFITABILITY ===
   const mvpMap: Record<string, Record<string, { income: number; expenses: number }>> = {};
@@ -702,6 +713,35 @@ function buildBusinessContext(
   });
 
   const fleetByFuelTypeArray = Object.values(fleetByFuelType);
+
+  // === PHASE 4: FLEET BY TRANSMISSION TYPE ===
+  const fleetByTransmissionType: Record<string, FleetByTransmissionType> = {};
+  
+  vehicles.forEach(v => {
+    const transmission = (v.transmission_type || 'manual').toLowerCase();
+    if (!fleetByTransmissionType[transmission]) {
+      fleetByTransmissionType[transmission] = {
+        transmissionType: transmission,
+        count: 0,
+        vehicles: [],
+        maintenanceCost: 0,
+        maintenanceRecords: 0
+      };
+    }
+    fleetByTransmissionType[transmission].count++;
+    fleetByTransmissionType[transmission].vehicles.push(`${v.make} ${v.model}`);
+  });
+
+  // Add maintenance costs by transmission type
+  maintenanceRecords.forEach(m => {
+    const transmission = vehicleTransmissionMap.get(m.vehicle_id) || 'manual';
+    if (fleetByTransmissionType[transmission]) {
+      fleetByTransmissionType[transmission].maintenanceCost += Number(m.cost || 0);
+      fleetByTransmissionType[transmission].maintenanceRecords++;
+    }
+  });
+
+  const fleetByTransmissionTypeArray = Object.values(fleetByTransmissionType);
   
   // === MAINTENANCE SUMMARY PER VEHICLE ===
   const maintenanceByVehicle: Record<string, MaintenanceSummary> = {};
@@ -804,7 +844,8 @@ function buildBusinessContext(
       highestRevenue: highestRevenueVehicle,
       byType: fleetByTypeArray, // PHASE 2B: Fleet by vehicle type
       byCategory: fleetByCategoryArray, // PHASE 3A: Fleet by vehicle category
-      byFuelType: fleetByFuelTypeArray // PHASE 3B: Fleet by fuel type
+      byFuelType: fleetByFuelTypeArray, // PHASE 3B: Fleet by fuel type
+      byTransmissionType: fleetByTransmissionTypeArray // PHASE 4: Fleet by transmission type
     },
     bookings: { 
       total: bookings.length,
@@ -971,6 +1012,19 @@ ${context.fleet.byFuelType.map(ff =>
 ).join('\n')}
 
 USE THIS SECTION when user asks about "petrol vehicles", "diesel cars", "hybrid maintenance", "electric vehicles".
+` : '';
+
+  // === PHASE 4: FLEET BY TRANSMISSION TYPE ===
+  const fleetByTransmissionTypeSection = context.fleet.byTransmissionType && context.fleet.byTransmissionType.length > 0 ? `
+═══════════════════════════════════════════════════════════
+FLEET BY TRANSMISSION TYPE
+═══════════════════════════════════════════════════════════
+${context.fleet.byTransmissionType.map(ft => 
+  `• ${ft.transmissionType.toUpperCase()}: ${ft.count} vehicles (${ft.vehicles.join(', ')})
+    - Maintenance: €${ft.maintenanceCost.toFixed(2)} from ${ft.maintenanceRecords} records`
+).join('\n')}
+
+USE THIS SECTION when user asks about "manual vehicles", "automatic cars", "transmission type comparison".
 ` : '';
 
   // === PHASE 2C: COLLABORATION INCOME BY PARTNER ===
@@ -1162,6 +1216,12 @@ CRITICAL BEHAVIORAL RULES (MUST FOLLOW EXACTLY)
     • Never claim fuel data is unavailable - it IS provided in FLEET BY FUEL TYPE
     • Filter maintenance/expenses by the fuel type group
     • Example: "petrol vehicle maintenance" → use maintenance cost from petrol fuel type group
+
+14. TRANSMISSION TYPE FILTERING RULES (PHASE 4):
+    • "manual vehicles" / "automatic cars" / "stick shift" = use FLEET BY TRANSMISSION TYPE section
+    • Never claim transmission data is unavailable - it IS provided in FLEET BY TRANSMISSION TYPE
+    • Filter maintenance/expenses by transmission type group
+    • Example: "manual vehicle maintenance" → use maintenance cost from manual transmission group
 `;
 
   // === BUILD COMPLETE SYSTEM PROMPT ===
@@ -1201,6 +1261,7 @@ ${monthlySubcategorySection}
 ${fleetByTypeSection}
 ${fleetByCategorySection}
 ${fleetByFuelTypeSection}
+${fleetByTransmissionTypeSection}
 
 ═══════════════════════════════════════════════════════════
 MONTHLY PERFORMANCE ANALYTICS

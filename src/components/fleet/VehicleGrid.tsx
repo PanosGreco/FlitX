@@ -24,6 +24,7 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
     passengerCounts: [],
     vehicleTypes: [],
     vehicleCategories: [],
+    transmissionTypes: [],
   });
   const { t, language, isLanguageLoading } = useLanguage();
   
@@ -73,6 +74,14 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
       result = result.filter(v => v.fuelType && filters.fuelTypes.includes(v.fuelType));
     }
 
+    // Filter by transmission type
+    if (filters.transmissionTypes.length > 0) {
+      result = result.filter(v => {
+        const transmissionType = v.transmissionType || 'manual';
+        return filters.transmissionTypes.includes(transmissionType);
+      });
+    }
+
     // Filter by passenger count
     if (filters.passengerCounts.length > 0) {
       result = result.filter(v => {
@@ -101,7 +110,8 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
     filters.fuelTypes.length + 
     filters.passengerCounts.length +
     filters.vehicleTypes.length +
-    filters.vehicleCategories.length;
+    filters.vehicleCategories.length +
+    filters.transmissionTypes.length;
 
   return (
     <div className="space-y-4">
