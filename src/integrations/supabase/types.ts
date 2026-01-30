@@ -804,11 +804,13 @@ export type Database = {
           fuel_type: string | null
           id: string
           image: string | null
+          initial_mileage: number | null
           license_plate: string | null
           make: string
           mileage: number | null
           model: string
           passenger_capacity: number | null
+          purchase_date: string | null
           purchase_price: number | null
           status: Database["public"]["Enums"]["vehicle_status"]
           transmission_type: string
@@ -824,11 +826,13 @@ export type Database = {
           fuel_type?: string | null
           id?: string
           image?: string | null
+          initial_mileage?: number | null
           license_plate?: string | null
           make: string
           mileage?: number | null
           model: string
           passenger_capacity?: number | null
+          purchase_date?: string | null
           purchase_price?: number | null
           status?: Database["public"]["Enums"]["vehicle_status"]
           transmission_type?: string
@@ -844,11 +848,13 @@ export type Database = {
           fuel_type?: string | null
           id?: string
           image?: string | null
+          initial_mileage?: number | null
           license_plate?: string | null
           make?: string
           mileage?: number | null
           model?: string
           passenger_capacity?: number | null
+          purchase_date?: string | null
           purchase_price?: number | null
           status?: Database["public"]["Enums"]["vehicle_status"]
           transmission_type?: string
