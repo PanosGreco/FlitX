@@ -113,7 +113,10 @@ export function VehicleDetails({
     passengerCapacity: 5,
     vehicle_type: 'car',
     transmission_type: 'manual',
-    fuel_type: 'petrol'
+    fuel_type: 'petrol',
+    purchase_price: null,
+    purchase_date: null,
+    initial_mileage: 0
   };
 
   // Use computed status from calendar data
@@ -375,7 +378,14 @@ export function VehicleDetails({
                   </TabsContent>
                   
                   <TabsContent value="finance" className="mt-6">
-                    <VehicleFinanceTab vehicleId={vehicleId || ""} vehicleName={`${vehicle.year} ${vehicle.make} ${vehicle.model}`} purchasePrice={vehicle.purchase_price} />
+                    <VehicleFinanceTab 
+                      vehicleId={vehicleId || ""} 
+                      vehicleName={`${vehicle.year} ${vehicle.make} ${vehicle.model}`} 
+                      purchasePrice={vehicle.purchase_price}
+                      purchaseDate={vehicle.purchase_date}
+                      currentMileage={vehicle.mileage}
+                      initialMileage={vehicle.initial_mileage}
+                    />
                   </TabsContent>
                 </>}
             </div>

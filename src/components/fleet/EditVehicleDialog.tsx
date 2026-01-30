@@ -43,6 +43,8 @@ interface EditVehicleDialogProps {
     license_plate?: string;
     image?: string;
     purchase_price?: number | null;
+    purchase_date?: string | null;
+    initial_mileage?: number;
     fuel_type?: string;
     transmission_type?: string;
     passenger_capacity?: number;
@@ -58,6 +60,8 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
   const [dailyRate, setDailyRate] = useState(vehicle.daily_rate ?? 0);
   const [licensePlate, setLicensePlate] = useState(vehicle.license_plate ?? '');
   const [purchasePrice, setPurchasePrice] = useState<string>(vehicle.purchase_price?.toString() ?? '');
+  const [purchaseDate, setPurchaseDate] = useState<string>(vehicle.purchase_date ?? '');
+  const [initialMileage, setInitialMileage] = useState(vehicle.initial_mileage ?? 0);
   const [vehicleImage, setVehicleImage] = useState<string | null>(vehicle.image ?? null);
   // Use nullish coalescing to only fallback if the value is null/undefined, NOT empty string
   const [fuelType, setFuelType] = useState(vehicle.fuel_type ?? 'petrol');
@@ -78,6 +82,8 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     setDailyRate(vehicle.daily_rate ?? 0);
     setLicensePlate(vehicle.license_plate ?? '');
     setPurchasePrice(vehicle.purchase_price?.toString() ?? '');
+    setPurchaseDate(vehicle.purchase_date ?? '');
+    setInitialMileage(vehicle.initial_mileage ?? 0);
     setVehicleImage(vehicle.image ?? null);
     // Use nullish coalescing to preserve falsy but valid values
     setFuelType(vehicle.fuel_type ?? 'petrol');
@@ -170,6 +176,8 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
           daily_rate: dailyRate,
           license_plate: licensePlate,
           purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
+          purchase_date: purchaseDate || null,
+          initial_mileage: initialMileage,
           image: vehicleImage,
           fuel_type: fuelType,
           transmission_type: transmissionType,
@@ -435,6 +443,63 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
               }}
               placeholder={language === 'el' ? 'Προαιρετικό' : 'Optional'}
               className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+          </div>
+
+          {/* Purchase Date - for depreciation calculation */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1">
+              <Label htmlFor="purchase-date">{language === 'el' ? 'Ημερομηνία Αγοράς' : 'Purchase Date'}</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-xs">
+                      {language === 'el' 
+                        ? 'Η ημερομηνία αγοράς χρησιμοποιείται για τον υπολογισμό απόσβεσης βάσει χρόνου.'
+                        : 'The purchase date is used for calculating time-based depreciation.'}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <Input
+              id="purchase-date"
+              type="date"
+              value={purchaseDate}
+              onChange={(e) => setPurchaseDate(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          {/* Initial Mileage - for depreciation calculation */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1">
+              <Label htmlFor="initial-mileage">{language === 'el' ? 'Χιλιόμετρα κατά την Αγορά' : 'Mileage at Purchase (km)'}</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-xs">
+                      {language === 'el' 
+                        ? 'Τα χιλιόμετρα όταν αγοράστηκε το όχημα. Χρησιμοποιείται για τον υπολογισμό απόσβεσης βάσει χιλιομέτρων.'
+                        : 'The mileage when the vehicle was purchased. Used for calculating mileage-based depreciation.'}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <Input
+              id="initial-mileage"
+              type="number"
+              value={initialMileage}
+              onChange={(e) => setInitialMileage(Number(e.target.value))}
+              min={0}
+              placeholder="0"
             />
           </div>
         </div>

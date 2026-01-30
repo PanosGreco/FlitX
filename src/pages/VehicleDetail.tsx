@@ -31,6 +31,8 @@ interface Vehicle {
   image?: string;
   license_plate?: string;
   purchase_price?: number | null;
+  purchase_date?: string | null;
+  initial_mileage?: number;
   passengerCapacity?: number;
   passenger_capacity?: number;
   vehicle_type?: string;
@@ -145,6 +147,8 @@ const VehicleDetail = () => {
         milesPerDay: 0,
         image: data.image || undefined,
         purchase_price: data.purchase_price || null,
+        purchase_date: data.purchase_date || null,
+        initial_mileage: data.initial_mileage || 0,
         passengerCapacity: data.passenger_capacity || undefined,
         passenger_capacity: data.passenger_capacity || undefined,
         vehicle_type: data.vehicle_type || 'car',
