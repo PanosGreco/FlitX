@@ -801,7 +801,6 @@ export type Database = {
         Row: {
           created_at: string
           daily_rate: number | null
-          fuel_level: number | null
           fuel_type: string | null
           id: string
           image: string | null
@@ -822,7 +821,6 @@ export type Database = {
         Insert: {
           created_at?: string
           daily_rate?: number | null
-          fuel_level?: number | null
           fuel_type?: string | null
           id?: string
           image?: string | null
@@ -843,7 +841,6 @@ export type Database = {
         Update: {
           created_at?: string
           daily_rate?: number | null
-          fuel_level?: number | null
           fuel_type?: string | null
           id?: string
           image?: string | null
