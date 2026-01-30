@@ -40,7 +40,6 @@ interface EditVehicleDialogProps {
     id: string;
     mileage: number;
     daily_rate: number;
-    fuel_level: number;
     license_plate?: string;
     image?: string;
     purchase_price?: number | null;
@@ -55,38 +54,45 @@ interface EditVehicleDialogProps {
 
 export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVehicleDialogProps) {
   const { language } = useLanguage();
-  const [mileage, setMileage] = useState(vehicle.mileage || 0);
-  const [dailyRate, setDailyRate] = useState(vehicle.daily_rate || 0);
-  const [fuelLevel, setFuelLevel] = useState(vehicle.fuel_level || 100);
-  const [licensePlate, setLicensePlate] = useState(vehicle.license_plate || '');
-  const [purchasePrice, setPurchasePrice] = useState<string>(vehicle.purchase_price?.toString() || '');
-  const [vehicleImage, setVehicleImage] = useState<string | null>(vehicle.image || null);
-  const [fuelType, setFuelType] = useState(vehicle.fuel_type || 'petrol');
-  const [transmissionType, setTransmissionType] = useState<TransmissionType>((vehicle.transmission_type as TransmissionType) || 'manual');
-  const [passengerCapacity, setPassengerCapacity] = useState(vehicle.passenger_capacity?.toString() || '5');
-  const [vehicleType, setVehicleType] = useState<VehicleType>((vehicle.vehicle_type as VehicleType) || 'car');
-  const [vehicleCategory, setVehicleCategory] = useState(vehicle.type || '');
+  const [mileage, setMileage] = useState(vehicle.mileage ?? 0);
+  const [dailyRate, setDailyRate] = useState(vehicle.daily_rate ?? 0);
+  const [licensePlate, setLicensePlate] = useState(vehicle.license_plate ?? '');
+  const [purchasePrice, setPurchasePrice] = useState<string>(vehicle.purchase_price?.toString() ?? '');
+  const [vehicleImage, setVehicleImage] = useState<string | null>(vehicle.image ?? null);
+  // Use nullish coalescing to only fallback if the value is null/undefined, NOT empty string
+  const [fuelType, setFuelType] = useState(vehicle.fuel_type ?? 'petrol');
+  const [transmissionType, setTransmissionType] = useState<TransmissionType>((vehicle.transmission_type as TransmissionType) ?? 'manual');
+  const [passengerCapacity, setPassengerCapacity] = useState(vehicle.passenger_capacity?.toString() ?? '5');
+  // CRITICAL: vehicle_type must be read from actual vehicle data, never default to 'car' if data exists
+  const [vehicleType, setVehicleType] = useState<VehicleType>((vehicle.vehicle_type as VehicleType) ?? 'car');
+  const [vehicleCategory, setVehicleCategory] = useState(vehicle.type ?? '');
   const [customCategory, setCustomCategory] = useState('');
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Reset form values when vehicle changes
+  // Sync form values when vehicle prop changes - PRESERVES ALL existing values
   useEffect(() => {
-    setMileage(vehicle.mileage || 0);
-    setDailyRate(vehicle.daily_rate || 0);
-    setFuelLevel(vehicle.fuel_level || 100);
-    setLicensePlate(vehicle.license_plate || '');
-    setPurchasePrice(vehicle.purchase_price?.toString() || '');
-    setVehicleImage(vehicle.image || null);
-    setFuelType(vehicle.fuel_type || 'petrol');
-    setTransmissionType((vehicle.transmission_type as TransmissionType) || 'manual');
-    setPassengerCapacity(vehicle.passenger_capacity?.toString() || '5');
+    // Only update if vehicle.id changes to avoid resetting during edits
+    setMileage(vehicle.mileage ?? 0);
+    setDailyRate(vehicle.daily_rate ?? 0);
+    setLicensePlate(vehicle.license_plate ?? '');
+    setPurchasePrice(vehicle.purchase_price?.toString() ?? '');
+    setVehicleImage(vehicle.image ?? null);
+    // Use nullish coalescing to preserve falsy but valid values
+    setFuelType(vehicle.fuel_type ?? 'petrol');
+    setTransmissionType((vehicle.transmission_type as TransmissionType) ?? 'manual');
+    setPassengerCapacity(vehicle.passenger_capacity?.toString() ?? '5');
     
-    const vType = (vehicle.vehicle_type as VehicleType) || 'car';
-    setVehicleType(vType);
+    // CRITICAL FIX: Only use default if vehicle_type is truly undefined/null
+    const vType = vehicle.vehicle_type as VehicleType;
+    if (vType && VEHICLE_TYPES.includes(vType)) {
+      setVehicleType(vType);
+    } else {
+      setVehicleType('car');
+    }
     
-    const category = vehicle.type || '';
+    const category = vehicle.type ?? '';
     if (category && !isStandardCategory(category) && category !== 'atv') {
       setIsCustomCategory(true);
       setCustomCategory(category.toUpperCase());
@@ -96,7 +102,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
       setCustomCategory('');
       setVehicleCategory(category);
     }
-  }, [vehicle]);
+  }, [vehicle.id]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -162,7 +168,6 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
         .update({
           mileage: mileage,
           daily_rate: dailyRate,
-          fuel_level: fuelLevel,
           license_plate: licensePlate,
           purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
           image: vehicleImage,
@@ -401,18 +406,6 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
             </p>
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="fuel-level">{language === 'el' ? 'Επίπεδο Καυσίμου (%)' : 'Fuel Level (%)'}</Label>
-            <Input
-              id="fuel-level"
-              type="number"
-              value={fuelLevel}
-              onChange={(e) => setFuelLevel(Math.min(100, Math.max(0, Number(e.target.value))))}
-              min={0}
-              max={100}
-            />
-          </div>
-
           <div className="space-y-2">
             <div className="flex items-center gap-1">
               <Label htmlFor="purchase-price">{language === 'el' ? 'Τιμή Αγοράς (€)' : 'Purchase Price (€)'}</Label>

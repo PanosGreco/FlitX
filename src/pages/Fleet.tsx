@@ -87,22 +87,22 @@ const Fleet = () => {
         return;
       }
 
-      // Transform backend data to VehicleData format
+      // Transform backend data to VehicleData format - PRESERVE ALL database values
       const transformedVehicles: VehicleData[] = (data || []).map(v => ({
         id: v.id,
         make: v.make,
         model: v.model,
         year: v.year,
         type: v.type,
-        mileage: v.mileage || 0,
+        mileage: v.mileage ?? 0,
         image: v.image || undefined,
         status: v.status as VehicleData['status'],
-        licensePlate: v.license_plate || '',
-        fuelLevel: v.fuel_level || 0,
-        dailyRate: v.daily_rate || 0,
-        fuelType: v.fuel_type || 'petrol',
-        transmissionType: v.transmission_type || 'manual',
-        passengerCapacity: v.passenger_capacity || undefined,
+        licensePlate: v.license_plate ?? '',
+        dailyRate: v.daily_rate ?? 0,
+        fuelType: v.fuel_type ?? 'petrol',
+        transmissionType: v.transmission_type ?? 'manual',
+        passengerCapacity: v.passenger_capacity ?? undefined,
+        vehicleType: v.vehicle_type ?? 'car',
       }));
 
       setVehicles(transformedVehicles);
@@ -249,7 +249,6 @@ const Fleet = () => {
           purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
           image: vehicleImage,
           status: 'available',
-          fuel_level: 100,
         });
 
       if (error) {

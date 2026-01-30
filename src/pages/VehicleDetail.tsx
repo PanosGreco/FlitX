@@ -16,9 +16,8 @@ interface Vehicle {
   mileage: number;
   status: string;
   licensePlate: string;
-  fuelLevel: number;
-  fuel_level: number;
   fuelType: string;
+  fuel_type: string;
   mpg: number;
   lastServiceDate: string;
   costPerMile: number;
@@ -33,6 +32,9 @@ interface Vehicle {
   license_plate?: string;
   purchase_price?: number | null;
   passengerCapacity?: number;
+  passenger_capacity?: number;
+  vehicle_type?: string;
+  transmission_type?: string;
 }
 
 interface VehicleTranslations {
@@ -62,7 +64,6 @@ const VehicleDetail = () => {
     lastServiceDate: getTransValue('lastServiceDate', 'Last Service Date'),
     totalServices: getTransValue('totalServices', 'Total Services'),
     performance: getTransValue('performance', 'Performance'),
-    fuelLevel: getTransValue('fuelLevel', 'Fuel Level'),
     vehicleMaintenance: getTransValue('vehicleMaintenance', 'Vehicle Maintenance'),
     repair: getTransValue('repair', 'Repair'),
     documents: getTransValue('documents', 'Documents'),
@@ -119,7 +120,7 @@ const VehicleDetail = () => {
         return;
       }
       
-      // Transform backend data to component format
+      // Transform backend data to component format - PRESERVE ALL database values
       const vehicleData: Vehicle = {
         id: data.id,
         make: data.make || 'Unknown',
@@ -130,9 +131,8 @@ const VehicleDetail = () => {
         status: data.status || 'available',
         licensePlate: data.license_plate || 'N/A',
         license_plate: data.license_plate || '',
-        fuelLevel: data.fuel_level || 0,
-        fuel_level: data.fuel_level || 0,
-        fuelType: data.fuel_type || '',
+        fuelType: data.fuel_type || 'petrol',
+        fuel_type: data.fuel_type || 'petrol',
         mpg: 0,
         lastServiceDate: new Date().toISOString(),
         costPerMile: 0,
@@ -145,7 +145,10 @@ const VehicleDetail = () => {
         milesPerDay: 0,
         image: data.image || undefined,
         purchase_price: data.purchase_price || null,
-        passengerCapacity: data.passenger_capacity || undefined
+        passengerCapacity: data.passenger_capacity || undefined,
+        passenger_capacity: data.passenger_capacity || undefined,
+        vehicle_type: data.vehicle_type || 'car',
+        transmission_type: data.transmission_type || 'manual'
       };
       setVehicle(vehicleData);
     } catch (error) {

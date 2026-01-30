@@ -27,12 +27,12 @@ export interface VehicleData {
   image?: string;
   status: 'available' | 'rented' | 'maintenance' | 'repair';
   licensePlate: string;
-  fuelLevel: number;
   dailyRate: number;
   rented_until?: string;
   fuelType?: string;
   passengerCapacity?: number;
   transmissionType?: string;
+  vehicleType?: string;
 }
 interface VehicleCardProps {
   vehicle: VehicleData;
