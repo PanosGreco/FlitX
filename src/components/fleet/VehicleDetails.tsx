@@ -99,7 +99,6 @@ export function VehicleDetails({
     mileage: 0,
     status: "available",
     licensePlate: "N/A",
-    fuelLevel: 0,
     fuelType: "",
     mpg: 0,
     lastServiceDate: new Date().toISOString(),
@@ -111,7 +110,10 @@ export function VehicleDetails({
     fuelCosts: 0,
     milesPerDay: 0,
     image: undefined,
-    passengerCapacity: 5
+    passengerCapacity: 5,
+    vehicle_type: 'car',
+    transmission_type: 'manual',
+    fuel_type: 'petrol'
   };
 
   // Use computed status from calendar data
@@ -135,7 +137,6 @@ export function VehicleDetails({
     lastServiceDate: "Last Service Date",
     totalServices: "Total Services",
     performance: "Performance",
-    fuelLevel: "Fuel Level",
     vehicleMaintenance: "Maintenance",
     repair: "Repair",
     documents: "Documents",
@@ -455,10 +456,14 @@ export function VehicleDetails({
       id: vehicleId || "",
       mileage: vehicle.mileage || 0,
       daily_rate: vehicle.daily_rate || vehicle.dailyRate || 0,
-      fuel_level: vehicle.fuel_level || vehicle.fuelLevel || 100,
       license_plate: vehicle.license_plate || vehicle.licensePlate || '',
       image: vehicle.image,
-      purchase_price: vehicle.purchase_price
+      purchase_price: vehicle.purchase_price,
+      fuel_type: vehicle.fuel_type || vehicle.fuelType || 'petrol',
+      transmission_type: vehicle.transmission_type || 'manual',
+      passenger_capacity: vehicle.passenger_capacity || vehicle.passengerCapacity || 5,
+      vehicle_type: vehicle.vehicle_type || 'car',
+      type: vehicle.type || ''
     }} onSaved={handleVehicleSaved} />
 
       <RentalBookingDialog isOpen={isRentalBookingOpen} onClose={() => setIsRentalBookingOpen(false)} vehicleId={vehicleId || ""} vehicleName={`${vehicle.year} ${vehicle.make} ${vehicle.model}`} onBookingAdded={handleBookingAdded} vehicleDailyRate={vehicle.daily_rate || vehicle.dailyRate || 0} preselectedStartDate={selectedDates.length > 0 ? selectedDates[0] : undefined} preselectedEndDate={selectedDates.length > 1 ? selectedDates[selectedDates.length - 1] : undefined} />
