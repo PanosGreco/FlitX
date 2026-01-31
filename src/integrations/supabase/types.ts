@@ -807,6 +807,7 @@ export type Database = {
           initial_mileage: number | null
           license_plate: string | null
           make: string
+          market_value_at_purchase: number | null
           mileage: number | null
           model: string
           passenger_capacity: number | null
@@ -829,6 +830,7 @@ export type Database = {
           initial_mileage?: number | null
           license_plate?: string | null
           make: string
+          market_value_at_purchase?: number | null
           mileage?: number | null
           model: string
           passenger_capacity?: number | null
@@ -851,6 +853,7 @@ export type Database = {
           initial_mileage?: number | null
           license_plate?: string | null
           make?: string
+          market_value_at_purchase?: number | null
           mileage?: number | null
           model?: string
           passenger_capacity?: number | null

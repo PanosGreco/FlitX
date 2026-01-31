@@ -45,6 +45,7 @@ interface EditVehicleDialogProps {
     purchase_price?: number | null;
     purchase_date?: string | null;
     initial_mileage?: number;
+    market_value_at_purchase?: number | null;  // NEW: For depreciation
     fuel_type?: string;
     transmission_type?: string;
     passenger_capacity?: number;
@@ -62,6 +63,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
   const [purchasePrice, setPurchasePrice] = useState<string>(vehicle.purchase_price?.toString() ?? '');
   const [purchaseDate, setPurchaseDate] = useState<string>(vehicle.purchase_date ?? '');
   const [initialMileage, setInitialMileage] = useState(vehicle.initial_mileage ?? 0);
+  const [marketValueAtPurchase, setMarketValueAtPurchase] = useState<string>(vehicle.market_value_at_purchase?.toString() ?? '');
   const [vehicleImage, setVehicleImage] = useState<string | null>(vehicle.image ?? null);
   // Use nullish coalescing to only fallback if the value is null/undefined, NOT empty string
   const [fuelType, setFuelType] = useState(vehicle.fuel_type ?? 'petrol');
@@ -84,6 +86,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     setPurchasePrice(vehicle.purchase_price?.toString() ?? '');
     setPurchaseDate(vehicle.purchase_date ?? '');
     setInitialMileage(vehicle.initial_mileage ?? 0);
+    setMarketValueAtPurchase(vehicle.market_value_at_purchase?.toString() ?? '');
     setVehicleImage(vehicle.image ?? null);
     // Use nullish coalescing to preserve falsy but valid values
     setFuelType(vehicle.fuel_type ?? 'petrol');
@@ -178,6 +181,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
           purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
           purchase_date: purchaseDate || null,
           initial_mileage: initialMileage,
+          market_value_at_purchase: marketValueAtPurchase ? parseFloat(marketValueAtPurchase) : null,
           image: vehicleImage,
           fuel_type: fuelType,
           transmission_type: transmissionType,
@@ -442,6 +446,55 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
                 setPurchasePrice(value);
               }}
               placeholder={language === 'el' ? 'Προαιρετικό' : 'Optional'}
+              className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+            />
+          </div>
+
+          {/* Depreciation Data Section Divider */}
+          <div className="pt-4 pb-2">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-xs font-medium uppercase tracking-wide">
+                {language === 'el' ? 'Δεδομένα Απόσβεσης' : 'Depreciation Data'}
+              </span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+            <p className="text-xs text-muted-foreground text-center mt-1">
+              {language === 'el' 
+                ? 'Χρησιμοποιείται για εκτίμηση μείωσης αξίας βάσει χρόνου και χιλιομέτρων.'
+                : 'Used to estimate vehicle value loss over time and mileage.'}
+            </p>
+          </div>
+
+          {/* Market Value at Purchase */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1">
+              <Label htmlFor="market-value">{language === 'el' ? 'Αξία Αγοράς στην Αγορά (€)' : 'Market Value at Purchase (€)'}</Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    <p className="text-xs">
+                      {language === 'el' 
+                        ? 'Η ρεαλιστική αξία αγοράς του οχήματος όταν αποκτήθηκε. Χρησιμοποιείται ως βάση για υπολογισμούς απόσβεσης.'
+                        : 'The realistic market value of the vehicle when acquired. Used as baseline for depreciation calculations.'}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <Input
+              id="market-value"
+              type="text"
+              inputMode="decimal"
+              value={marketValueAtPurchase}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9.]/g, '');
+                setMarketValueAtPurchase(value);
+              }}
+              placeholder={language === 'el' ? 'π.χ. 20000' : 'e.g. 20000'}
               className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </div>

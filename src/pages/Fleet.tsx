@@ -64,6 +64,10 @@ const Fleet = () => {
   const [dailyRate, setDailyRate] = useState("");
   const [mileage, setMileage] = useState("");
   const [purchasePrice, setPurchasePrice] = useState("");
+  // Depreciation data fields
+  const [marketValueAtPurchase, setMarketValueAtPurchase] = useState("");
+  const [purchaseDate, setPurchaseDate] = useState("");
+  const [initialMileage, setInitialMileage] = useState("");
   
   usePageTitle("fleet");
 
@@ -170,6 +174,9 @@ const Fleet = () => {
     setDailyRate("");
     setMileage("");
     setPurchasePrice("");
+    setMarketValueAtPurchase("");
+    setPurchaseDate("");
+    setInitialMileage("");
     setVehicleImage(null);
   };
 
@@ -247,6 +254,9 @@ const Fleet = () => {
           daily_rate: parseFloat(dailyRate),
           mileage: parseInt(mileage),
           purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
+          market_value_at_purchase: marketValueAtPurchase ? parseFloat(marketValueAtPurchase) : null,
+          purchase_date: purchaseDate || null,
+          initial_mileage: initialMileage ? parseInt(initialMileage) : 0,
           image: vehicleImage,
           status: 'available',
         });
@@ -605,6 +615,100 @@ const Fleet = () => {
                     className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
+              </div>
+
+              {/* Depreciation Data Section */}
+              <div className="pt-4 pb-2">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="h-px flex-1 bg-border" />
+                  <span className="text-xs font-medium uppercase tracking-wide">
+                    {language === 'el' ? 'Δεδομένα Απόσβεσης (Προαιρετικό)' : 'Depreciation Data (Optional)'}
+                  </span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+                <p className="text-xs text-muted-foreground text-center mt-1">
+                  {language === 'el' 
+                    ? 'Χρησιμοποιείται για εκτίμηση μείωσης αξίας βάσει χρόνου και χιλιομέτρων.'
+                    : 'Used to estimate vehicle value loss over time and mileage.'}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {/* Market Value at Purchase */}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="marketValue">{language === 'el' ? 'Αξία Αγοράς' : 'Market Value'}</Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p className="text-xs">
+                            {language === 'el' 
+                              ? 'Η ρεαλιστική αξία αγοράς του οχήματος όταν αποκτήθηκε. Χρησιμοποιείται ως βάση για υπολογισμούς απόσβεσης.'
+                              : 'The realistic market value of the vehicle when acquired. Used as baseline for depreciation calculations.'}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <Input 
+                    id="marketValue" 
+                    type="text"
+                    inputMode="decimal"
+                    placeholder={language === 'el' ? 'π.χ. 20000' : 'e.g. 20000'}
+                    disabled={isLanguageLoading || isSubmitting}
+                    value={marketValueAtPurchase}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9.]/g, '');
+                      setMarketValueAtPurchase(value);
+                    }}
+                    className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                </div>
+
+                {/* Purchase Date */}
+                <div className="space-y-1">
+                  <Label htmlFor="purchaseDate">{language === 'el' ? 'Ημερομηνία Αγοράς' : 'Purchase Date'}</Label>
+                  <Input 
+                    id="purchaseDate" 
+                    type="date"
+                    disabled={isLanguageLoading || isSubmitting}
+                    value={purchaseDate}
+                    onChange={(e) => setPurchaseDate(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Initial Mileage */}
+              <div className="space-y-1">
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="initialMileage">{language === 'el' ? 'Χιλιόμετρα κατά την Αγορά' : 'Mileage at Purchase'}</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="text-xs">
+                          {language === 'el' 
+                            ? 'Τα χιλιόμετρα όταν αγοράστηκε το όχημα. Χρησιμοποιείται για τον υπολογισμό απόσβεσης βάσει χιλιομέτρων.'
+                            : 'The mileage when the vehicle was purchased. Used for calculating mileage-based depreciation.'}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                <Input 
+                  id="initialMileage" 
+                  type="number"
+                  placeholder="0"
+                  min={0}
+                  disabled={isLanguageLoading || isSubmitting}
+                  value={initialMileage}
+                  onChange={(e) => setInitialMileage(e.target.value)}
+                />
               </div>
               
               <DialogFooter>
