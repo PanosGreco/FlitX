@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BarChart3, TrendingUp, TrendingDown, DollarSign, ChevronLeft, ChevronRight, Eye, Sparkles, Clock, Gauge, Info } from "lucide-react";
+import { BarChart3, TrendingUp, TrendingDown, DollarSign, ChevronLeft, ChevronRight, Eye, Sparkles, Clock, Gauge, Info, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,10 +23,12 @@ interface FinanceRecord {
 interface VehicleFinanceTabProps {
   vehicleId: string;
   vehicleName: string;
-  purchasePrice?: number | null;
+  purchasePrice?: number | null;          // Actual price paid (for ROI metrics)
+  marketValueAtPurchase?: number | null;  // Market value for depreciation
   purchaseDate?: string | null;
   currentMileage?: number;
   initialMileage?: number;
+  vehicleType?: string;
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -36,9 +38,11 @@ export function VehicleFinanceTab({
   vehicleId,
   vehicleName,
   purchasePrice,
+  marketValueAtPurchase,
   purchaseDate,
   currentMileage = 0,
-  initialMileage = 0
+  initialMileage = 0,
+  vehicleType = 'car'
 }: VehicleFinanceTabProps) {
   const { language } = useLanguage();
   const [records, setRecords] = useState<FinanceRecord[]>([]);
@@ -114,13 +118,17 @@ export function VehicleFinanceTab({
 
   const depreciationStatus = getDepreciationStatus();
 
-  // Calculate usage-based depreciation (time + mileage)
-  const usageDepreciation = calculateUsageDepreciation({
-    purchasePrice: purchaseValue,
+  // Calculate usage-based depreciation (time + mileage) using market value
+  const marketValue = typeof marketValueAtPurchase === "number" ? marketValueAtPurchase : Number(marketValueAtPurchase);
+  const hasDepreciationData = marketValue && marketValue > 0;
+  
+  const usageDepreciation = hasDepreciationData ? calculateUsageDepreciation({
+    marketValueAtPurchase: marketValue,
     purchaseDate,
     currentMileage,
     initialMileage,
-  });
+    vehicleType: vehicleType as 'car' | 'motorbike' | 'boat' | 'atv',
+  }) : null;
 
   if (isLoading) {
     return (
@@ -187,7 +195,7 @@ export function VehicleFinanceTab({
         </Card>
       </div>
 
-      {/* Finance Metrics Row: Purchase Value + Depreciation/Profit + Usage Depreciation */}
+      {/* Finance Metrics Row: Purchase Value + Depreciation/Profit + Value Loss */}
       {purchaseValue && purchaseValue > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* Purchase Value Card - Compact */}
@@ -262,7 +270,7 @@ export function VehicleFinanceTab({
             </Card>
           )}
 
-          {/* Usage-Based Depreciation Card */}
+          {/* Vehicle Value Loss Over Time Card */}
           <Card className="border-border bg-card">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
@@ -270,7 +278,7 @@ export function VehicleFinanceTab({
                   <Clock className="h-4 w-4" />
                   <Gauge className="h-4 w-4" />
                   <span className="text-xs font-medium uppercase tracking-wide">
-                    {language === 'el' ? 'Απόσβεση Χρήσης' : 'Usage Depreciation'}
+                    {language === 'el' ? 'Μείωση Αξίας' : 'Value Loss Over Time'}
                   </span>
                 </div>
                 <TooltipProvider>
@@ -279,51 +287,75 @@ export function VehicleFinanceTab({
                       <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs p-3">
-                      <p className="text-xs mb-2">
+                      <p className="text-xs">
                         {language === 'el'
                           ? 'Οι τιμές απόσβεσης είναι εκτιμήσεις βάσει χρόνου και χρήσης. Προορίζονται για εσωτερική παρακολούθηση και δεν αντιπροσωπεύουν εγγυημένες αξίες μεταπώλησης.'
-                          : 'Depreciation values are estimates based on time and usage. Intended for internal tracking and do not represent guaranteed resale values.'}
+                          : 'These values are estimates based on time and usage patterns. Intended for internal tracking and do not represent guaranteed market resale values.'}
                       </p>
-                      {usageDepreciation && (
-                        <div className="text-xs text-muted-foreground border-t pt-2 mt-2">
-                          <div>• €{Math.round(usageDepreciation.timeDepreciation * 0.6).toLocaleString()} {language === 'el' ? 'από χρόνο' : 'from time'}</div>
-                          <div>• €{Math.round(usageDepreciation.mileageDepreciation * 0.4).toLocaleString()} {language === 'el' ? 'από χιλιόμετρα' : 'from mileage'}</div>
-                        </div>
-                      )}
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
 
-              {usageDepreciation ? (
+              {hasDepreciationData && usageDepreciation ? (
                 <>
+                  {/* Total Value Loss */}
                   <div className="text-2xl font-bold text-orange-600">
-                    -€{usageDepreciation.totalDepreciation.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                    -€{Math.round(usageDepreciation.totalDepreciation).toLocaleString()}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {language === 'el' 
-                      ? `Μείωση αξίας (${usageDepreciation.depreciationPercentage.toFixed(0)}%)`
-                      : `Value loss (${usageDepreciation.depreciationPercentage.toFixed(0)}%)`}
+                    {Math.round(usageDepreciation.depreciationPercentage)}% {language === 'el' ? 'μείωση' : 'loss'}
                   </div>
+
+                  {/* Inline Breakdown */}
+                  <div className="mt-3 pt-3 border-t border-border space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground flex items-center gap-1.5">
+                        <Clock className="h-3 w-3" />
+                        {language === 'el' ? 'Από χρόνο' : 'From time'}
+                      </span>
+                      <span className="font-medium">
+                        €{Math.round(usageDepreciation.timeDepreciation).toLocaleString()} 
+                        <span className="text-muted-foreground ml-1">({Math.round(usageDepreciation.timeDepreciationShare)}%)</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground flex items-center gap-1.5">
+                        <Gauge className="h-3 w-3" />
+                        {language === 'el' ? 'Από χιλιόμετρα' : 'From mileage'}
+                      </span>
+                      <span className="font-medium">
+                        €{Math.round(usageDepreciation.mileageDepreciation).toLocaleString()}
+                        <span className="text-muted-foreground ml-1">({Math.round(usageDepreciation.mileageDepreciationShare)}%)</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Estimated Current Value */}
                   <div className="mt-3 pt-3 border-t border-border">
                     <div className="text-xs text-muted-foreground mb-1">
                       {language === 'el' ? 'Εκτιμώμενη τρέχουσα αξία' : 'Estimated current value'}
                     </div>
                     <div className="text-lg font-semibold text-foreground">
-                      €{usageDepreciation.estimatedCurrentValue.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                      €{Math.round(usageDepreciation.estimatedCurrentValue).toLocaleString()}
                     </div>
-                    {usageDepreciation.yearsOwned > 0 && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {formatYearsOwned(usageDepreciation.yearsOwned, language)} • {usageDepreciation.milesDriven.toLocaleString()} km
-                      </div>
-                    )}
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {formatYearsOwned(usageDepreciation.yearsOwned, language)} • {usageDepreciation.milesDriven.toLocaleString()} km {language === 'el' ? 'προστέθηκαν' : 'added'}
+                    </div>
                   </div>
                 </>
               ) : (
-                <div className="text-sm text-muted-foreground py-2">
-                  {language === 'el' 
-                    ? 'Προσθέστε ημερομηνία αγοράς για υπολογισμό'
-                    : 'Add purchase date to calculate'}
+                /* Fallback: Missing depreciation data */
+                <div className="py-4 text-center">
+                  <AlertCircle className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                  <div className="text-sm font-medium text-muted-foreground">
+                    {language === 'el' ? 'Μη διαθέσιμο' : 'Unavailable'}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {language === 'el' 
+                      ? 'Προσθέστε δεδομένα απόσβεσης για υπολογισμό μείωσης αξίας.'
+                      : 'Add depreciation data to calculate vehicle value loss.'}
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -396,25 +428,25 @@ export function VehicleFinanceTab({
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-4 border-t">
               <div className="text-sm text-muted-foreground">
-                {language === 'el' ? `Σελίδα ${currentPage} από ${totalPages}` : `Page ${currentPage} of ${totalPages}`}
+                {language === 'el' 
+                  ? `Σελίδα ${currentPage} από ${totalPages}`
+                  : `Page ${currentPage} of ${totalPages}`}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  {language === 'el' ? 'Προηγούμενη' : 'Previous'}
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
                 >
-                  {language === 'el' ? 'Επόμενη' : 'Next'}
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -426,29 +458,34 @@ export function VehicleFinanceTab({
   );
 }
 
+// Transaction Item Component
 function TransactionItem({ record, language }: { record: FinanceRecord; language: string }) {
+  const isIncome = record.type === 'income';
+  
   return (
-    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+    <div className={`flex items-center justify-between p-3 rounded-lg border ${
+      isIncome ? 'bg-green-50/50 border-green-100' : 'bg-red-50/50 border-red-100'
+    }`}>
       <div className="flex items-center gap-3">
-        <div className={`w-2 h-2 rounded-full ${record.type === 'income' ? 'bg-green-500' : 'bg-red-500'}`} />
+        <div className={`p-2 rounded-full ${isIncome ? 'bg-green-100' : 'bg-red-100'}`}>
+          {isIncome ? (
+            <TrendingUp className="h-4 w-4 text-green-600" />
+          ) : (
+            <TrendingDown className="h-4 w-4 text-red-600" />
+          )}
+        </div>
         <div>
-          <div className="font-medium text-sm">
-            {record.category.charAt(0).toUpperCase() + record.category.slice(1)}
-          </div>
+          <div className="font-medium text-sm">{record.category}</div>
+          {record.description && (
+            <div className="text-xs text-muted-foreground">{record.description}</div>
+          )}
           <div className="text-xs text-muted-foreground">
-            {record.description || (record.type === 'income' 
-              ? (language === 'el' ? 'Έσοδα ενοικίασης' : 'Rental income') 
-              : (language === 'el' ? 'Έξοδο' : 'Expense'))}
+            {format(new Date(record.date), 'dd MMM yyyy')}
           </div>
         </div>
       </div>
-      <div className="text-right">
-        <div className={`font-semibold ${record.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-          {record.type === 'income' ? '+' : '-'}€{Number(record.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {format(new Date(record.date), 'dd/MM/yyyy')}
-        </div>
+      <div className={`font-semibold ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
+        {isIncome ? '+' : '-'}€{Number(record.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
       </div>
     </div>
   );

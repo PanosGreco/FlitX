@@ -2,14 +2,15 @@
  * Usage-Based Depreciation Calculation Utility
  * 
  * Calculates vehicle depreciation based on time elapsed and mileage accumulated
- * using a hybrid weighted model.
+ * using an industry-aligned tiered + additive model.
  */
 
 export interface DepreciationInputs {
-  purchasePrice: number;
+  marketValueAtPurchase: number;  // Realistic market value when acquired
   purchaseDate: Date | string | null;
   currentMileage: number;
   initialMileage: number;
+  vehicleType?: 'car' | 'motorbike' | 'boat' | 'atv';
 }
 
 export interface DepreciationResult {
@@ -20,23 +21,60 @@ export interface DepreciationResult {
   depreciationPercentage: number;
   yearsOwned: number;
   milesDriven: number;
+  timeDepreciationShare: number;  // Percentage of total from time
+  mileageDepreciationShare: number;  // Percentage of total from mileage
 }
 
-// Configuration constants
-const ANNUAL_DEPRECIATION_RATE = 0.10; // 10% per year
-const DEPRECIATION_PER_1000KM = 0.001; // 0.1% per 1000km (conservative)
-const TIME_WEIGHT = 0.6; // 60% weight for time-based
-const MILEAGE_WEIGHT = 0.4; // 40% weight for mileage-based
+// Tiered annual depreciation rates (industry-aligned)
+const TIME_DEPRECIATION_TIERS = [
+  { year: 1, rate: 0.18 },  // Year 1: 18%
+  { year: 2, rate: 0.12 },  // Year 2: 12%
+  { year: 3, rate: 0.10 },  // Year 3: 10%
+  { year: 4, rate: 0.08 },  // Year 4: 8%
+];
+const LATER_YEAR_RATE = 0.06;  // Year 5+: 6% per year
+
+// Depreciation per km by vehicle type (€)
+const DEPRECIATION_PER_KM: Record<string, number> = {
+  car: 0.05,       // €0.05 per km
+  motorbike: 0.03, // €0.03 per km
+  boat: 0.02,      // €0.02 per km
+  atv: 0.04,       // €0.04 per km
+};
+
 const MINIMUM_RESIDUAL_PERCENTAGE = 0.20; // 20% floor value
+
+/**
+ * Calculate tiered time-based depreciation
+ */
+function calculateTimeDepreciation(marketValue: number, yearsOwned: number): number {
+  let depreciation = 0;
+  let remainingYears = yearsOwned;
+
+  // Apply tiered rates for first 4 years
+  for (const tier of TIME_DEPRECIATION_TIERS) {
+    if (remainingYears <= 0) break;
+    const portion = Math.min(1, remainingYears);
+    depreciation += marketValue * tier.rate * portion;
+    remainingYears -= 1;
+  }
+
+  // Years 5+: constant 6% per year
+  if (remainingYears > 0) {
+    depreciation += marketValue * LATER_YEAR_RATE * remainingYears;
+  }
+
+  return depreciation;
+}
 
 /**
  * Calculate usage-based depreciation for a vehicle
  */
 export function calculateUsageDepreciation(inputs: DepreciationInputs): DepreciationResult | null {
-  const { purchasePrice, purchaseDate, currentMileage, initialMileage } = inputs;
+  const { marketValueAtPurchase, purchaseDate, currentMileage, initialMileage, vehicleType = 'car' } = inputs;
 
   // Validate required inputs
-  if (!purchasePrice || purchasePrice <= 0) {
+  if (!marketValueAtPurchase || marketValueAtPurchase <= 0) {
     return null;
   }
 
@@ -49,39 +87,47 @@ export function calculateUsageDepreciation(inputs: DepreciationInputs): Deprecia
     yearsOwned = Math.max(0, diffMs / (1000 * 60 * 60 * 24 * 365.25));
   }
 
-  // Calculate mileage driven since purchase
+  // Calculate mileage driven since purchase (protect against negative values)
   const milesDriven = Math.max(0, currentMileage - initialMileage);
 
-  // Time-based depreciation: purchase_price × annual_rate × years
-  const timeDepreciation = purchasePrice * ANNUAL_DEPRECIATION_RATE * yearsOwned;
+  // Time-based depreciation (tiered model)
+  const timeDepreciation = calculateTimeDepreciation(marketValueAtPurchase, yearsOwned);
 
-  // Mileage-based depreciation: (purchase_price × rate_per_1000km) × (mileage / 1000)
-  const mileageDepreciation = (purchasePrice * DEPRECIATION_PER_1000KM) * (milesDriven / 1000);
+  // Mileage-based depreciation (additive per-km model)
+  const ratePerKm = DEPRECIATION_PER_KM[vehicleType] ?? DEPRECIATION_PER_KM.car;
+  const mileageDepreciation = milesDriven * ratePerKm;
 
-  // Hybrid combination with weights to avoid over-depreciation
-  const totalDepreciation = (timeDepreciation * TIME_WEIGHT) + (mileageDepreciation * MILEAGE_WEIGHT);
+  // Additive combination (industry-aligned: both factors independently reduce value)
+  const rawTotalDepreciation = timeDepreciation + mileageDepreciation;
 
   // Calculate floor value (minimum residual)
-  const floorValue = purchasePrice * MINIMUM_RESIDUAL_PERCENTAGE;
+  const floorValue = marketValueAtPurchase * MINIMUM_RESIDUAL_PERCENTAGE;
 
   // Estimated current value with floor protection
-  const rawCurrentValue = purchasePrice - totalDepreciation;
+  const rawCurrentValue = marketValueAtPurchase - rawTotalDepreciation;
   const estimatedCurrentValue = Math.max(rawCurrentValue, floorValue);
 
   // Actual depreciation respecting the floor
-  const actualDepreciation = purchasePrice - estimatedCurrentValue;
+  const totalDepreciation = marketValueAtPurchase - estimatedCurrentValue;
 
   // Depreciation percentage
-  const depreciationPercentage = (actualDepreciation / purchasePrice) * 100;
+  const depreciationPercentage = (totalDepreciation / marketValueAtPurchase) * 100;
+
+  // Calculate shares for breakdown display
+  const totalRaw = timeDepreciation + mileageDepreciation;
+  const timeDepreciationShare = totalRaw > 0 ? (timeDepreciation / totalRaw) * 100 : 0;
+  const mileageDepreciationShare = totalRaw > 0 ? (mileageDepreciation / totalRaw) * 100 : 0;
 
   return {
-    totalDepreciation: actualDepreciation,
+    totalDepreciation,
     timeDepreciation,
     mileageDepreciation,
     estimatedCurrentValue,
     depreciationPercentage,
     yearsOwned,
     milesDriven,
+    timeDepreciationShare,
+    mileageDepreciationShare,
   };
 }
 
@@ -100,7 +146,7 @@ export function formatYearsOwned(years: number, language: string = 'en'): string
   const remainingMonths = Math.round((years - wholeYears) * 12);
   
   if (remainingMonths === 0) {
-    return language === 'el' ? `${wholeYears} έτη` : `${wholeYears} year${wholeYears !== 1 ? 's' : ''}`;
+    return language === 'el' ? `${wholeYears} έτη` : `${wholeYears} yr${wholeYears !== 1 ? 's' : ''}`;
   }
   
   if (language === 'el') {

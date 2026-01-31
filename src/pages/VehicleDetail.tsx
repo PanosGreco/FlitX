@@ -33,6 +33,7 @@ interface Vehicle {
   purchase_price?: number | null;
   purchase_date?: string | null;
   initial_mileage?: number;
+  market_value_at_purchase?: number | null;
   passengerCapacity?: number;
   passenger_capacity?: number;
   vehicle_type?: string;
@@ -149,6 +150,7 @@ const VehicleDetail = () => {
         purchase_price: data.purchase_price || null,
         purchase_date: data.purchase_date || null,
         initial_mileage: data.initial_mileage || 0,
+        market_value_at_purchase: data.market_value_at_purchase || null,
         passengerCapacity: data.passenger_capacity || undefined,
         passenger_capacity: data.passenger_capacity || undefined,
         vehicle_type: data.vehicle_type || 'car',

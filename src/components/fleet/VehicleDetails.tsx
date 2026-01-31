@@ -116,7 +116,8 @@ export function VehicleDetails({
     fuel_type: 'petrol',
     purchase_price: null,
     purchase_date: null,
-    initial_mileage: 0
+    initial_mileage: 0,
+    market_value_at_purchase: null
   };
 
   // Use computed status from calendar data
@@ -382,9 +383,11 @@ export function VehicleDetails({
                       vehicleId={vehicleId || ""} 
                       vehicleName={`${vehicle.year} ${vehicle.make} ${vehicle.model}`} 
                       purchasePrice={vehicle.purchase_price}
+                      marketValueAtPurchase={vehicle.market_value_at_purchase}
                       purchaseDate={vehicle.purchase_date}
                       currentMileage={vehicle.mileage}
                       initialMileage={vehicle.initial_mileage}
+                      vehicleType={vehicle.vehicle_type}
                     />
                   </TabsContent>
                 </>}
@@ -469,6 +472,9 @@ export function VehicleDetails({
       license_plate: vehicle.license_plate || vehicle.licensePlate || '',
       image: vehicle.image,
       purchase_price: vehicle.purchase_price,
+      purchase_date: vehicle.purchase_date,
+      initial_mileage: vehicle.initial_mileage || 0,
+      market_value_at_purchase: vehicle.market_value_at_purchase,
       fuel_type: vehicle.fuel_type || vehicle.fuelType || 'petrol',
       transmission_type: vehicle.transmission_type || 'manual',
       passenger_capacity: vehicle.passenger_capacity || vehicle.passengerCapacity || 5,
