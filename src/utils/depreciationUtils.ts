@@ -1,8 +1,8 @@
 /**
  * Usage-Based Depreciation Calculation Utility
  * 
- * Calculates vehicle depreciation based on time elapsed and mileage accumulated
- * using an industry-aligned tiered + additive model.
+ * Calculates vehicle depreciation based on time elapsed and EXCESS mileage
+ * using an industry-aligned tiered model. Mileage only penalizes above-average usage.
  */
 
 export interface DepreciationInputs {
@@ -23,6 +23,8 @@ export interface DepreciationResult {
   milesDriven: number;
   timeDepreciationShare: number;  // Percentage of total from time
   mileageDepreciationShare: number;  // Percentage of total from mileage
+  excessMileage: number;  // Only the km above expected
+  expectedMileage: number;  // Expected km based on years owned
 }
 
 // Tiered annual depreciation rates (industry-aligned)
@@ -34,18 +36,30 @@ const TIME_DEPRECIATION_TIERS = [
 ];
 const LATER_YEAR_RATE = 0.06;  // Year 5+: 6% per year
 
-// Depreciation per km by vehicle type (€)
+// Maximum time-based depreciation (prevents runaway for old vehicles)
+const MAX_TIME_DEPRECIATION_PERCENTAGE = 0.65;  // 65% max from time alone
+
+// Average annual mileage by vehicle type (km/year)
+const AVERAGE_ANNUAL_MILEAGE: Record<string, number> = {
+  car: 12000,       // 12,000 km/year
+  motorbike: 6000,  // 6,000 km/year
+  boat: 2000,       // 2,000 km/year (proxy)
+  atv: 4000,        // 4,000 km/year
+};
+
+// Depreciation per EXCESS km by vehicle type (€)
+// Only applies to mileage above expected average
 const DEPRECIATION_PER_KM: Record<string, number> = {
-  car: 0.05,       // €0.05 per km
-  motorbike: 0.03, // €0.03 per km
-  boat: 0.02,      // €0.02 per km
-  atv: 0.04,       // €0.04 per km
+  car: 0.04,       // €0.04 per excess km
+  motorbike: 0.025, // €0.025 per excess km
+  boat: 0.015,     // €0.015 per excess km
+  atv: 0.03,       // €0.03 per excess km
 };
 
 const MINIMUM_RESIDUAL_PERCENTAGE = 0.20; // 20% floor value
 
 /**
- * Calculate tiered time-based depreciation
+ * Calculate tiered time-based depreciation with 65% cap
  */
 function calculateTimeDepreciation(marketValue: number, yearsOwned: number): number {
   let depreciation = 0;
@@ -64,11 +78,14 @@ function calculateTimeDepreciation(marketValue: number, yearsOwned: number): num
     depreciation += marketValue * LATER_YEAR_RATE * remainingYears;
   }
 
-  return depreciation;
+  // Cap time depreciation at 65% of market value
+  const maxTimeDepreciation = marketValue * MAX_TIME_DEPRECIATION_PERCENTAGE;
+  return Math.min(depreciation, maxTimeDepreciation);
 }
 
 /**
  * Calculate usage-based depreciation for a vehicle
+ * Uses excess-mileage model: only penalizes km above average annual usage
  */
 export function calculateUsageDepreciation(inputs: DepreciationInputs): DepreciationResult | null {
   const { marketValueAtPurchase, purchaseDate, currentMileage, initialMileage, vehicleType = 'car' } = inputs;
@@ -90,14 +107,19 @@ export function calculateUsageDepreciation(inputs: DepreciationInputs): Deprecia
   // Calculate mileage driven since purchase (protect against negative values)
   const milesDriven = Math.max(0, currentMileage - initialMileage);
 
-  // Time-based depreciation (tiered model)
+  // Time-based depreciation (tiered model with 65% cap)
   const timeDepreciation = calculateTimeDepreciation(marketValueAtPurchase, yearsOwned);
 
-  // Mileage-based depreciation (additive per-km model)
+  // Excess-mileage depreciation model:
+  // Only penalize km ABOVE the expected average for the ownership period
+  const averageAnnualKm = AVERAGE_ANNUAL_MILEAGE[vehicleType] ?? AVERAGE_ANNUAL_MILEAGE.car;
+  const expectedMileage = yearsOwned * averageAnnualKm;
+  const excessMileage = Math.max(0, milesDriven - expectedMileage);
+  
   const ratePerKm = DEPRECIATION_PER_KM[vehicleType] ?? DEPRECIATION_PER_KM.car;
-  const mileageDepreciation = milesDriven * ratePerKm;
+  const mileageDepreciation = excessMileage * ratePerKm;
 
-  // Additive combination (industry-aligned: both factors independently reduce value)
+  // Additive combination: time + excess mileage penalty
   const rawTotalDepreciation = timeDepreciation + mileageDepreciation;
 
   // Calculate floor value (minimum residual)
@@ -128,6 +150,8 @@ export function calculateUsageDepreciation(inputs: DepreciationInputs): Deprecia
     milesDriven,
     timeDepreciationShare,
     mileageDepreciationShare,
+    excessMileage,
+    expectedMileage,
   };
 }
 
