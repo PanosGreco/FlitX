@@ -198,76 +198,93 @@ export function VehicleFinanceTab({
         </Card>
       </div>
 
-      {/* Finance Metrics Row: Purchase Value + Depreciation/Profit + Value Loss */}
+      {/* Finance Metrics Row: Unified Depreciation Card + Value Loss */}
       {purchaseValue && purchaseValue > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Purchase Value Card - Compact */}
-          <Card className="border-border bg-card">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                <DollarSign className="h-4 w-4" />
-                <span className="text-xs font-medium uppercase tracking-wide">
-                  {language === 'el' ? 'Αξία Αγοράς' : 'Purchase Value'}
-                </span>
-              </div>
-              <div className="text-2xl font-bold text-foreground">
-                €{purchaseValue.toLocaleString(undefined, { minimumFractionDigits: 0 })}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {language === 'el' ? 'Αρχική επένδυση' : 'Initial investment'}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Depreciation Circle OR Net Profit Card - Compact */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Unified Depreciation Card: Purchase Value + Progress Circle OR Net Profit */}
           {depreciationStatus && (
             <Card className="border-border bg-card">
-              <CardContent className="p-4 flex flex-col items-center justify-center">
+              <CardContent className="p-4">
                 {!depreciationStatus.isFullyDepreciated ? (
-                  <>
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
-                      {language === 'el' ? 'Υπόλοιπο Απόσβεσης' : 'Remaining for Depreciation'}
-                    </span>
-                    <AnimatedCircularProgressBar
-                      min={0}
-                      max={purchaseValue}
-                      value={netIncome}
-                      gaugePrimaryColor="hsl(var(--primary))"
-                      gaugeSecondaryColor="hsl(var(--foreground) / 0.12)"
-                      className="size-24"
-                      displayValue={
-                        <span className="text-sm font-semibold text-foreground">
-                          €{depreciationStatus.remainingForDepreciation.toLocaleString(undefined, {
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                          })}
-                        </span>
-                      }
-                      tooltipContent={
-                        <span className="text-sm">
-                          €{netIncome.toLocaleString(undefined, {
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                          })} {language === 'el' ? 'αποσβέστηκε' : 'depreciated'}
-                        </span>
-                      }
-                    />
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2 text-green-600 mb-1">
-                      <Sparkles className="h-4 w-4" />
-                      <span className="font-medium uppercase tracking-wide text-xs">
-                        {language === 'el' ? 'ΚΑΘΑΡΟ ΚΕΡΔΟΣ' : 'NET PROFIT'}
+                  <div className="flex items-center gap-4">
+                    {/* Progress Circle - Unchanged */}
+                    <div className="flex flex-col items-center">
+                      <AnimatedCircularProgressBar
+                        min={0}
+                        max={purchaseValue}
+                        value={netIncome}
+                        gaugePrimaryColor="hsl(var(--primary))"
+                        gaugeSecondaryColor="hsl(var(--foreground) / 0.12)"
+                        className="size-24"
+                        displayValue={
+                          <span className="text-sm font-semibold text-foreground">
+                            €{depreciationStatus.remainingForDepreciation.toLocaleString(undefined, {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0
+                            })}
+                          </span>
+                        }
+                        tooltipContent={
+                          <span className="text-sm">
+                            €{netIncome.toLocaleString(undefined, {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 0
+                            })} {language === 'el' ? 'αποσβέστηκε' : 'depreciated'}
+                          </span>
+                        }
+                      />
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-2">
+                        {language === 'el' ? 'Υπόλοιπο' : 'Remaining'}
                       </span>
                     </div>
-                    <div className="text-2xl font-bold text-green-600">
-                      +€{depreciationStatus.netProfitAfterDepreciation.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    
+                    {/* Purchase Value Info */}
+                    <div className="flex-1 border-l border-border pl-4">
+                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                        <DollarSign className="h-4 w-4" />
+                        <span className="text-xs font-medium uppercase tracking-wide">
+                          {language === 'el' ? 'Αξία Αγοράς' : 'Purchase Value'}
+                        </span>
+                      </div>
+                      <div className="text-2xl font-bold text-foreground">
+                        €{purchaseValue.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">
+                        {Math.round(depreciationStatus.depreciationPercentage)}% {language === 'el' ? 'αποσβεσμένο' : 'depreciated'}
+                      </div>
                     </div>
-                    <div className="text-xs text-green-600 mt-1">
-                      {language === 'el' ? 'Πλήρως αποσβεσμένο' : 'Fully Depreciated'}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-4">
+                    {/* Net Profit Display */}
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="flex items-center gap-2 text-green-600 mb-1">
+                        <Sparkles className="h-5 w-5" />
+                      </div>
+                      <div className="text-2xl font-bold text-green-600">
+                        +€{depreciationStatus.netProfitAfterDepreciation.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                      </div>
+                      <span className="text-xs font-medium text-green-600 uppercase tracking-wide mt-1">
+                        {language === 'el' ? 'Καθαρό Κέρδος' : 'Net Profit'}
+                      </span>
                     </div>
-                  </>
+                    
+                    {/* Purchase Value Info */}
+                    <div className="flex-1 border-l border-border pl-4">
+                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                        <DollarSign className="h-4 w-4" />
+                        <span className="text-xs font-medium uppercase tracking-wide">
+                          {language === 'el' ? 'Αξία Αγοράς' : 'Purchase Value'}
+                        </span>
+                      </div>
+                      <div className="text-2xl font-bold text-foreground">
+                        €{purchaseValue.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                      </div>
+                      <div className="text-xs text-green-600 mt-2">
+                        {language === 'el' ? 'Πλήρως αποσβεσμένο' : 'Fully depreciated'}
+                      </div>
+                    </div>
+                  </div>
                 )}
               </CardContent>
             </Card>
