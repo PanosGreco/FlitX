@@ -29,6 +29,7 @@ interface VehicleFinanceTabProps {
   currentMileage?: number;
   initialMileage?: number;
   vehicleType?: string;
+  vehicleYear: number;                    // Vehicle model year (required for depreciation)
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -42,7 +43,8 @@ export function VehicleFinanceTab({
   purchaseDate,
   currentMileage = 0,
   initialMileage = 0,
-  vehicleType = 'car'
+  vehicleType = 'car',
+  vehicleYear
 }: VehicleFinanceTabProps) {
   const { language } = useLanguage();
   const [records, setRecords] = useState<FinanceRecord[]>([]);
@@ -124,6 +126,7 @@ export function VehicleFinanceTab({
   
   const usageDepreciation = hasDepreciationData ? calculateUsageDepreciation({
     marketValueAtPurchase: marketValue,
+    vehicleModelYear: vehicleYear,
     purchaseDate,
     currentMileage,
     initialMileage,

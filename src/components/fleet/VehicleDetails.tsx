@@ -388,6 +388,7 @@ export function VehicleDetails({
                       currentMileage={vehicle.mileage}
                       initialMileage={vehicle.initial_mileage}
                       vehicleType={vehicle.vehicle_type}
+                      vehicleYear={vehicle.year}
                     />
                   </TabsContent>
                 </>}
