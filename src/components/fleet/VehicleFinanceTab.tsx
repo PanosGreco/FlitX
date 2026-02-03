@@ -204,20 +204,33 @@ export function VehicleFinanceTab({
           {/* Unified Depreciation Card: Purchase Value + Progress Circle OR Net Profit */}
           {depreciationStatus && (
             <Card className="border-border bg-card">
-              <CardContent className="p-4">
+              <CardContent className="py-3 px-4">
                 {!depreciationStatus.isFullyDepreciated ? (
                   <div className="flex items-center gap-4">
-                    {/* Progress Circle - Unchanged */}
-                    <div className="flex flex-col items-center">
+                    {/* Purchase Value - Left Side */}
+                    <div className="flex flex-col">
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
+                        {language === 'el' ? 'Αξία Αγοράς' : 'Purchase Value'}
+                      </span>
+                      <div className="text-2xl font-bold text-foreground">
+                        €{purchaseValue.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {Math.round(depreciationStatus.depreciationPercentage)}% {language === 'el' ? 'αποσβεσμένο' : 'depreciated'}
+                      </div>
+                    </div>
+                    
+                    {/* Progress Circle - Right Side (Unchanged) */}
+                    <div className="flex flex-col items-center border-l border-border pl-4">
                       <AnimatedCircularProgressBar
                         min={0}
                         max={purchaseValue}
                         value={netIncome}
                         gaugePrimaryColor="hsl(var(--primary))"
                         gaugeSecondaryColor="hsl(var(--foreground) / 0.12)"
-                        className="size-24"
+                        className="size-20"
                         displayValue={
-                          <span className="text-sm font-semibold text-foreground">
+                          <span className="text-xs font-semibold text-foreground">
                             €{depreciationStatus.remainingForDepreciation.toLocaleString(undefined, {
                               minimumFractionDigits: 0,
                               maximumFractionDigits: 0
@@ -233,56 +246,37 @@ export function VehicleFinanceTab({
                           </span>
                         }
                       />
-                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-2">
-                        {language === 'el' ? 'Υπόλοιπο' : 'Remaining'}
+                      <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mt-1">
+                        {language === 'el' ? 'Υπόλοιπο Απόσβεσης' : 'Remaining for Depreciation'}
                       </span>
-                    </div>
-                    
-                    {/* Purchase Value Info */}
-                    <div className="flex-1 border-l border-border pl-4">
-                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                        <DollarSign className="h-4 w-4" />
-                        <span className="text-xs font-medium uppercase tracking-wide">
-                          {language === 'el' ? 'Αξία Αγοράς' : 'Purchase Value'}
-                        </span>
-                      </div>
-                      <div className="text-2xl font-bold text-foreground">
-                        €{purchaseValue.toLocaleString(undefined, { minimumFractionDigits: 0 })}
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-2">
-                        {Math.round(depreciationStatus.depreciationPercentage)}% {language === 'el' ? 'αποσβεσμένο' : 'depreciated'}
-                      </div>
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-center gap-4">
-                    {/* Net Profit Display */}
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="flex items-center gap-2 text-green-600 mb-1">
-                        <Sparkles className="h-5 w-5" />
-                      </div>
-                      <div className="text-2xl font-bold text-green-600">
-                        +€{depreciationStatus.netProfitAfterDepreciation.toLocaleString(undefined, { minimumFractionDigits: 0 })}
-                      </div>
-                      <span className="text-xs font-medium text-green-600 uppercase tracking-wide mt-1">
-                        {language === 'el' ? 'Καθαρό Κέρδος' : 'Net Profit'}
+                    {/* Purchase Value - Left Side */}
+                    <div className="flex flex-col">
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
+                        {language === 'el' ? 'Αξία Αγοράς' : 'Purchase Value'}
                       </span>
-                    </div>
-                    
-                    {/* Purchase Value Info */}
-                    <div className="flex-1 border-l border-border pl-4">
-                      <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                        <DollarSign className="h-4 w-4" />
-                        <span className="text-xs font-medium uppercase tracking-wide">
-                          {language === 'el' ? 'Αξία Αγοράς' : 'Purchase Value'}
-                        </span>
-                      </div>
                       <div className="text-2xl font-bold text-foreground">
                         €{purchaseValue.toLocaleString(undefined, { minimumFractionDigits: 0 })}
                       </div>
-                      <div className="text-xs text-green-600 mt-2">
+                      <div className="text-xs text-green-600 mt-1">
                         {language === 'el' ? 'Πλήρως αποσβεσμένο' : 'Fully depreciated'}
                       </div>
+                    </div>
+                    
+                    {/* Net Profit Display - Right Side */}
+                    <div className="flex flex-col items-center border-l border-border pl-4">
+                      <div className="flex items-center gap-1 text-green-600 mb-1">
+                        <Sparkles className="h-4 w-4" />
+                      </div>
+                      <div className="text-xl font-bold text-green-600">
+                        +€{depreciationStatus.netProfitAfterDepreciation.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                      </div>
+                      <span className="text-[10px] font-medium text-green-600 uppercase tracking-wide mt-1">
+                        {language === 'el' ? 'Καθαρό Κέρδος' : 'Net Profit'}
+                      </span>
                     </div>
                   </div>
                 )}
