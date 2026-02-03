@@ -9,7 +9,6 @@ import { AnimatedCircularProgressBar } from "@/components/ui/animated-circular-p
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { calculateUsageDepreciation, formatYearsOwned } from "@/utils/depreciationUtils";
-
 interface FinanceRecord {
   id: string;
   type: 'income' | 'expense';
@@ -19,22 +18,19 @@ interface FinanceRecord {
   date: string;
   booking_id: string | null;
 }
-
 interface VehicleFinanceTabProps {
   vehicleId: string;
   vehicleName: string;
-  purchasePrice?: number | null;          // Actual price paid (for ROI metrics)
-  marketValueAtPurchase?: number | null;  // Market value for depreciation
+  purchasePrice?: number | null; // Actual price paid (for ROI metrics)
+  marketValueAtPurchase?: number | null; // Market value for depreciation
   purchaseDate?: string | null;
   currentMileage?: number;
   initialMileage?: number;
   vehicleType?: string;
-  vehicleYear: number;                    // Vehicle model year (required for depreciation)
+  vehicleYear: number; // Vehicle model year (required for depreciation)
 }
-
 const ITEMS_PER_PAGE = 10;
 const DEFAULT_VISIBLE_ITEMS = 4;
-
 export function VehicleFinanceTab({
   vehicleId,
   vehicleName,
@@ -46,14 +42,15 @@ export function VehicleFinanceTab({
   vehicleType = 'car',
   vehicleYear
 }: VehicleFinanceTabProps) {
-  const { language } = useLanguage();
+  const {
+    language
+  } = useLanguage();
   const [records, setRecords] = useState<FinanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [showAllRecords, setShowAllRecords] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-
   useEffect(() => {
     fetchVehicleFinanceRecords();
     const channel = supabase.channel(`vehicle_finance_${vehicleId}`).on('postgres_changes', {
@@ -65,21 +62,22 @@ export function VehicleFinanceTab({
       supabase.removeChannel(channel);
     };
   }, [vehicleId]);
-
   const fetchVehicleFinanceRecords = async () => {
     try {
       setIsLoading(true);
-      const { data: session } = await supabase.auth.getSession();
+      const {
+        data: session
+      } = await supabase.auth.getSession();
       if (!session?.session?.user) {
         setIsLoading(false);
         return;
       }
-      const { data, error } = await supabase
-        .from('financial_records')
-        .select('*')
-        .eq('vehicle_id', vehicleId)
-        .order('date', { ascending: false });
-
+      const {
+        data,
+        error
+      } = await supabase.from('financial_records').select('*').eq('vehicle_id', vehicleId).order('date', {
+        ascending: false
+      });
       if (error) {
         console.error("Error fetching vehicle finance records:", error);
         return;
@@ -95,7 +93,6 @@ export function VehicleFinanceTab({
       setIsLoading(false);
     }
   };
-
   const netIncome = totalRevenue - totalExpenses;
   const purchaseValue = typeof purchasePrice === "number" ? purchasePrice : Number(purchasePrice);
   const totalPages = Math.ceil(records.length / ITEMS_PER_PAGE);
@@ -117,32 +114,25 @@ export function VehicleFinanceTab({
       netProfitAfterDepreciation
     };
   };
-
   const depreciationStatus = getDepreciationStatus();
 
   // Calculate usage-based depreciation (time + mileage) using market value
   const marketValue = typeof marketValueAtPurchase === "number" ? marketValueAtPurchase : Number(marketValueAtPurchase);
   const hasDepreciationData = marketValue && marketValue > 0;
-  
   const usageDepreciation = hasDepreciationData ? calculateUsageDepreciation({
     marketValueAtPurchase: marketValue,
     vehicleModelYear: vehicleYear,
     purchaseDate,
     currentMileage,
     initialMileage,
-    vehicleType: vehicleType as 'car' | 'motorbike' | 'boat' | 'atv',
+    vehicleType: vehicleType as 'car' | 'motorbike' | 'boat' | 'atv'
   }) : null;
-
   if (isLoading) {
-    return (
-      <div className="flex justify-center py-12">
+    return <div className="flex justify-center py-12">
         <div className="text-muted-foreground">Loading finance data...</div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="space-y-4">
+  return <div className="space-y-4">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-green-50 border-green-200">
@@ -154,12 +144,12 @@ export function VehicleFinanceTab({
               </span>
             </div>
             <div className="text-2xl font-bold text-green-700">
-              €{totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              €{totalRevenue.toLocaleString(undefined, {
+              minimumFractionDigits: 2
+            })}
             </div>
             <div className="text-xs text-green-600 mt-1">
-              {language === 'el' 
-                ? `Από ${records.filter(r => r.type === 'income').length} συναλλαγές`
-                : `From ${records.filter(r => r.type === 'income').length} transactions`}
+              {language === 'el' ? `Από ${records.filter(r => r.type === 'income').length} συναλλαγές` : `From ${records.filter(r => r.type === 'income').length} transactions`}
             </div>
           </CardContent>
         </Card>
@@ -173,12 +163,12 @@ export function VehicleFinanceTab({
               </span>
             </div>
             <div className="text-2xl font-bold text-red-700">
-              €{totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              €{totalExpenses.toLocaleString(undefined, {
+              minimumFractionDigits: 2
+            })}
             </div>
             <div className="text-xs text-red-600 mt-1">
-              {language === 'el' 
-                ? `Από ${records.filter(r => r.type === 'expense').length} συναλλαγές`
-                : `From ${records.filter(r => r.type === 'expense').length} transactions`}
+              {language === 'el' ? `Από ${records.filter(r => r.type === 'expense').length} συναλλαγές` : `From ${records.filter(r => r.type === 'expense').length} transactions`}
             </div>
           </CardContent>
         </Card>
@@ -192,29 +182,30 @@ export function VehicleFinanceTab({
               </span>
             </div>
             <div className={`text-2xl font-bold ${netIncome >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
-              €{netIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              €{netIncome.toLocaleString(undefined, {
+              minimumFractionDigits: 2
+            })}
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Finance Metrics Row: Unified Depreciation Card + Value Loss */}
-      {purchaseValue && purchaseValue > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {purchaseValue && purchaseValue > 0 && <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Unified Depreciation Card: Purchase Value + Progress Circle OR Net Profit */}
           {/* Fixed height to match summary cards above (h-[106px] matches CardContent p-4 with content) */}
-          {depreciationStatus && (
-            <Card className="border-border bg-card h-[106px] overflow-hidden">
-              <CardContent className="p-4 h-full flex items-center">
-                {!depreciationStatus.isFullyDepreciated ? (
-                  <div className="flex items-center justify-between w-full gap-3">
+          {depreciationStatus && <Card className="border-border bg-card h-[106px] overflow-hidden mx-[137px]">
+              <CardContent className="p-4 h-full flex items-center mx-0">
+                {!depreciationStatus.isFullyDepreciated ? <div className="flex items-center justify-between w-full gap-3">
                     {/* Purchase Value - Left Side */}
                     <div className="flex flex-col min-w-0 flex-1">
                       <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                         {language === 'el' ? 'Αξία Αγοράς' : 'Purchase Value'}
                       </span>
                       <div className="text-2xl font-bold text-foreground mt-1">
-                        €{purchaseValue.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                        €{purchaseValue.toLocaleString(undefined, {
+                  minimumFractionDigits: 0
+                })}
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
                         {Math.round(depreciationStatus.depreciationPercentage)}% {language === 'el' ? 'αποσβεσμένο' : 'depreciated'}
@@ -223,30 +214,17 @@ export function VehicleFinanceTab({
                     
                     {/* Progress Circle - Right Side (Unchanged) */}
                     <div className="flex items-center gap-3 border-l border-border pl-3 shrink-0">
-                      <AnimatedCircularProgressBar
-                        min={0}
-                        max={purchaseValue}
-                        value={netIncome}
-                        gaugePrimaryColor="hsl(var(--primary))"
-                        gaugeSecondaryColor="hsl(var(--foreground) / 0.12)"
-                        className="size-14"
-                        displayValue={
-                          <span className="text-[10px] font-semibold text-foreground">
+                      <AnimatedCircularProgressBar min={0} max={purchaseValue} value={netIncome} gaugePrimaryColor="hsl(var(--primary))" gaugeSecondaryColor="hsl(var(--foreground) / 0.12)" className="size-14" displayValue={<span className="text-[10px] font-semibold text-foreground">
                             €{depreciationStatus.remainingForDepreciation.toLocaleString(undefined, {
-                              minimumFractionDigits: 0,
-                              maximumFractionDigits: 0
-                            })}
-                          </span>
-                        }
-                        tooltipContent={
-                          <span className="text-sm">
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0
+                })}
+                          </span>} tooltipContent={<span className="text-sm">
                             €{netIncome.toLocaleString(undefined, {
-                              minimumFractionDigits: 0,
-                              maximumFractionDigits: 0
-                            })} {language === 'el' ? 'αποσβέστηκε' : 'depreciated'}
-                          </span>
-                        }
-                      />
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 0
+                })} {language === 'el' ? 'αποσβέστηκε' : 'depreciated'}
+                          </span>} />
                       <div className="flex flex-col">
                         <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide leading-tight">
                           {language === 'el' ? 'Υπόλοιπο' : 'Remaining'}
@@ -256,16 +234,16 @@ export function VehicleFinanceTab({
                         </span>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between w-full gap-3">
+                  </div> : <div className="flex items-center justify-between w-full gap-3">
                     {/* Purchase Value - Left Side */}
                     <div className="flex flex-col min-w-0 flex-1">
                       <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                         {language === 'el' ? 'Αξία Αγοράς' : 'Purchase Value'}
                       </span>
                       <div className="text-2xl font-bold text-foreground mt-1">
-                        €{purchaseValue.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                        €{purchaseValue.toLocaleString(undefined, {
+                  minimumFractionDigits: 0
+                })}
                       </div>
                       <div className="text-xs text-green-600 mt-0.5">
                         {language === 'el' ? 'Πλήρως αποσβεσμένο' : 'Fully depreciated'}
@@ -277,18 +255,18 @@ export function VehicleFinanceTab({
                       <Sparkles className="h-5 w-5 text-green-600" />
                       <div className="flex flex-col">
                         <div className="text-lg font-bold text-green-600">
-                          +€{depreciationStatus.netProfitAfterDepreciation.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                          +€{depreciationStatus.netProfitAfterDepreciation.toLocaleString(undefined, {
+                    minimumFractionDigits: 0
+                  })}
                         </div>
                         <span className="text-[10px] font-medium text-green-600 uppercase tracking-wide">
                           {language === 'el' ? 'Καθαρό Κέρδος' : 'Net Profit'}
                         </span>
                       </div>
                     </div>
-                  </div>
-                )}
+                  </div>}
               </CardContent>
-            </Card>
-          )}
+            </Card>}
 
           {/* Vehicle Value Loss Over Time Card */}
           <Card className="border-border bg-card">
@@ -308,17 +286,14 @@ export function VehicleFinanceTab({
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs p-3">
                       <p className="text-xs">
-                        {language === 'el'
-                          ? 'Οι τιμές απόσβεσης είναι εκτιμήσεις βάσει χρόνου και χρήσης. Προορίζονται για εσωτερική παρακολούθηση και δεν αντιπροσωπεύουν εγγυημένες αξίες μεταπώλησης.'
-                          : 'These values are estimates based on time and usage patterns. Intended for internal tracking and do not represent guaranteed market resale values.'}
+                        {language === 'el' ? 'Οι τιμές απόσβεσης είναι εκτιμήσεις βάσει χρόνου και χρήσης. Προορίζονται για εσωτερική παρακολούθηση και δεν αντιπροσωπεύουν εγγυημένες αξίες μεταπώλησης.' : 'These values are estimates based on time and usage patterns. Intended for internal tracking and do not represent guaranteed market resale values.'}
                       </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
 
-              {hasDepreciationData && usageDepreciation ? (
-                <>
+              {hasDepreciationData && usageDepreciation ? <>
                   {/* Total Value Loss */}
                   <div className="text-2xl font-bold text-orange-600">
                     -€{Math.round(usageDepreciation.totalDepreciation).toLocaleString()}
@@ -363,25 +338,19 @@ export function VehicleFinanceTab({
                       {formatYearsOwned(usageDepreciation.yearsOwned, language)} • {usageDepreciation.milesDriven.toLocaleString()} km {language === 'el' ? 'προστέθηκαν' : 'added'}
                     </div>
                   </div>
-                </>
-              ) : (
-                /* Fallback: Missing depreciation data */
-                <div className="py-4 text-center">
+                </> : (/* Fallback: Missing depreciation data */
+          <div className="py-4 text-center">
                   <AlertCircle className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
                   <div className="text-sm font-medium text-muted-foreground">
                     {language === 'el' ? 'Μη διαθέσιμο' : 'Unavailable'}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {language === 'el' 
-                      ? 'Προσθέστε δεδομένα απόσβεσης για υπολογισμό μείωσης αξίας.'
-                      : 'Add depreciation data to calculate vehicle value loss.'}
+                    {language === 'el' ? 'Προσθέστε δεδομένα απόσβεσης για υπολογισμό μείωσης αξίας.' : 'Add depreciation data to calculate vehicle value loss.'}
                   </div>
-                </div>
-              )}
+                </div>)}
             </CardContent>
           </Card>
-        </div>
-      )}
+        </div>}
 
       {/* Transaction History */}
       <Card>
@@ -391,40 +360,26 @@ export function VehicleFinanceTab({
               <BarChart3 className="h-5 w-5" />
               {language === 'el' ? 'Ιστορικό Συναλλαγών' : 'Transaction History'}
             </div>
-            {records.length > DEFAULT_VISIBLE_ITEMS && (
-              <Button variant="outline" size="sm" onClick={() => setShowAllRecords(true)}>
+            {records.length > DEFAULT_VISIBLE_ITEMS && <Button variant="outline" size="sm" onClick={() => setShowAllRecords(true)}>
                 <Eye className="h-4 w-4 mr-2" />
                 {language === 'el' ? `Προβολή Όλων (${records.length})` : `View All (${records.length})`}
-              </Button>
-            )}
+              </Button>}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {records.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+          {records.length === 0 ? <div className="text-center py-8 text-muted-foreground">
               <DollarSign className="h-12 w-12 mx-auto mb-2 opacity-50" />
               <p>{language === 'el' ? 'Δεν υπάρχουν οικονομικές εγγραφές για αυτό το όχημα.' : 'No financial records for this vehicle yet.'}</p>
               <p className="text-sm mt-1">
-                {language === 'el' 
-                  ? 'Δημιουργήστε κρατήσεις ή προσθέστε έξοδα για να τα δείτε εδώ.'
-                  : 'Create bookings or add expenses to see them here.'}
+                {language === 'el' ? 'Δημιουργήστε κρατήσεις ή προσθέστε έξοδα για να τα δείτε εδώ.' : 'Create bookings or add expenses to see them here.'}
               </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {records.slice(0, DEFAULT_VISIBLE_ITEMS).map(record => (
-                <TransactionItem key={record.id} record={record} language={language} />
-              ))}
+            </div> : <div className="space-y-2">
+              {records.slice(0, DEFAULT_VISIBLE_ITEMS).map(record => <TransactionItem key={record.id} record={record} language={language} />)}
               
-              {records.length > DEFAULT_VISIBLE_ITEMS && (
-                <div className="text-center py-2 text-sm text-muted-foreground">
-                  {language === 'el' 
-                    ? `Εμφάνιση ${DEFAULT_VISIBLE_ITEMS} από ${records.length} εγγραφές`
-                    : `Showing ${DEFAULT_VISIBLE_ITEMS} of ${records.length} records`}
-                </div>
-              )}
-            </div>
-          )}
+              {records.length > DEFAULT_VISIBLE_ITEMS && <div className="text-center py-2 text-sm text-muted-foreground">
+                  {language === 'el' ? `Εμφάνιση ${DEFAULT_VISIBLE_ITEMS} από ${records.length} εγγραφές` : `Showing ${DEFAULT_VISIBLE_ITEMS} of ${records.length} records`}
+                </div>}
+            </div>}
         </CardContent>
       </Card>
 
@@ -439,74 +394,54 @@ export function VehicleFinanceTab({
           </DialogHeader>
           
           <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-            {paginatedRecords.map(record => (
-              <TransactionItem key={record.id} record={record} language={language} />
-            ))}
+            {paginatedRecords.map(record => <TransactionItem key={record.id} record={record} language={language} />)}
           </div>
           
           {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-4 border-t">
+          {totalPages > 1 && <div className="flex items-center justify-between pt-4 border-t">
               <div className="text-sm text-muted-foreground">
-                {language === 'el' 
-                  ? `Σελίδα ${currentPage} από ${totalPages}`
-                  : `Page ${currentPage} of ${totalPages}`}
+                {language === 'el' ? `Σελίδα ${currentPage} από ${totalPages}` : `Page ${currentPage} of ${totalPages}`}
               </div>
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                >
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                >
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
-            </div>
-          )}
+            </div>}
         </DialogContent>
       </Dialog>
-    </div>
-  );
+    </div>;
 }
 
 // Transaction Item Component
-function TransactionItem({ record, language }: { record: FinanceRecord; language: string }) {
+function TransactionItem({
+  record,
+  language
+}: {
+  record: FinanceRecord;
+  language: string;
+}) {
   const isIncome = record.type === 'income';
-  
-  return (
-    <div className={`flex items-center justify-between p-3 rounded-lg border ${
-      isIncome ? 'bg-green-50/50 border-green-100' : 'bg-red-50/50 border-red-100'
-    }`}>
+  return <div className={`flex items-center justify-between p-3 rounded-lg border ${isIncome ? 'bg-green-50/50 border-green-100' : 'bg-red-50/50 border-red-100'}`}>
       <div className="flex items-center gap-3">
         <div className={`p-2 rounded-full ${isIncome ? 'bg-green-100' : 'bg-red-100'}`}>
-          {isIncome ? (
-            <TrendingUp className="h-4 w-4 text-green-600" />
-          ) : (
-            <TrendingDown className="h-4 w-4 text-red-600" />
-          )}
+          {isIncome ? <TrendingUp className="h-4 w-4 text-green-600" /> : <TrendingDown className="h-4 w-4 text-red-600" />}
         </div>
         <div>
           <div className="font-medium text-sm">{record.category}</div>
-          {record.description && (
-            <div className="text-xs text-muted-foreground">{record.description}</div>
-          )}
+          {record.description && <div className="text-xs text-muted-foreground">{record.description}</div>}
           <div className="text-xs text-muted-foreground">
             {format(new Date(record.date), 'dd MMM yyyy')}
           </div>
         </div>
       </div>
       <div className={`font-semibold ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
-        {isIncome ? '+' : '-'}€{Number(record.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+        {isIncome ? '+' : '-'}€{Number(record.amount).toLocaleString(undefined, {
+        minimumFractionDigits: 2
+      })}
       </div>
-    </div>
-  );
+    </div>;
 }
