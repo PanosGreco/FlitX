@@ -1,14 +1,20 @@
 import { useState, useEffect } from "react";
-import { BarChart3, TrendingUp, TrendingDown, DollarSign, ChevronLeft, ChevronRight, Eye, Sparkles, Clock, Gauge, Info, AlertCircle } from "lucide-react";
+import { BarChart3, TrendingUp, TrendingDown, DollarSign, ChevronLeft, ChevronRight, Eye, Sparkles, Clock, Gauge, Info, AlertCircle, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AnimatedCircularProgressBar } from "@/components/ui/animated-circular-progress-bar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { calculateUsageDepreciation, formatYearsOwned } from "@/utils/depreciationUtils";
+
+interface VehicleBooking {
+  start_date: string;
+  end_date: string;
+  total_amount: number | null;
+}
 interface FinanceRecord {
   id: string;
   type: 'income' | 'expense';
@@ -51,17 +57,24 @@ export function VehicleFinanceTab({
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [showAllRecords, setShowAllRecords] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [vehicleBookings, setVehicleBookings] = useState<VehicleBooking[]>([]);
+  const [userRegistrationDate, setUserRegistrationDate] = useState<Date | null>(null);
   useEffect(() => {
     fetchVehicleFinanceRecords();
+    fetchVehicleBookings();
+    fetchUserRegistrationDate();
+    
     const channel = supabase.channel(`vehicle_finance_${vehicleId}`).on('postgres_changes', {
       event: '*',
       schema: 'public',
       table: 'financial_records'
     }, () => fetchVehicleFinanceRecords()).subscribe();
+    
     return () => {
       supabase.removeChannel(channel);
     };
   }, [vehicleId]);
+
   const fetchVehicleFinanceRecords = async () => {
     try {
       setIsLoading(true);
@@ -93,6 +106,77 @@ export function VehicleFinanceTab({
       setIsLoading(false);
     }
   };
+
+  const fetchVehicleBookings = async () => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user) return;
+
+      const { data, error } = await supabase
+        .from('rental_bookings')
+        .select('start_date, end_date, total_amount')
+        .eq('vehicle_id', vehicleId);
+
+      if (error) {
+        console.error("Error fetching vehicle bookings:", error);
+        return;
+      }
+      setVehicleBookings(data || []);
+    } catch (error) {
+      console.error("Exception fetching vehicle bookings:", error);
+    }
+  };
+
+  const fetchUserRegistrationDate = async () => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user) return;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('created_at')
+        .eq('user_id', session.session.user.id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching user profile:", error);
+        return;
+      }
+      if (data) {
+        setUserRegistrationDate(new Date(data.created_at));
+      }
+    } catch (error) {
+      console.error("Exception fetching user profile:", error);
+    }
+  };
+
+  // Calculate total booked days
+  const calculateTotalBookedDays = (bookings: VehicleBooking[]): number => {
+    return bookings.reduce((total, booking) => {
+      const start = new Date(booking.start_date);
+      const end = new Date(booking.end_date);
+      const days = Math.max(1, differenceInDays(end, start) + 1);
+      return total + days;
+    }, 0);
+  };
+
+  // Calculate days since user registration
+  const getDaysSinceRegistration = (registrationDate: Date | null): number => {
+    if (!registrationDate) return 0;
+    return Math.max(1, differenceInDays(new Date(), registrationDate) + 1);
+  };
+
+  const totalBookedDays = calculateTotalBookedDays(vehicleBookings);
+  const daysSinceRegistration = getDaysSinceRegistration(userRegistrationDate);
+
+  // Average Rental Price = Total Income / Total Booked Days
+  const avgRentalPrice = totalBookedDays > 0 ? totalRevenue / totalBookedDays : null;
+
+  // Average Income per Day = Total Income / Days Since Registration
+  const avgIncomePerDay = daysSinceRegistration > 0 ? totalRevenue / daysSinceRegistration : 0;
+
+  // Average Cost per Day = Total Expenses / Days Since Registration
+  const avgCostPerDay = daysSinceRegistration > 0 ? totalExpenses / daysSinceRegistration : 0;
   const netIncome = totalRevenue - totalExpenses;
   const purchaseValue = typeof purchasePrice === "number" ? purchasePrice : Number(purchasePrice);
   const totalPages = Math.ceil(records.length / ITEMS_PER_PAGE);
@@ -190,12 +274,12 @@ export function VehicleFinanceTab({
         </Card>
       </div>
 
-      {/* Finance Metrics Row: Unified Depreciation Card + Value Loss */}
-      {purchaseValue && purchaseValue > 0 && <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Finance Metrics Row: Purchase/Depreciation + Vehicle Averages + Value Loss */}
+      {purchaseValue && purchaseValue > 0 && <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Unified Depreciation Card: Purchase Value + Progress Circle OR Net Profit */}
           {/* Fixed height to match summary cards above (h-[106px] matches CardContent p-4 with content) */}
-          {depreciationStatus && <Card className="border-border bg-card h-[106px] overflow-hidden mx-[137px]">
-              <CardContent className="p-4 h-full flex items-center mx-0">
+          {depreciationStatus && <Card className="border-border bg-card h-[106px] overflow-hidden">
+              <CardContent className="p-4 h-full flex items-center">
                 {!depreciationStatus.isFullyDepreciated ? <div className="flex items-center justify-between w-full gap-3">
                     {/* Purchase Value - Left Side */}
                     <div className="flex flex-col min-w-0 flex-1">
@@ -212,7 +296,7 @@ export function VehicleFinanceTab({
                       </div>
                     </div>
                     
-                    {/* Progress Circle - Right Side (Unchanged) */}
+                    {/* Progress Circle - Right Side */}
                     <div className="flex items-center gap-3 border-l border-border pl-3 shrink-0">
                       <AnimatedCircularProgressBar min={0} max={purchaseValue} value={netIncome} gaugePrimaryColor="hsl(var(--primary))" gaugeSecondaryColor="hsl(var(--foreground) / 0.12)" className="size-14" displayValue={<span className="text-[10px] font-semibold text-foreground">
                             €{depreciationStatus.remainingForDepreciation.toLocaleString(undefined, {
@@ -268,21 +352,67 @@ export function VehicleFinanceTab({
               </CardContent>
             </Card>}
 
+          {/* Vehicle Averages Card - NEW */}
+          <Card className="border-border bg-card h-[106px] overflow-hidden">
+            <CardContent className="p-4 h-full flex flex-col justify-center">
+              <div className="flex items-center gap-1.5 text-muted-foreground mb-2">
+                <Activity className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-medium uppercase tracking-wide">
+                  {language === 'el' ? 'Μέσοι Όροι Οχήματος' : 'Vehicle Averages'}
+                </span>
+              </div>
+              
+              <div className="space-y-1">
+                {/* Average Rental Price */}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    {language === 'el' ? 'Μ.Ο. Τιμή Ενοικίασης' : 'Avg Rental Price'}
+                  </span>
+                  <span className="font-medium">
+                    {avgRentalPrice !== null 
+                      ? `€${avgRentalPrice.toFixed(2)}/day` 
+                      : '—'}
+                  </span>
+                </div>
+                
+                {/* Average Income per Day */}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    {language === 'el' ? 'Μ.Ο. Έσοδα/Ημέρα' : 'Avg Income/Day'}
+                  </span>
+                  <span className="font-medium text-green-600">
+                    €{avgIncomePerDay.toFixed(2)}
+                  </span>
+                </div>
+                
+                {/* Average Cost per Day */}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    {language === 'el' ? 'Μ.Ο. Κόστος/Ημέρα' : 'Avg Cost/Day'}
+                  </span>
+                  <span className="font-medium text-red-600">
+                    €{avgCostPerDay.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Vehicle Value Loss Over Time Card */}
-          <Card className="border-border bg-card">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-2">
+          <Card className="border-border bg-card h-[106px] overflow-hidden">
+            <CardContent className="p-4 h-full">
+              <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Clock className="h-4 w-4" />
-                  <Gauge className="h-4 w-4" />
-                  <span className="text-xs font-medium uppercase tracking-wide">
+                  <Clock className="h-3.5 w-3.5" />
+                  <Gauge className="h-3.5 w-3.5" />
+                  <span className="text-[10px] font-medium uppercase tracking-wide">
                     {language === 'el' ? 'Μείωση Αξίας' : 'Value Loss Over Time'}
                   </span>
                 </div>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs p-3">
                       <p className="text-xs">
@@ -293,61 +423,22 @@ export function VehicleFinanceTab({
                 </TooltipProvider>
               </div>
 
-              {hasDepreciationData && usageDepreciation ? <>
+              {hasDepreciationData && usageDepreciation ? <div className="flex flex-col">
                   {/* Total Value Loss */}
-                  <div className="text-2xl font-bold text-orange-600">
+                  <div className="text-lg font-bold text-orange-600">
                     -€{Math.round(usageDepreciation.totalDepreciation).toLocaleString()}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {Math.round(usageDepreciation.depreciationPercentage)}% {language === 'el' ? 'μείωση' : 'loss'}
+                  <div className="text-xs text-muted-foreground">
+                    {Math.round(usageDepreciation.depreciationPercentage)}% {language === 'el' ? 'μείωση' : 'loss'} • €{Math.round(usageDepreciation.estimatedCurrentValue).toLocaleString()} {language === 'el' ? 'τρέχουσα αξία' : 'current value'}
                   </div>
-
-                  {/* Inline Breakdown */}
-                  <div className="mt-3 pt-3 border-t border-border space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground flex items-center gap-1.5">
-                        <Clock className="h-3 w-3" />
-                        {language === 'el' ? 'Από χρόνο' : 'From time'}
-                      </span>
-                      <span className="font-medium">
-                        €{Math.round(usageDepreciation.timeDepreciation).toLocaleString()} 
-                        <span className="text-muted-foreground ml-1">({Math.round(usageDepreciation.timeDepreciationShare)}%)</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground flex items-center gap-1.5">
-                        <Gauge className="h-3 w-3" />
-                        {language === 'el' ? 'Από χιλιόμετρα' : 'From mileage'}
-                      </span>
-                      <span className="font-medium">
-                        €{Math.round(usageDepreciation.mileageDepreciation).toLocaleString()}
-                        <span className="text-muted-foreground ml-1">({Math.round(usageDepreciation.mileageDepreciationShare)}%)</span>
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Estimated Current Value */}
-                  <div className="mt-3 pt-3 border-t border-border">
-                    <div className="text-xs text-muted-foreground mb-1">
-                      {language === 'el' ? 'Εκτιμώμενη τρέχουσα αξία' : 'Estimated current value'}
-                    </div>
-                    <div className="text-lg font-semibold text-foreground">
-                      €{Math.round(usageDepreciation.estimatedCurrentValue).toLocaleString()}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {formatYearsOwned(usageDepreciation.yearsOwned, language)} • {usageDepreciation.milesDriven.toLocaleString()} km {language === 'el' ? 'προστέθηκαν' : 'added'}
-                    </div>
-                  </div>
-                </> : (/* Fallback: Missing depreciation data */
-          <div className="py-4 text-center">
-                  <AlertCircle className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
-                  <div className="text-sm font-medium text-muted-foreground">
-                    {language === 'el' ? 'Μη διαθέσιμο' : 'Unavailable'}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {language === 'el' ? 'Προσθέστε δεδομένα απόσβεσης για υπολογισμό μείωσης αξίας.' : 'Add depreciation data to calculate vehicle value loss.'}
-                  </div>
-                </div>)}
+                </div> : (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <AlertCircle className="h-4 w-4" />
+                  <span className="text-xs">
+                    {language === 'el' ? 'Μη διαθέσιμο - προσθέστε δεδομένα' : 'Unavailable - add depreciation data'}
+                  </span>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>}
