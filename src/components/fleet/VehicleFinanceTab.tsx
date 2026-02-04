@@ -9,7 +9,6 @@ import { AnimatedCircularProgressBar } from "@/components/ui/animated-circular-p
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { calculateUsageDepreciation, formatYearsOwned } from "@/utils/depreciationUtils";
-
 interface VehicleBooking {
   start_date: string;
   end_date: string;
@@ -63,18 +62,15 @@ export function VehicleFinanceTab({
     fetchVehicleFinanceRecords();
     fetchVehicleBookings();
     fetchUserRegistrationDate();
-    
     const channel = supabase.channel(`vehicle_finance_${vehicleId}`).on('postgres_changes', {
       event: '*',
       schema: 'public',
       table: 'financial_records'
     }, () => fetchVehicleFinanceRecords()).subscribe();
-    
     return () => {
       supabase.removeChannel(channel);
     };
   }, [vehicleId]);
-
   const fetchVehicleFinanceRecords = async () => {
     try {
       setIsLoading(true);
@@ -106,17 +102,16 @@ export function VehicleFinanceTab({
       setIsLoading(false);
     }
   };
-
   const fetchVehicleBookings = async () => {
     try {
-      const { data: session } = await supabase.auth.getSession();
+      const {
+        data: session
+      } = await supabase.auth.getSession();
       if (!session?.session?.user) return;
-
-      const { data, error } = await supabase
-        .from('rental_bookings')
-        .select('start_date, end_date, total_amount')
-        .eq('vehicle_id', vehicleId);
-
+      const {
+        data,
+        error
+      } = await supabase.from('rental_bookings').select('start_date, end_date, total_amount').eq('vehicle_id', vehicleId);
       if (error) {
         console.error("Error fetching vehicle bookings:", error);
         return;
@@ -126,18 +121,16 @@ export function VehicleFinanceTab({
       console.error("Exception fetching vehicle bookings:", error);
     }
   };
-
   const fetchUserRegistrationDate = async () => {
     try {
-      const { data: session } = await supabase.auth.getSession();
+      const {
+        data: session
+      } = await supabase.auth.getSession();
       if (!session?.session?.user) return;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('created_at')
-        .eq('user_id', session.session.user.id)
-        .single();
-
+      const {
+        data,
+        error
+      } = await supabase.from('profiles').select('created_at').eq('user_id', session.session.user.id).single();
       if (error) {
         console.error("Error fetching user profile:", error);
         return;
@@ -165,7 +158,6 @@ export function VehicleFinanceTab({
     if (!registrationDate) return 0;
     return Math.max(1, differenceInDays(new Date(), registrationDate) + 1);
   };
-
   const totalBookedDays = calculateTotalBookedDays(vehicleBookings);
   const daysSinceRegistration = getDaysSinceRegistration(userRegistrationDate);
 
@@ -280,7 +272,7 @@ export function VehicleFinanceTab({
           {/* Fixed height to match summary cards above (h-[106px] matches CardContent p-4 with content) */}
           {depreciationStatus && <Card className="border-border bg-card h-[106px] overflow-hidden">
               <CardContent className="p-4 h-full flex items-center">
-                {!depreciationStatus.isFullyDepreciated ? <div className="flex items-center justify-between w-full gap-3">
+                {!depreciationStatus.isFullyDepreciated ? <div className="flex items-center justify-between w-full gap-3 px-[32px]">
                     {/* Purchase Value - Left Side */}
                     <div className="flex flex-col min-w-0 flex-1">
                       <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -369,9 +361,7 @@ export function VehicleFinanceTab({
                     {language === 'el' ? 'Μ.Ο. Τιμή Ενοικίασης' : 'Avg Rental Price'}
                   </span>
                   <span className="font-medium">
-                    {avgRentalPrice !== null 
-                      ? `€${avgRentalPrice.toFixed(2)}/day` 
-                      : '—'}
+                    {avgRentalPrice !== null ? `€${avgRentalPrice.toFixed(2)}/day` : '—'}
                   </span>
                 </div>
                 
@@ -431,14 +421,12 @@ export function VehicleFinanceTab({
                   <div className="text-xs text-muted-foreground">
                     {Math.round(usageDepreciation.depreciationPercentage)}% {language === 'el' ? 'μείωση' : 'loss'} • €{Math.round(usageDepreciation.estimatedCurrentValue).toLocaleString()} {language === 'el' ? 'τρέχουσα αξία' : 'current value'}
                   </div>
-                </div> : (
-                <div className="flex items-center gap-2 text-muted-foreground">
+                </div> : <div className="flex items-center gap-2 text-muted-foreground">
                   <AlertCircle className="h-4 w-4" />
                   <span className="text-xs">
                     {language === 'el' ? 'Μη διαθέσιμο - προσθέστε δεδομένα' : 'Unavailable - add depreciation data'}
                   </span>
-                </div>
-              )}
+                </div>}
             </CardContent>
           </Card>
         </div>}
