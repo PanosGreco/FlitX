@@ -1,207 +1,178 @@
 
-# Finance Overview Layout Reorganization & New Vehicle Averages Metrics
+# Fix Average Income & Cost Per Day Calculations
 
-## Overview
+## Problem Summary
 
-This plan reorganizes the Finance Overview section into a clean 3x2 grid layout and adds a new "Vehicle Daily Performance Averages" box with per-vehicle rental and cost metrics.
+The current implementation calculates **Average Income per Day** and **Average Cost per Day** using the user's registration date as the time anchor. This is incorrect because:
 
----
-
-## Current State
-
-The current layout has:
-- **Top Row**: Total Revenue | Total Expenses | Net Income (3 columns)
-- **Second Row**: Purchase Value + Remaining for Depreciation | Value Loss Over Time (2 columns, with odd margin)
-
-**Issues to fix:**
-1. The second row has inconsistent alignment (only 2 cards instead of 3)
-2. The Purchase/Depreciation card has an odd `mx-[137px]` margin
-3. No performance averages are displayed
+1. A user may have been registered for years before adding a specific vehicle
+2. This inflates the day count, producing unrealistically low daily averages
+3. It's inconsistent with vehicle-specific totals being divided
 
 ---
 
-## Target Layout
+## What Stays Unchanged
 
-```text
-┌────────────────────┬────────────────────┬────────────────────┐
-│   Total Revenue    │   Total Expenses   │     Net Income     │
-└────────────────────┴────────────────────┴────────────────────┘
-┌────────────────────┬────────────────────┬────────────────────┐
-│  Purchase Value +  │ Vehicle Averages   │  Value Loss Over   │
-│  Remaining Deprec  │  (NEW BOX)         │  Time              │
-└────────────────────┴────────────────────┴────────────────────┘
+**Average Rental Price** - Current logic is correct and will not be modified:
+- Formula: `Total Vehicle Revenue ÷ Total Booked Days`
+- Only counts days with active bookings
+- Already shows `€/day` format correctly
+
+---
+
+## Corrected Time Range Logic
+
+### New Rule: Use Vehicle-Specific Timeline
+
+| Metric | Start Date | End Date |
+|--------|------------|----------|
+| Average Income per Day | Vehicle `created_at` | Last income record date |
+| Average Cost per Day | Vehicle `created_at` | Last expense record date |
+
+### Key Insight: Vehicle `created_at` Already Exists
+
+Looking at the database schema, the `vehicles` table already has a `created_at` column (line 802 in types.ts):
+```typescript
+vehicles: {
+  Row: {
+    created_at: string  // ✓ Already exists!
+    ...
+  }
+}
 ```
+
+**No database migration needed** - we just need to fetch and use this existing field.
 
 ---
 
 ## Implementation Details
 
-### 1. Layout Structure Changes
+### 1. Update VehicleFinanceTabProps Interface
 
-**File: `src/components/fleet/VehicleFinanceTab.tsx`**
-
-Change the second row from `md:grid-cols-2` to `md:grid-cols-3` and remove the odd margin from the Purchase Value card:
+Add a new prop to pass the vehicle's creation date:
 
 ```typescript
-// Before:
-<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-  <Card className="... mx-[137px]">  // Odd margin
-
-// After:
-<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-  <Card className="...">  // No margin, same width as other cards
+interface VehicleFinanceTabProps {
+  vehicleId: string;
+  vehicleName: string;
+  purchasePrice?: number | null;
+  marketValueAtPurchase?: number | null;
+  purchaseDate?: string | null;
+  currentMileage?: number;
+  initialMileage?: number;
+  vehicleType?: string;
+  vehicleYear: number;
+  vehicleCreatedAt?: string | null;  // NEW: Vehicle added date
+}
 ```
 
----
+### 2. Update VehicleDetails.tsx
 
-### 2. New Data Fetching
-
-Add fetching for:
-1. **Rental bookings** for this vehicle (to calculate booked days)
-2. **User profile** (to get `created_at` for registration date)
+Pass the vehicle's `created_at` to the VehicleFinanceTab:
 
 ```typescript
-// New state variables
-const [vehicleBookings, setVehicleBookings] = useState<Booking[]>([]);
-const [userRegistrationDate, setUserRegistrationDate] = useState<Date | null>(null);
-
-// Fetch in useEffect
-const fetchVehicleBookings = async () => {
-  const { data } = await supabase
-    .from('rental_bookings')
-    .select('start_date, end_date, total_amount')
-    .eq('vehicle_id', vehicleId);
-  setVehicleBookings(data || []);
-};
-
-const fetchUserProfile = async (userId: string) => {
-  const { data } = await supabase
-    .from('profiles')
-    .select('created_at')
-    .eq('user_id', userId)
-    .single();
-  if (data) {
-    setUserRegistrationDate(new Date(data.created_at));
-  }
-};
+<VehicleFinanceTab 
+  vehicleId={vehicleId || ""} 
+  vehicleName={`${vehicle.year} ${vehicle.make} ${vehicle.model}`} 
+  purchasePrice={vehicle.purchase_price}
+  marketValueAtPurchase={vehicle.market_value_at_purchase}
+  purchaseDate={vehicle.purchase_date}
+  currentMileage={vehicle.mileage}
+  initialMileage={vehicle.initial_mileage}
+  vehicleType={vehicle.vehicle_type}
+  vehicleYear={vehicle.year}
+  vehicleCreatedAt={vehicle.created_at}  // NEW
+/>
 ```
 
----
+### 3. Update VehicleDetail.tsx (Page)
 
-### 3. Calculation Logic
+Ensure the vehicle's `created_at` is included when transforming the data:
 
-#### A. Total Booked Days
 ```typescript
-const calculateTotalBookedDays = (bookings: Booking[]): number => {
-  return bookings.reduce((total, booking) => {
-    const start = new Date(booking.start_date);
-    const end = new Date(booking.end_date);
-    const days = Math.max(1, differenceInDays(end, start) + 1); // Inclusive
-    return total + days;
-  }, 0);
+const vehicleData: Vehicle = {
+  // ... existing fields ...
+  created_at: data.created_at  // NEW: Add this field
 };
 ```
 
-#### B. Days Since Registration
+### 4. Refactor Calculation Logic in VehicleFinanceTab
+
+**Remove**: `fetchUserRegistrationDate()` function and `userRegistrationDate` state
+
+**Add**: Logic to find last income/expense record dates from existing `records` state
+
+**New calculation functions**:
+
 ```typescript
-const getDaysSinceRegistration = (registrationDate: Date | null): number => {
-  if (!registrationDate) return 0;
-  return Math.max(1, differenceInDays(new Date(), registrationDate) + 1);
+// Get the last income record date from fetched records
+const getLastIncomeDate = (records: FinanceRecord[]): Date | null => {
+  const incomeRecords = records.filter(r => r.type === 'income');
+  if (incomeRecords.length === 0) return null;
+  const sortedDates = incomeRecords.map(r => new Date(r.date)).sort((a, b) => b.getTime() - a.getTime());
+  return sortedDates[0];
+};
+
+// Get the last expense record date from fetched records
+const getLastExpenseDate = (records: FinanceRecord[]): Date | null => {
+  const expenseRecords = records.filter(r => r.type === 'expense');
+  if (expenseRecords.length === 0) return null;
+  const sortedDates = expenseRecords.map(r => new Date(r.date)).sort((a, b) => b.getTime() - a.getTime());
+  return sortedDates[0];
+};
+
+// Calculate days between vehicle creation and last record
+const getDaysForMetric = (
+  vehicleCreatedAt: string | null | undefined,
+  lastRecordDate: Date | null
+): number => {
+  if (!vehicleCreatedAt || !lastRecordDate) return 0;
+  const startDate = new Date(vehicleCreatedAt);
+  return Math.max(1, differenceInDays(lastRecordDate, startDate) + 1);
 };
 ```
 
-#### C. Average Metrics
+**Updated calculations**:
+
 ```typescript
-const totalBookedDays = calculateTotalBookedDays(vehicleBookings);
-const daysSinceRegistration = getDaysSinceRegistration(userRegistrationDate);
+const lastIncomeDate = getLastIncomeDate(records);
+const lastExpenseDate = getLastExpenseDate(records);
 
-// Average Rental Price = Total Income / Total Booked Days
-const avgRentalPrice = totalBookedDays > 0 
-  ? totalRevenue / totalBookedDays 
-  : null;
+const daysForIncome = getDaysForMetric(vehicleCreatedAt, lastIncomeDate);
+const daysForExpense = getDaysForMetric(vehicleCreatedAt, lastExpenseDate);
 
-// Average Income per Day = Total Income / Days Since Registration
-const avgIncomePerDay = daysSinceRegistration > 0 
-  ? totalRevenue / daysSinceRegistration 
-  : 0;
+// Average Income per Day = Total Income / Days from vehicle added to last income
+const avgIncomePerDay = daysForIncome > 0 ? totalRevenue / daysForIncome : null;
 
-// Average Cost per Day = Total Expenses / Days Since Registration
-const avgCostPerDay = daysSinceRegistration > 0 
-  ? totalExpenses / daysSinceRegistration 
-  : 0;
+// Average Cost per Day = Total Expenses / Days from vehicle added to last expense
+const avgCostPerDay = daysForExpense > 0 ? totalExpenses / daysForExpense : null;
 ```
 
 ---
 
-### 4. New Vehicle Averages Card UI
+## UI Changes
 
-```tsx
-<Card className="border-border bg-card h-[106px] overflow-hidden">
-  <CardContent className="p-4 h-full flex flex-col justify-center">
-    <div className="flex items-center gap-1.5 text-muted-foreground mb-2">
-      <BarChart3 className="h-3.5 w-3.5" />
-      <span className="text-[10px] font-medium uppercase tracking-wide">
-        {language === 'el' ? 'Μέσοι Όροι Οχήματος' : 'Vehicle Averages'}
-      </span>
-    </div>
-    
-    <div className="space-y-1">
-      {/* Average Rental Price */}
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">
-          {language === 'el' ? 'Μ.Ο. Τιμή Ενοικίασης' : 'Avg Rental Price'}
-        </span>
-        <span className="font-medium">
-          {avgRentalPrice !== null 
-            ? `€${avgRentalPrice.toFixed(2)}/day` 
-            : '—'}
-        </span>
-      </div>
-      
-      {/* Average Income per Day */}
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">
-          {language === 'el' ? 'Μ.Ο. Έσοδα/Ημέρα' : 'Avg Income/Day'}
-        </span>
-        <span className="font-medium text-green-600">
-          €{avgIncomePerDay.toFixed(2)}
-        </span>
-      </div>
-      
-      {/* Average Cost per Day */}
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">
-          {language === 'el' ? 'Μ.Ο. Κόστος/Ημέρα' : 'Avg Cost/Day'}
-        </span>
-        <span className="font-medium text-red-600">
-          €{avgCostPerDay.toFixed(2)}
-        </span>
-      </div>
-    </div>
-  </CardContent>
-</Card>
-```
+### 1. Add "/ day" Label Consistency
 
----
+Currently: `€{avgIncomePerDay.toFixed(2)}`
+Updated: `€{avgIncomePerDay.toFixed(2)} / day`
 
-### 5. Card Positioning (Second Row Order)
+Apply to both Average Income and Average Cost metrics.
 
-The second row will have this exact order:
+### 2. Add Colored Row Accents
 
-| Position | Card | Description |
-|----------|------|-------------|
-| **Left** (under Total Revenue) | Purchase Value + Remaining Depreciation | Existing card, remove `mx-[137px]` |
-| **Middle** (under Total Expenses) | Vehicle Averages | NEW card with 3 metrics |
-| **Right** (under Net Income) | Value Loss Over Time | Existing card, unchanged |
+Add subtle left border colors to each row for visual separation:
 
----
+| Metric | Accent Color |
+|--------|-------------|
+| Avg Rental Price | Orange (`border-l-2 border-l-orange-400`) |
+| Avg Income/Day | Green (`border-l-2 border-l-green-400`) |
+| Avg Cost/Day | Red (`border-l-2 border-l-red-400`) |
 
-### 6. Height Consistency
+### 3. Handle Empty States
 
-All three cards in the second row will have:
-- Fixed height: `h-[106px]` (matches top row cards)
-- `overflow-hidden` to prevent content expansion
-- Same card styling for visual consistency
+- If no income records: Show `—` for Avg Income/Day
+- If no expense records: Show `—` for Avg Cost/Day
 
 ---
 
@@ -209,26 +180,39 @@ All three cards in the second row will have:
 
 | File | Changes |
 |------|---------|
-| `src/components/fleet/VehicleFinanceTab.tsx` | Add booking/profile fetching, calculations, new averages card, adjust grid to 3 columns |
+| `src/pages/VehicleDetail.tsx` | Add `created_at` to Vehicle interface and vehicleData transformation |
+| `src/components/fleet/VehicleDetails.tsx` | Pass `created_at` prop to VehicleFinanceTab |
+| `src/components/fleet/VehicleFinanceTab.tsx` | Update props, remove user registration logic, add new calculation functions, update UI with `/day` labels and color accents |
 
 ---
 
-## Edge Cases Handled
+## Expected Results
 
-1. **No bookings yet**: Display `—` for Average Rental Price
-2. **New user (0 days)**: Use minimum of 1 day to prevent division by zero
-3. **No expenses**: Show €0.00 for cost metrics
-4. **Greek/English**: All labels have bilingual support
+### Before (Incorrect)
+
+Using user registration (e.g., 365 days ago):
+- Total Income: €3,000
+- Average Income/Day: €8.22
+
+### After (Correct)
+
+Using vehicle lifecycle (added 30 days ago, last income 25 days after adding):
+- Total Income: €3,000
+- Days counted: 26 (from vehicle added to last income record)
+- Average Income/Day: €115.38
+
+This gives a realistic, vehicle-specific performance metric.
 
 ---
 
-## Expected Visual Result
+## Visual Preview of Updated UI
 
-The finance section will show:
-- **Row 1**: Revenue (green) | Expenses (red) | Net Income (blue/orange)
-- **Row 2**: Purchase + Depreciation Progress | Vehicle Performance Averages | Value Loss Over Time
-
-All cards will be:
-- Same height (106px)
-- Same width (1/3 of container each)
-- Properly aligned in a clean 3x2 grid
+```text
+┌────────────────────────────────────────────────┐
+│  Vehicle Averages                              │
+├────────────────────────────────────────────────┤
+│ ▌ Avg Rental Price      €85.00 / day          │  ← Orange accent
+│ ▌ Avg Income/Day        €45.50 / day          │  ← Green accent
+│ ▌ Avg Cost/Day          €12.30 / day          │  ← Red accent
+└────────────────────────────────────────────────┘
+```
