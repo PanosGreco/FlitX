@@ -148,30 +148,41 @@ export function VehicleFinanceTab({
     return sortedDates[0];
   };
 
-  // Calculate days between vehicle creation and last record
-  const getDaysForMetric = (
+  // Get the latest financial activity date (max of last income and last expense dates)
+  const getLastActivityDate = (
+    lastIncome: Date | null,
+    lastExpense: Date | null
+  ): Date | null => {
+    if (!lastIncome && !lastExpense) return null;
+    if (!lastIncome) return lastExpense;
+    if (!lastExpense) return lastIncome;
+    return lastIncome.getTime() > lastExpense.getTime() ? lastIncome : lastExpense;
+  };
+
+  // Calculate active days between vehicle creation and last activity
+  const getActiveDays = (
     createdAt: string | null | undefined,
-    lastRecordDate: Date | null
+    lastActivityDate: Date | null
   ): number => {
-    if (!createdAt || !lastRecordDate) return 0;
+    if (!createdAt || !lastActivityDate) return 0;
     const startDate = new Date(createdAt);
-    return Math.max(1, differenceInDays(lastRecordDate, startDate) + 1);
+    return Math.max(1, differenceInDays(lastActivityDate, startDate) + 1);
   };
 
   const totalBookedDays = calculateTotalBookedDays(vehicleBookings);
   const lastIncomeDate = getLastIncomeDate(records);
   const lastExpenseDate = getLastExpenseDate(records);
-  const daysForIncome = getDaysForMetric(vehicleCreatedAt, lastIncomeDate);
-  const daysForExpense = getDaysForMetric(vehicleCreatedAt, lastExpenseDate);
+  const lastActivityDate = getLastActivityDate(lastIncomeDate, lastExpenseDate);
+  const activeDays = getActiveDays(vehicleCreatedAt, lastActivityDate);
 
   // Average Rental Price = Total Income / Total Booked Days
   const avgRentalPrice = totalBookedDays > 0 ? totalRevenue / totalBookedDays : null;
 
-  // Average Income per Day = Total Income / Days from vehicle added to last income
-  const avgIncomePerDay = daysForIncome > 0 ? totalRevenue / daysForIncome : null;
+  // Average Income per Day = Total Income / Active Days (unified time range)
+  const avgIncomePerDay = activeDays > 0 ? totalRevenue / activeDays : null;
 
-  // Average Cost per Day = Total Expenses / Days from vehicle added to last expense
-  const avgCostPerDay = daysForExpense > 0 ? totalExpenses / daysForExpense : null;
+  // Average Cost per Day = Total Expenses / Active Days (unified time range)
+  const avgCostPerDay = activeDays > 0 ? totalExpenses / activeDays : null;
   const netIncome = totalRevenue - totalExpenses;
   const purchaseValue = typeof purchasePrice === "number" ? purchasePrice : Number(purchasePrice);
   const totalPages = Math.ceil(records.length / ITEMS_PER_PAGE);
