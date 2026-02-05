@@ -389,6 +389,7 @@ export function VehicleDetails({
                       initialMileage={vehicle.initial_mileage}
                       vehicleType={vehicle.vehicle_type}
                       vehicleYear={vehicle.year}
+                      vehicleCreatedAt={vehicle.created_at}
                     />
                   </TabsContent>
                 </>}

@@ -33,6 +33,7 @@ interface VehicleFinanceTabProps {
   initialMileage?: number;
   vehicleType?: string;
   vehicleYear: number; // Vehicle model year (required for depreciation)
+  vehicleCreatedAt?: string | null; // Date vehicle was added to the fleet
 }
 const ITEMS_PER_PAGE = 10;
 const DEFAULT_VISIBLE_ITEMS = 4;
@@ -45,7 +46,8 @@ export function VehicleFinanceTab({
   currentMileage = 0,
   initialMileage = 0,
   vehicleType = 'car',
-  vehicleYear
+  vehicleYear,
+  vehicleCreatedAt
 }: VehicleFinanceTabProps) {
   const {
     language
@@ -57,11 +59,9 @@ export function VehicleFinanceTab({
   const [showAllRecords, setShowAllRecords] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [vehicleBookings, setVehicleBookings] = useState<VehicleBooking[]>([]);
-  const [userRegistrationDate, setUserRegistrationDate] = useState<Date | null>(null);
   useEffect(() => {
     fetchVehicleFinanceRecords();
     fetchVehicleBookings();
-    fetchUserRegistrationDate();
     const channel = supabase.channel(`vehicle_finance_${vehicleId}`).on('postgres_changes', {
       event: '*',
       schema: 'public',
@@ -121,27 +121,6 @@ export function VehicleFinanceTab({
       console.error("Exception fetching vehicle bookings:", error);
     }
   };
-  const fetchUserRegistrationDate = async () => {
-    try {
-      const {
-        data: session
-      } = await supabase.auth.getSession();
-      if (!session?.session?.user) return;
-      const {
-        data,
-        error
-      } = await supabase.from('profiles').select('created_at').eq('user_id', session.session.user.id).single();
-      if (error) {
-        console.error("Error fetching user profile:", error);
-        return;
-      }
-      if (data) {
-        setUserRegistrationDate(new Date(data.created_at));
-      }
-    } catch (error) {
-      console.error("Exception fetching user profile:", error);
-    }
-  };
 
   // Calculate total booked days
   const calculateTotalBookedDays = (bookings: VehicleBooking[]): number => {
@@ -153,22 +132,46 @@ export function VehicleFinanceTab({
     }, 0);
   };
 
-  // Calculate days since user registration
-  const getDaysSinceRegistration = (registrationDate: Date | null): number => {
-    if (!registrationDate) return 0;
-    return Math.max(1, differenceInDays(new Date(), registrationDate) + 1);
+  // Get the last income record date from fetched records
+  const getLastIncomeDate = (recs: FinanceRecord[]): Date | null => {
+    const incomeRecords = recs.filter(r => r.type === 'income');
+    if (incomeRecords.length === 0) return null;
+    const sortedDates = incomeRecords.map(r => new Date(r.date)).sort((a, b) => b.getTime() - a.getTime());
+    return sortedDates[0];
   };
+
+  // Get the last expense record date from fetched records
+  const getLastExpenseDate = (recs: FinanceRecord[]): Date | null => {
+    const expenseRecords = recs.filter(r => r.type === 'expense');
+    if (expenseRecords.length === 0) return null;
+    const sortedDates = expenseRecords.map(r => new Date(r.date)).sort((a, b) => b.getTime() - a.getTime());
+    return sortedDates[0];
+  };
+
+  // Calculate days between vehicle creation and last record
+  const getDaysForMetric = (
+    createdAt: string | null | undefined,
+    lastRecordDate: Date | null
+  ): number => {
+    if (!createdAt || !lastRecordDate) return 0;
+    const startDate = new Date(createdAt);
+    return Math.max(1, differenceInDays(lastRecordDate, startDate) + 1);
+  };
+
   const totalBookedDays = calculateTotalBookedDays(vehicleBookings);
-  const daysSinceRegistration = getDaysSinceRegistration(userRegistrationDate);
+  const lastIncomeDate = getLastIncomeDate(records);
+  const lastExpenseDate = getLastExpenseDate(records);
+  const daysForIncome = getDaysForMetric(vehicleCreatedAt, lastIncomeDate);
+  const daysForExpense = getDaysForMetric(vehicleCreatedAt, lastExpenseDate);
 
   // Average Rental Price = Total Income / Total Booked Days
   const avgRentalPrice = totalBookedDays > 0 ? totalRevenue / totalBookedDays : null;
 
-  // Average Income per Day = Total Income / Days Since Registration
-  const avgIncomePerDay = daysSinceRegistration > 0 ? totalRevenue / daysSinceRegistration : 0;
+  // Average Income per Day = Total Income / Days from vehicle added to last income
+  const avgIncomePerDay = daysForIncome > 0 ? totalRevenue / daysForIncome : null;
 
-  // Average Cost per Day = Total Expenses / Days Since Registration
-  const avgCostPerDay = daysSinceRegistration > 0 ? totalExpenses / daysSinceRegistration : 0;
+  // Average Cost per Day = Total Expenses / Days from vehicle added to last expense
+  const avgCostPerDay = daysForExpense > 0 ? totalExpenses / daysForExpense : null;
   const netIncome = totalRevenue - totalExpenses;
   const purchaseValue = typeof purchasePrice === "number" ? purchasePrice : Number(purchasePrice);
   const totalPages = Math.ceil(records.length / ITEMS_PER_PAGE);
@@ -356,32 +359,32 @@ export function VehicleFinanceTab({
               
               <div className="space-y-1">
                 {/* Average Rental Price */}
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between text-xs pl-2 border-l-2 border-l-orange-400">
                   <span className="text-muted-foreground">
                     {language === 'el' ? 'Μ.Ο. Τιμή Ενοικίασης' : 'Avg Rental Price'}
                   </span>
                   <span className="font-medium">
-                    {avgRentalPrice !== null ? `€${avgRentalPrice.toFixed(2)}/day` : '—'}
+                    {avgRentalPrice !== null ? `€${avgRentalPrice.toFixed(2)} / day` : '—'}
                   </span>
                 </div>
                 
                 {/* Average Income per Day */}
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between text-xs pl-2 border-l-2 border-l-green-400">
                   <span className="text-muted-foreground">
                     {language === 'el' ? 'Μ.Ο. Έσοδα/Ημέρα' : 'Avg Income/Day'}
                   </span>
                   <span className="font-medium text-green-600">
-                    €{avgIncomePerDay.toFixed(2)}
+                    {avgIncomePerDay !== null ? `€${avgIncomePerDay.toFixed(2)} / day` : '—'}
                   </span>
                 </div>
                 
                 {/* Average Cost per Day */}
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center justify-between text-xs pl-2 border-l-2 border-l-red-400">
                   <span className="text-muted-foreground">
                     {language === 'el' ? 'Μ.Ο. Κόστος/Ημέρα' : 'Avg Cost/Day'}
                   </span>
                   <span className="font-medium text-red-600">
-                    €{avgCostPerDay.toFixed(2)}
+                    {avgCostPerDay !== null ? `€${avgCostPerDay.toFixed(2)} / day` : '—'}
                   </span>
                 </div>
               </div>
