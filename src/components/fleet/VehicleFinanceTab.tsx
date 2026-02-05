@@ -139,9 +139,8 @@ export function VehicleFinanceTab({
     const today = new Date();
     return Math.max(1, differenceInDays(today, startDate) + 1);
   };
-
   const totalBookedDays = calculateTotalBookedDays(vehicleBookings);
-  
+
   // Active days from vehicle added to today (unified for both metrics)
   const activeDays = calculateActiveDays(vehicleCreatedAt);
 
@@ -341,7 +340,7 @@ export function VehicleFinanceTab({
               <div className="space-y-1">
                 {/* Average Rental Price */}
                 <div className="flex items-center justify-between text-xs pl-2 border-l-2 border-l-orange-400">
-                  <span className="text-muted-foreground">
+                  <span className="text-muted-foreground text-sm">
                     {language === 'el' ? 'Μ.Ο. Τιμή Ενοικίασης' : 'Avg Rental Price'}
                   </span>
                   <span className="font-medium text-sm">
@@ -351,20 +350,20 @@ export function VehicleFinanceTab({
                 
                 {/* Average Income per Day */}
                 <div className="flex items-center justify-between text-xs pl-2 border-l-2 border-l-green-400">
-                  <span className="text-muted-foreground">
+                  <span className="text-muted-foreground text-sm">
                     {language === 'el' ? 'Μ.Ο. Έσοδα/Ημέρα' : 'Avg Income/Day'}
                   </span>
-                  <span className="font-medium text-green-600">
+                  <span className="font-medium text-green-600 text-sm">
                     {avgIncomePerDay !== null ? `€${avgIncomePerDay.toFixed(2)} / day` : '—'}
                   </span>
                 </div>
                 
                 {/* Average Cost per Day */}
                 <div className="flex items-center justify-between text-xs pl-2 border-l-2 border-l-red-400">
-                  <span className="text-muted-foreground">
+                  <span className="text-muted-foreground text-sm">
                     {language === 'el' ? 'Μ.Ο. Κόστος/Ημέρα' : 'Avg Cost/Day'}
                   </span>
-                  <span className="font-medium text-red-600">
+                  <span className="font-medium text-red-600 text-sm">
                     {avgCostPerDay !== null ? `€${avgCostPerDay.toFixed(2)} / day` : '—'}
                   </span>
                 </div>
