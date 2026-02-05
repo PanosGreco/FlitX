@@ -132,42 +132,27 @@ export function VehicleFinanceTab({
     }, 0);
   };
 
-  // Get the last income record date from fetched records
-  const getLastIncomeDate = (recs: FinanceRecord[]): Date | null => {
-    const incomeRecords = recs.filter(r => r.type === 'income');
-    if (incomeRecords.length === 0) return null;
-    const sortedDates = incomeRecords.map(r => new Date(r.date)).sort((a, b) => b.getTime() - a.getTime());
-    return sortedDates[0];
-  };
-
-  // Get the last expense record date from fetched records
-  const getLastExpenseDate = (recs: FinanceRecord[]): Date | null => {
-    const expenseRecords = recs.filter(r => r.type === 'expense');
-    if (expenseRecords.length === 0) return null;
-    const sortedDates = expenseRecords.map(r => new Date(r.date)).sort((a, b) => b.getTime() - a.getTime());
-    return sortedDates[0];
-  };
-
-  // Calculate days between vehicle creation and last record
-  const getDaysForMetric = (createdAt: string | null | undefined, lastRecordDate: Date | null): number => {
-    if (!createdAt || !lastRecordDate) return 0;
+  // Calculate days from vehicle added date to today
+  const calculateActiveDays = (createdAt: string | null | undefined): number => {
+    if (!createdAt) return 0;
     const startDate = new Date(createdAt);
-    return Math.max(1, differenceInDays(lastRecordDate, startDate) + 1);
+    const today = new Date();
+    return Math.max(1, differenceInDays(today, startDate) + 1);
   };
+
   const totalBookedDays = calculateTotalBookedDays(vehicleBookings);
-  const lastIncomeDate = getLastIncomeDate(records);
-  const lastExpenseDate = getLastExpenseDate(records);
-  const daysForIncome = getDaysForMetric(vehicleCreatedAt, lastIncomeDate);
-  const daysForExpense = getDaysForMetric(vehicleCreatedAt, lastExpenseDate);
+  
+  // Active days from vehicle added to today (unified for both metrics)
+  const activeDays = calculateActiveDays(vehicleCreatedAt);
 
   // Average Rental Price = Total Income / Total Booked Days
   const avgRentalPrice = totalBookedDays > 0 ? totalRevenue / totalBookedDays : null;
 
-  // Average Income per Day = Total Income / Days from vehicle added to last income
-  const avgIncomePerDay = daysForIncome > 0 ? totalRevenue / daysForIncome : null;
+  // Average Income per Day = Total Income / Days from vehicle added to today
+  const avgIncomePerDay = activeDays > 0 ? totalRevenue / activeDays : null;
 
-  // Average Cost per Day = Total Expenses / Days from vehicle added to last expense
-  const avgCostPerDay = daysForExpense > 0 ? totalExpenses / daysForExpense : null;
+  // Average Cost per Day = Total Expenses / Days from vehicle added to today
+  const avgCostPerDay = activeDays > 0 ? totalExpenses / activeDays : null;
   const netIncome = totalRevenue - totalExpenses;
   const purchaseValue = typeof purchasePrice === "number" ? purchasePrice : Number(purchasePrice);
   const totalPages = Math.ceil(records.length / ITEMS_PER_PAGE);
