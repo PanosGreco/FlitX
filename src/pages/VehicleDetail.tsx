@@ -38,6 +38,7 @@ interface Vehicle {
   passenger_capacity?: number;
   vehicle_type?: string;
   transmission_type?: string;
+  created_at?: string;
 }
 
 interface VehicleTranslations {
@@ -154,7 +155,8 @@ const VehicleDetail = () => {
         passengerCapacity: data.passenger_capacity || undefined,
         passenger_capacity: data.passenger_capacity || undefined,
         vehicle_type: data.vehicle_type || 'car',
-        transmission_type: data.transmission_type || 'manual'
+        transmission_type: data.transmission_type || 'manual',
+        created_at: data.created_at
       };
       setVehicle(vehicleData);
     } catch (error) {
