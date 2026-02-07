@@ -1,178 +1,192 @@
 
-# Fix Average Income & Cost Per Day Calculations
 
-## Problem Summary
+# Fix Recurring Income & Expense Logic and UI Display
 
-The current implementation calculates **Average Income per Day** and **Average Cost per Day** using the user's registration date as the time anchor. This is incorrect because:
+## Overview
 
-1. A user may have been registered for years before adding a specific vehicle
-2. This inflates the day count, producing unrealistically low daily averages
-3. It's inconsistent with vehicle-specific totals being divided
+This plan addresses six areas: catch-up generation logic, end date support, card display improvements (category-first titles, emoji removal), completed state display, and deletion behavior hardening. No changes to finance calculations, aggregation logic, or other UI elements.
 
 ---
 
-## What Stays Unchanged
+## 1. Database Migration: Add `end_date` Column
 
-**Average Rental Price** - Current logic is correct and will not be modified:
-- Formula: `Total Vehicle Revenue ÷ Total Booked Days`
-- Only counts days with active bookings
-- Already shows `€/day` format correctly
+Add an optional `end_date` column to the `recurring_transactions` table.
+
+```sql
+ALTER TABLE public.recurring_transactions
+ADD COLUMN end_date date DEFAULT NULL;
+```
+
+This column is nullable -- when null, the recurring transaction continues indefinitely (preserving current behavior).
 
 ---
 
-## Corrected Time Range Logic
+## 2. Generation Logic Fix: Catch-Up for Missed Cycles
 
-### New Rule: Use Vehicle-Specific Timeline
+**File:** `src/components/finances/RecurringTransactionsModal.tsx` -- `generateDueTransactions()`
 
-| Metric | Start Date | End Date |
-|--------|------------|----------|
-| Average Income per Day | Vehicle `created_at` | Last income record date |
-| Average Cost per Day | Vehicle `created_at` | Last expense record date |
+**Current problem:** Only generates ONE transaction per click, even if multiple cycles have been missed.
 
-### Key Insight: Vehicle `created_at` Already Exists
+**Fix:** Replace the single-pass generation with a `while` loop that keeps generating transactions for each missed interval until `next_generation_date > today`.
 
-Looking at the database schema, the `vehicles` table already has a `created_at` column (line 802 in types.ts):
+**New logic (pseudocode):**
+
+```text
+for each due recurring transaction:
+  while (next_generation_date <= today):
+    -- Check end_date: if end_date exists and next_generation_date > end_date, stop
+    -- Insert financial_record with date = next_generation_date
+    -- Calculate new_next_date from next_generation_date + frequency
+    -- Update last_generated_date = next_generation_date
+    -- Update next_generation_date = new_next_date
+    -- Increment counter
+  -- If end_date passed and all cycles generated, mark is_active = false
+```
+
+**Safeguards:**
+- Before inserting each financial record, query `financial_records` to check no duplicate exists for the same recurring rule date + category + amount + source_section='recurring'. This prevents double-generation if the user clicks "Generate" multiple times quickly.
+- The while loop processes all missed cycles in one click, not just one.
+- `next_generation_date` is never advanced without a corresponding `financial_records` insert succeeding first.
+- `last_generated_date` is only updated after a successful insert.
+
+---
+
+## 3. First-Time Creation: End Date Support
+
+**File:** `src/components/finances/AddRecurringTransactionDialog.tsx`
+
+### 3a. Add End Date Step
+
+Insert a new optional step after "Start Date" called "End Date":
+
+- New step added to the wizard: `'end_date'` between `'date'` and `'frequency'`
+- Step sequence becomes: `type -> date -> end_date -> frequency -> amount -> details -> vehicle`
+- The end date input is optional (can be skipped)
+- State: `const [endDate, setEndDate] = useState<string>('')`
+- Validation: if provided, end date must be >= start date
+
+### 3b. Submit Logic Update
+
+When submitting, include `end_date` in the `recurring_transactions` insert if provided:
+
 ```typescript
-vehicles: {
-  Row: {
-    created_at: string  // ✓ Already exists!
-    ...
-  }
+if (endDate) {
+  record.end_date = endDate;
 }
 ```
 
-**No database migration needed** - we just need to fetch and use this existing field.
+The first-time immediate generation logic stays exactly the same -- it already correctly:
+- Generates one transaction if `start_date <= today`
+- Sets `last_generated_date = start_date`
+- Advances `next_generation_date` to the next cycle
 
 ---
 
-## Implementation Details
+## 4. Completed Recurring State
 
-### 1. Update VehicleFinanceTabProps Interface
+### 4a. Fetch Logic Change
 
-Add a new prop to pass the vehicle's creation date:
+**File:** `src/components/finances/RecurringTransactionsModal.tsx`
 
-```typescript
-interface VehicleFinanceTabProps {
-  vehicleId: string;
-  vehicleName: string;
-  purchasePrice?: number | null;
-  marketValueAtPurchase?: number | null;
-  purchaseDate?: string | null;
-  currentMileage?: number;
-  initialMileage?: number;
-  vehicleType?: string;
-  vehicleYear: number;
-  vehicleCreatedAt?: string | null;  // NEW: Vehicle added date
-}
-```
+Currently, the modal only fetches `is_active = true` records. Change this to fetch ALL recurring transactions (remove the `.eq('is_active', true)` filter) so that completed items are also visible.
 
-### 2. Update VehicleDetails.tsx
+### 4b. Auto-Completion in Generation
 
-Pass the vehicle's `created_at` to the VehicleFinanceTab:
+During the catch-up generation loop (from section 2), after advancing `next_generation_date`:
+- If `end_date` exists and the new `next_generation_date > end_date`, set `is_active = false` on the `recurring_transactions` record
+- This marks it as "completed"
 
-```typescript
-<VehicleFinanceTab 
-  vehicleId={vehicleId || ""} 
-  vehicleName={`${vehicle.year} ${vehicle.make} ${vehicle.model}`} 
-  purchasePrice={vehicle.purchase_price}
-  marketValueAtPurchase={vehicle.market_value_at_purchase}
-  purchaseDate={vehicle.purchase_date}
-  currentMileage={vehicle.mileage}
-  initialMileage={vehicle.initial_mileage}
-  vehicleType={vehicle.vehicle_type}
-  vehicleYear={vehicle.year}
-  vehicleCreatedAt={vehicle.created_at}  // NEW
-/>
-```
+### 4c. Visual Display of Completed Items
 
-### 3. Update VehicleDetail.tsx (Page)
+In the recurring cards list, for items where `is_active === false`:
+- Add a "Completed" badge/label (green for income, muted for expense)
+- Apply reduced opacity styling (`opacity-60`)
+- English: "Completed" / Greek: "Ολοκληρώθηκε"
+- The delete button remains available for completed items
+- Completed items are displayed at the bottom of each column (income/expense)
 
-Ensure the vehicle's `created_at` is included when transforming the data:
+### 4d. Hide Generate Button Awareness
 
-```typescript
-const vehicleData: Vehicle = {
-  // ... existing fields ...
-  created_at: data.created_at  // NEW: Add this field
-};
-```
-
-### 4. Refactor Calculation Logic in VehicleFinanceTab
-
-**Remove**: `fetchUserRegistrationDate()` function and `userRegistrationDate` state
-
-**Add**: Logic to find last income/expense record dates from existing `records` state
-
-**New calculation functions**:
-
-```typescript
-// Get the last income record date from fetched records
-const getLastIncomeDate = (records: FinanceRecord[]): Date | null => {
-  const incomeRecords = records.filter(r => r.type === 'income');
-  if (incomeRecords.length === 0) return null;
-  const sortedDates = incomeRecords.map(r => new Date(r.date)).sort((a, b) => b.getTime() - a.getTime());
-  return sortedDates[0];
-};
-
-// Get the last expense record date from fetched records
-const getLastExpenseDate = (records: FinanceRecord[]): Date | null => {
-  const expenseRecords = records.filter(r => r.type === 'expense');
-  if (expenseRecords.length === 0) return null;
-  const sortedDates = expenseRecords.map(r => new Date(r.date)).sort((a, b) => b.getTime() - a.getTime());
-  return sortedDates[0];
-};
-
-// Calculate days between vehicle creation and last record
-const getDaysForMetric = (
-  vehicleCreatedAt: string | null | undefined,
-  lastRecordDate: Date | null
-): number => {
-  if (!vehicleCreatedAt || !lastRecordDate) return 0;
-  const startDate = new Date(vehicleCreatedAt);
-  return Math.max(1, differenceInDays(lastRecordDate, startDate) + 1);
-};
-```
-
-**Updated calculations**:
-
-```typescript
-const lastIncomeDate = getLastIncomeDate(records);
-const lastExpenseDate = getLastExpenseDate(records);
-
-const daysForIncome = getDaysForMetric(vehicleCreatedAt, lastIncomeDate);
-const daysForExpense = getDaysForMetric(vehicleCreatedAt, lastExpenseDate);
-
-// Average Income per Day = Total Income / Days from vehicle added to last income
-const avgIncomePerDay = daysForIncome > 0 ? totalRevenue / daysForIncome : null;
-
-// Average Cost per Day = Total Expenses / Days from vehicle added to last expense
-const avgCostPerDay = daysForExpense > 0 ? totalExpenses / daysForExpense : null;
-```
+Completed items (`is_active = false`) are naturally excluded from generation since the `generateDueTransactions` function only processes `is_active = true` records.
 
 ---
 
-## UI Changes
+## 5. UI Display Changes for Recurring Cards
 
-### 1. Add "/ day" Label Consistency
+**File:** `src/components/finances/RecurringTransactionsModal.tsx`
 
-Currently: `€{avgIncomePerDay.toFixed(2)}`
-Updated: `€{avgIncomePerDay.toFixed(2)} / day`
+### 5a. Category-First Title
 
-Apply to both Average Income and Average Cost metrics.
+Replace the current card title logic:
 
-### 2. Add Colored Row Accents
+**Before:**
+```tsx
+<p className="font-medium text-sm truncate">
+  {t.description || 'Income'/'Expense'}
+</p>
+```
 
-Add subtle left border colors to each row for visual separation:
+**After:**
+```tsx
+<p className="font-medium text-sm truncate">
+  {getCategoryLabel(t.category, t.type, language)}
+</p>
+{t.description && (
+  <p className="text-xs text-muted-foreground truncate">
+    {t.description}
+  </p>
+)}
+```
 
-| Metric | Accent Color |
-|--------|-------------|
-| Avg Rental Price | Orange (`border-l-2 border-l-orange-400`) |
-| Avg Income/Day | Green (`border-l-2 border-l-green-400`) |
-| Avg Cost/Day | Red (`border-l-2 border-l-red-400`) |
+Add a helper function `getCategoryLabel()` that maps category keys to localized labels:
 
-### 3. Handle Empty States
+| Key | English | Greek |
+|-----|---------|-------|
+| sales | Sales | Πωλήσεις |
+| fuel | Fuel | Καύσιμα |
+| maintenance | Maintenance | Συντήρηση |
+| vehicle_parts | Vehicle Parts | Ανταλλακτικά |
+| carwash | Car Wash | Πλύσιμο |
+| insurance | Insurance | Ασφάλεια |
+| tax | Taxes/Fees | Φόροι/Τέλη |
+| salary | Salaries | Μισθοί |
+| marketing | Marketing | Μάρκετινγκ |
+| other | Other | Άλλο |
+| cleaning | Cleaning | Καθαρισμός |
+| docking | Docking | Ελλιμενισμός |
+| licensing | Licensing | Άδειες |
 
-- If no income records: Show `—` for Avg Income/Day
-- If no expense records: Show `—` for Avg Cost/Day
+For income cards, use the `income_source_type` label if available (e.g., "Sales - Walk-in"), and for maintenance expenses, append the subcategory (e.g., "Maintenance - Oil Change").
+
+### 5b. Remove Vehicle Emoji
+
+**Before (line 371-373 and 419-422):**
+```tsx
+<p className="text-xs text-muted-foreground truncate">
+  🚗 {getVehicleName(t.vehicle_id)}
+</p>
+```
+
+**After:**
+```tsx
+<p className="text-xs text-muted-foreground truncate">
+  {getVehicleName(t.vehicle_id)}
+</p>
+```
+
+Simply remove the `🚗` emoji from both income and expense card sections. Vehicle linkage logic stays unchanged.
+
+---
+
+## 6. Deletion Behavior (Already Correct)
+
+The current deletion logic is already correct:
+- Permanently deletes the `recurring_transactions` row
+- Does NOT delete already-generated `financial_records`
+- Shows confirmation dialog with clear messaging
+- After deletion, the rule never generates again
+
+No changes needed here -- just confirming the behavior matches requirements.
 
 ---
 
@@ -180,39 +194,16 @@ Add subtle left border colors to each row for visual separation:
 
 | File | Changes |
 |------|---------|
-| `src/pages/VehicleDetail.tsx` | Add `created_at` to Vehicle interface and vehicleData transformation |
-| `src/components/fleet/VehicleDetails.tsx` | Pass `created_at` prop to VehicleFinanceTab |
-| `src/components/fleet/VehicleFinanceTab.tsx` | Update props, remove user registration logic, add new calculation functions, update UI with `/day` labels and color accents |
+| **Database migration** | Add `end_date` column to `recurring_transactions` |
+| `src/components/finances/AddRecurringTransactionDialog.tsx` | Add end date step, include `end_date` in submit, add `endDate` state |
+| `src/components/finances/RecurringTransactionsModal.tsx` | Catch-up loop in `generateDueTransactions()`, fetch all (not just active), category-first titles, remove emoji, completed state display, auto-deactivation |
 
 ---
 
-## Expected Results
+## Technical Notes
 
-### Before (Incorrect)
+- The `RecurringTransaction` interface in `RecurringTransactionsModal.tsx` needs to be updated to include `end_date?: string | null`
+- The Supabase types file (`types.ts`) will auto-update after the migration runs
+- Duplicate prevention uses a pre-insert check: query `financial_records` for matching `date + category + amount + source_section + vehicle_id` before inserting
+- The while loop in generation has a safety counter (max 100 iterations) to prevent infinite loops from data corruption
 
-Using user registration (e.g., 365 days ago):
-- Total Income: €3,000
-- Average Income/Day: €8.22
-
-### After (Correct)
-
-Using vehicle lifecycle (added 30 days ago, last income 25 days after adding):
-- Total Income: €3,000
-- Days counted: 26 (from vehicle added to last income record)
-- Average Income/Day: €115.38
-
-This gives a realistic, vehicle-specific performance metric.
-
----
-
-## Visual Preview of Updated UI
-
-```text
-┌────────────────────────────────────────────────┐
-│  Vehicle Averages                              │
-├────────────────────────────────────────────────┤
-│ ▌ Avg Rental Price      €85.00 / day          │  ← Orange accent
-│ ▌ Avg Income/Day        €45.50 / day          │  ← Green accent
-│ ▌ Avg Cost/Day          €12.30 / day          │  ← Red accent
-└────────────────────────────────────────────────┘
-```
