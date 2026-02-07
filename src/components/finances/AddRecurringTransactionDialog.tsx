@@ -27,7 +27,7 @@ interface AddRecurringTransactionDialogProps {
   onSuccess: () => void;
 }
 
-type Step = 'type' | 'date' | 'frequency' | 'amount' | 'details' | 'vehicle';
+type Step = 'type' | 'date' | 'end_date' | 'frequency' | 'amount' | 'details' | 'vehicle';
 
 export function AddRecurringTransactionDialog({
   open,
@@ -41,6 +41,7 @@ export function AddRecurringTransactionDialog({
   // Form data
   const [type, setType] = useState<'income' | 'expense'>('income');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState<string>('');
   const [frequencyValue, setFrequencyValue] = useState('1');
   const [frequencyUnit, setFrequencyUnit] = useState<'week' | 'month' | 'year'>('month');
   const [amount, setAmount] = useState('');
@@ -59,6 +60,7 @@ export function AddRecurringTransactionDialog({
     setStep('type');
     setType('income');
     setStartDate(new Date().toISOString().split('T')[0]);
+    setEndDate('');
     setFrequencyValue('1');
     setFrequencyUnit('month');
     setAmount('');
@@ -75,13 +77,20 @@ export function AddRecurringTransactionDialog({
     onOpenChange(false);
   };
 
-  const steps: Step[] = ['type', 'date', 'frequency', 'amount', 'details', 'vehicle'];
+  const steps: Step[] = ['type', 'date', 'end_date', 'frequency', 'amount', 'details', 'vehicle'];
   const currentStepIndex = steps.indexOf(step);
 
   const canGoNext = () => {
     switch (step) {
       case 'type': return true;
       case 'date': return !!startDate;
+      case 'end_date': {
+        // End date is optional, but if provided must be >= start date
+        if (endDate && startDate) {
+          return endDate >= startDate;
+        }
+        return true;
+      }
       case 'frequency': return !!frequencyValue && parseInt(frequencyValue) > 0;
       case 'amount': return !!amount && parseFloat(amount) > 0;
       case 'details': 
@@ -126,7 +135,6 @@ export function AddRecurringTransactionDialog({
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const todayStr = today.toISOString().split('T')[0];
       const startDateObj = new Date(startDate);
       startDateObj.setHours(0, 0, 0, 0);
       
@@ -134,12 +142,9 @@ export function AddRecurringTransactionDialog({
       const shouldGenerateImmediately = startDateObj <= today;
 
       // Calculate initial next_generation_date
-      // If start_date <= today, we'll generate the first transaction now
-      // and set next_generation_date to the next cycle
       let initialNextGenerationDate = startDate;
       
       if (shouldGenerateImmediately) {
-        // Calculate the next date after start_date
         const nextDate = new Date(startDate);
         switch (frequencyUnit) {
           case 'week':
@@ -155,6 +160,18 @@ export function AddRecurringTransactionDialog({
         initialNextGenerationDate = nextDate.toISOString().split('T')[0];
       }
 
+      // Determine if already completed at creation (end_date exists and next_generation_date > end_date)
+      let isActiveAtCreation = true;
+      if (endDate && shouldGenerateImmediately) {
+        const endDateObj = new Date(endDate);
+        endDateObj.setHours(0, 0, 0, 0);
+        const nextGenObj = new Date(initialNextGenerationDate);
+        nextGenObj.setHours(0, 0, 0, 0);
+        if (nextGenObj > endDateObj) {
+          isActiveAtCreation = false;
+        }
+      }
+
       const record: any = {
         user_id: session.session.user.id,
         type,
@@ -166,8 +183,12 @@ export function AddRecurringTransactionDialog({
         frequency_unit: frequencyUnit,
         next_generation_date: initialNextGenerationDate,
         last_generated_date: shouldGenerateImmediately ? startDate : null,
-        is_active: true,
+        is_active: isActiveAtCreation,
       };
+
+      if (endDate) {
+        record.end_date = endDate;
+      }
 
       if (vehicleId) {
         record.vehicle_id = vehicleId;
@@ -259,6 +280,7 @@ export function AddRecurringTransactionDialog({
     switch (step) {
       case 'type': return language === 'el' ? 'Τύπος Συναλλαγής' : 'Transaction Type';
       case 'date': return language === 'el' ? 'Ημερομηνία Έναρξης' : 'Start Date';
+      case 'end_date': return language === 'el' ? 'Ημερομηνία Λήξης' : 'End Date';
       case 'frequency': return language === 'el' ? 'Συχνότητα' : 'Frequency';
       case 'amount': return language === 'el' ? 'Ποσό' : 'Amount';
       case 'details': return language === 'el' ? 'Κατηγορία & Περιγραφή' : 'Category & Description';
@@ -326,7 +348,39 @@ export function AddRecurringTransactionDialog({
             </div>
           )}
 
-          {/* Step 3: Frequency */}
+          {/* Step 3: End Date (Optional) */}
+          {step === 'end_date' && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {language === 'el' 
+                  ? 'Προαιρετικά, ορίστε πότε θα σταματήσει η επανάληψη:'
+                  : 'Optionally, set when the repetition will stop:'}
+              </p>
+              <div className="space-y-2">
+                <Label>{language === 'el' ? 'Ημερομηνία Λήξης (προαιρετικό)' : 'End Date (optional)'}</Label>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={startDate}
+                />
+              </div>
+              {endDate && endDate < startDate && (
+                <p className="text-xs text-destructive">
+                  {language === 'el' 
+                    ? 'Η ημερομηνία λήξης πρέπει να είναι μετά την ημερομηνία έναρξης'
+                    : 'End date must be after the start date'}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {language === 'el'
+                  ? 'Αν δεν ορίσετε ημερομηνία λήξης, η επανάληψη θα συνεχίζεται επ\' αόριστον.'
+                  : 'If no end date is set, the recurrence will continue indefinitely.'}
+              </p>
+            </div>
+          )}
+
+          {/* Step 4: Frequency */}
           {step === 'frequency' && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
@@ -367,7 +421,7 @@ export function AddRecurringTransactionDialog({
             </div>
           )}
 
-          {/* Step 4: Amount */}
+          {/* Step 5: Amount */}
           {step === 'amount' && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
@@ -389,7 +443,7 @@ export function AddRecurringTransactionDialog({
             </div>
           )}
 
-          {/* Step 5: Category & Description */}
+          {/* Step 6: Category & Description */}
           {step === 'details' && (
             <div className="space-y-4">
               {type === 'income' && (
@@ -514,7 +568,7 @@ export function AddRecurringTransactionDialog({
             </div>
           )}
 
-          {/* Step 6: Vehicle Link */}
+          {/* Step 7: Vehicle Link */}
           {step === 'vehicle' && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
