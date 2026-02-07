@@ -434,6 +434,7 @@ export type Database = {
           category: string
           created_at: string
           description: string | null
+          end_date: string | null
           expense_subcategory: string | null
           frequency_unit: string
           frequency_value: number
@@ -454,6 +455,7 @@ export type Database = {
           category: string
           created_at?: string
           description?: string | null
+          end_date?: string | null
           expense_subcategory?: string | null
           frequency_unit: string
           frequency_value?: number
@@ -474,6 +476,7 @@ export type Database = {
           category?: string
           created_at?: string
           description?: string | null
+          end_date?: string | null
           expense_subcategory?: string | null
           frequency_unit?: string
           frequency_value?: number
