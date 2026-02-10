@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { DailyTask } from "@/hooks/useDailyTasks";
+
 interface AddTaskDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -19,6 +20,7 @@ interface AddTaskDialogProps {
   }[];
   selectedDate: Date;
 }
+
 export function AddTaskDialog({
   isOpen,
   onClose,
@@ -35,23 +37,21 @@ export function AddTaskDialog({
     completed: false,
     location: '' as string | null,
     bookingId: null as string | null,
-    contractPath: null as string | null
+    contractPath: null as string | null,
+    title: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isVehicleRequired = formData.type === 'return' || formData.type === 'delivery';
   const showLocationField = formData.type === 'return' || formData.type === 'delivery';
+  const isOtherTask = formData.type === 'other';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate required fields
-    if (!formData.scheduledTime) {
-      return;
-    }
+    if (!formData.scheduledTime) return;
+    if (isVehicleRequired && !formData.vehicleId) return;
+    if (isOtherTask && !formData.title.trim()) return;
 
-    // Vehicle required for return/delivery
-    if (isVehicleRequired && !formData.vehicleId) {
-      return;
-    }
     setIsSubmitting(true);
     await onAddTask(formData);
     setIsSubmitting(false);
@@ -66,9 +66,11 @@ export function AddTaskDialog({
       completed: false,
       location: '',
       bookingId: null,
-      contractPath: null
+      contractPath: null,
+      title: ''
     });
   };
+
   const handleClose = () => {
     setFormData({
       type: 'return',
@@ -79,11 +81,17 @@ export function AddTaskDialog({
       completed: false,
       location: '',
       bookingId: null,
-      contractPath: null
+      contractPath: null,
+      title: ''
     });
     onClose();
   };
+
   const handleVehicleChange = (vehicleId: string) => {
+    if (vehicleId === 'none') {
+      setFormData({ ...formData, vehicleId: null, vehicleName: null });
+      return;
+    }
     const vehicle = vehicles.find(v => v.id === vehicleId);
     setFormData({
       ...formData,
@@ -91,7 +99,9 @@ export function AddTaskDialog({
       vehicleName: vehicle ? `${vehicle.name}${vehicle.licensePlate ? ` (${vehicle.licensePlate})` : ''}` : ''
     });
   };
-  return <Dialog open={isOpen} onOpenChange={handleClose}>
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add New Task</DialogTitle>
@@ -108,14 +118,15 @@ export function AddTaskDialog({
           <div className="space-y-2">
             <Label htmlFor="type">Task Type</Label>
             <Select value={formData.type} onValueChange={(value: 'return' | 'delivery' | 'other') => {
-            setFormData({
-              ...formData,
-              type: value,
-              vehicleId: '',
-              vehicleName: '',
-              location: ''
-            });
-          }}>
+              setFormData({
+                ...formData,
+                type: value,
+                vehicleId: '',
+                vehicleName: '',
+                location: '',
+                title: ''
+              });
+            }}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -126,6 +137,20 @@ export function AddTaskDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Title field - required for Other Tasks */}
+          {isOtherTask && (
+            <div className="space-y-2">
+              <Label htmlFor="title">Title *</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={e => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Enter task title"
+                required
+              />
+            </div>
+          )}
 
           {/* Vehicle Selection - Required for return/delivery, optional for other */}
           <div className="space-y-2">
@@ -138,9 +163,11 @@ export function AddTaskDialog({
               </SelectTrigger>
               <SelectContent>
                 {!isVehicleRequired && <SelectItem value="none">No vehicle</SelectItem>}
-                {vehicles.map(vehicle => <SelectItem key={vehicle.id} value={vehicle.id}>
+                {vehicles.map(vehicle => (
+                  <SelectItem key={vehicle.id} value={vehicle.id}>
                     {vehicle.name} {vehicle.licensePlate ? `(${vehicle.licensePlate})` : ''}
-                  </SelectItem>)}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             {vehicles.length === 0 && <p className="text-xs text-muted-foreground">No vehicles found. Add vehicles in Fleet first.</p>}
@@ -149,29 +176,31 @@ export function AddTaskDialog({
           <div className="space-y-2">
             <Label htmlFor="scheduledTime">Scheduled Time</Label>
             <Input id="scheduledTime" type="time" value={formData.scheduledTime} onChange={e => setFormData({
-            ...formData,
-            scheduledTime: e.target.value
-          })} required />
+              ...formData,
+              scheduledTime: e.target.value
+            })} required />
           </div>
 
           {/* Location field - only for deliveries and returns */}
-          {showLocationField && <div className="space-y-2">
+          {showLocationField && (
+            <div className="space-y-2">
               <Label htmlFor="location" className="flex items-center gap-1">
                 <MapPin className="h-3 w-3" />
                 Location (optional)
               </Label>
               <Input id="location" value={formData.location || ''} onChange={e => setFormData({
-            ...formData,
-            location: e.target.value
-          })} placeholder={formData.type === 'delivery' ? "Pick-up location" : "Drop-off location"} />
-            </div>}
+                ...formData,
+                location: e.target.value
+              })} placeholder={formData.type === 'delivery' ? "Pick-up location" : "Drop-off location"} />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="notes">Notes</Label>
             <Textarea id="notes" value={formData.notes} onChange={e => setFormData({
-            ...formData,
-            notes: e.target.value
-          })} placeholder="Additional notes or observations..." rows={3} />
+              ...formData,
+              notes: e.target.value
+            })} placeholder="Additional notes or observations..." rows={3} />
           </div>
 
           <DialogFooter>
@@ -184,5 +213,6 @@ export function AddTaskDialog({
           </DialogFooter>
         </form>
       </DialogContent>
-    </Dialog>;
+    </Dialog>
+  );
 }

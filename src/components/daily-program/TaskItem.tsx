@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Clock, Edit, Trash2, Check, MapPin, FileText } from "lucide-react";
+import { formatTime24h } from "@/utils/dateFormatUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -132,11 +133,19 @@ export function TaskItem({
                       <FileText className="h-3.5 w-3.5" />
                     </Button>}
                 </div>
-                {task.vehicleName ? <h4 className={`font-medium text-sm truncate ${task.completed ? 'line-through' : ''}`}>
+                {task.type === 'other' && task.title ? (
+                  <h4 className={`font-medium text-sm truncate ${task.completed ? 'line-through' : ''}`}>
+                    {task.title}
+                  </h4>
+                ) : task.vehicleName ? (
+                  <h4 className={`font-medium text-sm truncate ${task.completed ? 'line-through' : ''}`}>
                     {task.vehicleName}
-                  </h4> : <h4 className={`font-medium text-sm text-muted-foreground ${task.completed ? 'line-through' : ''}`}>
+                  </h4>
+                ) : (
+                  <h4 className={`font-medium text-sm text-muted-foreground ${task.completed ? 'line-through' : ''}`}>
                     General Task
-                  </h4>}
+                  </h4>
+                )}
               </div>
               <div className="flex space-x-1 flex-shrink-0">
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsEditDialogOpen(true)}>
@@ -151,7 +160,7 @@ export function TaskItem({
             {/* Time */}
             <div className="flex items-center space-x-2 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />
-              <span className="text-sm">{task.scheduledTime}</span>
+              <span className="text-sm">{formatTime24h(task.scheduledTime) || task.scheduledTime}</span>
             </div>
 
             {/* Location */}

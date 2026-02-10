@@ -91,7 +91,7 @@ export default function Home() {
           type: task.task_type as 'delivery' | 'return' | 'other',
           title: task.title,
           date: task.due_date,
-          time: task.due_time,
+          time: task.due_time ? task.due_time.substring(0, 5) : null,
           location: task.location,
           vehicleId: task.vehicle_id,
           vehicleName: task.vehicles
