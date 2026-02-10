@@ -39,7 +39,7 @@ interface RecurringTransactionsModalProps {
 }
 
 // Category label helper
-const getCategoryLabel = (category: string, type: string, language: string, incomeSourceType?: string | null, expenseSubcategory?: string | null): string => {
+const getCategoryLabel = (category: string, type: string, language: string, incomeSourceType?: string | null, expenseSubcategory?: string | null, incomeSourceSpecification?: string | null): string => {
   const labels: Record<string, {
     en: string;
     el: string;
@@ -125,9 +125,12 @@ const getCategoryLabel = (category: string, type: string, language: string, inco
   const lang = language === 'el' ? 'el' : 'en';
   const base = labels[category]?.[lang] || category;
 
-  // For income, append source type
+  // For income: if source type is collaboration/other and specification exists, show "Specification – SourceType"
   if (type === 'income' && incomeSourceType) {
     const sourceLabel = incomeSourceLabels[incomeSourceType]?.[lang] || incomeSourceType;
+    if ((incomeSourceType === 'collaboration' || incomeSourceType === 'other') && incomeSourceSpecification) {
+      return `${incomeSourceSpecification} – ${sourceLabel}`;
+    }
     return `${base} - ${sourceLabel}`;
   }
 
@@ -441,7 +444,7 @@ export function RecurringTransactionsModal({
         <div className="flex-1 min-w-0">
           {/* Category-first title */}
           <p className="text-sm truncate font-semibold">
-            {getCategoryLabel(t.category, t.type, language, t.income_source_type, t.expense_subcategory)}
+            {getCategoryLabel(t.category, t.type, language, t.income_source_type, t.expense_subcategory, t.income_source_specification)}
           </p>
           {t.description && <p className="text-muted-foreground truncate text-sm">
               {t.description}
