@@ -74,7 +74,7 @@ export default function DailyProgram() {
         {loading ? <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div> : (/* Three Column Layout */
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
             {/* Returns Column */}
             <DailyProgramSection title="Returns" tasks={returns} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} />
 

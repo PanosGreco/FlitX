@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { format, addDays, subDays, startOfWeek, isSameDay, getWeek } from "date-fns";
-import { ChevronLeft, ChevronRight, Loader2, Plus, MapPin, Clock, Car, User, FileText } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Plus, MapPin, Clock, Car, User, FileText, Tag } from "lucide-react";
+import { formatTime24h } from "@/utils/dateFormatUtils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -219,18 +220,30 @@ export function TimelineCalendar({
                               <div className={cn("font-bold text-[11px] leading-tight", colors.text)}>
                                 {task.type === 'delivery' ? 'Delivery' : task.type === 'return' ? 'Return' : 'Other Task'}
                               </div>
+                              {/* Title for other tasks */}
+                              {task.type === 'other' && task.title && (
+                                <div className={cn("text-[11px] mt-0.5 truncate font-bold", colors.text)}>
+                                  {task.title}
+                                </div>
+                              )}
                               {/* Vehicle name - visible for all task types */}
-                              {task.vehicleName && <div className={cn("text-[11px] mt-0.5 truncate font-bold", colors.text)}>
+                              {task.vehicleName && (
+                                <div className={cn("text-[11px] mt-0.5 truncate font-bold", colors.text)}>
                                   {task.vehicleName}
-                                </div>}
+                                </div>
+                              )}
                               {/* Customer name for delivery/return */}
-                              {task.customerName && <div className={cn("text-[11px] truncate font-semibold", colors.text)}>
+                              {task.customerName && (
+                                <div className={cn("text-[11px] truncate font-semibold", colors.text)}>
                                   {task.customerName}
-                                </div>}
-                              {/* Time */}
-                              {task.time && <div className={cn("text-[11px] mt-0.5 font-semibold", colors.text)}>
-                                  {task.time}
-                                </div>}
+                                </div>
+                              )}
+                              {/* Time - no seconds */}
+                              {task.time && (
+                                <div className={cn("text-[11px] mt-0.5 font-semibold", colors.text)}>
+                                  {formatTime24h(task.time) || task.time}
+                                </div>
+                              )}
                             </div>;
                   })}
                       </div>
@@ -270,6 +283,17 @@ export function TimelineCalendar({
             <div className="flex gap-3">
               {/* Left side - Task details */}
               <div className="flex-1 space-y-3">
+                {/* Title - for other tasks, show user-entered title first */}
+                {selectedTask.type === 'other' && selectedTask.title && (
+                  <div className="flex items-start gap-3">
+                    <Tag className="h-4 w-4 text-slate-400 mt-0.5" />
+                    <div>
+                      <div className="text-xs text-slate-500 mb-0.5">Title</div>
+                      <div className="text-sm font-medium text-slate-800">{selectedTask.title}</div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Vehicle */}
                 {selectedTask.vehicleName && (
                   <div className="flex items-start gap-3">
@@ -292,13 +316,13 @@ export function TimelineCalendar({
                   </div>
                 )}
 
-                {/* Time */}
+                {/* Time - no seconds */}
                 {selectedTask.time && (
                   <div className="flex items-start gap-3">
                     <Clock className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
                       <div className="text-xs text-slate-500 mb-0.5">Time</div>
-                      <div className="text-sm font-medium text-slate-800">{selectedTask.time}</div>
+                      <div className="text-sm font-medium text-slate-800">{formatTime24h(selectedTask.time) || selectedTask.time}</div>
                     </div>
                   </div>
                 )}
@@ -321,17 +345,6 @@ export function TimelineCalendar({
                     <div>
                       <div className="text-xs text-slate-500 mb-0.5">Notes</div>
                       <div className="text-sm text-slate-700">{selectedTask.notes}</div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Title for other tasks */}
-                {selectedTask.type === 'other' && selectedTask.title && (
-                  <div className="flex items-start gap-3">
-                    <FileText className="h-4 w-4 text-slate-400 mt-0.5" />
-                    <div>
-                      <div className="text-xs text-slate-500 mb-0.5">Title</div>
-                      <div className="text-sm font-medium text-slate-800">{selectedTask.title}</div>
                     </div>
                   </div>
                 )}

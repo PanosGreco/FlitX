@@ -20,7 +20,8 @@ export function EditTaskDialog({ isOpen, onClose, task, onUpdate }: EditTaskDial
     scheduledTime: task.scheduledTime,
     notes: task.notes,
     completed: task.completed,
-    location: task.location || ''
+    location: task.location || '',
+    title: task.title || ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -31,7 +32,8 @@ export function EditTaskDialog({ isOpen, onClose, task, onUpdate }: EditTaskDial
       scheduledTime: task.scheduledTime,
       notes: task.notes,
       completed: task.completed,
-      location: task.location || ''
+      location: task.location || '',
+      title: task.title || ''
     });
   }, [task]);
 
@@ -47,7 +49,8 @@ export function EditTaskDialog({ isOpen, onClose, task, onUpdate }: EditTaskDial
       scheduledTime: formData.scheduledTime,
       notes: formData.notes,
       completed: formData.completed,
-      location: formData.location || null
+      location: formData.location || null,
+      title: formData.title || task.title
     });
     setIsSubmitting(false);
     onClose();
@@ -74,6 +77,20 @@ export function EditTaskDialog({ isOpen, onClose, task, onUpdate }: EditTaskDial
               </div>
             )}
           </div>
+
+          {/* Title field - editable for Other Tasks */}
+          {task.type === 'other' && (
+            <div className="space-y-2">
+              <Label htmlFor="title">Title</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                placeholder="Task title"
+                required
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="scheduledTime">Scheduled Time</Label>

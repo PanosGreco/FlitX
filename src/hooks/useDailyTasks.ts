@@ -16,6 +16,7 @@ export interface DailyTask {
   location: string | null;
   bookingId: string | null;
   contractPath: string | null;
+  title: string;
 }
 
 interface DbTask {
@@ -117,13 +118,14 @@ export function useDailyTasks(selectedDate: Date) {
       vehicleName: task.vehicles 
         ? `${task.vehicles.make} ${task.vehicles.model}${task.vehicles.license_plate ? ` (${task.vehicles.license_plate})` : ''}`
         : null,
-      scheduledTime: task.due_time || '',
+      scheduledTime: task.due_time ? task.due_time.substring(0, 5) : '',
       notes: task.description || '',
       completed: task.status === 'completed',
       date: task.due_date || selectedDateString,
       location: task.location || null,
       bookingId: task.booking_id || null,
-      contractPath: task.contract_path || null
+      contractPath: task.contract_path || null,
+      title: task.title || ''
     }));
 
     setTasks(mappedTasks);
@@ -156,7 +158,7 @@ export function useDailyTasks(selectedDate: Date) {
         due_date: selectedDateString,
         due_time: newTask.scheduledTime || null,
         description: newTask.notes || null,
-        title: newTask.vehicleName || newTask.type.charAt(0).toUpperCase() + newTask.type.slice(1),
+        title: newTask.title || newTask.vehicleName || newTask.type.charAt(0).toUpperCase() + newTask.type.slice(1),
         status: newTask.completed ? 'completed' : 'pending',
         location: newTask.location || null,
         booking_id: newTask.bookingId || null,
@@ -187,7 +189,7 @@ export function useDailyTasks(selectedDate: Date) {
         vehicle_id: updatedTask.vehicleId || null,
         due_time: updatedTask.scheduledTime || null,
         description: updatedTask.notes || null,
-        title: updatedTask.vehicleName || updatedTask.type.charAt(0).toUpperCase() + updatedTask.type.slice(1),
+        title: updatedTask.title || updatedTask.vehicleName || updatedTask.type.charAt(0).toUpperCase() + updatedTask.type.slice(1),
         status: updatedTask.completed ? 'completed' : 'pending',
         location: updatedTask.location || null,
         contract_path: updatedTask.contractPath
