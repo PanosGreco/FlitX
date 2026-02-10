@@ -38,7 +38,7 @@ interface RecurringTransactionsModalProps {
   onTransactionsGenerated?: () => void;
 }
 
-// Category label helper
+// Category label helper function
 const getCategoryLabel = (category: string, type: string, language: string, incomeSourceType?: string | null, expenseSubcategory?: string | null, incomeSourceSpecification?: string | null): string => {
   const labels: Record<string, {
     en: string;
