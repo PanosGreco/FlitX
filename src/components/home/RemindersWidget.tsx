@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { format, parseISO } from "date-fns";
-import { Clock, Loader2 } from "lucide-react";
+import { Bell, Clock, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -97,9 +97,12 @@ export function RemindersWidget() {
   return <div className="bg-white rounded-xl p-4 shadow-sm">
       {/* Header - No plus icon */}
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-base font-semibold text-center text-secondary-foreground">
-          Daily Vehicle Reminders
-        </h3>
+        <div className="flex items-center gap-2">
+          <Bell className="h-4 w-4 text-muted-foreground" />
+          <h3 className="text-base font-semibold text-secondary-foreground">
+            Daily Vehicle Reminders
+          </h3>
+        </div>
       </div>
 
       {/* Content */}
