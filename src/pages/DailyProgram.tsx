@@ -86,7 +86,7 @@ export default function DailyProgram() {
           </div>)}
 
         {/* Add Task Dialog */}
-        <AddTaskDialog isOpen={isAddDialogOpen} onClose={() => setIsAddDialogOpen(false)} onAddTask={handleAddTask} vehicles={vehicles} selectedDate={selectedDate} />
+        <AddTaskDialog isOpen={isAddDialogOpen} onClose={() => setIsAddDialogOpen(false)} onAddTask={handleAddTask} vehicles={vehicles} selectedDate={selectedDate} onDateChange={setSelectedDate} />
       </div>
     </MobileLayout>;
 }
