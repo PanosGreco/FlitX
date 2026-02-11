@@ -1,12 +1,15 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { CalendarDays, MapPin } from "lucide-react";
+import { CalendarDays, CalendarIcon, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import { DailyTask } from "@/hooks/useDailyTasks";
 
 interface AddTaskDialogProps {
@@ -19,6 +22,7 @@ interface AddTaskDialogProps {
     licensePlate: string | null;
   }[];
   selectedDate: Date;
+  onDateChange?: (date: Date) => void;
 }
 
 export function AddTaskDialog({
@@ -26,7 +30,8 @@ export function AddTaskDialog({
   onClose,
   onAddTask,
   vehicles,
-  selectedDate
+  selectedDate,
+  onDateChange
 }: AddTaskDialogProps) {
   const [formData, setFormData] = useState({
     type: 'return' as 'return' | 'delivery' | 'other',
@@ -108,11 +113,28 @@ export function AddTaskDialog({
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Task Date Display */}
-          <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg text-sm border-secondary-foreground">
-            <CalendarDays className="h-4 w-4 text-muted-foreground" />
-            <span className="text-muted-foreground">Task date:</span>
-            <span className="font-medium">{format(selectedDate, 'MMMM d, yyyy')}</span>
+          {/* Task Date - editable via calendar popover */}
+          <div className="space-y-2">
+            <Label>Date</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn("w-full justify-start text-left font-normal")}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {format(selectedDate, 'MMMM d, yyyy')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => date && onDateChange?.(date)}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="space-y-2">
@@ -175,10 +197,19 @@ export function AddTaskDialog({
 
           <div className="space-y-2">
             <Label htmlFor="scheduledTime">Scheduled Time</Label>
-            <Input id="scheduledTime" type="time" value={formData.scheduledTime} onChange={e => setFormData({
-              ...formData,
-              scheduledTime: e.target.value
-            })} required />
+            <Select value={formData.scheduledTime} onValueChange={(value) => setFormData({ ...formData, scheduledTime: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select time" />
+              </SelectTrigger>
+              <SelectContent className="max-h-[200px] overflow-y-auto">
+                {Array.from({ length: 24 }, (_, i) => {
+                  const hour = i.toString().padStart(2, '0');
+                  return `${hour}:00`;
+                }).map(time => (
+                  <SelectItem key={time} value={time}>{time}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Location field - only for deliveries and returns */}
