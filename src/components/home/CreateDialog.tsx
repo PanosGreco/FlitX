@@ -37,9 +37,7 @@ export function CreateDialog({ isOpen, onClose, onSuccess }: CreateDialogProps) 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   
-  // Show unified booking dialog when booking tab is active
   const [showBookingDialog, setShowBookingDialog] = useState(false);
-
   // Task form state
   const [taskTitle, setTaskTitle] = useState("");
   const [taskNotes, setTaskNotes] = useState("");
@@ -60,12 +58,12 @@ export function CreateDialog({ isOpen, onClose, onSuccess }: CreateDialogProps) 
     }
   }, [isOpen, user]);
 
-  // When booking tab is selected, show the unified booking dialog
+  // Reset tab to booking when dialog opens
   useEffect(() => {
-    if (activeTab === 'booking' && isOpen) {
-      setShowBookingDialog(true);
+    if (isOpen) {
+      setActiveTab('booking');
     }
-  }, [activeTab, isOpen]);
+  }, [isOpen]);
 
   const fetchVehicles = async () => {
     if (!user) return;
@@ -133,19 +131,9 @@ export function CreateDialog({ isOpen, onClose, onSuccess }: CreateDialogProps) 
     onClose();
   };
 
-  // If booking tab is active, show the unified booking dialog directly
-  if (activeTab === 'booking' && showBookingDialog) {
-    return (
-      <UnifiedBookingDialog
-        isOpen={isOpen}
-        onClose={handleBookingDialogClose}
-        onSuccess={handleBookingSuccess}
-      />
-    );
-  }
-
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <>
+    <Dialog open={isOpen && !showBookingDialog} onOpenChange={onClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -157,18 +145,24 @@ export function CreateDialog({ isOpen, onClose, onSuccess }: CreateDialogProps) 
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="booking" className="flex items-center gap-2">
               <Car className="h-4 w-4" />
-              {language === 'el' ? 'Κράτηση' : 'Booking'}
+              {language === 'el' ? 'Κράτηση' : 'New Booking'}
             </TabsTrigger>
             <TabsTrigger value="task" className="flex items-center gap-2">
               <ClipboardList className="h-4 w-4" />
-              {language === 'el' ? 'Εργασία' : 'Task'}
+              {language === 'el' ? 'Εργασία' : 'Other Task'}
             </TabsTrigger>
           </TabsList>
 
-          {/* Booking Tab - Will redirect to UnifiedBookingDialog */}
+          {/* Booking Tab - shows button to open booking dialog */}
           <TabsContent value="booking" className="space-y-4 mt-4">
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <div className="flex flex-col items-center justify-center py-8 gap-4">
+              <Car className="h-12 w-12 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground text-center">
+                {language === 'el' ? 'Δημιουργήστε μια νέα κράτηση οχήματος' : 'Create a new vehicle booking'}
+              </p>
+              <Button onClick={() => setShowBookingDialog(true)}>
+                {language === 'el' ? 'Νέα Κράτηση' : 'New Booking'}
+              </Button>
             </div>
           </TabsContent>
 
@@ -281,5 +275,11 @@ export function CreateDialog({ isOpen, onClose, onSuccess }: CreateDialogProps) 
         </Tabs>
       </DialogContent>
     </Dialog>
+    <UnifiedBookingDialog
+      isOpen={showBookingDialog}
+      onClose={handleBookingDialogClose}
+      onSuccess={handleBookingSuccess}
+    />
+    </>
   );
 }
