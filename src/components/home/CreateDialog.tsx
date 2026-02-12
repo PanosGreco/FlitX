@@ -58,10 +58,11 @@ export function CreateDialog({ isOpen, onClose, onSuccess }: CreateDialogProps) 
     }
   }, [isOpen, user]);
 
-  // Reset tab to booking when dialog opens
+  // Auto-open booking dialog when dialog opens (default = booking)
   useEffect(() => {
     if (isOpen) {
       setActiveTab('booking');
+      setShowBookingDialog(true);
     }
   }, [isOpen]);
 
@@ -141,7 +142,11 @@ export function CreateDialog({ isOpen, onClose, onSuccess }: CreateDialogProps) 
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'booking' | 'task')}>
+        <Tabs value={activeTab} onValueChange={(v) => {
+          const val = v as 'booking' | 'task';
+          setActiveTab(val);
+          if (val === 'booking') setShowBookingDialog(true);
+        }}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="booking" className="flex items-center gap-2">
               <Car className="h-4 w-4" />
@@ -231,19 +236,6 @@ export function CreateDialog({ isOpen, onClose, onSuccess }: CreateDialogProps) 
               </Select>
             </div>
 
-            {/* Task Location */}
-            <div>
-              <Label>{language === 'el' ? 'Τοποθεσία' : 'Location'}</Label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  value={taskLocation}
-                  onChange={(e) => setTaskLocation(e.target.value)}
-                  className="pl-10"
-                  placeholder={language === 'el' ? 'Διεύθυνση' : 'Address'}
-                />
-              </div>
-            </div>
 
             {/* Task Vehicle (optional) */}
             <div>
