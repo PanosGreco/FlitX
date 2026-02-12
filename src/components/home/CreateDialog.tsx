@@ -36,8 +36,6 @@ export function CreateDialog({ isOpen, onClose, onSuccess }: CreateDialogProps) 
   const [activeTab, setActiveTab] = useState<'booking' | 'task'>('booking');
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  
-  const [showBookingDialog, setShowBookingDialog] = useState(false);
 
   // Task form state
   const [taskTitle, setTaskTitle] = useState("");
@@ -58,11 +56,9 @@ export function CreateDialog({ isOpen, onClose, onSuccess }: CreateDialogProps) 
     }
   }, [isOpen, user]);
 
-  // Reset state when dialog opens
   useEffect(() => {
     if (isOpen) {
       setActiveTab('booking');
-      setShowBookingDialog(false);
     }
   }, [isOpen]);
 
@@ -116,38 +112,6 @@ export function CreateDialog({ isOpen, onClose, onSuccess }: CreateDialogProps) 
     setTaskVehicleId("");
   };
 
-  const handleBookingDialogClose = () => {
-    setShowBookingDialog(false);
-    // Return to the tabbed dialog, don't close everything
-  };
-
-  const handleBookingSuccess = () => {
-    setShowBookingDialog(false);
-    onSuccess();
-    onClose();
-  };
-
-  const handleTabChange = (val: string) => {
-    const tab = val as 'booking' | 'task';
-    setActiveTab(tab);
-    if (tab === 'booking') {
-      // Don't auto-open booking dialog, let user click
-    } else {
-      setShowBookingDialog(false);
-    }
-  };
-
-  // If booking dialog is open, show it (main dialog stays hidden behind it)
-  if (showBookingDialog) {
-    return (
-      <UnifiedBookingDialog
-        isOpen={true}
-        onClose={handleBookingDialogClose}
-        onSuccess={handleBookingSuccess}
-      />
-    );
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
@@ -157,7 +121,7 @@ export function CreateDialog({ isOpen, onClose, onSuccess }: CreateDialogProps) 
           </DialogTitle>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={handleTabChange}>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'booking' | 'task')}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="booking" className="flex items-center gap-2">
               <Car className="h-4 w-4" />
@@ -169,22 +133,18 @@ export function CreateDialog({ isOpen, onClose, onSuccess }: CreateDialogProps) 
             </TabsTrigger>
           </TabsList>
 
-          {/* Booking Tab */}
+          {/* Booking Tab - embedded booking form */}
           <TabsContent value="booking" className="mt-4">
-            <div className="flex flex-col items-center justify-center py-6 gap-3">
-              <Car className="h-10 w-10 text-primary" />
-              <p className="text-sm text-muted-foreground text-center">
-                {language === 'el' ? 'Δημιουργήστε μια νέα κράτηση οχήματος' : 'Create a new vehicle rental booking'}
-              </p>
-              <Button className="w-full" onClick={() => setShowBookingDialog(true)}>
-                {language === 'el' ? 'Συνέχεια στη Κράτηση' : 'Continue to Booking'}
-              </Button>
-            </div>
+            <UnifiedBookingDialog
+              isOpen={activeTab === 'booking' && isOpen}
+              onClose={onClose}
+              onSuccess={() => { onSuccess(); onClose(); }}
+              embedded={true}
+            />
           </TabsContent>
 
           {/* Task Form */}
           <TabsContent value="task" className="space-y-4 mt-4">
-            {/* Task Title */}
             <div>
               <Label>{language === 'el' ? 'Τίτλος' : 'Title'} *</Label>
               <Input
@@ -194,7 +154,6 @@ export function CreateDialog({ isOpen, onClose, onSuccess }: CreateDialogProps) 
               />
             </div>
 
-            {/* Task Notes */}
             <div>
               <Label>{language === 'el' ? 'Σημειώσεις' : 'Notes'}</Label>
               <Textarea
@@ -205,7 +164,6 @@ export function CreateDialog({ isOpen, onClose, onSuccess }: CreateDialogProps) 
               />
             </div>
 
-            {/* Task Date */}
             <div>
               <Label>{language === 'el' ? 'Ημερομηνία' : 'Date'} *</Label>
               <Popover>
@@ -232,7 +190,6 @@ export function CreateDialog({ isOpen, onClose, onSuccess }: CreateDialogProps) 
               </Popover>
             </div>
 
-            {/* Task Time */}
             <div>
               <Label>{language === 'el' ? 'Ώρα' : 'Time'}</Label>
               <Select value={taskTime} onValueChange={setTaskTime}>
@@ -247,7 +204,6 @@ export function CreateDialog({ isOpen, onClose, onSuccess }: CreateDialogProps) 
               </Select>
             </div>
 
-            {/* Task Vehicle (optional) */}
             <div>
               <Label>{language === 'el' ? 'Όχημα (προαιρετικό)' : 'Vehicle (optional)'}</Label>
               <Select value={taskVehicleId} onValueChange={setTaskVehicleId}>

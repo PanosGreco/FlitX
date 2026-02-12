@@ -69,6 +69,7 @@ interface UnifiedBookingDialogProps {
   preselectedVehicleId?: string;
   preselectedStartDate?: Date;
   preselectedEndDate?: Date;
+  embedded?: boolean;
 }
 
 export function UnifiedBookingDialog({ 
@@ -77,7 +78,8 @@ export function UnifiedBookingDialog({
   onSuccess,
   preselectedVehicleId,
   preselectedStartDate,
-  preselectedEndDate
+  preselectedEndDate,
+  embedded = false
 }: UnifiedBookingDialogProps) {
   const { user } = useAuth();
   const { language } = useLanguage();
@@ -539,14 +541,9 @@ export function UnifiedBookingDialog({
     setTransmissionTypeFilter([]);
   };
 
-  return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) { resetForm(); onClose(); } }}>
-      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>
-            {language === 'el' ? 'Νέα Κράτηση' : 'New Booking'}
-          </DialogTitle>
-        </DialogHeader>
+  const formContent = (
+    <>
+        <div>
 
         <div className="space-y-4">
           {/* Booking Source */}
@@ -1136,6 +1133,23 @@ export function UnifiedBookingDialog({
             }
           </Button>
         </DialogFooter>
+        </div>
+    </>
+  );
+
+  if (embedded) {
+    return isOpen ? formContent : null;
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) { resetForm(); onClose(); } }}>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {language === 'el' ? 'Νέα Κράτηση' : 'New Booking'}
+          </DialogTitle>
+        </DialogHeader>
+        {formContent}
       </DialogContent>
     </Dialog>
   );
