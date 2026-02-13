@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, startOfWeek, endOfWeek, addMonths, subMonths } from "date-fns";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Fuel, CreditCard } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -138,10 +138,10 @@ export function MonthlyCalendar({
                             {/* Fuel & Payment - only for delivery/return with data */}
                             {(task.type === 'delivery' || task.type === 'return') && (task.fuelLevel || task.paymentStatus) && (
                               <div className="flex flex-wrap gap-x-2 gap-y-0.5 pt-0.5">
-                                {task.fuelLevel && <p className="text-[11px] text-slate-500">⛽ {task.fuelLevel}</p>}
+                                {task.fuelLevel && <p className="text-[11px] text-slate-500 flex items-center gap-0.5"><Fuel className="h-2.5 w-2.5" /> {task.fuelLevel}</p>}
                                 {task.paymentStatus && (
-                                  <p className="text-[11px] text-slate-500">
-                                    💳 {task.paymentStatus === 'paid_in_full' ? 'Paid' : `Due${task.balanceDueAmount ? ` €${task.balanceDueAmount}` : ''}`}
+                                  <p className="text-[11px] text-slate-500 flex items-center gap-0.5">
+                                    <CreditCard className="h-2.5 w-2.5" /> {task.paymentStatus === 'paid_in_full' ? 'Paid' : `Due${task.balanceDueAmount ? ` €${task.balanceDueAmount}` : ''}`}
                                   </p>
                                 )}
                               </div>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, Edit, Trash2, Check, MapPin, FileText } from "lucide-react";
+import { Clock, Edit, Trash2, Check, MapPin, FileText, Fuel, CreditCard } from "lucide-react";
 import { formatTime24h } from "@/utils/dateFormatUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -173,6 +173,24 @@ export function TaskItem({
             {task.notes && <p className="text-muted-foreground bg-muted/50 p-2 rounded line-clamp-2 text-sm">
                 {task.notes}
               </p>}
+
+            {/* Fuel & Payment - only for delivery/return tasks */}
+            {(task.type === 'delivery' || task.type === 'return') && (task.fuelLevel || task.paymentStatus) && (
+              <div className="space-y-1">
+                {task.fuelLevel && (
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <Fuel className="h-3 w-3 mr-1" />
+                    <span>Fuel Level: {task.fuelLevel}</span>
+                  </div>
+                )}
+                {task.paymentStatus && (
+                  <div className="flex items-center text-xs text-muted-foreground">
+                    <CreditCard className="h-3 w-3 mr-1" />
+                    <span>{task.paymentStatus === 'paid_in_full' ? 'Paid in Full' : `Balance Due${task.balanceDueAmount ? ` (€${task.balanceDueAmount})` : ''}`}</span>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Complete Button */}
             <div className="flex justify-end pt-1">
