@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { format, addDays, subDays, startOfWeek, isSameDay, getWeek } from "date-fns";
-import { ChevronLeft, ChevronRight, Loader2, Plus, MapPin, Clock, Car, User, FileText, Tag } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Plus, MapPin, Clock, Car, User, FileText, Tag, Fuel, CreditCard } from "lucide-react";
 import { formatTime24h } from "@/utils/dateFormatUtils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -345,6 +345,31 @@ export function TimelineCalendar({
                     <div>
                       <div className="text-xs text-slate-500 mb-0.5">Notes</div>
                       <div className="text-sm text-slate-700">{selectedTask.notes}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Fuel Level */}
+                {selectedTask.fuelLevel && (selectedTask.type === 'delivery' || selectedTask.type === 'return') && (
+                  <div className="flex items-start gap-3">
+                    <Fuel className="h-4 w-4 text-slate-400 mt-0.5" />
+                    <div>
+                      <div className="text-xs text-slate-500 mb-0.5">Fuel Level</div>
+                      <div className="text-sm font-medium text-slate-800">{selectedTask.fuelLevel}</div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Payment Status */}
+                {selectedTask.paymentStatus && (selectedTask.type === 'delivery' || selectedTask.type === 'return') && (
+                  <div className="flex items-start gap-3">
+                    <CreditCard className="h-4 w-4 text-slate-400 mt-0.5" />
+                    <div>
+                      <div className="text-xs text-slate-500 mb-0.5">Payment</div>
+                      <div className="text-sm font-medium text-slate-800">
+                        {selectedTask.paymentStatus === 'paid_in_full' ? 'Paid in Full' : 
+                          `Balance Due${selectedTask.balanceDueAmount ? ` (€${selectedTask.balanceDueAmount})` : ''}`}
+                      </div>
                     </div>
                   </div>
                 )}

@@ -134,6 +134,18 @@ export function MonthlyCalendar({
                                   📍 {task.location}
                                 </p>}
                             </div>
+                            
+                            {/* Fuel & Payment - only for delivery/return with data */}
+                            {(task.type === 'delivery' || task.type === 'return') && (task.fuelLevel || task.paymentStatus) && (
+                              <div className="flex flex-wrap gap-x-2 gap-y-0.5 pt-0.5">
+                                {task.fuelLevel && <p className="text-[11px] text-slate-500">⛽ {task.fuelLevel}</p>}
+                                {task.paymentStatus && (
+                                  <p className="text-[11px] text-slate-500">
+                                    💳 {task.paymentStatus === 'paid_in_full' ? 'Paid' : `Due${task.balanceDueAmount ? ` €${task.balanceDueAmount}` : ''}`}
+                                  </p>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>)}
                     </div>

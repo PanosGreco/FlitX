@@ -106,6 +106,11 @@ export function UnifiedBookingDialog({
   const [customTotalPrice, setCustomTotalPrice] = useState(0);
   const [additionalCosts, setAdditionalCosts] = useState<AdditionalCost[]>([]);
   
+  // Payment & Fuel state
+  const [paymentStatus, setPaymentStatus] = useState<'paid_in_full' | 'balance_due'>('paid_in_full');
+  const [balanceDueAmount, setBalanceDueAmount] = useState(0);
+  const [fuelLevel, setFuelLevel] = useState("");
+  
   // Data state
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [allBookings, setAllBookings] = useState<ExistingBooking[]>([]);
@@ -429,7 +434,7 @@ export function UnifiedBookingDialog({
       const vehicleName = selectedVehicle ? `${selectedVehicle.make} ${selectedVehicle.model}` : '';
 
       // Create booking
-      const bookingData = {
+      const bookingData: any = {
         vehicle_id: selectedVehicleId,
         user_id: user.id,
         start_date: format(startDate, 'yyyy-MM-dd'),
@@ -442,7 +447,10 @@ export function UnifiedBookingDialog({
         notes: notes,
         total_amount: totalAmount,
         status: 'confirmed' as const,
-        contract_photo_path: contractPhotoPath
+        contract_photo_path: contractPhotoPath,
+        fuel_level: fuelLevel || null,
+        payment_status: paymentStatus,
+        balance_due_amount: paymentStatus === 'balance_due' ? balanceDueAmount : null
       };
 
       const { data: booking, error: bookingError } = await supabase
@@ -535,6 +543,9 @@ export function UnifiedBookingDialog({
     setIncomeSourceType('walk_in');
     setIncomeSourceSpecification('');
     setConflictError(null);
+    setPaymentStatus('paid_in_full');
+    setBalanceDueAmount(0);
+    setFuelLevel("");
     setVehicleSearch("");
     setFuelTypeFilter([]);
     setVehicleTypeFilter([]);
@@ -1041,6 +1052,56 @@ export function UnifiedBookingDialog({
               </div>
             </div>
           )}
+
+          {/* Payment Status */}
+          <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+            <Label className="text-base font-semibold">
+              {language === 'el' ? 'Κατάσταση Πληρωμής' : 'Payment Status'}
+            </Label>
+            <RadioGroup
+              value={paymentStatus}
+              onValueChange={(v) => setPaymentStatus(v as 'paid_in_full' | 'balance_due')}
+              className="space-y-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="paid_in_full" id="paid_in_full" />
+                <Label htmlFor="paid_in_full" className="font-normal cursor-pointer">
+                  {language === 'el' ? 'Εξοφλημένο' : 'Paid in Full'}
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="balance_due" id="balance_due" />
+                <Label htmlFor="balance_due" className="font-normal cursor-pointer">
+                  {language === 'el' ? 'Υπόλοιπο' : 'Balance Due'}
+                </Label>
+              </div>
+            </RadioGroup>
+
+            {paymentStatus === 'balance_due' && (
+              <div className="pl-6 flex items-center gap-2">
+                <span className="text-muted-foreground">€</span>
+                <Input
+                  type="number"
+                  value={balanceDueAmount || ''}
+                  onChange={(e) => setBalanceDueAmount(Number(e.target.value))}
+                  min={0}
+                  step="0.01"
+                  className="w-32"
+                  placeholder={language === 'el' ? 'Ποσό' : 'Amount'}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Fuel Level */}
+          <div>
+            <Label>⛽ {language === 'el' ? 'Επίπεδο Καυσίμου' : 'Fuel Level'}</Label>
+            <Input
+              value={fuelLevel}
+              onChange={(e) => setFuelLevel(e.target.value)}
+              placeholder={language === 'el' ? 'π.χ. Full, 75%, 3/4' : 'e.g. Full, 75%, 3/4'}
+            />
+          </div>
 
           {/* Notes */}
           <div>

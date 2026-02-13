@@ -23,6 +23,9 @@ export interface CalendarTask {
   customerName?: string;
   notes?: string | null;
   contractPath?: string | null;
+  fuelLevel?: string | null;
+  paymentStatus?: string | null;
+  balanceDueAmount?: number | null;
 }
 
 export default function Home() {
@@ -77,11 +80,17 @@ export default function Home() {
       // Fetch bookings to get customer names and contract paths
       const { data: bookingsData } = await supabase
         .from('rental_bookings')
-        .select('id, customer_name, contract_photo_path')
+        .select('id, customer_name, contract_photo_path, fuel_level, payment_status, balance_due_amount')
         .eq('user_id', user.id);
 
       const bookingsMap = new Map(
-        (bookingsData || []).map(b => [b.id, { customerName: b.customer_name, contractPath: b.contract_photo_path }])
+        (bookingsData || []).map((b: any) => [b.id, { 
+          customerName: b.customer_name, 
+          contractPath: b.contract_photo_path,
+          fuelLevel: b.fuel_level,
+          paymentStatus: b.payment_status,
+          balanceDueAmount: b.balance_due_amount
+        }])
       );
 
       const mappedTasks: CalendarTask[] = (tasksData || []).map((task: any) => {
@@ -100,7 +109,10 @@ export default function Home() {
           bookingId: task.booking_id,
           customerName: bookingInfo?.customerName,
           notes: task.description,
-          contractPath: bookingInfo?.contractPath
+          contractPath: bookingInfo?.contractPath,
+          fuelLevel: bookingInfo?.fuelLevel,
+          paymentStatus: bookingInfo?.paymentStatus,
+          balanceDueAmount: bookingInfo?.balanceDueAmount
         };
       });
 
