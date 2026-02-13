@@ -300,7 +300,7 @@ export function RentalBookingsList({
                   {booking.fuel_level &&
               <div className="flex items-start gap-2 text-sm text-gray-600">
                       <span className="font-medium text-muted-foreground min-w-[60px] text-base flex items-center gap-1"><Fuel className="h-3.5 w-3.5" /> Fuel:</span>
-                      <span className="text-sm text-secondary-foreground my-[4px] mx-0">{booking.fuel_level}</span>
+                      <span className="text-sm text-secondary-foreground font-semibold px-0 my-[3px] mx-px">{booking.fuel_level}</span>
                     </div>
               }
 
