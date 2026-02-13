@@ -49,7 +49,7 @@ export function RentalBookingsList({
   const filteredBookings = useMemo(() => {
     if (!searchQuery.trim()) return bookings;
     const query = searchQuery.toLowerCase();
-    return bookings.filter(booking => booking.customer_name.toLowerCase().includes(query));
+    return bookings.filter((booking) => booking.customer_name.toLowerCase().includes(query));
   }, [bookings, searchQuery]);
   useEffect(() => {
     fetchBookings();
@@ -118,7 +118,7 @@ export function RentalBookingsList({
       }).eq('booking_id', selectedBookingId);
 
       // Update local state
-      setBookings(bookings.map(b => b.id === selectedBookingId ? {
+      setBookings(bookings.map((b) => b.id === selectedBookingId ? {
         ...b,
         contract_photo_path: undefined
       } : b));
@@ -143,7 +143,7 @@ export function RentalBookingsList({
   const handleDeleteBooking = async (bookingId: string) => {
     try {
       // First, get the booking to find the contract path
-      const booking = bookings.find(b => b.id === bookingId);
+      const booking = bookings.find((b) => b.id === bookingId);
 
       // Delete contract file from storage if exists
       if (booking?.contract_photo_path) {
@@ -162,7 +162,7 @@ export function RentalBookingsList({
 
       // Delete task contract files from storage
       if (tasksWithContracts && tasksWithContracts.length > 0) {
-        const contractPaths = tasksWithContracts.map(t => t.contract_path).filter(Boolean) as string[];
+        const contractPaths = tasksWithContracts.map((t) => t.contract_path).filter(Boolean) as string[];
         if (contractPaths.length > 0) {
           await supabase.storage.from('rental-contracts').remove(contractPaths);
         }
@@ -181,7 +181,7 @@ export function RentalBookingsList({
       if (error) {
         throw error;
       }
-      setBookings(bookings.filter(b => b.id !== bookingId));
+      setBookings(bookings.filter((b) => b.id !== bookingId));
       onBookingDeleted(bookingId);
       toast({
         title: "Booking Deleted",
@@ -238,14 +238,14 @@ export function RentalBookingsList({
         {/* Customer Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search by customer name..." className="pl-9" />
+          <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search by customer name..." className="pl-9" />
         </div>
 
         {filteredBookings.length === 0 && searchQuery && <div className="text-center py-4 text-muted-foreground">
             No bookings found for "{searchQuery}"
           </div>}
 
-        {filteredBookings.map(booking => {
+        {filteredBookings.map((booking) => {
         const {
           status,
           color
@@ -297,23 +297,23 @@ export function RentalBookingsList({
                     </div>}
 
                   {/* Fuel Level */}
-                  {booking.fuel_level && (
-                    <div className="flex items-start gap-2 text-sm text-gray-600">
+                  {booking.fuel_level &&
+              <div className="flex items-start gap-2 text-sm text-gray-600">
                       <span className="font-medium text-muted-foreground min-w-[60px] text-base flex items-center gap-1"><Fuel className="h-3.5 w-3.5" /> Fuel:</span>
-                      <span className="text-sm text-secondary-foreground">{booking.fuel_level}</span>
+                      <span className="text-sm text-secondary-foreground my-[4px] mx-0">{booking.fuel_level}</span>
                     </div>
-                  )}
+              }
 
                   {/* Payment Status */}
-                  {booking.payment_status && (
-                    <div className="flex items-start gap-2 text-sm text-gray-600">
+                  {booking.payment_status &&
+              <div className="flex items-start gap-2 text-sm text-gray-600">
                       <span className="font-medium text-muted-foreground min-w-[60px] text-base flex items-center gap-1"><CreditCard className="h-3.5 w-3.5" /> Payment:</span>
-                      <span className="text-sm text-secondary-foreground">
-                        {booking.payment_status === 'paid_in_full' ? 'Paid in Full' : 
-                          `Balance Due${booking.balance_due_amount ? ` (€${booking.balance_due_amount})` : ''}`}
+                      <span className="text-sm text-secondary-foreground my-[3px] font-semibold">
+                        {booking.payment_status === 'paid_in_full' ? 'Paid in Full' :
+                  `Balance Due${booking.balance_due_amount ? ` (€${booking.balance_due_amount})` : ''}`}
                       </span>
                     </div>
-                  )}
+              }
                 </div>
               </CardContent>
             </Card>;
