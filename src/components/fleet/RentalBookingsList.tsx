@@ -21,6 +21,9 @@ interface RentalBooking {
   notes: string;
   contract_photo_path?: string;
   created_at: string;
+  fuel_level?: string | null;
+  payment_status?: string | null;
+  balance_due_amount?: number | null;
 }
 interface RentalBookingsListProps {
   vehicleId: string;
@@ -292,6 +295,25 @@ export function RentalBookingsList({
                       <span className="font-medium text-muted-foreground min-w-[60px] text-base">Notes:</span>
                       <span className="text-sm font-semibold text-secondary-foreground">{booking.notes}</span>
                     </div>}
+
+                  {/* Fuel Level */}
+                  {booking.fuel_level && (
+                    <div className="flex items-start gap-2 text-sm text-gray-600">
+                      <span className="font-medium text-muted-foreground min-w-[60px] text-base">⛽ Fuel:</span>
+                      <span className="text-sm text-secondary-foreground">{booking.fuel_level}</span>
+                    </div>
+                  )}
+
+                  {/* Payment Status */}
+                  {booking.payment_status && (
+                    <div className="flex items-start gap-2 text-sm text-gray-600">
+                      <span className="font-medium text-muted-foreground min-w-[60px] text-base">💳 Payment:</span>
+                      <span className="text-sm text-secondary-foreground">
+                        {booking.payment_status === 'paid_in_full' ? 'Paid in Full' : 
+                          `Balance Due${booking.balance_due_amount ? ` (€${booking.balance_due_amount})` : ''}`}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>;

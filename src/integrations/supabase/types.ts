@@ -504,13 +504,16 @@ export type Database = {
       }
       rental_bookings: {
         Row: {
+          balance_due_amount: number | null
           contract_photo_path: string | null
           created_at: string
           customer_name: string
           dropoff_location: string | null
           end_date: string
+          fuel_level: string | null
           id: string
           notes: string | null
+          payment_status: string | null
           pickup_location: string | null
           pickup_time: string | null
           return_time: string | null
@@ -522,13 +525,16 @@ export type Database = {
           vehicle_id: string
         }
         Insert: {
+          balance_due_amount?: number | null
           contract_photo_path?: string | null
           created_at?: string
           customer_name: string
           dropoff_location?: string | null
           end_date: string
+          fuel_level?: string | null
           id?: string
           notes?: string | null
+          payment_status?: string | null
           pickup_location?: string | null
           pickup_time?: string | null
           return_time?: string | null
@@ -540,13 +546,16 @@ export type Database = {
           vehicle_id: string
         }
         Update: {
+          balance_due_amount?: number | null
           contract_photo_path?: string | null
           created_at?: string
           customer_name?: string
           dropoff_location?: string | null
           end_date?: string
+          fuel_level?: string | null
           id?: string
           notes?: string | null
+          payment_status?: string | null
           pickup_location?: string | null
           pickup_time?: string | null
           return_time?: string | null
