@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { format, differenceInDays, differenceInHours, isBefore, isAfter, parseISO, isWithinInterval } from "date-fns";
-import { CalendarIcon, Camera, Upload, X, MapPin, Clock, Plus, Trash2, Search, Filter, Car, AlertTriangle } from "lucide-react";
+import { CalendarIcon, Camera, Upload, X, MapPin, Clock, Plus, Trash2, Search, Filter, Car, AlertTriangle, Fuel } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1095,7 +1095,7 @@ export function UnifiedBookingDialog({
 
           {/* Fuel Level */}
           <div>
-            <Label>⛽ {language === 'el' ? 'Επίπεδο Καυσίμου' : 'Fuel Level'}</Label>
+            <Label className="flex items-center gap-1"><Fuel className="h-4 w-4" /> {language === 'el' ? 'Επίπεδο Καυσίμου' : 'Fuel Level'}</Label>
             <Input
               value={fuelLevel}
               onChange={(e) => setFuelLevel(e.target.value)}

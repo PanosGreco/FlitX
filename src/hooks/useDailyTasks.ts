@@ -17,6 +17,9 @@ export interface DailyTask {
   bookingId: string | null;
   contractPath: string | null;
   title: string;
+  fuelLevel?: string | null;
+  paymentStatus?: string | null;
+  balanceDueAmount?: number | null;
 }
 
 interface DbTask {
@@ -111,22 +114,44 @@ export function useDailyTasks(selectedDate: Date) {
       return;
     }
 
-    const mappedTasks: DailyTask[] = (data || []).map((task: DbTask) => ({
-      id: task.id,
-      type: task.task_type as 'return' | 'delivery' | 'other',
-      vehicleId: task.vehicle_id,
-      vehicleName: task.vehicles 
-        ? `${task.vehicles.make} ${task.vehicles.model}${task.vehicles.license_plate ? ` (${task.vehicles.license_plate})` : ''}`
-        : null,
-      scheduledTime: task.due_time ? task.due_time.substring(0, 5) : '',
-      notes: task.description || '',
-      completed: task.status === 'completed',
-      date: task.due_date || selectedDateString,
-      location: task.location || null,
-      bookingId: task.booking_id || null,
-      contractPath: task.contract_path || null,
-      title: task.title || ''
-    }));
+    // Collect booking IDs for delivery/return tasks to fetch fuel/payment data
+    const bookingIds = (data || [])
+      .filter((t: DbTask) => t.booking_id && (t.task_type === 'delivery' || t.task_type === 'return'))
+      .map((t: DbTask) => t.booking_id as string);
+
+    let bookingsMap: Record<string, { fuel_level: string | null; payment_status: string | null; balance_due_amount: number | null }> = {};
+    if (bookingIds.length > 0) {
+      const { data: bookings } = await supabase
+        .from('rental_bookings')
+        .select('id, fuel_level, payment_status, balance_due_amount')
+        .in('id', bookingIds);
+      if (bookings) {
+        bookingsMap = Object.fromEntries(bookings.map(b => [b.id, { fuel_level: b.fuel_level, payment_status: b.payment_status, balance_due_amount: b.balance_due_amount }]));
+      }
+    }
+
+    const mappedTasks: DailyTask[] = (data || []).map((task: DbTask) => {
+      const booking = task.booking_id ? bookingsMap[task.booking_id] : null;
+      return {
+        id: task.id,
+        type: task.task_type as 'return' | 'delivery' | 'other',
+        vehicleId: task.vehicle_id,
+        vehicleName: task.vehicles 
+          ? `${task.vehicles.make} ${task.vehicles.model}${task.vehicles.license_plate ? ` (${task.vehicles.license_plate})` : ''}`
+          : null,
+        scheduledTime: task.due_time ? task.due_time.substring(0, 5) : '',
+        notes: task.description || '',
+        completed: task.status === 'completed',
+        date: task.due_date || selectedDateString,
+        location: task.location || null,
+        bookingId: task.booking_id || null,
+        contractPath: task.contract_path || null,
+        title: task.title || '',
+        fuelLevel: booking?.fuel_level || null,
+        paymentStatus: booking?.payment_status || null,
+        balanceDueAmount: booking?.balance_due_amount || null,
+      };
+    });
 
     setTasks(mappedTasks);
     setLoading(false);

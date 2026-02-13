@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Calendar, User, FileText, Trash2, X, Search } from "lucide-react";
+import { Calendar, User, FileText, Trash2, X, Search, Fuel, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -299,7 +299,7 @@ export function RentalBookingsList({
                   {/* Fuel Level */}
                   {booking.fuel_level && (
                     <div className="flex items-start gap-2 text-sm text-gray-600">
-                      <span className="font-medium text-muted-foreground min-w-[60px] text-base">⛽ Fuel:</span>
+                      <span className="font-medium text-muted-foreground min-w-[60px] text-base flex items-center gap-1"><Fuel className="h-3.5 w-3.5" /> Fuel:</span>
                       <span className="text-sm text-secondary-foreground">{booking.fuel_level}</span>
                     </div>
                   )}
@@ -307,7 +307,7 @@ export function RentalBookingsList({
                   {/* Payment Status */}
                   {booking.payment_status && (
                     <div className="flex items-start gap-2 text-sm text-gray-600">
-                      <span className="font-medium text-muted-foreground min-w-[60px] text-base">💳 Payment:</span>
+                      <span className="font-medium text-muted-foreground min-w-[60px] text-base flex items-center gap-1"><CreditCard className="h-3.5 w-3.5" /> Payment:</span>
                       <span className="text-sm text-secondary-foreground">
                         {booking.payment_status === 'paid_in_full' ? 'Paid in Full' : 
                           `Balance Due${booking.balance_due_amount ? ` (€${booking.balance_due_amount})` : ''}`}
