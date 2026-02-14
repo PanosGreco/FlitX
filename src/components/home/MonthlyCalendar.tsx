@@ -146,6 +146,16 @@ export function MonthlyCalendar({
                                 )}
                               </div>
                             )}
+                            {/* Additional Information */}
+                            {(task.type === 'delivery' || task.type === 'return') && task.additionalInfo && task.additionalInfo.length > 0 && (
+                              <div className="pt-0.5">
+                                {task.additionalInfo.map((info, idx) => (
+                                  <p key={idx} className="text-[11px] text-slate-500">
+                                    {info.categoryName}: {info.subcategoryValue}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>)}
                     </div>

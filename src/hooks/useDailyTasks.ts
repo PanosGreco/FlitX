@@ -20,6 +20,7 @@ export interface DailyTask {
   fuelLevel?: string | null;
   paymentStatus?: string | null;
   balanceDueAmount?: number | null;
+  additionalInfo?: { categoryName: string; subcategoryValue: string }[];
 }
 
 interface DbTask {
@@ -130,6 +131,32 @@ export function useDailyTasks(selectedDate: Date) {
       }
     }
 
+    // Fetch additional info for booking tasks
+    let additionalInfoMap: Record<string, { categoryName: string; subcategoryValue: string }[]> = {};
+    if (bookingIds.length > 0) {
+      const { data: infoData } = await supabase
+        .from('booking_additional_info')
+        .select('booking_id, subcategory_value, category_id')
+        .in('booking_id', bookingIds);
+      
+      if (infoData && infoData.length > 0) {
+        const categoryIds = [...new Set(infoData.map(i => i.category_id))];
+        const { data: categories } = await supabase
+          .from('additional_info_categories')
+          .select('id, name')
+          .in('id', categoryIds);
+        
+        const catMap = Object.fromEntries((categories || []).map(c => [c.id, c.name]));
+        for (const info of infoData) {
+          if (!additionalInfoMap[info.booking_id]) additionalInfoMap[info.booking_id] = [];
+          additionalInfoMap[info.booking_id].push({
+            categoryName: catMap[info.category_id] || 'Unknown',
+            subcategoryValue: info.subcategory_value || ''
+          });
+        }
+      }
+    }
+
     const mappedTasks: DailyTask[] = (data || []).map((task: DbTask) => {
       const booking = task.booking_id ? bookingsMap[task.booking_id] : null;
       return {
@@ -150,6 +177,7 @@ export function useDailyTasks(selectedDate: Date) {
         fuelLevel: booking?.fuel_level || null,
         paymentStatus: booking?.payment_status || null,
         balanceDueAmount: booking?.balance_due_amount || null,
+        additionalInfo: task.booking_id ? additionalInfoMap[task.booking_id] || [] : [],
       };
     });
 

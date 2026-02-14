@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { format, addDays, subDays, startOfWeek, isSameDay, getWeek } from "date-fns";
-import { ChevronLeft, ChevronRight, Loader2, Plus, MapPin, Clock, Car, User, FileText, Tag, Fuel, CreditCard } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Plus, MapPin, Clock, Car, User, FileText, Tag, Fuel, CreditCard, Info } from "lucide-react";
 import { formatTime24h } from "@/utils/dateFormatUtils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -370,6 +370,22 @@ export function TimelineCalendar({
                         {selectedTask.paymentStatus === 'paid_in_full' ? 'Paid in Full' : 
                           `Balance Due${selectedTask.balanceDueAmount ? ` (€${selectedTask.balanceDueAmount})` : ''}`}
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Additional Information */}
+                {(selectedTask.type === 'delivery' || selectedTask.type === 'return') && 
+                  selectedTask.additionalInfo && selectedTask.additionalInfo.length > 0 && (
+                  <div className="flex items-start gap-3">
+                    <Info className="h-4 w-4 text-slate-400 mt-0.5" />
+                    <div>
+                      <div className="text-xs text-slate-500 mb-0.5">Additional Info</div>
+                      {selectedTask.additionalInfo.map((info, idx) => (
+                        <div key={idx} className="text-sm font-medium text-slate-800">
+                          {info.categoryName}: {info.subcategoryValue}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

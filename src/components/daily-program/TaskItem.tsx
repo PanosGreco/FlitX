@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, Edit, Trash2, Check, MapPin, FileText, Fuel, CreditCard } from "lucide-react";
+import { Clock, Edit, Trash2, Check, MapPin, FileText, Fuel, CreditCard, Info } from "lucide-react";
 import { formatTime24h } from "@/utils/dateFormatUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -189,6 +189,18 @@ export function TaskItem({
                     <span>{task.paymentStatus === 'paid_in_full' ? 'Paid in Full' : `Balance Due${task.balanceDueAmount ? ` (€${task.balanceDueAmount})` : ''}`}</span>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Additional Information - only for delivery/return tasks */}
+            {(task.type === 'delivery' || task.type === 'return') && task.additionalInfo && task.additionalInfo.length > 0 && (
+              <div className="space-y-1">
+                {task.additionalInfo.map((info, idx) => (
+                  <div key={idx} className="flex items-center text-xs text-muted-foreground">
+                    <Info className="h-3 w-3 mr-1" />
+                    <span>{info.categoryName}: {info.subcategoryValue}</span>
+                  </div>
+                ))}
               </div>
             )}
 

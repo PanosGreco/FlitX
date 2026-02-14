@@ -34,6 +34,7 @@ export function RentalBookingsList({
   onBookingDeleted
 }: RentalBookingsListProps) {
   const [bookings, setBookings] = useState<RentalBooking[]>([]);
+  const [additionalInfoMap, setAdditionalInfoMap] = useState<Record<string, { categoryName: string; subcategoryValue: string }[]>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
@@ -67,6 +68,36 @@ export function RentalBookingsList({
         return;
       }
       setBookings(data || []);
+
+      // Fetch additional info for all bookings
+      const bookingIds = (data || []).map(b => b.id);
+      if (bookingIds.length > 0) {
+        const { data: infoData } = await supabase
+          .from('booking_additional_info')
+          .select('booking_id, subcategory_value, category_id')
+          .in('booking_id', bookingIds);
+        
+        if (infoData && infoData.length > 0) {
+          const categoryIds = [...new Set(infoData.map(i => i.category_id))];
+          const { data: categories } = await supabase
+            .from('additional_info_categories')
+            .select('id, name')
+            .in('id', categoryIds);
+          
+          const catMap = Object.fromEntries((categories || []).map(c => [c.id, c.name]));
+          const grouped: Record<string, { categoryName: string; subcategoryValue: string }[]> = {};
+          for (const info of infoData) {
+            if (!grouped[info.booking_id]) grouped[info.booking_id] = [];
+            grouped[info.booking_id].push({
+              categoryName: catMap[info.category_id] || 'Unknown',
+              subcategoryValue: info.subcategory_value || ''
+            });
+          }
+          setAdditionalInfoMap(grouped);
+        } else {
+          setAdditionalInfoMap({});
+        }
+      }
     } catch (error) {
       console.error('Error fetching bookings:', error);
     } finally {
@@ -314,6 +345,20 @@ export function RentalBookingsList({
                       </span>
                     </div>
               }
+
+                  {/* Additional Information */}
+                  {additionalInfoMap[booking.id] && additionalInfoMap[booking.id].length > 0 && (
+                    <div className="flex items-start gap-2 text-sm text-gray-600">
+                      <span className="font-medium text-muted-foreground min-w-[60px] text-base">Info:</span>
+                      <div className="space-y-0.5">
+                        {additionalInfoMap[booking.id].map((info, idx) => (
+                          <span key={idx} className="text-sm text-secondary-foreground font-semibold block">
+                            {info.categoryName}: {info.subcategoryValue}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>;

@@ -111,6 +111,11 @@ export function UnifiedBookingDialog({
   const [balanceDueAmount, setBalanceDueAmount] = useState(0);
   const [fuelLevel, setFuelLevel] = useState("");
   
+  // Additional Information state
+  const [additionalInfoRows, setAdditionalInfoRows] = useState<{ categoryName: string; subcategoryValue: string; isDefault: boolean }[]>([
+    { categoryName: 'Insurance', subcategoryValue: '', isDefault: true }
+  ]);
+  
   // Data state
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [allBookings, setAllBookings] = useState<ExistingBooking[]>([]);
@@ -507,6 +512,41 @@ export function UnifiedBookingDialog({
         }
       }
 
+      // Save additional information
+      const rowsToSave = additionalInfoRows.filter(row => row.subcategoryValue.trim() !== '');
+      if (rowsToSave.length > 0) {
+        for (const row of rowsToSave) {
+          // Check if category exists
+          let categoryId: string | null = null;
+          const { data: existingCat } = await supabase
+            .from('additional_info_categories')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('name', row.categoryName.trim())
+            .maybeSingle();
+          
+          if (existingCat) {
+            categoryId = existingCat.id;
+          } else {
+            const { data: newCat } = await supabase
+              .from('additional_info_categories')
+              .insert({ user_id: user.id, name: row.categoryName.trim(), is_default: row.isDefault })
+              .select('id')
+              .single();
+            categoryId = newCat?.id || null;
+          }
+          
+          if (categoryId) {
+            await supabase.from('booking_additional_info').insert({
+              booking_id: booking.id,
+              user_id: user.id,
+              category_id: categoryId,
+              subcategory_value: row.subcategoryValue.trim()
+            });
+          }
+        }
+      }
+
       toast.success(
         language === 'el' 
           ? `Κράτηση δημιουργήθηκε: $${totalAmount.toFixed(2)}`
@@ -546,6 +586,7 @@ export function UnifiedBookingDialog({
     setPaymentStatus('paid_in_full');
     setBalanceDueAmount(0);
     setFuelLevel("");
+    setAdditionalInfoRows([{ categoryName: 'Insurance', subcategoryValue: '', isDefault: true }]);
     setVehicleSearch("");
     setFuelTypeFilter([]);
     setVehicleTypeFilter([]);
@@ -1101,6 +1142,70 @@ export function UnifiedBookingDialog({
               onChange={(e) => setFuelLevel(e.target.value)}
               placeholder={language === 'el' ? 'π.χ. Full, 75%, 3/4' : 'e.g. Full, 75%, 3/4'}
             />
+          </div>
+
+          {/* Additional Information */}
+          <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+            <Label className="text-base font-semibold">
+              {language === 'el' ? 'Πρόσθετες Πληροφορίες' : 'Additional Information'}
+            </Label>
+            
+            {additionalInfoRows.map((row, index) => (
+              <div key={index} className="flex items-center gap-2">
+                {row.isDefault ? (
+                  <div className="w-[120px] flex-shrink-0">
+                    <span className="text-sm font-medium text-muted-foreground">{row.categoryName}</span>
+                  </div>
+                ) : (
+                  <Input
+                    value={row.categoryName}
+                    onChange={(e) => {
+                      const updated = [...additionalInfoRows];
+                      updated[index].categoryName = e.target.value;
+                      setAdditionalInfoRows(updated);
+                    }}
+                    placeholder={language === 'el' ? 'Κατηγορία' : 'Category'}
+                    className="w-[120px] flex-shrink-0"
+                  />
+                )}
+                <Input
+                  value={row.subcategoryValue}
+                  onChange={(e) => {
+                    const updated = [...additionalInfoRows];
+                    updated[index].subcategoryValue = e.target.value;
+                    setAdditionalInfoRows(updated);
+                  }}
+                  placeholder={row.isDefault 
+                    ? (language === 'el' ? 'π.χ. Premium' : 'e.g. Premium')
+                    : (language === 'el' ? 'Τιμή' : 'Value')}
+                  className="flex-1"
+                />
+                {!row.isDefault && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => {
+                      setAdditionalInfoRows(additionalInfoRows.filter((_, i) => i !== index));
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+            
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setAdditionalInfoRows([...additionalInfoRows, { categoryName: '', subcategoryValue: '', isDefault: false }])}
+              className="w-full"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              {language === 'el' ? 'Προσθήκη Κατηγορίας' : 'Add Category'}
+            </Button>
           </div>
 
           {/* Notes */}

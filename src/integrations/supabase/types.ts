@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      additional_info_categories: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_chat_conversations: {
         Row: {
           created_at: string | null
@@ -96,6 +120,48 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      booking_additional_info: {
+        Row: {
+          booking_id: string
+          category_id: string
+          created_at: string
+          id: string
+          subcategory_value: string | null
+          user_id: string
+        }
+        Insert: {
+          booking_id: string
+          category_id: string
+          created_at?: string
+          id?: string
+          subcategory_value?: string | null
+          user_id: string
+        }
+        Update: {
+          booking_id?: string
+          category_id?: string
+          created_at?: string
+          id?: string
+          subcategory_value?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_additional_info_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "rental_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_additional_info_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "additional_info_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       booking_contacts: {
         Row: {
