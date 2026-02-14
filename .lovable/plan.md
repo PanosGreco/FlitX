@@ -1,66 +1,137 @@
 
 
-# UI Refinements and Full Integration of Fuel Level + Payment Status
+# Add Additional Information Section to Booking System
 
 ## Overview
-Three targeted changes: replace colored emojis with monochrome Lucide icons, add fuel/payment display to Daily Program task cards, and confirm booking form parity (already shared component).
+Extend the booking system with a structured "Additional Information" section that supports a default "Insurance" category and user-defined custom categories with subcategory values. This data will be displayed across all booking detail views. Also confirms that the Reservations booking form already uses the same `UnifiedBookingDialog` component, ensuring field parity.
 
 ---
 
-## Phase 1: Replace Colored Emojis with Monochrome Icons
+## Phase 1: Confirm Booking Form Parity (No Changes Needed)
 
-### Booking Form (`UnifiedBookingDialog.tsx`)
-- **Line 1098**: Replace `⛽` emoji in the Fuel Level label with a Lucide `Fuel` icon (already imported in TimelineCalendar). Add `import { Fuel } from "lucide-react"` and render `<Fuel className="h-4 w-4 inline-block mr-1" />` before the label text.
-
-### Reservations List (`RentalBookingsList.tsx`)
-- **Line 302**: Replace `⛽` emoji in the fuel display with a Lucide `Fuel` icon inline.
-- **Line 310**: Replace `💳` emoji in the payment display with a Lucide `CreditCard` icon inline.
-- Add `import { Fuel, CreditCard } from "lucide-react"` to imports.
-
-### Monthly Calendar (`MonthlyCalendar.tsx`)
-- **Lines 141-145**: Replace `⛽` and `💳` emojis with `Fuel` and `CreditCard` Lucide icons (small, inline). These icons are likely already imported or available in this file.
-
-No changes to layout, spacing, or font sizes.
+The Reservations section already uses the same `UnifiedBookingDialog` component (with `preselectedVehicleId`). Payment Status and Fuel Level fields are already present in this shared component. Both entry points (Home Create dialog and Fleet Reservations) share the same form -- parity is already guaranteed.
 
 ---
 
-## Phase 2: Add Fuel + Payment Display to Daily Program
+## Phase 2: Database Schema (2 new tables + seed data)
 
-### Data Layer (`useDailyTasks.ts`)
-- Extend `DailyTask` interface with three new optional fields: `fuelLevel`, `paymentStatus`, `balanceDueAmount`.
-- In `fetchTasks`, join `rental_bookings` via `booking_id` to retrieve `fuel_level`, `payment_status`, `balance_due_amount` for delivery/return tasks.
-- Map these fields into the `DailyTask` objects.
+### Table 1: `additional_info_categories`
 
-### Task Card (`TaskItem.tsx`)
-- Import `Fuel` and `CreditCard` from `lucide-react`.
-- After the Notes section (line 175) and before the Complete Button, add a conditional block for delivery/return tasks:
-  - If `task.fuelLevel` exists: show `Fuel` icon + fuel level text in small secondary style.
-  - If `task.paymentStatus` exists: show `CreditCard` icon + payment status text ("Paid in Full" or "Balance Due (amount)").
-- Only render when data exists. Do not show for "other" task types.
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `id` | uuid | No | `gen_random_uuid()` |
+| `user_id` | uuid | No | -- |
+| `name` | text | No | -- |
+| `is_default` | boolean | No | `false` |
+| `created_at` | timestamptz | No | `now()` |
+
+- Unique constraint on `(user_id, name)` to prevent duplicate category names per user.
+- RLS policies for full CRUD scoped to `auth.uid() = user_id`.
+
+### Table 2: `booking_additional_info`
+
+| Column | Type | Nullable | Default |
+|--------|------|----------|---------|
+| `id` | uuid | No | `gen_random_uuid()` |
+| `booking_id` | uuid | No | -- |
+| `user_id` | uuid | No | -- |
+| `category_id` | uuid | No | -- |
+| `subcategory_value` | text | Yes | -- |
+| `created_at` | timestamptz | No | `now()` |
+
+- RLS policies for full CRUD scoped to `auth.uid() = user_id`.
+
+### Seed Logic (via trigger)
+A database trigger on `profiles` (after insert) will automatically create a default "Insurance" category (`is_default = true`) for each new user. For existing users, the migration will insert the "Insurance" category directly.
 
 ---
 
-## Phase 3: Confirm Booking Form Parity (No Changes Needed)
+## Phase 3: Booking Form UI Update
 
-Both the Home Create dialog and the Fleet Reservations section already use the same `UnifiedBookingDialog` component (with `embedded` mode for Home). The fuel level and payment status fields are already present in this shared component. No separate implementation exists -- parity is already guaranteed.
+**File:** `src/components/booking/UnifiedBookingDialog.tsx`
+
+### New State
+- `additionalInfoRows`: array of `{ categoryName: string, subcategoryValue: string, isDefault: boolean }`.
+- Initialize with one row: `{ categoryName: 'Insurance', subcategoryValue: '', isDefault: true }`.
+
+### New Form Section (after Fuel Level, before Notes)
+**Title:** "Additional Information"
+
+**Default row (Insurance):**
+```
+[ Insurance (read-only label) ] [ Insurance Type input (placeholder: "e.g. Premium") ]
+```
+
+**"Add Category" button** below the default row. Each new row:
+```
+[ Category Name input ] [ Subcategory input ] [ X remove button ]
+```
+
+### Save Logic Update
+After booking is saved successfully:
+1. For each row with a non-empty subcategory value:
+   - Check if category exists for user in `additional_info_categories` (by name).
+   - If not, create it.
+   - Insert record into `booking_additional_info` with `booking_id`, `category_id`, `subcategory_value`.
+2. Rows with empty subcategory values are skipped entirely (no empty records stored).
+3. Reset additional info rows in `resetForm()`.
 
 ---
 
-## Files to Modify (5 files)
+## Phase 4: Display Integration
+
+### 4A. Vehicle Reservations / Booking History
+**File:** `src/components/fleet/RentalBookingsList.tsx`
+
+- After fetching bookings, also fetch `booking_additional_info` joined with `additional_info_categories` for those booking IDs.
+- Display below Fuel/Payment fields:
+  ```
+  Additional Information:
+  - Insurance: Premium
+  - VIP Package: Gold
+  ```
+- Only render section if at least one entry exists.
+
+### 4B. Home Calendar Views
+**File:** `src/pages/Home.tsx`
+- Extend `CalendarTask` interface with `additionalInfo?: { categoryName: string, subcategoryValue: string }[]`.
+- After fetching bookings map, also fetch `booking_additional_info` + category names for all booking IDs found in tasks.
+- Pass data through to calendar components.
+
+**File:** `src/components/home/TimelineCalendar.tsx`
+- In task detail popup: display additional info entries below fuel/payment (if any exist).
+
+**File:** `src/components/home/MonthlyCalendar.tsx`
+- In day popover task details: display additional info entries below fuel/payment (if any exist).
+
+### 4C. Daily Program
+**File:** `src/hooks/useDailyTasks.ts`
+- Extend `DailyTask` interface with `additionalInfo?: { categoryName: string, subcategoryValue: string }[]`.
+- After fetching tasks with booking IDs, also fetch `booking_additional_info` + category names for those booking IDs.
+
+**File:** `src/components/daily-program/TaskItem.tsx`
+- For delivery/return tasks: display additional info entries below fuel/payment section. Same compact format, only when data exists.
+
+---
+
+## Phase 5: Files to Modify (8 files)
 
 | File | Change |
 |------|--------|
-| `src/components/booking/UnifiedBookingDialog.tsx` | Replace fuel emoji with Lucide `Fuel` icon in label |
-| `src/components/fleet/RentalBookingsList.tsx` | Replace emojis with `Fuel` and `CreditCard` icons |
-| `src/components/home/MonthlyCalendar.tsx` | Replace emojis with Lucide icons |
-| `src/hooks/useDailyTasks.ts` | Extend interface + join booking data for fuel/payment |
-| `src/components/daily-program/TaskItem.tsx` | Display fuel/payment for delivery/return tasks |
+| `supabase/migrations/` (new) | Create 2 tables, RLS policies, trigger, seed Insurance for existing users |
+| `src/components/booking/UnifiedBookingDialog.tsx` | Add Additional Information form section + save logic |
+| `src/components/fleet/RentalBookingsList.tsx` | Fetch and display additional info on booking cards |
+| `src/pages/Home.tsx` | Extend CalendarTask + fetch additional info data |
+| `src/components/home/TimelineCalendar.tsx` | Display additional info in task popup |
+| `src/components/home/MonthlyCalendar.tsx` | Display additional info in day popover |
+| `src/hooks/useDailyTasks.ts` | Extend DailyTask + fetch additional info |
+| `src/components/daily-program/TaskItem.tsx` | Display additional info on task cards |
 
 ## What Will NOT Change
-- Booking creation logic
-- Pricing/revenue calculations
+- Booking creation flow / pricing logic
+- Financial calculations / revenue tracking
 - Calendar rendering logic
-- Layout structure or spacing
-- Other Task behavior
-- Existing field order
+- Delivery/Return task generation
+- Vehicle status management
+- Existing fuel level and payment status implementation
 
