@@ -218,7 +218,7 @@ export function TimelineCalendar({
                     }}>
                               {/* Task Type Header */}
                               <div className={cn("font-bold text-[11px] leading-tight", colors.text)}>
-                                {task.type === 'delivery' ? 'Delivery' : task.type === 'return' ? 'Return' : 'Other Task'}
+                                {task.type === 'delivery' ? 'Pick-Up' : task.type === 'return' ? 'Drop-Off' : 'Other Task'}
                               </div>
                               {/* Title for other tasks */}
                               {task.type === 'other' && task.title && (
@@ -277,9 +277,9 @@ export function TimelineCalendar({
                 )}
               >
                 {selectedTask?.type === 'delivery'
-                  ? 'Delivery'
+                  ? 'Pick-Up'
                   : selectedTask?.type === 'return'
-                    ? 'Return'
+                    ? 'Drop-Off'
                     : 'Other Task'}
               </span>
             </DialogTitle>

@@ -304,7 +304,7 @@ export function RentalBookingsList({
                 <div className="space-y-2 mb-3">
                   {/* Pickup Info - all on one line */}
                   <div className="flex items-start gap-2 text-sm text-gray-600">
-                    <span className="font-medium text-muted-foreground min-w-[60px] text-base">Pickup:</span>
+                    <span className="font-medium text-muted-foreground min-w-[60px] text-base">Pick-Up:</span>
                     <span className="text-base">
                       {formatDateEuropean(booking.start_date)}
                       {booking.pickup_time && <span className="ml-1">• {formatTime(booking.pickup_time)}</span>}
@@ -314,7 +314,7 @@ export function RentalBookingsList({
 
                   {/* Drop-off Info - all on one line */}
                   <div className="flex items-start gap-2 text-sm text-gray-600">
-                    <span className="font-medium text-muted-foreground min-w-[60px] text-base">Return:</span>
+                    <span className="font-medium text-muted-foreground min-w-[60px] text-base">Drop-Off:</span>
                     <span className="text-base">
                       {formatDateEuropean(booking.end_date)}
                       {booking.return_time && <span className="ml-1">• {formatTime(booking.return_time)}</span>}

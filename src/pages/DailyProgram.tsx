@@ -75,11 +75,11 @@ export default function DailyProgram() {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div> : (/* Three Column Layout */
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-            {/* Returns Column */}
-            <DailyProgramSection title="Returns" tasks={returns} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} />
+            {/* Drop-Offs Column */}
+            <DailyProgramSection title="Drop-Offs" tasks={returns} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} />
 
-            {/* Deliveries Column */}
-            <DailyProgramSection title="Deliveries" tasks={deliveries} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} />
+            {/* Pick-Ups Column */}
+            <DailyProgramSection title="Pick-Ups" tasks={deliveries} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} />
 
             {/* Other Tasks Column */}
             <DailyProgramSection title="Other Tasks" tasks={otherTasks} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} />

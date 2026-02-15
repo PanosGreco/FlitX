@@ -113,7 +113,7 @@ export function MonthlyCalendar({
                             {/* Task type and vehicle */}
                             <div>
                               <p className="font-medium text-slate-700 text-sm">
-                                {task.type === 'delivery' ? 'Delivery' : task.type === 'return' ? 'Return' : task.title}
+                                {task.type === 'delivery' ? 'Pick-Up' : task.type === 'return' ? 'Drop-Off' : task.title}
                               </p>
                               {task.vehicleName && <p className="text-slate-600 text-sm">
                                   {task.vehicleName}

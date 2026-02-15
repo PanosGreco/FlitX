@@ -644,7 +644,7 @@ export function UnifiedBookingDialog({
 
           {/* Pickup Section */}
           <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
-            <Label className="text-base font-semibold">{language === 'el' ? 'Παραλαβή' : 'Pickup'}</Label>
+            <Label className="text-base font-semibold">{language === 'el' ? 'Παραλαβή' : 'Pick-Up'}</Label>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-muted-foreground">{language === 'el' ? 'Ημερομηνία' : 'Date'}</Label>
@@ -703,7 +703,7 @@ export function UnifiedBookingDialog({
 
           {/* Return Section */}
           <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
-            <Label className="text-base font-semibold">{language === 'el' ? 'Επιστροφή' : 'Return'}</Label>
+            <Label className="text-base font-semibold">{language === 'el' ? 'Επιστροφή' : 'Drop-Off'}</Label>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-muted-foreground">{language === 'el' ? 'Ημερομηνία' : 'Date'}</Label>
