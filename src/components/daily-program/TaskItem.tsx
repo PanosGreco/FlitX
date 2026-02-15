@@ -123,7 +123,7 @@ export function TaskItem({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2 mb-1">
                   <Badge className={`${getTypeColor(task.type)} text-xs px-2 py-0.5`}>
-                    {task.type.charAt(0).toUpperCase() + task.type.slice(1)}
+                    {task.type === 'delivery' ? 'Pick-Up' : task.type === 'return' ? 'Drop-Off' : task.type.charAt(0).toUpperCase() + task.type.slice(1)}
                   </Badge>
                   {task.completed && <Badge variant="secondary" className="text-green-600 text-xs px-2 py-0.5">
                       <Check className="h-3 w-3 mr-1" />

@@ -153,8 +153,8 @@ export function AddTaskDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="return">Return</SelectItem>
-                <SelectItem value="delivery">Delivery</SelectItem>
+                <SelectItem value="return">Drop-Off</SelectItem>
+                <SelectItem value="delivery">Pick-Up</SelectItem>
                 <SelectItem value="other">Other Task</SelectItem>
               </SelectContent>
             </Select>
