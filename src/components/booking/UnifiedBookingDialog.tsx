@@ -1136,11 +1136,12 @@ export function UnifiedBookingDialog({
 
           {/* Fuel Level */}
           <div>
-            <Label className="flex items-center gap-1"><Fuel className="h-4 w-4" /> {language === 'el' ? 'Επίπεδο Καυσίμου' : 'Fuel Level'}</Label>
+            <Label className="text-base font-semibold flex items-center gap-1"><Fuel className="h-4 w-4" /> {language === 'el' ? 'Επίπεδο Καυσίμου' : 'Fuel Level'}</Label>
             <Input
               value={fuelLevel}
               onChange={(e) => setFuelLevel(e.target.value)}
               placeholder={language === 'el' ? 'π.χ. Full, 75%, 3/4' : 'e.g. Full, 75%, 3/4'}
+              className="placeholder:text-muted-foreground/50"
             />
           </div>
 
@@ -1153,8 +1154,8 @@ export function UnifiedBookingDialog({
             {additionalInfoRows.map((row, index) => (
               <div key={index} className="flex items-center gap-2">
                 {row.isDefault ? (
-                  <div className="w-[120px] flex-shrink-0">
-                    <span className="text-sm font-medium text-muted-foreground">{row.categoryName}</span>
+                  <div className="w-[100px] flex-shrink-0">
+                    <span className="text-sm font-semibold text-foreground">{row.categoryName}</span>
                   </div>
                 ) : (
                   <Input
@@ -1165,7 +1166,7 @@ export function UnifiedBookingDialog({
                       setAdditionalInfoRows(updated);
                     }}
                     placeholder={language === 'el' ? 'Κατηγορία' : 'Category'}
-                    className="w-[120px] flex-shrink-0"
+                    className="w-[100px] flex-shrink-0"
                   />
                 )}
                 <Input
@@ -1178,7 +1179,7 @@ export function UnifiedBookingDialog({
                   placeholder={row.isDefault 
                     ? (language === 'el' ? 'π.χ. Premium' : 'e.g. Premium')
                     : (language === 'el' ? 'Τιμή' : 'Value')}
-                  className="flex-1"
+                  className="flex-1 placeholder:text-muted-foreground/50"
                 />
                 {!row.isDefault && (
                   <Button
@@ -1288,6 +1289,7 @@ export function UnifiedBookingDialog({
           />
         </div>
 
+        <div className="pt-4">
         <DialogFooter>
           <Button variant="outline" onClick={() => { resetForm(); onClose(); }} disabled={isLoading}>
             {language === 'el' ? 'Ακύρωση' : 'Cancel'}
@@ -1299,6 +1301,7 @@ export function UnifiedBookingDialog({
             }
           </Button>
         </DialogFooter>
+        </div>
         </div>
     </>
   );
