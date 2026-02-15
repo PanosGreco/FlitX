@@ -348,16 +348,14 @@ export function RentalBookingsList({
 
                   {/* Additional Information */}
                   {additionalInfoMap[booking.id] && additionalInfoMap[booking.id].length > 0 && (
-                    <div className="flex items-start gap-2 text-sm text-gray-600">
-                      <span className="font-medium text-muted-foreground min-w-[60px] text-base">Info:</span>
-                      <div className="space-y-0.5">
-                        {additionalInfoMap[booking.id].map((info, idx) => (
-                          <span key={idx} className="text-sm text-secondary-foreground font-semibold block">
-                            {info.categoryName}: {info.subcategoryValue}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
+                    <>
+                      {additionalInfoMap[booking.id].map((info, idx) => (
+                        <div key={idx} className="flex items-start gap-2 text-sm text-gray-600">
+                          <span className="font-medium text-muted-foreground min-w-[60px] text-base">{info.categoryName}:</span>
+                          <span className="text-sm text-secondary-foreground font-semibold my-[3px]">{info.subcategoryValue}</span>
+                        </div>
+                      ))}
+                    </>
                   )}
                 </div>
               </CardContent>
