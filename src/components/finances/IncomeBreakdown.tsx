@@ -25,11 +25,17 @@ interface Vehicle {
   type?: string; // vehicle category (suv, sedan, etc.)
   vehicle_type?: string; // top-level type (car, motorbike, atv)
 }
+interface VehicleProfitRank {
+  id: string;
+  name: string;
+  avgProfitPerDay: number;
+}
 interface IncomeBreakdownProps {
   financialRecords: FinancialRecord[];
   vehicles?: Vehicle[];
   lang?: string;
   timeframe?: string;
+  vehicleProfitRanking?: VehicleProfitRank[];
 }
 
 // Distinct income colors: Blue, Green, Orange, Purple, Red
@@ -126,7 +132,8 @@ export function IncomeBreakdown({
   financialRecords,
   vehicles = [],
   lang = 'en',
-  timeframe = 'month'
+  timeframe = 'month',
+  vehicleProfitRanking = []
 }: IncomeBreakdownProps) {
   const isBoats = isBoatBusiness();
   // Always use EUR (€)
@@ -260,23 +267,12 @@ export function IncomeBreakdown({
     })).sort((a, b) => b.total - a.total);
   }, [filteredRecords, vehicleMap, lang]);
 
-  // Top performing vehicles
+  // Top 5 most profitable vehicles by avg profit/day
   const topVehicles = useMemo(() => {
-    const vehicleIncome: Record<string, number> = {};
-    filteredRecords.forEach(record => {
-      if (record.vehicle_id) {
-        vehicleIncome[record.vehicle_id] = (vehicleIncome[record.vehicle_id] || 0) + Number(record.amount);
-      }
-    });
-    return Object.entries(vehicleIncome).map(([vehicleId, total]) => {
-      const vehicle = vehicles.find(v => v.id === vehicleId);
-      return {
-        id: vehicleId,
-        name: vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : 'Unknown Vehicle',
-        total
-      };
-    }).sort((a, b) => b.total - a.total).slice(0, 5);
-  }, [filteredRecords, vehicles]);
+    return [...vehicleProfitRanking]
+      .sort((a, b) => b.avgProfitPerDay - a.avgProfitPerDay)
+      .slice(0, 5);
+  }, [vehicleProfitRanking]);
   if (filteredRecords.length === 0) {
     return <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">
@@ -423,22 +419,25 @@ export function IncomeBreakdown({
               </ResponsiveContainer>
             </div>}
 
-          {/* Most Profitable Vehicles - Compact */}
-          {topVehicles.length > 0 && <div className="space-y-1">
-              <div className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground mx-[117px]">
-                {isBoats ? <Ship className="h-3 w-3" /> : <Car className="h-3 w-3" />}
-                <span>{lang === 'el' ? 'Κερδοφόρα' : 'Top Profit'}</span>
+          {/* Most Profitable Vehicles - Card UI */}
+          {topVehicles.length > 0 && <div className="border rounded-lg p-3 bg-card shadow-sm">
+              <div className="mb-2">
+                <div className="flex items-center gap-1.5 text-xs font-semibold">
+                  {isBoats ? <Ship className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />}
+                  <span>{lang === 'el' ? 'Κερδοφόρα Οχήματα' : 'Most Profitable'}</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {lang === 'el' ? 'Βάσει Μ.Ο. Κέρδους/Ημέρα' : 'Based on Avg Profit/Day'}
+                </p>
               </div>
-              <div className="space-y-0.5">
-                {topVehicles.slice(0, 3).map((vehicle, index) => <div key={vehicle.id} className="flex items-center justify-between py-0.5 px-1.5 bg-green-50 rounded text-[11px]">
-                    <div className="flex items-center gap-1 min-w-0">
-                      <span className="font-bold text-green-700">#{index + 1}</span>
+              <div className="space-y-1">
+                {topVehicles.map((vehicle, index) => <div key={vehicle.id} className="flex items-center justify-between py-1 px-2 bg-green-50 rounded text-[11px]">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="font-bold text-green-700 w-4 text-center">#{index + 1}</span>
                       <span className="font-medium truncate">{vehicle.name}</span>
                     </div>
-                    <span className="font-semibold text-green-600 flex-shrink-0 ml-1">
-                      {currencySymbol}{vehicle.total.toLocaleString('el-GR', {
-                  minimumFractionDigits: 0
-                })}
+                    <span className="font-semibold text-green-600 flex-shrink-0 ml-2 whitespace-nowrap">
+                      €{vehicle.avgProfitPerDay.toFixed(2)} / day
                     </span>
                   </div>)}
               </div>

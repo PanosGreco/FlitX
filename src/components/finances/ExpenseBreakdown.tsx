@@ -53,11 +53,17 @@ const getFuelTypeLabel = (fuelType: string | null | undefined, lang: string) => 
   if (!fuelType) return '–';
   return FUEL_TYPE_LABELS[fuelType]?.[lang === 'el' ? 'el' : 'en'] || fuelType;
 };
+interface VehicleProfitRank {
+  id: string;
+  name: string;
+  avgProfitPerDay: number;
+}
 interface ExpenseBreakdownProps {
   financialRecords: FinancialRecord[];
   vehicles?: Vehicle[];
   lang?: string;
   timeframe?: string;
+  vehicleProfitRanking?: VehicleProfitRank[];
 }
 
 // Parent category colors - all subcategories inherit parent color
@@ -206,7 +212,8 @@ export function ExpenseBreakdown({
   financialRecords,
   vehicles = [],
   lang = 'en',
-  timeframe = 'month'
+  timeframe = 'month',
+  vehicleProfitRanking = []
 }: ExpenseBreakdownProps) {
   const isBoats = isBoatBusiness();
   // Always use EUR (€)
@@ -354,23 +361,12 @@ export function ExpenseBreakdown({
     })).sort((a, b) => b.total - a.total);
   }, [filteredRecords, vehicleMap, lang]);
 
-  // Most costly vehicles
-  const costlyVehicles = useMemo(() => {
-    const vehicleExpenses: Record<string, number> = {};
-    filteredRecords.forEach(record => {
-      if (record.vehicle_id) {
-        vehicleExpenses[record.vehicle_id] = (vehicleExpenses[record.vehicle_id] || 0) + Number(record.amount);
-      }
-    });
-    return Object.entries(vehicleExpenses).map(([vehicleId, total]) => {
-      const vehicle = vehicles.find(v => v.id === vehicleId);
-      return {
-        id: vehicleId,
-        name: vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : 'Unknown Vehicle',
-        total
-      };
-    }).sort((a, b) => b.total - a.total).slice(0, 5);
-  }, [filteredRecords, vehicles]);
+  // Top 5 least profitable vehicles by avg profit/day
+  const leastProfitableVehicles = useMemo(() => {
+    return [...vehicleProfitRanking]
+      .sort((a, b) => a.avgProfitPerDay - b.avgProfitPerDay)
+      .slice(0, 5);
+  }, [vehicleProfitRanking]);
   if (filteredRecords.length === 0) {
     return <Card className="p-6">
         <div className="flex items-center gap-2 mb-4">
@@ -517,22 +513,25 @@ export function ExpenseBreakdown({
               </ResponsiveContainer>
             </div>}
 
-          {/* Most Costly Vehicles - Compact */}
-          {costlyVehicles.length > 0 && <div className="space-y-1">
-              <div className="items-center text-[11px] font-medium text-muted-foreground mx-[117px] gap-[4px] flex flex-row px-0">
-                {isBoats ? <Ship className="h-3 w-3" /> : <Car className="h-3 w-3" />}
-                <span>{lang === 'el' ? 'Δαπανηρά' : 'Top Cost'}</span>
+          {/* Least Profitable Vehicles - Card UI */}
+          {leastProfitableVehicles.length > 0 && <div className="border rounded-lg p-3 bg-card shadow-sm">
+              <div className="mb-2">
+                <div className="flex items-center gap-1.5 text-xs font-semibold">
+                  {isBoats ? <Ship className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />}
+                  <span>{lang === 'el' ? 'Λιγότερο Κερδοφόρα' : 'Least Profitable'}</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {lang === 'el' ? 'Βάσει Μ.Ο. Κέρδους/Ημέρα' : 'Based on Avg Profit/Day'}
+                </p>
               </div>
-              <div className="space-y-0.5">
-                {costlyVehicles.slice(0, 3).map((vehicle, index) => <div key={vehicle.id} className="flex items-center justify-between py-0.5 px-1.5 bg-red-50 rounded text-[11px]">
-                    <div className="flex items-center gap-1 min-w-0">
-                      <span className="font-bold text-red-700">#{index + 1}</span>
+              <div className="space-y-1">
+                {leastProfitableVehicles.map((vehicle, index) => <div key={vehicle.id} className="flex items-center justify-between py-1 px-2 bg-red-50 rounded text-[11px]">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="font-bold text-red-700 w-4 text-center">#{index + 1}</span>
                       <span className="font-medium truncate">{vehicle.name}</span>
                     </div>
-                    <span className="font-semibold text-red-600 flex-shrink-0 ml-1">
-                      {currencySymbol}{vehicle.total.toLocaleString('el-GR', {
-                  minimumFractionDigits: 0
-                })}
+                    <span className={`font-semibold flex-shrink-0 ml-2 whitespace-nowrap ${vehicle.avgProfitPerDay >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      €{vehicle.avgProfitPerDay.toFixed(2)} / day
                     </span>
                   </div>)}
               </div>

@@ -328,8 +328,8 @@ export function VehicleFinanceTab({
             </Card>}
 
           {/* Vehicle Averages Card - NEW */}
-          <Card className="border-border bg-card h-[106px] overflow-hidden">
-            <CardContent className="p-4 h-full flex flex-col justify-center">
+          <Card className="border-border bg-card h-[130px] overflow-hidden">
+            <CardContent className="p-3 h-full flex flex-col justify-center">
               <div className="flex items-center gap-1.5 text-muted-foreground mb-2">
                 <Activity className="h-3.5 w-3.5" />
                 <span className="text-[10px] font-medium uppercase tracking-wide">
@@ -365,6 +365,21 @@ export function VehicleFinanceTab({
                   </span>
                   <span className="font-medium text-red-600 text-sm">
                     {avgCostPerDay !== null ? `€${avgCostPerDay.toFixed(2)} / day` : '—'}
+                  </span>
+                </div>
+
+                {/* Subtle Divider */}
+                <div className="border-t border-border/60 my-0.5" />
+
+                {/* Average Profit per Day */}
+                <div className="flex items-center justify-between text-xs pl-2 border-l-2 border-l-blue-400">
+                  <span className="text-muted-foreground text-sm">
+                    {language === 'el' ? 'Μ.Ο. Κέρδος/Ημέρα' : 'Avg Profit/Day'}
+                  </span>
+                  <span className={`font-semibold text-sm ${(avgIncomePerDay !== null && avgCostPerDay !== null) ? ((avgIncomePerDay - avgCostPerDay) >= 0 ? 'text-blue-600' : 'text-orange-600') : ''}`}>
+                    {avgIncomePerDay !== null && avgCostPerDay !== null
+                      ? `€${(avgIncomePerDay - avgCostPerDay).toFixed(2)} / day`
+                      : '—'}
                   </span>
                 </div>
               </div>
