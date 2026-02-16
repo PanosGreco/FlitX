@@ -418,7 +418,6 @@ export function IncomeBreakdown({
           {topVehicles.length > 0 && <div className="border rounded-lg p-3 bg-card shadow-sm mx-[70px]">
               <div className="mb-2">
                 <div className="flex items-center gap-1.5 text-xs font-semibold">
-                  {isBoats ? <Ship className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />}
                   <span>{lang === 'el' ? 'Κερδοφόρα Οχήματα' : 'Most Profitable'}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
