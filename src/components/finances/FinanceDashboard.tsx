@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { BarChart, LineChart } from "@/components/finances/charts";
 import { IncomeBreakdown } from "@/components/finances/IncomeBreakdown";
 import { ExpenseBreakdown } from "@/components/finances/ExpenseBreakdown";
+import { differenceInDays } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { getMaintenanceTypeLabel } from "@/constants/maintenanceTypes";
 import { 
@@ -57,6 +58,7 @@ interface Vehicle {
   make: string;
   model: string;
   year: number;
+  created_at?: string;
   // Category stored in DB (vehicles.type)
   type?: string | null;
   // Top-level type stored in DB (vehicles.vehicle_type)
@@ -97,7 +99,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     try {
       const { data, error } = await supabase
         .from('vehicles')
-        .select('id, make, model, year, type, vehicle_type')
+        .select('id, make, model, year, type, vehicle_type, created_at')
         .order('make');
 
       if (!error && data) {
@@ -307,6 +309,47 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     }
   };
   
+  // Compute Average Profit per Day per vehicle (uses ALL financial records, not filtered)
+  const vehicleProfitRanking = useMemo(() => {
+    const vehicleData: Record<string, { income: number; expense: number }> = {};
+    
+    // Aggregate ALL records by vehicle
+    financialRecords.forEach(record => {
+      if (!record.vehicle_id) return;
+      if (!vehicleData[record.vehicle_id]) {
+        vehicleData[record.vehicle_id] = { income: 0, expense: 0 };
+      }
+      if (record.type === 'income') {
+        vehicleData[record.vehicle_id].income += Number(record.amount);
+      } else {
+        vehicleData[record.vehicle_id].expense += Number(record.amount);
+      }
+    });
+
+    // Calculate avg profit per day for each vehicle
+    return Object.entries(vehicleData).map(([vehicleId, data]) => {
+      const vehicle = vehicles.find(v => v.id === vehicleId);
+      if (!vehicle) return null;
+      
+      // Active days from vehicle created_at to today
+      const createdAt = vehicle.created_at;
+      let activeDays = 1;
+      if (createdAt) {
+        const startDate = new Date(createdAt);
+        const today = new Date();
+        activeDays = Math.max(1, differenceInDays(today, startDate) + 1);
+      }
+      
+      const avgProfitPerDay = (data.income - data.expense) / activeDays;
+      
+      return {
+        id: vehicleId,
+        name: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+        avgProfitPerDay,
+      };
+    }).filter(Boolean) as { id: string; name: string; avgProfitPerDay: number }[];
+  }, [financialRecords, vehicles]);
+
   const calculateSummaryData = () => {
     const incomeRecords = filteredRecords.filter(record => record.type === "income");
     const expenseRecords = filteredRecords.filter(record => record.type === "expense");
@@ -479,6 +522,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         vehicles={vehicles}
         lang={language}
         timeframe={timeframe}
+        vehicleProfitRanking={vehicleProfitRanking}
       />
 
       {/* Expense Breakdown Section */}
@@ -487,6 +531,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         vehicles={vehicles}
         lang={language}
         timeframe={timeframe}
+        vehicleProfitRanking={vehicleProfitRanking}
       />
         
       {/* Transactions - Global list, independent of date filters */}
