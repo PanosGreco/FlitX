@@ -459,14 +459,9 @@ export function ExpenseBreakdown({
               <TableBody>
                 {expensesByVehicleCategory.length > 0 ? expensesByVehicleCategory.slice(0, 6).map((item, index) => <TableRow key={item.key} className="hover:bg-muted/50">
                       <TableCell className="px-2 py-1">
-                        <div className="flex items-center gap-1">
-                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
-                      backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length]
-                    }} />
-                          <span className="truncate text-xs font-medium">
+                      <span className="truncate text-xs font-medium">
                             {item.label}
                           </span>
-                        </div>
                       </TableCell>
                       <TableCell className="text-right font-semibold text-red-600 text-xs px-1 py-1">
                         {currencySymbol}{item.total.toLocaleString('el-GR', {
