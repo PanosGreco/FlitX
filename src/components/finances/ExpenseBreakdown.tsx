@@ -68,18 +68,18 @@ interface ExpenseBreakdownProps {
 
 // Parent category colors - all subcategories inherit parent color
 const PARENT_CATEGORY_COLORS: Record<string, string> = {
-  maintenance: "#ef4444",    // Red
-  tax: "#eab308",            // Yellow
-  fuel: "#f97316",           // Orange
-  marketing: "#8b5cf6",      // Purple
-  other: "#3b82f6",          // Blue
-  insurance: "#06b6d4",      // Cyan
-  salary: "#22c55e",         // Green
-  carwash: "#ec4899",        // Pink
-  cleaning: "#14b8a6",       // Teal
-  docking: "#a16207",        // Brown
-  licensing: "#6366f1",      // Indigo
-  vehicle_parts: "#d97706",  // Amber
+  maintenance: "#ef4444", // Red
+  tax: "#eab308", // Yellow
+  fuel: "#f97316", // Orange
+  marketing: "#8b5cf6", // Purple
+  other: "#3b82f6", // Blue
+  insurance: "#06b6d4", // Cyan
+  salary: "#22c55e", // Green
+  carwash: "#ec4899", // Pink
+  cleaning: "#14b8a6", // Teal
+  docking: "#a16207", // Brown
+  licensing: "#6366f1", // Indigo
+  vehicle_parts: "#d97706" // Amber
 };
 
 // Fallback colors for unknown categories
@@ -221,7 +221,7 @@ export function ExpenseBreakdown({
 
   // Records are already filtered by the parent component using calendar-based timeframes
   const filteredRecords = useMemo(() => {
-    return financialRecords.filter(r => r.type === 'expense');
+    return financialRecords.filter((r) => r.type === 'expense');
   }, [financialRecords]);
 
   // Aggregate expenses by category AND subcategory for maintenance
@@ -232,7 +232,7 @@ export function ExpenseBreakdown({
       fuelTypes: Set<string>;
       years: Set<number>;
     }> = {};
-    filteredRecords.forEach(record => {
+    filteredRecords.forEach((record) => {
       const baseCategory = record.category || 'other';
       const month = getMonth(new Date(record.date));
 
@@ -323,7 +323,7 @@ export function ExpenseBreakdown({
   // Create vehicle lookup map
   const vehicleMap = useMemo(() => {
     const map = new Map<string, Vehicle>();
-    vehicles.forEach(v => map.set(v.id, v));
+    vehicles.forEach((v) => map.set(v.id, v));
     return map;
   }, [vehicles]);
 
@@ -333,7 +333,7 @@ export function ExpenseBreakdown({
       total: number;
       displayLabel: string;
     }> = {};
-    filteredRecords.forEach(record => {
+    filteredRecords.forEach((record) => {
       if (!record.vehicle_id) return;
       const vehicle = vehicleMap.get(record.vehicle_id);
       if (!vehicle) return;
@@ -363,9 +363,9 @@ export function ExpenseBreakdown({
 
   // Top 5 least profitable vehicles by avg profit/day
   const leastProfitableVehicles = useMemo(() => {
-    return [...vehicleProfitRanking]
-      .sort((a, b) => a.avgProfitPerDay - b.avgProfitPerDay)
-      .slice(0, 5);
+    return [...vehicleProfitRanking].
+    sort((a, b) => a.avgProfitPerDay - b.avgProfitPerDay).
+    slice(0, 5);
   }, [vehicleProfitRanking]);
   if (filteredRecords.length === 0) {
     return <Card className="p-6">
@@ -514,7 +514,7 @@ export function ExpenseBreakdown({
             </div>}
 
           {/* Least Profitable Vehicles - Card UI */}
-          {leastProfitableVehicles.length > 0 && <div className="border rounded-lg p-3 bg-card shadow-sm">
+          {leastProfitableVehicles.length > 0 && <div className="border rounded-lg p-3 bg-card shadow-sm mx-[70px]">
               <div className="mb-2">
                 <div className="flex items-center gap-1.5 text-xs font-semibold">
                   {isBoats ? <Ship className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />}
@@ -528,9 +528,9 @@ export function ExpenseBreakdown({
                 {leastProfitableVehicles.map((vehicle, index) => <div key={vehicle.id} className="flex items-center justify-between py-1 px-2 bg-red-50 rounded text-[11px]">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="font-bold text-red-700 w-4 text-center">#{index + 1}</span>
-                      <span className="font-medium truncate">{vehicle.name}</span>
+                      <span className="font-medium truncate text-xs">{vehicle.name}</span>
                     </div>
-                    <span className={`font-semibold flex-shrink-0 ml-2 whitespace-nowrap ${vehicle.avgProfitPerDay >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <span className="text-xs font-semibold text-destructive">
                       €{vehicle.avgProfitPerDay.toFixed(2)} / day
                     </span>
                   </div>)}

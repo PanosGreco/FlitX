@@ -141,7 +141,7 @@ export function IncomeBreakdown({
 
   // Records are already filtered by the parent component using calendar-based timeframes
   const filteredRecords = useMemo(() => {
-    return financialRecords.filter(r => r.type === 'income');
+    return financialRecords.filter((r) => r.type === 'income');
   }, [financialRecords]);
 
   // Helper function to normalize specifications for matching
@@ -154,7 +154,7 @@ export function IncomeBreakdown({
   const getDisplaySpecification = (spec: string): string => {
     if (!spec) return '';
     // Capitalize first letter of each word
-    return spec.trim().split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+    return spec.trim().split(' ').map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
   };
 
   // Aggregate income by source type - with dynamic categorization for collaboration/other
@@ -164,7 +164,7 @@ export function IncomeBreakdown({
       months: Record<number, number>;
       displayLabel: string;
     }> = {};
-    filteredRecords.forEach(record => {
+    filteredRecords.forEach((record) => {
       const sourceType = record.income_source_type || 'other';
       const month = getMonth(new Date(record.date));
 
@@ -219,7 +219,7 @@ export function IncomeBreakdown({
   // Prepare pie chart data
   const pieData = useMemo(() => {
     const total = incomeBySource.reduce((sum, item) => sum + item.total, 0);
-    return incomeBySource.map(item => ({
+    return incomeBySource.map((item) => ({
       name: item.label,
       value: Math.round(item.total / total * 100) || 0,
       amount: item.total
@@ -229,7 +229,7 @@ export function IncomeBreakdown({
   // Create vehicle lookup map
   const vehicleMap = useMemo(() => {
     const map = new Map<string, Vehicle>();
-    vehicles.forEach(v => map.set(v.id, v));
+    vehicles.forEach((v) => map.set(v.id, v));
     return map;
   }, [vehicles]);
 
@@ -239,7 +239,7 @@ export function IncomeBreakdown({
       total: number;
       displayLabel: string;
     }> = {};
-    filteredRecords.forEach(record => {
+    filteredRecords.forEach((record) => {
       if (!record.vehicle_id) return;
       const vehicle = vehicleMap.get(record.vehicle_id);
       if (!vehicle) return;
@@ -269,9 +269,9 @@ export function IncomeBreakdown({
 
   // Top 5 most profitable vehicles by avg profit/day
   const topVehicles = useMemo(() => {
-    return [...vehicleProfitRanking]
-      .sort((a, b) => b.avgProfitPerDay - a.avgProfitPerDay)
-      .slice(0, 5);
+    return [...vehicleProfitRanking].
+    sort((a, b) => b.avgProfitPerDay - a.avgProfitPerDay).
+    slice(0, 5);
   }, [vehicleProfitRanking]);
   if (filteredRecords.length === 0) {
     return <Card className="p-6">
@@ -420,7 +420,7 @@ export function IncomeBreakdown({
             </div>}
 
           {/* Most Profitable Vehicles - Card UI */}
-          {topVehicles.length > 0 && <div className="border rounded-lg p-3 bg-card shadow-sm">
+          {topVehicles.length > 0 && <div className="border rounded-lg p-3 bg-card shadow-sm mx-[70px]">
               <div className="mb-2">
                 <div className="flex items-center gap-1.5 text-xs font-semibold">
                   {isBoats ? <Ship className="h-3.5 w-3.5" /> : <Car className="h-3.5 w-3.5" />}
@@ -434,9 +434,9 @@ export function IncomeBreakdown({
                 {topVehicles.map((vehicle, index) => <div key={vehicle.id} className="flex items-center justify-between py-1 px-2 bg-green-50 rounded text-[11px]">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="font-bold text-green-700 w-4 text-center">#{index + 1}</span>
-                      <span className="font-medium truncate">{vehicle.name}</span>
+                      <span className="font-medium truncate text-xs">{vehicle.name}</span>
                     </div>
-                    <span className="font-semibold text-green-600 flex-shrink-0 ml-2 whitespace-nowrap">
+                    <span className="font-semibold text-green-600 flex-shrink-0 ml-2 whitespace-nowrap text-xs">
                       €{vehicle.avgProfitPerDay.toFixed(2)} / day
                     </span>
                   </div>)}
