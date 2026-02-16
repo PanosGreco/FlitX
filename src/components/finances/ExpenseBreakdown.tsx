@@ -308,17 +308,40 @@ export function ExpenseBreakdown({
     }).sort((a, b) => b.total - a.total);
   }, [filteredRecords, lang]);
 
-  // Prepare pie chart data with parent-based colors
+  // Prepare pie chart data with parent-based colors and <5% grouping
   const pieData = useMemo(() => {
     const total = expensesByCategory.reduce((sum, item) => sum + item.total, 0);
-    return expensesByCategory.map((item, index) => ({
+    if (total === 0) return [];
+    
+    const allSlices = expensesByCategory.map((item, index) => ({
       name: item.label,
       value: Math.round(item.total / total * 100) || 0,
       amount: item.total,
       key: item.key,
       color: getCategoryColor(item.key, index)
     }));
-  }, [expensesByCategory]);
+    
+    const majorSlices = allSlices.filter(s => s.value >= 5);
+    const minorSlices = allSlices.filter(s => s.value < 5);
+    
+    if (minorSlices.length <= 1) return allSlices;
+    
+    const otherAmount = minorSlices.reduce((sum, s) => sum + s.amount, 0);
+    const otherValue = Math.round(otherAmount / total * 100) || 0;
+    const dominantMinor = minorSlices.reduce((a, b) => a.value >= b.value ? a : b);
+    
+    return [
+      ...majorSlices,
+      {
+        name: lang === 'el' ? 'Άλλο (<5%)' : 'Other (<5%)',
+        value: otherValue,
+        amount: otherAmount,
+        key: 'other_grouped',
+        color: dominantMinor.color,
+        subItems: minorSlices.map(s => ({ name: s.name, value: s.value, amount: s.amount }))
+      }
+    ];
+  }, [expensesByCategory, lang]);
 
   // Create vehicle lookup map
   const vehicleMap = useMemo(() => {
@@ -480,36 +503,48 @@ export function ExpenseBreakdown({
 
         {/* Right: Pie Chart + Costly Vehicles (5 columns) */}
         <div className="lg:col-span-5 flex flex-col gap-2">
-          {/* Pie Chart - Compact */}
-          {pieData.length > 0 && <div className="h-32">
+          {/* Pie Chart */}
+          {pieData.length > 0 && <div className="h-44 mt-2">
               <ResponsiveContainer width="100%" height="100%">
                 <RechartsPieChart margin={{
-              top: 2,
+              top: 8,
               right: 2,
               bottom: 2,
               left: 2
             }}>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={25} outerRadius={45} fill="#8b5cf6" dataKey="value" paddingAngle={2} label={({
+                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={32} outerRadius={58} fill="#8b5cf6" dataKey="value" paddingAngle={2} label={({
                 value
               }) => `${value}%`} labelLine={{
                 strokeWidth: 1
               }}>
-                    {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                    {pieData.map((entry: any, index: number) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                   </Pie>
-                  <Tooltip formatter={(value: number, name: string, props: any) => [`${value}% (${currencySymbol}${props.payload.amount.toLocaleString('el-GR', {
-                minimumFractionDigits: 0
-              })})`, name]} contentStyle={{
-                borderRadius: 8,
-                border: "none",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                fontSize: '11px'
-              }} />
+                  <Tooltip content={({ active, payload }: any) => {
+                    if (!active || !payload?.length) return null;
+                    const data = payload[0].payload;
+                    return (
+                      <div className="rounded-lg border bg-background px-3 py-2 text-xs shadow-xl">
+                        <p className="font-semibold mb-1">{data.name} — {data.value}%</p>
+                        <p className="text-muted-foreground">{currencySymbol}{data.amount.toLocaleString('el-GR', { minimumFractionDigits: 0 })}</p>
+                        {data.subItems && data.subItems.length > 0 && (
+                          <div className="mt-1.5 pt-1.5 border-t space-y-0.5">
+                            {data.subItems.map((sub: any, i: number) => (
+                              <div key={i} className="flex justify-between gap-3 text-muted-foreground">
+                                <span>{sub.name}</span>
+                                <span>{sub.value}%</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }} />
                 </RechartsPieChart>
               </ResponsiveContainer>
             </div>}
 
           {/* Least Profitable Vehicles - Card UI */}
-          {leastProfitableVehicles.length > 0 && <div className="border rounded-lg p-3 bg-card shadow-sm mx-[70px]">
+          {leastProfitableVehicles.length > 0 && <div className="border rounded-lg p-3 bg-card shadow-sm mx-[70px] mt-2">
               <div className="mb-2">
                 <div className="flex items-center gap-1.5 text-xs font-semibold">
                   <span>{lang === 'el' ? 'Λιγότερο Κερδοφόρα' : 'Least Profitable'}</span>
