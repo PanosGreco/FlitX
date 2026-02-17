@@ -1,137 +1,126 @@
 
 
-# Add Additional Information Section to Booking System
+# Income and Expense Category System Refactor
 
 ## Overview
-Extend the booking system with a structured "Additional Information" section that supports a default "Insurance" category and user-defined custom categories with subcategory values. This data will be displayed across all booking detail views. Also confirms that the Reservations booking form already uses the same `UnifiedBookingDialog` component, ensuring field parity.
+
+This refactor renames "Walk-In" to "Direct Booking", removes Phone and Internet sources, redesigns "Other" to create autonomous categories, and applies the same logic to both regular and recurring transactions -- while keeping them isolated.
 
 ---
 
-## Phase 1: Confirm Booking Form Parity (No Changes Needed)
+## Part A -- Rename "Walk-In" to "Direct Booking"
 
-The Reservations section already uses the same `UnifiedBookingDialog` component (with `preselectedVehicleId`). Payment Status and Fuel Level fields are already present in this shared component. Both entry points (Home Create dialog and Fleet Reservations) share the same form -- parity is already guaranteed.
+The internal DB key `walk_in` stays unchanged for backward compatibility. Only the display label changes across all files:
 
----
+- `IncomeBreakdown.tsx` -- INCOME_SOURCE_LABELS
+- `FinanceDashboard.tsx` -- sourceLabels
+- `RecurringTransactionsModal.tsx` -- labels
+- `Finance.tsx` -- dropdown options
+- `AddRecurringTransactionDialog.tsx` -- dropdown options
+- `UnifiedBookingDialog.tsx` -- dropdown options
+- `RentalBookingDialog.tsx` -- dropdown options
 
-## Phase 2: Database Schema (2 new tables + seed data)
-
-### Table 1: `additional_info_categories`
-
-| Column | Type | Nullable | Default |
-|--------|------|----------|---------|
-| `id` | uuid | No | `gen_random_uuid()` |
-| `user_id` | uuid | No | -- |
-| `name` | text | No | -- |
-| `is_default` | boolean | No | `false` |
-| `created_at` | timestamptz | No | `now()` |
-
-- Unique constraint on `(user_id, name)` to prevent duplicate category names per user.
-- RLS policies for full CRUD scoped to `auth.uid() = user_id`.
-
-### Table 2: `booking_additional_info`
-
-| Column | Type | Nullable | Default |
-|--------|------|----------|---------|
-| `id` | uuid | No | `gen_random_uuid()` |
-| `booking_id` | uuid | No | -- |
-| `user_id` | uuid | No | -- |
-| `category_id` | uuid | No | -- |
-| `subcategory_value` | text | Yes | -- |
-| `created_at` | timestamptz | No | `now()` |
-
-- RLS policies for full CRUD scoped to `auth.uid() = user_id`.
-
-### Seed Logic (via trigger)
-A database trigger on `profiles` (after insert) will automatically create a default "Insurance" category (`is_default = true`) for each new user. For existing users, the migration will insert the "Insurance" category directly.
+**English**: "Walk-in" becomes "Direct Booking"
+**Greek**: "Επιτόπια" / "Επί τόπου" becomes "Απευθείας Κράτηση"
 
 ---
 
-## Phase 3: Booking Form UI Update
+## Part B -- Remove Phone and Internet
 
-**File:** `src/components/booking/UnifiedBookingDialog.tsx`
+**Database migration**: Update 15 existing historical records (`phone`: 3, `internet`: 12) by setting their `income_source_type` to `walk_in` (Direct Booking).
 
-### New State
-- `additionalInfoRows`: array of `{ categoryName: string, subcategoryValue: string, isDefault: boolean }`.
-- Initialize with one row: `{ categoryName: 'Insurance', subcategoryValue: '', isDefault: true }`.
+**UI removal**: Remove `phone` and `internet` SelectItem entries from all 5 dropdown locations listed above. Remove their entries from all label maps.
 
-### New Form Section (after Fuel Level, before Notes)
-**Title:** "Additional Information"
+---
 
-**Default row (Insurance):**
+## Part C -- Redesign "Other" for Income (Non-Recurring)
+
+### New behavior
+
+When user selects "Other" and types a custom name (e.g., "Marketing"):
+- Save `income_source_type = 'other'` and `income_source_specification = 'Marketing'` (same DB fields -- no schema change needed)
+- Display as **"Marketing"** (not "Other (Marketing)")
+
+### Dynamic dropdown with user-created categories
+
+In `Finance.tsx` Add Record dialog:
+1. Query `financial_records` for distinct `income_source_specification` values where `income_source_type = 'other'` and `source_section = 'manual'`
+2. Show dropdown structure:
+   - Direct Booking
+   - Collaboration
+   - [User-created categories from DB]
+   - Other (always last)
+
+When a user-created category is selected, auto-set `income_source_type = 'other'` and `income_source_specification` to the selected value.
+
+### Display in IncomeBreakdown
+
+Update the aggregation logic in `IncomeBreakdown.tsx`:
+- For `sourceType === 'other'` with a specification, use the specification as the standalone display label (e.g., "Marketing") instead of "Other (Marketing)"
+- Accumulation into the same category key remains unchanged
+
+### Edge cases
+- Case-insensitive duplicate prevention (trim + lowercase comparison)
+- Empty names blocked
+- Reuse existing category if it already exists
+
+---
+
+## Part D -- Same Logic for Expenses (Non-Recurring)
+
+Apply identical autonomous category behavior to expenses:
+
+In `Finance.tsx` when `expenseCategory === 'other'`:
+1. Query `financial_records` for distinct `expense_subcategory` values where `category = 'other'` and `type = 'expense'`
+2. Show known user-created expense categories as selectable options above the free-text "Other" option
+3. Display in `ExpenseBreakdown.tsx` as standalone categories (not "Other (X)")
+
+---
+
+## Part E -- Recurring Transactions (Isolated)
+
+Apply same logic to `AddRecurringTransactionDialog.tsx` but query from `recurring_transactions` table instead, keeping categories isolated:
+
+- **Recurring Income**: Query distinct `income_source_specification` from `recurring_transactions` where `type = 'income'` and `income_source_type = 'other'`
+- **Recurring Expense**: Query distinct `expense_subcategory` from `recurring_transactions` where `type = 'expense'` and `category = 'other'`
+
+Categories created in recurring do NOT appear in non-recurring dropdowns and vice versa.
+
+---
+
+## Part F -- Reporting and Breakdown Updates
+
+- `IncomeBreakdown.tsx`: Update display labels so "Other" specs show as standalone names
+- `ExpenseBreakdown.tsx`: Same treatment for expense "other" subcategories  
+- `FinanceDashboard.tsx`: Update sourceLabels map, remove phone/internet references
+- Pie charts, percentage calculations, and the less-than-5% grouping rule remain untouched
+
+---
+
+## Database Changes
+
+**One migration needed**: Reassign historical phone/internet records to walk_in:
+
+```text
+UPDATE financial_records 
+SET income_source_type = 'walk_in' 
+WHERE income_source_type IN ('phone', 'internet');
 ```
-[ Insurance (read-only label) ] [ Insurance Type input (placeholder: "e.g. Premium") ]
-```
 
-**"Add Category" button** below the default row. Each new row:
-```
-[ Category Name input ] [ Subcategory input ] [ X remove button ]
-```
-
-### Save Logic Update
-After booking is saved successfully:
-1. For each row with a non-empty subcategory value:
-   - Check if category exists for user in `additional_info_categories` (by name).
-   - If not, create it.
-   - Insert record into `booking_additional_info` with `booking_id`, `category_id`, `subcategory_value`.
-2. Rows with empty subcategory values are skipped entirely (no empty records stored).
-3. Reset additional info rows in `resetForm()`.
+No new tables or columns needed -- the existing `income_source_specification` and `expense_subcategory` fields already support this pattern.
 
 ---
 
-## Phase 4: Display Integration
+## Files Modified
 
-### 4A. Vehicle Reservations / Booking History
-**File:** `src/components/fleet/RentalBookingsList.tsx`
-
-- After fetching bookings, also fetch `booking_additional_info` joined with `additional_info_categories` for those booking IDs.
-- Display below Fuel/Payment fields:
-  ```
-  Additional Information:
-  - Insurance: Premium
-  - VIP Package: Gold
-  ```
-- Only render section if at least one entry exists.
-
-### 4B. Home Calendar Views
-**File:** `src/pages/Home.tsx`
-- Extend `CalendarTask` interface with `additionalInfo?: { categoryName: string, subcategoryValue: string }[]`.
-- After fetching bookings map, also fetch `booking_additional_info` + category names for all booking IDs found in tasks.
-- Pass data through to calendar components.
-
-**File:** `src/components/home/TimelineCalendar.tsx`
-- In task detail popup: display additional info entries below fuel/payment (if any exist).
-
-**File:** `src/components/home/MonthlyCalendar.tsx`
-- In day popover task details: display additional info entries below fuel/payment (if any exist).
-
-### 4C. Daily Program
-**File:** `src/hooks/useDailyTasks.ts`
-- Extend `DailyTask` interface with `additionalInfo?: { categoryName: string, subcategoryValue: string }[]`.
-- After fetching tasks with booking IDs, also fetch `booking_additional_info` + category names for those booking IDs.
-
-**File:** `src/components/daily-program/TaskItem.tsx`
-- For delivery/return tasks: display additional info entries below fuel/payment section. Same compact format, only when data exists.
-
----
-
-## Phase 5: Files to Modify (8 files)
-
-| File | Change |
-|------|--------|
-| `supabase/migrations/` (new) | Create 2 tables, RLS policies, trigger, seed Insurance for existing users |
-| `src/components/booking/UnifiedBookingDialog.tsx` | Add Additional Information form section + save logic |
-| `src/components/fleet/RentalBookingsList.tsx` | Fetch and display additional info on booking cards |
-| `src/pages/Home.tsx` | Extend CalendarTask + fetch additional info data |
-| `src/components/home/TimelineCalendar.tsx` | Display additional info in task popup |
-| `src/components/home/MonthlyCalendar.tsx` | Display additional info in day popover |
-| `src/hooks/useDailyTasks.ts` | Extend DailyTask + fetch additional info |
-| `src/components/daily-program/TaskItem.tsx` | Display additional info on task cards |
-
-## What Will NOT Change
-- Booking creation flow / pricing logic
-- Financial calculations / revenue tracking
-- Calendar rendering logic
-- Delivery/Return task generation
-- Vehicle status management
-- Existing fuel level and payment status implementation
+| File | Changes |
+|------|---------|
+| `Finance.tsx` | Rename labels, remove phone/internet, add dynamic category fetching for income and expense "Other" |
+| `UnifiedBookingDialog.tsx` | Rename labels, remove phone/internet from dropdown |
+| `RentalBookingDialog.tsx` | Rename labels, remove phone/internet from dropdown |
+| `IncomeBreakdown.tsx` | Rename labels, update display logic for "other" specs as standalone |
+| `ExpenseBreakdown.tsx` | Update display for "other" subcategories as standalone |
+| `FinanceDashboard.tsx` | Rename labels, remove phone/internet from maps |
+| `AddRecurringTransactionDialog.tsx` | Rename labels, remove phone/internet, add isolated dynamic categories |
+| `RecurringTransactionsModal.tsx` | Rename labels, remove phone/internet |
 
