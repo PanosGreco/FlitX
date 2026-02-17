@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { FinanceDashboard } from "@/components/finances/FinanceDashboard";
 import { 
@@ -44,6 +44,8 @@ const Finance = () => {
   const [vehicles, setVehicles] = useState<Array<{id: string; make: string; model: string; year: number; fuel_type?: string}>>([]);
   const [financialRecords, setFinancialRecords] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userIncomeCategories, setUserIncomeCategories] = useState<string[]>([]);
+  const [userExpenseCategories, setUserExpenseCategories] = useState<string[]>([]);
   const { toast } = useToast();
   const { t, language, isLanguageLoading } = useLanguage();
   const isBoats = isBoatBusiness();
@@ -55,6 +57,7 @@ const Finance = () => {
   useEffect(() => {
     fetchFinancialRecords();
     fetchVehicles();
+    fetchUserCategories();
     
     // Subscribe to real-time changes
     const channel = supabase
@@ -91,6 +94,50 @@ const Finance = () => {
     }
   };
 
+  const fetchUserCategories = async () => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user) return;
+
+      // Fetch user-created income categories (from 'other' with specification, manual source)
+      const { data: incomeData } = await supabase
+        .from('financial_records')
+        .select('income_source_specification')
+        .eq('income_source_type', 'other')
+        .eq('source_section', 'manual')
+        .eq('type', 'income')
+        .not('income_source_specification', 'is', null);
+
+      if (incomeData) {
+        const unique = [...new Set(
+          incomeData
+            .map(r => r.income_source_specification?.trim())
+            .filter(Boolean)
+        )] as string[];
+        setUserIncomeCategories(unique);
+      }
+
+      // Fetch user-created expense categories (from 'other' with subcategory)
+      const { data: expenseData } = await supabase
+        .from('financial_records')
+        .select('expense_subcategory')
+        .eq('category', 'other')
+        .eq('type', 'expense')
+        .eq('source_section', 'manual')
+        .not('expense_subcategory', 'is', null);
+
+      if (expenseData) {
+        const unique = [...new Set(
+          expenseData
+            .map(r => r.expense_subcategory?.trim())
+            .filter(Boolean)
+        )] as string[];
+        setUserExpenseCategories(unique);
+      }
+    } catch (error) {
+      console.error("Error fetching user categories:", error);
+    }
+  };
   const fetchFinancialRecords = async () => {
     try {
       setIsLoading(true);
@@ -311,15 +358,28 @@ const Finance = () => {
               {recordType === "income" && (
                 <div className="space-y-2">
                   <Label htmlFor="incomeSource">{language === 'el' ? 'Πηγή Εσόδου' : 'Income Source'}</Label>
-                  <Select value={incomeSourceType} onValueChange={setIncomeSourceType} disabled={isLanguageLoading}>
+                  <Select value={incomeSourceType} onValueChange={(val) => {
+                    // If selecting a user-created category, auto-set other + specification
+                    if (val.startsWith('__custom__:')) {
+                      const spec = val.replace('__custom__:', '');
+                      setIncomeSourceType('other');
+                      setIncomeSourceSpecification(spec);
+                    } else {
+                      setIncomeSourceType(val);
+                      if (val !== 'collaboration' && val !== 'other') {
+                        setIncomeSourceSpecification('');
+                      }
+                    }
+                  }} disabled={isLanguageLoading}>
                     <SelectTrigger>
                       <SelectValue placeholder={language === 'el' ? 'Επιλέξτε πηγή...' : 'Select source...'} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="walk_in">{language === 'el' ? 'Επιτόπια' : 'Walk-in'}</SelectItem>
-                      <SelectItem value="internet">{language === 'el' ? 'Διαδίκτυο' : 'Internet'}</SelectItem>
-                      <SelectItem value="phone">{language === 'el' ? 'Τηλέφωνο' : 'Phone'}</SelectItem>
+                      <SelectItem value="walk_in">{language === 'el' ? 'Απευθείας Κράτηση' : 'Direct Booking'}</SelectItem>
                       <SelectItem value="collaboration">{language === 'el' ? 'Συνεργασία' : 'Collaboration'}</SelectItem>
+                      {userIncomeCategories.map((cat) => (
+                        <SelectItem key={cat} value={`__custom__:${cat}`}>{cat}</SelectItem>
+                      ))}
                       <SelectItem value="other">{language === 'el' ? 'Άλλο' : 'Other'}</SelectItem>
                     </SelectContent>
                   </Select>
@@ -348,7 +408,19 @@ const Finance = () => {
               {recordType === "expense" && (
                 <div className="space-y-2">
                   <Label htmlFor="expenseType">{t.category}</Label>
-                  <Select value={expenseCategory} onValueChange={setExpenseCategory} disabled={isLanguageLoading}>
+                  <Select value={expenseCategory} onValueChange={(val) => {
+                    // If selecting a user-created expense category
+                    if (val.startsWith('__custom_exp__:')) {
+                      const spec = val.replace('__custom_exp__:', '');
+                      setExpenseCategory('other');
+                      setExpenseSubcategory(spec);
+                    } else {
+                      setExpenseCategory(val);
+                      if (val !== 'maintenance' && val !== 'other' && val !== 'marketing') {
+                        setExpenseSubcategory('');
+                      }
+                    }
+                  }} disabled={isLanguageLoading}>
                     <SelectTrigger>
                       <SelectValue placeholder={t.selectCategory} />
                     </SelectTrigger>
@@ -362,6 +434,9 @@ const Finance = () => {
                             <SelectItem value="docking">{t.dockingFees}</SelectItem>
                             <SelectItem value="licensing">{t.licensing}</SelectItem>
                             <SelectItem value="salary">{t.employeeSalaries}</SelectItem>
+                            {userExpenseCategories.map((cat) => (
+                              <SelectItem key={cat} value={`__custom_exp__:${cat}`}>{cat}</SelectItem>
+                            ))}
                             <SelectItem value="other">{t.other}</SelectItem>
                           </>
                         ) : (
@@ -374,6 +449,9 @@ const Finance = () => {
                             <SelectItem value="tax">{t.taxesFees}</SelectItem>
                             <SelectItem value="salary">{t.employeeSalaries}</SelectItem>
                             <SelectItem value="marketing">{language === 'el' ? 'Μάρκετινγκ' : 'Marketing'}</SelectItem>
+                            {userExpenseCategories.map((cat) => (
+                              <SelectItem key={cat} value={`__custom_exp__:${cat}`}>{cat}</SelectItem>
+                            ))}
                             <SelectItem value="other">{t.other}</SelectItem>
                           </>
                         )}

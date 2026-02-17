@@ -155,15 +155,17 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         // Manual income - show source type
         const sourceType = record.income_source_type;
         const sourceLabels: Record<string, string> = {
-          walk_in: language === 'el' ? 'Επιτόπια' : 'Walk-in',
-          internet: language === 'el' ? 'Διαδίκτυο' : 'Internet',
-          phone: language === 'el' ? 'Τηλέφωνο' : 'Phone',
+          walk_in: language === 'el' ? 'Απευθείας Κράτηση' : 'Direct Booking',
           collaboration: language === 'el' ? 'Συνεργασία' : 'Collaboration',
           other: language === 'el' ? 'Άλλο' : 'Other'
         };
         const sourceLabel = sourceType ? sourceLabels[sourceType] || sourceType : '';
         const spec = record.income_source_specification;
         if (spec) {
+          // For 'other' with spec, show spec as standalone; for collaboration show with source
+          if (sourceType === 'other') {
+            return `${prefix} – ${spec}`;
+          }
           return `${prefix} – ${sourceLabel} · ${spec}`;
         }
         return `${prefix} – ${record.description || sourceLabel || 'Manual Income'}`;
@@ -192,7 +194,11 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         return `${prefix} – ${categoryLabel} (${subcatLabel})`;
       }
       
-      // For other expenses with subcategory
+      // For other expenses with subcategory - show as standalone
+      if (record.category === 'other' && record.expense_subcategory) {
+        return `${prefix} – ${record.expense_subcategory}`;
+      }
+      
       if (record.expense_subcategory) {
         return `${prefix} – ${categoryLabel} (${record.expense_subcategory})`;
       }

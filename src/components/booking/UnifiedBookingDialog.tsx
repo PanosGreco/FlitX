@@ -613,9 +613,7 @@ export function UnifiedBookingDialog({
                 <SelectValue placeholder={language === 'el' ? 'Επιλέξτε πηγή' : 'Select source'} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="walk_in">{language === 'el' ? 'Επί τόπου' : 'Walk-in'}</SelectItem>
-                <SelectItem value="internet">{language === 'el' ? 'Διαδίκτυο' : 'Internet'}</SelectItem>
-                <SelectItem value="phone">{language === 'el' ? 'Τηλέφωνο' : 'Phone'}</SelectItem>
+                <SelectItem value="walk_in">{language === 'el' ? 'Απευθείας Κράτηση' : 'Direct Booking'}</SelectItem>
                 <SelectItem value="collaboration">{language === 'el' ? 'Συνεργασία' : 'Collaboration'}</SelectItem>
                 <SelectItem value="other">{language === 'el' ? 'Άλλο' : 'Other'}</SelectItem>
               </SelectContent>

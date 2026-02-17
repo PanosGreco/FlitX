@@ -102,16 +102,8 @@ const getCategoryLabel = (category: string, type: string, language: string, inco
     el: string;
   }> = {
     walk_in: {
-      en: 'Walk-in',
-      el: 'Επιτόπια'
-    },
-    internet: {
-      en: 'Internet',
-      el: 'Διαδίκτυο'
-    },
-    phone: {
-      en: 'Phone',
-      el: 'Τηλέφωνο'
+      en: 'Direct Booking',
+      el: 'Απευθείας Κράτηση'
     },
     collaboration: {
       en: 'Collaboration',
@@ -128,7 +120,11 @@ const getCategoryLabel = (category: string, type: string, language: string, inco
   // For income: if source type is collaboration/other and specification exists, show "Specification – SourceType"
   if (type === 'income' && incomeSourceType) {
     const sourceLabel = incomeSourceLabels[incomeSourceType]?.[lang] || incomeSourceType;
-    if ((incomeSourceType === 'collaboration' || incomeSourceType === 'other') && incomeSourceSpecification) {
+    if (incomeSourceType === 'other' && incomeSourceSpecification) {
+      // Standalone display for autonomous "other" categories
+      return incomeSourceSpecification;
+    }
+    if (incomeSourceType === 'collaboration' && incomeSourceSpecification) {
       return `${incomeSourceSpecification} – ${sourceLabel}`;
     }
     return `${base} - ${sourceLabel}`;
@@ -137,6 +133,10 @@ const getCategoryLabel = (category: string, type: string, language: string, inco
   // For maintenance expenses, append subcategory
   if (type === 'expense' && category === 'maintenance' && expenseSubcategory) {
     return `${base} - ${expenseSubcategory}`;
+  }
+  // For 'other' expenses, show subcategory as standalone
+  if (type === 'expense' && category === 'other' && expenseSubcategory) {
+    return expenseSubcategory;
   }
   return base;
 };
