@@ -481,7 +481,7 @@ export function UnifiedBookingDialog({
         date: format(startDate, 'yyyy-MM-dd'),
         description: pricingMode === 'custom' 
           ? `Rental: ${vehicleName} - ${customerName} (Custom price)`
-          : `Rental: ${vehicleName} - ${customerName} (${rentalDays} days @ $${effectiveRate}/day)`,
+          : `Rental: ${vehicleName} - ${customerName} (${rentalDays} days * €${effectiveRate}/day)`,
         income_source_type: incomeSourceType,
         income_source_specification: incomeSourceSpecification || null,
         source_section: 'booking'
