@@ -279,8 +279,8 @@ export function ExpenseBreakdown({
         label = `${categoryLabel} (${maintenanceLabel})`;
       } else if (key.startsWith('other_')) {
         const subcategory = key.replace('other_', '');
-        const categoryLabel = EXPENSE_CATEGORY_LABELS['other']?.[lang === 'el' ? 'el' : 'en'] || 'Other';
-        label = `${categoryLabel} (${subcategory})`;
+        // Display as standalone category name (autonomous)
+        label = subcategory.charAt(0).toUpperCase() + subcategory.slice(1);
       } else if (key.startsWith('marketing_')) {
         const subcategory = key.replace('marketing_', '');
         const categoryLabel = EXPENSE_CATEGORY_LABELS['marketing']?.[lang === 'el' ? 'el' : 'en'] || 'Marketing';

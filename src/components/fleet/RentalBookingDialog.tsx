@@ -450,9 +450,7 @@ export function RentalBookingDialog({
                 <SelectValue placeholder="Select source" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="walk_in">Walk-in</SelectItem>
-                <SelectItem value="internet">Internet</SelectItem>
-                <SelectItem value="phone">Phone</SelectItem>
+                <SelectItem value="walk_in">Direct Booking</SelectItem>
                 <SelectItem value="collaboration">Collaboration</SelectItem>
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>

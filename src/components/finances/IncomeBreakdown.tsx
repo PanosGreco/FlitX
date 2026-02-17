@@ -47,16 +47,8 @@ const INCOME_SOURCE_LABELS: Record<string, {
   el: string;
 }> = {
   walk_in: {
-    en: "Walk-in",
-    el: "Επιτόπια"
-  },
-  internet: {
-    en: "Internet",
-    el: "Διαδίκτυο"
-  },
-  phone: {
-    en: "Phone",
-    el: "Τηλέφωνο"
+    en: "Direct Booking",
+    el: "Απευθείας Κράτηση"
   },
   collaboration: {
     en: "Collaboration",
@@ -171,12 +163,17 @@ export function IncomeBreakdown({
       // For collaboration and other, create dynamic categories based on specification
       let categoryKey: string;
       let displayLabel: string;
-      if ((sourceType === 'collaboration' || sourceType === 'other') && record.income_source_specification) {
+      if (sourceType === 'collaboration' && record.income_source_specification) {
         const normalizedSpec = normalizeSpecification(record.income_source_specification);
         const displaySpec = getDisplaySpecification(record.income_source_specification);
         categoryKey = `${sourceType}_${normalizedSpec}`;
         const baseLabel = INCOME_SOURCE_LABELS[sourceType]?.[lang === 'el' ? 'el' : 'en'] || sourceType;
         displayLabel = `${baseLabel} (${displaySpec})`;
+      } else if (sourceType === 'other' && record.income_source_specification) {
+        const normalizedSpec = normalizeSpecification(record.income_source_specification);
+        const displaySpec = getDisplaySpecification(record.income_source_specification);
+        categoryKey = `other_${normalizedSpec}`;
+        displayLabel = displaySpec; // Standalone label, no "Other" prefix
       } else {
         categoryKey = sourceType;
         displayLabel = INCOME_SOURCE_LABELS[sourceType]?.[lang === 'el' ? 'el' : 'en'] || sourceType;

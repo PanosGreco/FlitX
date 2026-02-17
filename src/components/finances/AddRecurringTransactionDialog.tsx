@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,10 +51,55 @@ export function AddRecurringTransactionDialog({
   const [incomeSourceType, setIncomeSourceType] = useState('walk_in');
   const [incomeSourceSpec, setIncomeSourceSpec] = useState('');
   const [expenseSubcategory, setExpenseSubcategory] = useState('');
+  const [recurringIncomeCategories, setRecurringIncomeCategories] = useState<string[]>([]);
+  const [recurringExpenseCategories, setRecurringExpenseCategories] = useState<string[]>([]);
   
   const { language, isLanguageLoading } = useLanguage();
   const { toast } = useToast();
   const isBoats = isBoatBusiness();
+
+  // Fetch isolated recurring categories
+  useEffect(() => {
+    if (open) {
+      fetchRecurringCategories();
+    }
+  }, [open]);
+
+  const fetchRecurringCategories = async () => {
+    try {
+      // Recurring income: distinct specs where income_source_type = 'other'
+      const { data: incomeData } = await supabase
+        .from('recurring_transactions')
+        .select('income_source_specification')
+        .eq('type', 'income')
+        .eq('income_source_type', 'other')
+        .not('income_source_specification', 'is', null);
+
+      if (incomeData) {
+        const unique = [...new Set(
+          incomeData.map(r => r.income_source_specification?.trim()).filter(Boolean)
+        )] as string[];
+        setRecurringIncomeCategories(unique);
+      }
+
+      // Recurring expense: distinct subcategories where category = 'other'
+      const { data: expenseData } = await supabase
+        .from('recurring_transactions')
+        .select('expense_subcategory')
+        .eq('type', 'expense')
+        .eq('category', 'other')
+        .not('expense_subcategory', 'is', null);
+
+      if (expenseData) {
+        const unique = [...new Set(
+          expenseData.map(r => r.expense_subcategory?.trim()).filter(Boolean)
+        )] as string[];
+        setRecurringExpenseCategories(unique);
+      }
+    } catch (error) {
+      console.error('Error fetching recurring categories:', error);
+    }
+  };
 
   const resetForm = () => {
     setStep('type');
@@ -450,15 +495,27 @@ export function AddRecurringTransactionDialog({
                 <>
                   <div className="space-y-2">
                     <Label>{language === 'el' ? 'Πηγή Εσόδου' : 'Income Source'}</Label>
-                    <Select value={incomeSourceType} onValueChange={setIncomeSourceType}>
+                    <Select value={incomeSourceType} onValueChange={(val) => {
+                      if (val.startsWith('__rcustom__:')) {
+                        const spec = val.replace('__rcustom__:', '');
+                        setIncomeSourceType('other');
+                        setIncomeSourceSpec(spec);
+                      } else {
+                        setIncomeSourceType(val);
+                        if (val !== 'collaboration' && val !== 'other') {
+                          setIncomeSourceSpec('');
+                        }
+                      }
+                    }}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="walk_in">{language === 'el' ? 'Επιτόπια' : 'Walk-in'}</SelectItem>
-                        <SelectItem value="internet">{language === 'el' ? 'Διαδίκτυο' : 'Internet'}</SelectItem>
-                        <SelectItem value="phone">{language === 'el' ? 'Τηλέφωνο' : 'Phone'}</SelectItem>
+                        <SelectItem value="walk_in">{language === 'el' ? 'Απευθείας Κράτηση' : 'Direct Booking'}</SelectItem>
                         <SelectItem value="collaboration">{language === 'el' ? 'Συνεργασία' : 'Collaboration'}</SelectItem>
+                        {recurringIncomeCategories.map((cat) => (
+                          <SelectItem key={cat} value={`__rcustom__:${cat}`}>{cat}</SelectItem>
+                        ))}
                         <SelectItem value="other">{language === 'el' ? 'Άλλο' : 'Other'}</SelectItem>
                       </SelectContent>
                     </Select>
@@ -480,7 +537,18 @@ export function AddRecurringTransactionDialog({
                 <>
                   <div className="space-y-2">
                     <Label>{language === 'el' ? 'Κατηγορία' : 'Category'}</Label>
-                    <Select value={category} onValueChange={setCategory} disabled={isLanguageLoading}>
+                    <Select value={category} onValueChange={(val) => {
+                      if (val.startsWith('__rcustom_exp__:')) {
+                        const spec = val.replace('__rcustom_exp__:', '');
+                        setCategory('other');
+                        setExpenseSubcategory(spec);
+                      } else {
+                        setCategory(val);
+                        if (val !== 'maintenance' && val !== 'other' && val !== 'marketing') {
+                          setExpenseSubcategory('');
+                        }
+                      }
+                    }} disabled={isLanguageLoading}>
                       <SelectTrigger>
                         <SelectValue placeholder={language === 'el' ? 'Επιλέξτε...' : 'Select...'} />
                       </SelectTrigger>
@@ -494,6 +562,9 @@ export function AddRecurringTransactionDialog({
                               <SelectItem value="docking">{language === 'el' ? 'Ελλιμενισμός' : 'Docking'}</SelectItem>
                               <SelectItem value="licensing">{language === 'el' ? 'Άδειες' : 'Licensing'}</SelectItem>
                               <SelectItem value="salary">{language === 'el' ? 'Μισθοί' : 'Salaries'}</SelectItem>
+                              {recurringExpenseCategories.map((cat) => (
+                                <SelectItem key={cat} value={`__rcustom_exp__:${cat}`}>{cat}</SelectItem>
+                              ))}
                               <SelectItem value="other">{language === 'el' ? 'Άλλο' : 'Other'}</SelectItem>
                             </>
                           ) : (
@@ -506,6 +577,9 @@ export function AddRecurringTransactionDialog({
                               <SelectItem value="tax">{language === 'el' ? 'Φόροι/Τέλη' : 'Taxes/Fees'}</SelectItem>
                               <SelectItem value="salary">{language === 'el' ? 'Μισθοί' : 'Salaries'}</SelectItem>
                               <SelectItem value="marketing">{language === 'el' ? 'Μάρκετινγκ' : 'Marketing'}</SelectItem>
+                              {recurringExpenseCategories.map((cat) => (
+                                <SelectItem key={cat} value={`__rcustom_exp__:${cat}`}>{cat}</SelectItem>
+                              ))}
                               <SelectItem value="other">{language === 'el' ? 'Άλλο' : 'Other'}</SelectItem>
                             </>
                           )}
