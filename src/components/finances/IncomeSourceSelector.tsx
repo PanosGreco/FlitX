@@ -103,12 +103,6 @@ export function IncomeSourceSelector({
   const hasCollaborations = collaborations.length > 0;
   const hasUserCategories = userIncomeCategories.length > 0;
 
-  // Show collaboration sub-selector when type is collaboration but no spec selected yet, or creating new
-  const showCollabSubSelector =
-    incomeSourceType === 'collaboration' &&
-    !incomeSourceSpecification &&
-    (hasCollaborations || isCreatingCollab);
-
   return (
     <div className="space-y-3">
       {showLabel && (
@@ -139,32 +133,9 @@ export function IncomeSourceSelector({
               {language === 'el' ? 'Απευθείας Κράτηση' : 'Direct Booking'}
             </SelectItem>
 
-            {/* Collaboration: if user has existing collabs, show them nested */}
-            {hasCollaborations ? (
-              <>
-                {collaborations.map((collab) => (
-                  <SelectItem
-                    key={collab}
-                    value={`__collab__:${collab}`}
-                    className="pl-8"
-                  >
-                    {collab}
-                  </SelectItem>
-                ))}
-                <SelectItem value="__new_collab__" className="pl-8">
-                  <span className="flex items-center gap-1.5 text-primary">
-                    <Plus className="h-3.5 w-3.5" />
-                    {language === 'el'
-                      ? 'Νέα Συνεργασία'
-                      : 'New Collaboration'}
-                  </span>
-                </SelectItem>
-              </>
-            ) : (
-              <SelectItem value="collaboration">
-                {language === 'el' ? 'Συνεργασία' : 'Collaboration'}
-              </SelectItem>
-            )}
+            <SelectItem value="collaboration">
+              {language === 'el' ? 'Συνεργασία' : 'Collaboration'}
+            </SelectItem>
 
             <SelectItem value="other">
               {language === 'el' ? 'Άλλο' : 'Other'}
@@ -192,32 +163,73 @@ export function IncomeSourceSelector({
         </SelectContent>
       </Select>
 
-      {/* Collaboration: creating new entry */}
-      {(isCreatingCollab || (incomeSourceType === 'collaboration' && !incomeSourceSpecification && !hasCollaborations)) && (
-        <div className="flex gap-2">
-          <Input
-            value={newCollabName}
-            onChange={(e) => setNewCollabName(e.target.value)}
-            placeholder={
-              language === 'el'
-                ? 'Όνομα συνεργάτη...'
-                : 'Collaboration name...'
-            }
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                handleCreateCollaboration();
-              }
-            }}
-          />
-          <Button
-            type="button"
-            size="sm"
-            onClick={handleCreateCollaboration}
-            disabled={!newCollabName.trim()}
-          >
-            {language === 'el' ? 'Προσθήκη' : 'Add'}
-          </Button>
+      {/* Collaboration: show sub-selector when collaboration is selected */}
+      {incomeSourceType === 'collaboration' && !incomeSourceSpecification && (
+        <div className="space-y-2">
+          {hasCollaborations && (
+            <Select
+              value=""
+              onValueChange={(val) => {
+                if (val === '__new_collab__') {
+                  setIsCreatingCollab(true);
+                } else {
+                  onSourceChange('collaboration', val);
+                  setIsCreatingCollab(false);
+                  setNewCollabName("");
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue
+                  placeholder={
+                    language === 'el' ? 'Επιλέξτε συνεργασία...' : 'Select collaboration...'
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {collaborations.map((collab) => (
+                  <SelectItem key={collab} value={collab}>
+                    {collab}
+                  </SelectItem>
+                ))}
+                <SelectSeparator />
+                <SelectItem value="__new_collab__">
+                  <span className="flex items-center gap-1.5 text-primary">
+                    <Plus className="h-3.5 w-3.5" />
+                    {language === 'el' ? 'Νέα Συνεργασία' : 'New Collaboration'}
+                  </span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+
+          {(isCreatingCollab || !hasCollaborations) && (
+            <div className="flex gap-2">
+              <Input
+                value={newCollabName}
+                onChange={(e) => setNewCollabName(e.target.value)}
+                placeholder={
+                  language === 'el'
+                    ? 'Όνομα συνεργάτη...'
+                    : 'Collaboration name...'
+                }
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleCreateCollaboration();
+                  }
+                }}
+              />
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleCreateCollaboration}
+                disabled={!newCollabName.trim()}
+              >
+                {language === 'el' ? 'Προσθήκη' : 'Add'}
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
