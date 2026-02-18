@@ -15,6 +15,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useIncomeCategories } from "@/hooks/useIncomeCategories";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface AdditionalCost {
   id: string;
@@ -50,6 +52,8 @@ export function RentalBookingDialog({
   preselectedStartDate,
   preselectedEndDate
 }: RentalBookingDialogProps) {
+  const { language } = useLanguage();
+  const { userIncomeCategories } = useIncomeCategories();
   const [startDate, setStartDate] = useState<Date | undefined>(preselectedStartDate);
   const [endDate, setEndDate] = useState<Date | undefined>(preselectedEndDate);
   const [pickupTime, setPickupTime] = useState("");
@@ -440,19 +444,28 @@ export function RentalBookingDialog({
           {/* Source Field - Moved to top */}
           <div className="space-y-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
             <Label className="text-base font-semibold">Booking Source</Label>
-            <Select value={incomeSourceType} onValueChange={(value) => {
-              setIncomeSourceType(value);
-              if (value !== 'collaboration' && value !== 'other') {
-                setIncomeSourceSpecification('');
+            <Select value={incomeSourceType} onValueChange={(val) => {
+              if (val.startsWith('__custom__:')) {
+                const spec = val.replace('__custom__:', '');
+                setIncomeSourceType('other');
+                setIncomeSourceSpecification(spec);
+              } else {
+                setIncomeSourceType(val);
+                if (val !== 'collaboration' && val !== 'other') {
+                  setIncomeSourceSpecification('');
+                }
               }
             }}>
               <SelectTrigger>
-                <SelectValue placeholder="Select source" />
+                <SelectValue placeholder={language === 'el' ? 'Επιλέξτε πηγή' : 'Select source'} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="walk_in">Direct Booking</SelectItem>
-                <SelectItem value="collaboration">Collaboration</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="walk_in">{language === 'el' ? 'Απευθείας Κράτηση' : 'Direct Booking'}</SelectItem>
+                <SelectItem value="collaboration">{language === 'el' ? 'Συνεργασία' : 'Collaboration'}</SelectItem>
+                {userIncomeCategories.map((cat) => (
+                  <SelectItem key={cat} value={`__custom__:${cat}`}>{cat}</SelectItem>
+                ))}
+                <SelectItem value="other">{language === 'el' ? 'Άλλο' : 'Other'}</SelectItem>
               </SelectContent>
             </Select>
             
@@ -460,7 +473,9 @@ export function RentalBookingDialog({
               <Input
                 value={incomeSourceSpecification}
                 onChange={(e) => setIncomeSourceSpecification(e.target.value)}
-                placeholder={incomeSourceType === 'collaboration' ? 'Partner name...' : 'Specify source...'}
+                placeholder={incomeSourceType === 'collaboration' 
+                  ? (language === 'el' ? 'Όνομα συνεργάτη...' : 'Partner name...') 
+                  : (language === 'el' ? 'Προσδιορίστε...' : 'Specify source...')}
               />
             )}
           </div>

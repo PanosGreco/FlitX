@@ -18,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useIncomeCategories } from "@/hooks/useIncomeCategories";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -83,6 +84,7 @@ export function UnifiedBookingDialog({
 }: UnifiedBookingDialogProps) {
   const { user } = useAuth();
   const { language } = useLanguage();
+  const { userIncomeCategories } = useIncomeCategories();
   
   // Form state
   const [startDate, setStartDate] = useState<Date | undefined>(preselectedStartDate);
@@ -603,10 +605,16 @@ export function UnifiedBookingDialog({
             <Label className="text-base font-semibold">
               {language === 'el' ? 'Πηγή Κράτησης' : 'Booking Source'}
             </Label>
-            <Select value={incomeSourceType} onValueChange={(value) => {
-              setIncomeSourceType(value);
-              if (value !== 'collaboration' && value !== 'other') {
-                setIncomeSourceSpecification('');
+            <Select value={incomeSourceType} onValueChange={(val) => {
+              if (val.startsWith('__custom__:')) {
+                const spec = val.replace('__custom__:', '');
+                setIncomeSourceType('other');
+                setIncomeSourceSpecification(spec);
+              } else {
+                setIncomeSourceType(val);
+                if (val !== 'collaboration' && val !== 'other') {
+                  setIncomeSourceSpecification('');
+                }
               }
             }}>
               <SelectTrigger>
@@ -615,6 +623,9 @@ export function UnifiedBookingDialog({
               <SelectContent>
                 <SelectItem value="walk_in">{language === 'el' ? 'Απευθείας Κράτηση' : 'Direct Booking'}</SelectItem>
                 <SelectItem value="collaboration">{language === 'el' ? 'Συνεργασία' : 'Collaboration'}</SelectItem>
+                {userIncomeCategories.map((cat) => (
+                  <SelectItem key={cat} value={`__custom__:${cat}`}>{cat}</SelectItem>
+                ))}
                 <SelectItem value="other">{language === 'el' ? 'Άλλο' : 'Other'}</SelectItem>
               </SelectContent>
             </Select>

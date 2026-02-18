@@ -1,5 +1,6 @@
 
 import { useState, useEffect, useMemo } from "react";
+import { useIncomeCategories } from "@/hooks/useIncomeCategories";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { FinanceDashboard } from "@/components/finances/FinanceDashboard";
 import { 
@@ -44,7 +45,7 @@ const Finance = () => {
   const [vehicles, setVehicles] = useState<Array<{id: string; make: string; model: string; year: number; fuel_type?: string}>>([]);
   const [financialRecords, setFinancialRecords] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [userIncomeCategories, setUserIncomeCategories] = useState<string[]>([]);
+  const { userIncomeCategories, refetchCategories: refetchIncomeCategories } = useIncomeCategories();
   const [userExpenseCategories, setUserExpenseCategories] = useState<string[]>([]);
   const { toast } = useToast();
   const { t, language, isLanguageLoading } = useLanguage();
@@ -98,24 +99,6 @@ const Finance = () => {
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.user) return;
-
-      // Fetch user-created income categories (from 'other' with specification, manual source)
-      const { data: incomeData } = await supabase
-        .from('financial_records')
-        .select('income_source_specification')
-        .eq('income_source_type', 'other')
-        .eq('source_section', 'manual')
-        .eq('type', 'income')
-        .not('income_source_specification', 'is', null);
-
-      if (incomeData) {
-        const unique = [...new Set(
-          incomeData
-            .map(r => r.income_source_specification?.trim())
-            .filter(Boolean)
-        )] as string[];
-        setUserIncomeCategories(unique);
-      }
 
       // Fetch user-created expense categories (from 'other' with subcategory)
       const { data: expenseData } = await supabase
@@ -303,8 +286,10 @@ const Finance = () => {
             : `New ${recordType} record has been added`,
         });
         
-        // Close the dialog
+        // Close the dialog and refresh categories
         setIsAddFinanceOpen(false);
+        refetchIncomeCategories();
+        fetchUserCategories();
       }
     } catch (error) {
       console.error("Exception adding financial record:", error);
