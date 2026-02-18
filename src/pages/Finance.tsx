@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useIncomeCategories } from "@/hooks/useIncomeCategories";
+import { IncomeSourceSelector } from "@/components/finances/IncomeSourceSelector";
 import { MobileLayout } from "@/components/layout/MobileLayout";
 import { FinanceDashboard } from "@/components/finances/FinanceDashboard";
 import { 
@@ -339,53 +340,17 @@ const Finance = () => {
                 </Select>
               </div>
               
-              {/* Income Source Type - for income records */}
               {recordType === "income" && (
                 <div className="space-y-2">
-                  <Label htmlFor="incomeSource">{language === 'el' ? 'Πηγή Εσόδου' : 'Income Source'}</Label>
-                  <Select value={incomeSourceType} onValueChange={(val) => {
-                    // If selecting a user-created category, auto-set other + specification
-                    if (val.startsWith('__custom__:')) {
-                      const spec = val.replace('__custom__:', '');
-                      setIncomeSourceType('other');
+                  <IncomeSourceSelector
+                    incomeSourceType={incomeSourceType}
+                    incomeSourceSpecification={incomeSourceSpecification}
+                    onSourceChange={(type, spec) => {
+                      setIncomeSourceType(type);
                       setIncomeSourceSpecification(spec);
-                    } else {
-                      setIncomeSourceType(val);
-                      if (val !== 'collaboration' && val !== 'other') {
-                        setIncomeSourceSpecification('');
-                      }
-                    }
-                  }} disabled={isLanguageLoading}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={language === 'el' ? 'Επιλέξτε πηγή...' : 'Select source...'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="walk_in">{language === 'el' ? 'Απευθείας Κράτηση' : 'Direct Booking'}</SelectItem>
-                      <SelectItem value="collaboration">{language === 'el' ? 'Συνεργασία' : 'Collaboration'}</SelectItem>
-                      {userIncomeCategories.map((cat) => (
-                        <SelectItem key={cat} value={`__custom__:${cat}`}>{cat}</SelectItem>
-                      ))}
-                      <SelectItem value="other">{language === 'el' ? 'Άλλο' : 'Other'}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {/* Income Source Specification - for collaboration/other */}
-              {recordType === "income" && (incomeSourceType === 'collaboration' || incomeSourceType === 'other') && (
-                <div className="space-y-2">
-                  <Label htmlFor="incomeSpec">
-                    {language === 'el' ? 'Προσδιορισμός Πηγής' : 'Source Specification'} *
-                  </Label>
-                  <Input 
-                    id="incomeSpec"
-                    placeholder={incomeSourceType === 'collaboration' 
-                      ? (language === 'el' ? 'π.χ. Hotel Blue Bay' : 'e.g. Hotel Blue Bay')
-                      : (language === 'el' ? 'Περιγράψτε την πηγή...' : 'Describe the source...')}
-                    value={incomeSourceSpecification}
-                    onChange={(e) => setIncomeSourceSpecification(e.target.value)}
-                    required
+                    }}
                     disabled={isLanguageLoading}
+                    labelText={language === 'el' ? 'Πηγή Εσόδου' : 'Income Source'}
                   />
                 </div>
               )}

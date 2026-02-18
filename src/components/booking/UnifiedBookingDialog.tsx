@@ -18,7 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useIncomeCategories } from "@/hooks/useIncomeCategories";
+import { IncomeSourceSelector } from "@/components/finances/IncomeSourceSelector";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -84,7 +84,7 @@ export function UnifiedBookingDialog({
 }: UnifiedBookingDialogProps) {
   const { user } = useAuth();
   const { language } = useLanguage();
-  const { userIncomeCategories } = useIncomeCategories();
+  
   
   // Form state
   const [startDate, setStartDate] = useState<Date | undefined>(preselectedStartDate);
@@ -602,43 +602,14 @@ export function UnifiedBookingDialog({
         <div className="space-y-4">
           {/* Booking Source */}
           <div className="space-y-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
-            <Label className="text-base font-semibold">
-              {language === 'el' ? 'Πηγή Κράτησης' : 'Booking Source'}
-            </Label>
-            <Select value={incomeSourceType} onValueChange={(val) => {
-              if (val.startsWith('__custom__:')) {
-                const spec = val.replace('__custom__:', '');
-                setIncomeSourceType('other');
+            <IncomeSourceSelector
+              incomeSourceType={incomeSourceType}
+              incomeSourceSpecification={incomeSourceSpecification}
+              onSourceChange={(type, spec) => {
+                setIncomeSourceType(type);
                 setIncomeSourceSpecification(spec);
-              } else {
-                setIncomeSourceType(val);
-                if (val !== 'collaboration' && val !== 'other') {
-                  setIncomeSourceSpecification('');
-                }
-              }
-            }}>
-              <SelectTrigger>
-                <SelectValue placeholder={language === 'el' ? 'Επιλέξτε πηγή' : 'Select source'} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="walk_in">{language === 'el' ? 'Απευθείας Κράτηση' : 'Direct Booking'}</SelectItem>
-                <SelectItem value="collaboration">{language === 'el' ? 'Συνεργασία' : 'Collaboration'}</SelectItem>
-                {userIncomeCategories.map((cat) => (
-                  <SelectItem key={cat} value={`__custom__:${cat}`}>{cat}</SelectItem>
-                ))}
-                <SelectItem value="other">{language === 'el' ? 'Άλλο' : 'Other'}</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            {(incomeSourceType === 'collaboration' || incomeSourceType === 'other') && (
-              <Input
-                value={incomeSourceSpecification}
-                onChange={(e) => setIncomeSourceSpecification(e.target.value)}
-                placeholder={incomeSourceType === 'collaboration' 
-                  ? (language === 'el' ? 'Όνομα συνεργάτη...' : 'Partner name...') 
-                  : (language === 'el' ? 'Προσδιορίστε...' : 'Specify source...')}
-              />
-            )}
+              }}
+            />
           </div>
 
           {/* Customer Name */}
