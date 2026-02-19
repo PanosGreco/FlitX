@@ -395,20 +395,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="next-service">
-                {language === 'el' ? 'Επόμενη Ημερομηνία Σέρβις (Προαιρετικό)' : 'Next Service Date (Optional)'}
-              </Label>
-              <Input
-                id="next-service"
-                type="date"
-                value={nextServiceDate}
-                onChange={(e) => setNextServiceDate(e.target.value)}
-                disabled={isLanguageLoading}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="cost">{language === 'el' ? 'Κόστος (€)' : 'Cost ($)'}</Label>
+              <Label htmlFor="cost">{language === 'el' ? 'Κόστος (€)' : 'Cost (€)'}</Label>
               <Input
                 id="cost"
                 type="number"
