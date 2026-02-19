@@ -38,6 +38,7 @@ import {
   formatCustomCategory
 } from "@/constants/vehicleTypes";
 import { TRANSMISSION_TYPES, TRANSMISSION_TYPE_LABELS, TransmissionType } from "@/constants/transmissionTypes";
+import { validateFileSize, compressImage } from "@/utils/imageUtils";
 
 const Fleet = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -144,9 +145,17 @@ const Fleet = () => {
     setIsAddDialogOpen(true);
   };
   
-  const handleVehicleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVehicleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
+
+      const sizeCheck = validateFileSize(file);
+      if (!sizeCheck.valid) {
+        toast({ title: language === 'el' ? 'Αρχείο πολύ μεγάλο' : 'File too large', description: sizeCheck.message, variant: 'destructive' });
+        return;
+      }
+
+      const processed = await compressImage(file);
       const reader = new FileReader();
       
       reader.onload = (event) => {
@@ -155,7 +164,7 @@ const Fleet = () => {
         }
       };
       
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(processed);
     }
   };
 

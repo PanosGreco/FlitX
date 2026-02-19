@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { IncomeSourceSelector } from "@/components/finances/IncomeSourceSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { validateFileSize, compressImage } from "@/utils/imageUtils";
 
 interface AdditionalCost {
   id: string;
@@ -177,15 +178,21 @@ export function RentalBookingDialog({
   const additionalCostsTotal = additionalCosts.reduce((sum, cost) => sum + cost.amount, 0);
   const totalAmount = pricingMode === 'custom' ? customTotalPrice : (baseAmount + additionalCostsTotal);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setContractPhoto(file);
+      const sizeCheck = validateFileSize(file);
+      if (!sizeCheck.valid) {
+        toast({ title: 'File too large', description: sizeCheck.message, variant: 'destructive' });
+        return;
+      }
+      const processed = await compressImage(file);
+      setContractPhoto(processed);
       const reader = new FileReader();
       reader.onload = (e) => {
         setContractPhotoPreview(e.target?.result as string);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(processed);
     }
   };
 

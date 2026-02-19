@@ -21,6 +21,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { IncomeSourceSelector } from "@/components/finances/IncomeSourceSelector";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { validateFileSize, compressImage } from "@/utils/imageUtils";
 
 interface AdditionalCost {
   id: string;
@@ -330,15 +331,21 @@ export function UnifiedBookingDialog({
   const additionalCostsTotal = additionalCosts.reduce((sum, cost) => sum + cost.amount, 0);
   const totalAmount = pricingMode === 'custom' ? customTotalPrice : (baseAmount + additionalCostsTotal);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setContractPhoto(file);
+      const sizeCheck = validateFileSize(file);
+      if (!sizeCheck.valid) {
+        toast.error(sizeCheck.message);
+        return;
+      }
+      const processed = await compressImage(file);
+      setContractPhoto(processed);
       const reader = new FileReader();
       reader.onload = (e) => {
         setContractPhotoPreview(e.target?.result as string);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(processed);
     }
   };
 

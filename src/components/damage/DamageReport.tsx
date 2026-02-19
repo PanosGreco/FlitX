@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Plus, X, Loader2, Upload } from 'lucide-react';
 import { format } from 'date-fns';
+import { validateFileSize, compressImage } from '@/utils/imageUtils';
 
 interface DamageReportProps {
   vehicleId: string;
@@ -80,8 +81,39 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
     fetchDamages();
   }, [fetchDamages]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSelectedFiles(e.target.files);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+
+    const files = Array.from(e.target.files);
+    const rejectedNames: string[] = [];
+    const accepted: File[] = [];
+
+    for (const file of files) {
+      const sizeCheck = validateFileSize(file);
+      if (!sizeCheck.valid) {
+        rejectedNames.push(file.name);
+        continue;
+      }
+      const processed = await compressImage(file);
+      accepted.push(processed);
+    }
+
+    if (rejectedNames.length > 0) {
+      toast({
+        title: 'File too large',
+        description: `Rejected: ${rejectedNames.join(', ')}. Max 10 MB per file.`,
+        variant: 'destructive',
+      });
+    }
+
+    if (accepted.length > 0) {
+      // Convert array to a DataTransfer-based FileList for state compatibility
+      const dt = new DataTransfer();
+      accepted.forEach(f => dt.items.add(f));
+      setSelectedFiles(dt.files);
+    } else {
+      setSelectedFiles(null);
+    }
   };
 
   const handleSubmit = async () => {

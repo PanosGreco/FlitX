@@ -46,6 +46,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { validateFileSize, compressImage } from "@/utils/imageUtils";
 
 const COUNTRIES = [
   { value: "greece", label: "Greece" },
@@ -119,6 +120,14 @@ export function UserProfile() {
     if (!e.target.files || e.target.files.length === 0 || !user) return;
 
     const file = e.target.files[0];
+
+    const sizeCheck = validateFileSize(file);
+    if (!sizeCheck.valid) {
+      toast({ title: 'File too large', description: sizeCheck.message, variant: 'destructive' });
+      return;
+    }
+
+    const processed = await compressImage(file);
     const reader = new FileReader();
 
     reader.onload = async (event) => {
