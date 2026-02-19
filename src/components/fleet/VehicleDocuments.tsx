@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { validateFileSize, compressImage } from "@/utils/imageUtils";
 
 interface VehicleDocument {
   id: string;
@@ -97,13 +98,24 @@ export function VehicleDocuments({ vehicleId }: VehicleDocumentsProps) {
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
-      setSelectedFile(file);
+
+      const sizeCheck = validateFileSize(file);
+      if (!sizeCheck.valid) {
+        toast({
+          title: language === 'el' ? 'Αρχείο πολύ μεγάλο' : 'File too large',
+          description: sizeCheck.message,
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const processed = await compressImage(file);
+      setSelectedFile(processed);
       if (!documentName) {
-        // Auto-fill document name from file name (without extension)
-        setDocumentName(file.name.replace(/\.[^/.]+$/, ""));
+        setDocumentName(processed.name.replace(/\.[^/.]+$/, ""));
       }
     }
   };

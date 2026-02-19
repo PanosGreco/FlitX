@@ -32,6 +32,7 @@ import {
   isStandardCategory
 } from "@/constants/vehicleTypes";
 import { TRANSMISSION_TYPES, TRANSMISSION_TYPE_LABELS, TransmissionType } from "@/constants/transmissionTypes";
+import { validateFileSize, compressImage } from "@/utils/imageUtils";
 
 interface EditVehicleDialogProps {
   isOpen: boolean;
@@ -113,16 +114,24 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     }
   }, [vehicle.id]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
+
+      const sizeCheck = validateFileSize(file);
+      if (!sizeCheck.valid) {
+        toast({ title: language === 'el' ? 'Αρχείο πολύ μεγάλο' : 'File too large', description: sizeCheck.message, variant: 'destructive' });
+        return;
+      }
+
+      const processed = await compressImage(file);
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
           setVehicleImage(event.target.result.toString());
         }
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(processed);
     }
   };
 
