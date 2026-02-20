@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { validateFileSize, compressImage } from "@/utils/imageUtils";
+import { FilePreviewModal } from "@/components/shared/FilePreviewModal";
 
 interface VehicleDocument {
   id: string;
@@ -466,61 +467,26 @@ export function VehicleDocuments({ vehicleId }: VehicleDocumentsProps) {
           </DialogContent>
         </Dialog>
 
-        {/* View Document Dialog */}
-        <Dialog open={!!viewingDocument} onOpenChange={() => setViewingDocument(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh]">
-            <DialogHeader>
-              <DialogTitle className="flex items-center justify-between">
-                <span>{viewingDocument?.name}</span>
-                {viewingUrl && (
-                  <Button variant="outline" size="sm" onClick={handleDownload}>
-                    <Download className="h-4 w-4 mr-2" />
-                    {language === 'el' ? 'Λήψη' : 'Download'}
-                  </Button>
-                )}
-              </DialogTitle>
-            </DialogHeader>
-            
-            <div className="flex items-center justify-center py-4">
-              {loadingUrl ? (
-                <div className="flex flex-col items-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    {language === 'el' ? 'Φόρτωση...' : 'Loading...'}
-                  </p>
-                </div>
-              ) : viewingDocument && viewingUrl && isImageFile(viewingDocument.file_type) ? (
-                <img 
-                  src={viewingUrl}
-                  alt={viewingDocument.name}
-                  className="max-w-full max-h-[70vh] object-contain"
-                />
-              ) : viewingDocument?.file_type === 'application/pdf' && viewingUrl ? (
-                <iframe
-                  src={viewingUrl}
-                  className="w-full h-[70vh]"
-                  title={viewingDocument.name}
-                />
-              ) : viewingUrl ? (
-                <div className="text-center py-8">
-                  <FileText className="mx-auto mb-3 h-16 w-16 text-muted-foreground" />
-                  <p className="text-muted-foreground">
-                    {language === 'el' 
-                      ? 'Η προεπισκόπηση δεν είναι διαθέσιμη για αυτόν τον τύπο αρχείου'
-                      : 'Preview not available for this file type'}
-                  </p>
-                  <Button 
-                    className="mt-4"
-                    onClick={handleDownload}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    {language === 'el' ? 'Λήψη' : 'Download'}
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* View Document - images in full-res modal, PDFs in new tab */}
+        <FilePreviewModal
+          open={!!viewingDocument && !loadingUrl}
+          onOpenChange={(open) => { if (!open) setViewingDocument(null); }}
+          url={viewingUrl}
+          fileType={
+            viewingDocument?.file_type === 'application/pdf'
+              ? 'pdf'
+              : viewingDocument && isImageFile(viewingDocument.file_type)
+                ? 'image'
+                : 'other'
+          }
+          title={viewingDocument?.name || 'Document'}
+          actions={
+            <Button variant="outline" size="sm" onClick={handleDownload}>
+              <Download className="h-4 w-4 mr-2" />
+              {language === 'el' ? 'Λήψη' : 'Download'}
+            </Button>
+          }
+        />
       </CardContent>
     </Card>
   );
