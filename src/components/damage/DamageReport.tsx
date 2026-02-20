@@ -133,7 +133,7 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
         const rawExt = file.name.split('.').pop() || '';
         const fileExt = rawExt.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
         const fileName = `${vehicleId}/${Date.now()}_${i}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage.from('damage-images').upload(fileName, file);
+        const { error: uploadError } = await supabase.storage.from('damage-images').upload(fileName, file, { contentType: file.type });
         if (uploadError) throw uploadError;
         const { data: urlData } = supabase.storage.from('damage-images').getPublicUrl(fileName);
         uploadedUrls.push(urlData.publicUrl);

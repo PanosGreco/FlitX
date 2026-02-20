@@ -366,7 +366,7 @@ export function UnifiedBookingDialog({
     const fileName = `${userId}/${Date.now()}_${safeFilename}`;
     const { data, error } = await supabase.storage
       .from('rental-contracts')
-      .upload(fileName, file);
+      .upload(fileName, file, { contentType: file.type });
 
     if (error) {
       console.error('Error uploading photo:', error);

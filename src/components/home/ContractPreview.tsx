@@ -39,20 +39,11 @@ export function ContractPreview({
 
   if (!publicUrl) return null;
 
-  const handleClick = () => {
-    if (kind === "pdf") {
-      // Open PDF in new tab to avoid Chrome iframe blocking
-      window.open(publicUrl, "_blank", "noopener,noreferrer");
-    } else {
-      setOpen(true);
-    }
-  };
-
   return (
     <>
       <button
         type="button"
-        onClick={handleClick}
+        onClick={() => setOpen(true)}
         className={cn(
           "relative w-full h-[120px] rounded-md overflow-hidden border border-border bg-muted/20",
           className
@@ -73,7 +64,6 @@ export function ContractPreview({
           />
         )}
 
-        {/* Subtle affordance */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-background/10">
           <div className="rounded-full bg-background/80 backdrop-blur px-2 py-1">
             <Maximize2 className="h-3 w-3 text-foreground" />
@@ -81,12 +71,11 @@ export function ContractPreview({
         </div>
       </button>
 
-      {/* Image preview modal (PDFs open in new tab instead) */}
       <FilePreviewModal
         open={open}
         onOpenChange={setOpen}
         url={publicUrl}
-        fileType="image"
+        fileType={kind}
         title="Rental contract"
       />
     </>
