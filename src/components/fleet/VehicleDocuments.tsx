@@ -149,7 +149,7 @@ export function VehicleDocuments({ vehicleId }: VehicleDocumentsProps) {
       // Upload file to Supabase Storage
       const { error: uploadError } = await supabase.storage
         .from('vehicle-documents')
-        .upload(filePath, selectedFile);
+        .upload(filePath, selectedFile, { contentType: selectedFile.type });
 
       if (uploadError) {
         console.error("Upload error:", uploadError);
