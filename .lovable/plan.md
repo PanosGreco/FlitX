@@ -1,141 +1,150 @@
 
 
-# 10 MB File Size Limit + Conditional Client-Side Image Compression (with HEIC Conversion)
+# PDF Fix + High-Resolution Image Preview Upgrade
 
 ## Overview
 
-Create a shared utility for file validation (10 MB limit) and client-side image compression (max 2000px width), then integrate it into all 7 upload points across the application. Compression is **conditional**: only applied to image files (JPG, PNG, WebP) that are over 500 KB. PDFs, documents, and small images are left untouched. **HEIC files (default iPhone format) are always converted to JPEG for browser compatibility**, regardless of size.
+Two issues to fix: (1) PDFs blocked by Chrome when opened via public URL in iframe, and (2) contract/document image previews rendering at constrained resolution, making them unreadable.
 
 ---
 
-## New File: `src/utils/imageUtils.ts`
+## ISSUE 1: PDF Files Blocked by Chrome
 
-Two exported functions:
+### Root Cause Analysis
 
-### `validateFileSize(file, maxSizeMB = 10)`
-- Returns `{ valid: boolean; message: string }`
-- Rejects files exceeding 10 MB with a user-friendly message showing actual size
+The `rental-contracts` bucket is **public**, and contracts (including PDFs) are opened using `getPublicUrl()`. Chrome blocks PDF rendering inside iframes when the URL triggers a download (missing `Content-Type` header or `Content-Disposition: attachment`). Supabase Storage public URLs serve files with proper MIME types, but the real problem is that **Chrome sandboxes iframes inside Radix Dialog portals** -- the iframe inherits the `sandbox` attribute from the dialog's focus-trapping mechanism, which blocks PDF plugin rendering.
 
-### `compressImage(file, maxWidth = 2000, quality = 0.85)`
-- Returns `Promise<File>` (the compressed file, or the original if skipped)
-- **Skip conditions** (returns original file unchanged):
-  - File is not an image (`!file.type.startsWith('image/')`)
-  - File type is GIF or SVG (not suitable for canvas re-encoding)
-- **HEIC handling** (always converts):
-  - If file type is `image/heic` or `image/heif`, or filename ends in `.heic`/`.heif`: always convert to JPEG via canvas, regardless of file size
-  - This ensures iPhone uploads are browser-compatible for previews and display
-  - After conversion, the returned File has a `.jpg` extension and `image/jpeg` MIME type
-- **Size-based skip** (for non-HEIC images):
-  - If file is under 500 KB and is already JPG/PNG/WebP: return original unchanged
-- **Compression logic** (for JPG, PNG, WebP over 500 KB):
-  - Load image into HTMLImageElement via object URL
-  - Calculate scaled dimensions preserving aspect ratio (max 2000px wide)
-  - Draw onto canvas at new dimensions
-  - Export as JPEG at 85% quality (for JPG/WebP originals) or PNG (for PNG originals)
-  - Wrap blob in new File object preserving original name (with corrected extension for HEIC)
+Additionally, the `ContractPreview.tsx` component embeds a PDF iframe as a thumbnail preview inside a button, then opens another iframe in a dialog -- both contexts can trigger Chrome's built-in PDF viewer block.
+
+### Fix Strategy
+
+- **For full-screen PDF viewing**: Instead of embedding in an iframe inside a Dialog, open PDFs in a **new browser tab** using `window.open(url, '_blank')`. This completely bypasses Chrome's iframe sandbox restrictions and is the most reliable cross-browser approach for PDF viewing.
+- **For the thumbnail preview in `ContractPreview.tsx`**: Replace the PDF iframe thumbnail with a static PDF icon/placeholder (since the tiny 120px iframe preview is barely visible anyway and causes the Chrome block). When clicked, open in new tab.
+- **For `VehicleDocuments.tsx`**: PDFs are already shown in an iframe inside a Dialog with signed URLs. Switch to opening in a new tab for PDFs while keeping images in the modal.
+
+### Files Changed
+
+| File | PDF Change |
+|------|------------|
+| `src/components/home/ContractPreview.tsx` | PDF thumbnail becomes icon; click opens new tab |
+| `src/components/fleet/VehicleDocuments.tsx` | PDF click opens new tab instead of iframe in dialog |
+| `src/components/daily-program/TaskItem.tsx` | No change needed (only shows images for contracts) |
+| `src/components/fleet/RentalBookingsList.tsx` | No change needed (only shows images for contracts) |
 
 ---
 
-## Compression Rules Summary
+## ISSUE 2: High-Resolution Image Preview
 
-| File Type | Size < 500 KB | Size >= 500 KB |
-|-----------|--------------|----------------|
-| JPG/JPEG  | No compression | Compress to max 2000px, 85% quality |
-| PNG       | No compression | Compress to max 2000px, PNG output |
-| WebP      | No compression | Compress to max 2000px, 85% JPEG quality |
-| HEIC/HEIF | **Always convert to JPEG** | **Always convert to JPEG + compress** |
-| PDF       | Size check only | Size check only |
-| DOC/DOCX  | Size check only | Size check only |
-| GIF/SVG   | Size check only | Size check only |
+### Current Problems
+
+1. **`RentalBookingsList.tsx`** and **`TaskItem.tsx`**: Contract images use `getPublicUrl()` (public bucket) and render with `max-w-full` + `maxHeight: 65vh` inside a `max-w-4xl` dialog. The `max-w-4xl` (896px) **caps the rendered width**, so high-resolution contract images appear small/blurry.
+
+2. **`VehicleDocuments.tsx`**: Images render with `max-w-full max-h-[70vh]` inside `max-w-4xl` dialog -- same width cap issue. Uses signed URLs (private bucket) which is correct.
+
+3. **`ContractPreview.tsx`**: The full-screen dialog already uses `max-w-[95vw]` and `max-w-none` on the image -- this actually works well. But it uses `getPublicUrl()` for a **public bucket**, which is correct for this bucket.
+
+4. **`DamageReport.tsx`**: Already upgraded with `max-w-[90vw]` dialog and `object-contain` -- works well. This is the reference implementation.
+
+### Fix Strategy: Shared `FilePreviewModal` Component
+
+Create a single reusable component that handles both images and PDFs correctly:
+
+```
+src/components/shared/FilePreviewModal.tsx
+```
+
+**Props:**
+- `open: boolean`
+- `onOpenChange: (open: boolean) => void`  
+- `url: string | null`
+- `fileType: "image" | "pdf" | "other"`
+- `title?: string`
+- `actions?: ReactNode` (for delete button, download, etc.)
+
+**Behavior:**
+- **Images**: Full viewport modal (`max-w-[95vw] max-h-[95vh]`), image uses `max-w-full max-h-[85vh] object-contain`, no width cap. Renders the original URL at natural resolution.
+- **PDFs**: Opens in new tab via `window.open()`, modal does not render.
+- **Other**: Shows download prompt.
+
+**Mobile support**: 
+- `overflow-auto` on container for scroll
+- Touch events naturally supported
+- No fixed pixel containers
+
+### Integration Points
+
+**1. `src/components/fleet/RentalBookingsList.tsx`**
+- Replace the inline contract viewer Dialog (lines 366-391) with `FilePreviewModal`
+- Keep delete button as `actions` prop
+- URL source: `getPublicUrl()` (public bucket -- correct)
+
+**2. `src/components/daily-program/TaskItem.tsx`**
+- Replace the inline contract viewer Dialog (lines 219-242) with `FilePreviewModal`
+- Keep delete button as `actions` prop
+- URL source: `getPublicUrl()` (public bucket -- correct)
+
+**3. `src/components/fleet/VehicleDocuments.tsx`**
+- Replace the viewing Dialog content (lines 470-523) with `FilePreviewModal`
+- Keep download button as `actions` prop
+- Distinguish image vs PDF using existing `isImageFile()` and `file_type` check
+- URL source: `createSignedUrl()` (private bucket -- correct)
+
+**4. `src/components/home/ContractPreview.tsx`**
+- For images: Replace current Dialog (lines 78-100) with `FilePreviewModal` using the full public URL
+- For PDFs: Click opens new tab, no modal
+- Remove the iframe-based PDF thumbnail, show a PDF icon instead
+
+### What the `FilePreviewModal` renders (images):
+
+```
+Dialog (max-w-[95vw] max-h-[95vh], p-0, bg-black/90, border-none)
+  -> DialogHeader (sr-only for accessibility)
+  -> img (max-w-full, max-h-[85vh], object-contain)
+  -> actions slot (absolute positioned bottom bar for delete/download)
+```
+
+This matches the working pattern from `DamageReport.tsx`.
 
 ---
 
-## Integration Points (7 files)
+## Security Considerations
 
-Each handler gets two additions at the top: size validation with toast on failure, then conditional compression for qualifying images.
-
-### 1. `src/components/damage/DamageReport.tsx` -- `handleFileChange`
-- Multi-file input: loop through files, validate each, skip oversized ones with toast
-- Compress/convert qualifying images before setting state
-- For HEIC files: converted to JPEG so previews work in browser and stored file is compatible
-- Existing upload loop uses the already-processed files
-
-### 2. `src/components/fleet/VehicleDocuments.tsx` -- `handleFileSelect`
-- Single file: validate size, show toast if rejected
-- Compress if qualifying image, convert if HEIC, skip for PDFs/docs
-- Then proceed to set state as normal
-
-### 3. `src/components/booking/UnifiedBookingDialog.tsx` -- `handleFileSelect`
-- Single contract photo: validate size, compress/convert if image
-- Then proceed with FileReader for preview
-
-### 4. `src/components/fleet/RentalBookingDialog.tsx` -- `handleFileSelect`
-- Same pattern as UnifiedBookingDialog
-
-### 5. `src/pages/Fleet.tsx` -- `handleVehicleImageUpload`
-- Single vehicle photo: validate size, compress/convert image
-- Then proceed with FileReader for data URL conversion
-
-### 6. `src/components/fleet/EditVehicleDialog.tsx` -- `handleImageUpload`
-- Same pattern as Fleet.tsx
-
-### 7. `src/components/profile/UserProfile.tsx` -- `handleProfilePhotoUpload`
-- Single profile photo: validate size, compress/convert image
-- Then proceed with FileReader for data URL
+- **`vehicle-documents` bucket (private)**: Already uses signed URLs with 1-hour expiry. No change needed.
+- **`rental-contracts` bucket (public)**: Uses `getPublicUrl()`. Files are accessible by URL but paths contain user IDs and timestamps, providing obscurity. No change to access model.
+- **`damage-images` bucket (public)**: Same as rental-contracts. No change.
+- No `window.open()` with user-controlled URLs -- all URLs come from Supabase storage API.
+- No blob URLs or object URLs used -- direct storage URLs only.
 
 ---
-
-## HEIC Conversion Details
-
-- iPhones default to HEIC format for photos
-- HEIC is not natively supported by most browsers for `<img>` display
-- The `compressImage` function detects HEIC via MIME type (`image/heic`, `image/heif`) and file extension (`.heic`, `.heif`)
-- Canvas API can load HEIC on Safari/iOS (where it originates), enabling client-side conversion
-- On browsers that cannot decode HEIC (Chrome desktop), the canvas load will fail gracefully -- the original file is returned and uploaded as-is (Supabase storage will still accept it)
-- The converted output uses `image/jpeg` MIME type and `.jpg` extension
-- This is a best-effort approach: works on the devices most likely to produce HEIC (iPhones using Safari)
-
----
-
-## Technical Details
-
-- All handlers become `async` (canvas compression is async)
-- Toast notifications use existing `useToast` or `sonner` toast already in each component
-- No new dependencies -- uses native Canvas API, HTMLImageElement, Blob
-- The 10 MB limit applies to the **original** file (validated before compression)
-- File extension in upload path is derived from the processed file (so HEIC -> `.jpg` in storage)
-
-## Database Changes
-
-None.
 
 ## Files Summary
 
 | File | Change |
 |------|--------|
-| `src/utils/imageUtils.ts` | **New** -- validateFileSize + compressImage (with HEIC conversion) |
-| `src/components/damage/DamageReport.tsx` | Add validation + compression to handleFileChange |
-| `src/components/fleet/VehicleDocuments.tsx` | Add validation + compression to handleFileSelect |
-| `src/components/booking/UnifiedBookingDialog.tsx` | Add validation + compression to handleFileSelect |
-| `src/components/fleet/RentalBookingDialog.tsx` | Add validation + compression to handleFileSelect |
-| `src/pages/Fleet.tsx` | Add validation + compression to handleVehicleImageUpload |
-| `src/components/fleet/EditVehicleDialog.tsx` | Add validation + compression to handleImageUpload |
-| `src/components/profile/UserProfile.tsx` | Add validation + compression to handleProfilePhotoUpload |
+| `src/components/shared/FilePreviewModal.tsx` | **New** -- reusable image/PDF preview component |
+| `src/components/home/ContractPreview.tsx` | Use FilePreviewModal for images; PDF opens in new tab; PDF thumbnail becomes icon |
+| `src/components/fleet/VehicleDocuments.tsx` | Use FilePreviewModal for images; PDF opens in new tab |
+| `src/components/fleet/RentalBookingsList.tsx` | Use FilePreviewModal with full-viewport sizing |
+| `src/components/daily-program/TaskItem.tsx` | Use FilePreviewModal with full-viewport sizing |
 
-## Edge Cases
+---
 
-- **HEIC on non-Safari browsers**: Canvas load fails silently, original file uploaded as-is (acceptable fallback)
-- **HEIC under 500 KB**: Still converted to JPEG (format conversion always applies, size threshold only governs resolution downscaling)
-- **Corrupted files**: Canvas load error caught, original file returned
-- **Multiple oversized files**: Single toast listing all rejected filenames
-- **Files exactly at 10 MB**: Accepted (limit is exclusive >10 MB)
+## No Changes Needed
 
-## Risk Assessment
+- `DamageReport.tsx` -- already working correctly with full-viewport lightbox
+- Database schema -- no changes
+- Storage buckets -- no changes
+- RLS policies -- no changes
 
-- Zero database changes
-- Zero breaking changes to existing upload flows
-- Canvas re-encoding at 85% quality is visually lossless for vehicle/damage photos
-- Non-image files (PDF, DOC) are never touched by the compressor
-- HEIC conversion is best-effort and fails gracefully
-- All changes are fully backward compatible
+---
+
+## Expected Results
+
+- PDFs open reliably in a new browser tab (no Chrome iframe blocks)
+- Contract images render at full uploaded resolution inside a near-fullscreen modal
+- Contract text is readable
+- Works on mobile with scroll and native pinch-to-zoom
+- ESC and click-outside close the modal
+- Existing delete/download actions preserved
+- Consistent preview experience across all sections
 
