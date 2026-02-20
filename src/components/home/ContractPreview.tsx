@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Maximize2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Maximize2, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { FilePreviewModal } from "@/components/shared/FilePreviewModal";
 
 type ContractKind = "pdf" | "image";
 
@@ -39,13 +39,20 @@ export function ContractPreview({
 
   if (!publicUrl) return null;
 
-  const pdfPreviewUrl = `${publicUrl}#page=1&view=FitH&toolbar=0&navpanes=0&scrollbar=0`;
+  const handleClick = () => {
+    if (kind === "pdf") {
+      // Open PDF in new tab to avoid Chrome iframe blocking
+      window.open(publicUrl, "_blank", "noopener,noreferrer");
+    } else {
+      setOpen(true);
+    }
+  };
 
   return (
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={handleClick}
         className={cn(
           "relative w-full h-[120px] rounded-md overflow-hidden border border-border bg-muted/20",
           className
@@ -53,11 +60,10 @@ export function ContractPreview({
         aria-label="Open contract"
       >
         {kind === "pdf" ? (
-          <iframe
-            title="Rental contract preview"
-            src={pdfPreviewUrl}
-            className="w-full h-full pointer-events-none"
-          />
+          <div className="w-full h-full flex flex-col items-center justify-center gap-1 text-muted-foreground">
+            <FileText className="h-8 w-8" />
+            <span className="text-xs">PDF</span>
+          </div>
         ) : (
           <img
             src={publicUrl}
@@ -67,7 +73,7 @@ export function ContractPreview({
           />
         )}
 
-        {/* Subtle affordance, no visible text */}
+        {/* Subtle affordance */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-background/10">
           <div className="rounded-full bg-background/80 backdrop-blur px-2 py-1">
             <Maximize2 className="h-3 w-3 text-foreground" />
@@ -75,29 +81,14 @@ export function ContractPreview({
         </div>
       </button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 overflow-hidden">
-          <DialogHeader className="sr-only">
-            <DialogTitle>Rental contract</DialogTitle>
-          </DialogHeader>
-
-          {kind === "pdf" ? (
-            <iframe
-              title="Rental contract"
-              src={publicUrl}
-              className="w-[95vw] h-[95vh] border-0"
-            />
-          ) : (
-            <div className="bg-background p-4 overflow-auto max-h-[95vh] flex justify-center">
-              <img
-                src={publicUrl}
-                alt="Rental contract"
-                className="max-w-none h-auto w-auto"
-              />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Image preview modal (PDFs open in new tab instead) */}
+      <FilePreviewModal
+        open={open}
+        onOpenChange={setOpen}
+        url={publicUrl}
+        fileType="image"
+        title="Rental contract"
+      />
     </>
   );
 }

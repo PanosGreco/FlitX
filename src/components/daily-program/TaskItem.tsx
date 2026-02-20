@@ -4,7 +4,7 @@ import { formatTime24h } from "@/utils/dateFormatUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { FilePreviewModal } from "@/components/shared/FilePreviewModal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { EditTaskDialog } from "./EditTaskDialog";
 import { DailyTask } from "@/hooks/useDailyTasks";
@@ -216,31 +216,20 @@ export function TaskItem({
         </CardContent>
       </Card>
 
-      {/* Large Contract Viewer Dialog */}
-      <Dialog open={isContractOpen} onOpenChange={setIsContractOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>Contract Document</DialogTitle>
-          </DialogHeader>
-          {contractUrl && <div className="flex flex-col items-center">
-              <div className="overflow-auto max-h-[70vh] w-full flex justify-center">
-                <img src={contractUrl} alt="Contract" className="max-w-full object-contain rounded" style={{
-              maxHeight: '65vh'
-            }} />
-              </div>
-            </div>}
-          <DialogFooter className="flex justify-between sm:justify-between">
-            <Button variant="destructive" size="sm" onClick={() => setIsDeleteContractDialogOpen(true)} className="gap-2">
-              <Trash2 className="h-4 w-4" />
-              Delete Contract
-            </Button>
-            <Button variant="outline" onClick={() => setIsContractOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
+      {/* Full-resolution Contract Viewer */}
+      <FilePreviewModal
+        open={isContractOpen}
+        onOpenChange={setIsContractOpen}
+        url={contractUrl}
+        fileType="image"
+        title="Contract Document"
+        actions={
+          <Button variant="destructive" size="sm" onClick={() => setIsDeleteContractDialogOpen(true)} className="gap-2">
+            <Trash2 className="h-4 w-4" />
+            Delete Contract
+          </Button>
+        }
+      />
       {/* Delete Contract Confirmation */}
       <AlertDialog open={isDeleteContractDialogOpen} onOpenChange={setIsDeleteContractDialogOpen}>
         <AlertDialogContent>
