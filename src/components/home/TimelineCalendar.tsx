@@ -246,7 +246,7 @@ export function TimelineCalendar({
                       }
                               {/* Location */}
                               {task.location &&
-                      <div className={cn("text-[11px] mt-0.5 truncate font-semibold", colors.text)}>
+                      <div className={cn("text-[13px] mt-0.5 truncate font-semibold", colors.text)}>
                                   {task.location}
                                 </div>
                       }
