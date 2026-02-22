@@ -84,7 +84,7 @@ export function TimelineCalendar({
   }, [loading]);
   const getTasksForDate = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return tasks.filter(task => task.date === dateStr);
+    return tasks.filter((task) => task.date === dateStr);
   };
   const parseTime = (timeStr: string | null): number | null => {
     if (!timeStr) return null;
@@ -94,7 +94,7 @@ export function TimelineCalendar({
 
   // Group tasks by hour and handle overlapping
   const getTasksForHour = (dayTasks: CalendarTask[], hour: number) => {
-    return dayTasks.filter(task => {
+    return dayTasks.filter((task) => {
       const time = parseTime(task.time);
       if (time === null) return hour === 9; // Default to 9am
       return Math.floor(time) === hour;
@@ -109,7 +109,7 @@ export function TimelineCalendar({
 
     // Calculate max tasks across all days for this hour
     let maxTasksInHour = 0;
-    weekDays.forEach(d => {
+    weekDays.forEach((d) => {
       const dt = getTasksForDate(d);
       const th = getTasksForHour(dt, hour);
       maxTasksInHour = Math.max(maxTasksInHour, th.length);
@@ -123,9 +123,9 @@ export function TimelineCalendar({
 
   // Calculate row heights for all hours
   const rowHeights = useMemo(() => {
-    return HOURS.map(hour => {
+    return HOURS.map((hour) => {
       let maxTasksInHour = 0;
-      weekDays.forEach(day => {
+      weekDays.forEach((day) => {
         const dayTasks = getTasksForDate(day);
         const tasksInHour = getTasksForHour(dayTasks, hour);
         maxTasksInHour = Math.max(maxTasksInHour, tasksInHour.length);
@@ -211,45 +211,45 @@ export function TimelineCalendar({
               return <div key={dayIdx} className={cn("relative border-l border-slate-200 p-1", isToday && "bg-teal-50/30")}>
                       {/* Stack tasks vertically within the hour */}
                       <div className="flex flex-col gap-1">
-                        {tasksInHour.map(task => {
+                        {tasksInHour.map((task) => {
                     const colors = TASK_COLORS[task.type];
                     return <div key={task.id} onClick={() => setSelectedTask(task)} className={cn("rounded-lg border-l-[3px] px-2 py-1.5 cursor-pointer transition-all", colors.bg, colors.border, colors.hover)} style={{
                       minHeight: '56px'
                     }}>
                               {/* Task Type Header */}
-                              <div className={cn("font-bold text-[11px] leading-tight", colors.text)}>
+                              <div className={cn("font-bold text-[13px] leading-tight", colors.text)}>
                                 {task.type === 'delivery' ? 'Pick-Up' : task.type === 'return' ? 'Drop-Off' : 'Other Task'}
                               </div>
                               {/* Title for other tasks */}
-                              {task.type === 'other' && task.title && (
-                                <div className={cn("text-[11px] mt-0.5 truncate font-bold", colors.text)}>
+                              {task.type === 'other' && task.title &&
+                      <div className={cn("text-[11px] mt-0.5 truncate font-bold", colors.text)}>
                                   {task.title}
                                 </div>
-                              )}
+                      }
                               {/* Vehicle name - visible for all task types */}
-                              {task.vehicleName && (
-                                <div className={cn("text-[11px] mt-0.5 truncate font-bold", colors.text)}>
+                              {task.vehicleName &&
+                      <div className={cn("text-[11px] mt-0.5 truncate font-bold", colors.text)}>
                                   {task.vehicleName}
                                 </div>
-                              )}
+                      }
                               {/* Customer name for delivery/return */}
-                              {task.customerName && (
-                                <div className={cn("text-[11px] truncate font-semibold", colors.text)}>
+                              {task.customerName &&
+                      <div className={cn("text-[11px] truncate font-semibold", colors.text)}>
                                   {task.customerName}
                                 </div>
-                              )}
+                      }
                               {/* Time - no seconds */}
-                              {task.time && (
-                                <div className={cn("text-[11px] mt-0.5 font-semibold", colors.text)}>
+                              {task.time &&
+                      <div className={cn("text-[11px] mt-0.5 font-semibold", colors.text)}>
                                   {formatTime24h(task.time) || task.time}
                                 </div>
-                              )}
+                      }
                               {/* Location */}
-                              {task.location && (
-                                <div className={cn("text-[11px] mt-0.5 truncate font-semibold", colors.text)}>
+                              {task.location &&
+                      <div className={cn("text-[11px] mt-0.5 truncate font-semibold", colors.text)}>
                                   {task.location}
                                 </div>
-                              )}
+                      }
                             </div>;
                   })}
                       </div>
@@ -269,143 +269,143 @@ export function TimelineCalendar({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <span
-                className={cn(
-                  "px-2 py-0.5 rounded text-xs font-medium",
-                  selectedTask?.type === 'delivery' && "bg-emerald-100 text-emerald-700",
-                  selectedTask?.type === 'return' && "bg-orange-100 text-orange-700",
-                  selectedTask?.type === 'other' && "bg-blue-100 text-blue-700"
-                )}
-              >
-                {selectedTask?.type === 'delivery'
-                  ? 'Pick-Up'
-                  : selectedTask?.type === 'return'
-                    ? 'Drop-Off'
-                    : 'Other Task'}
+              className={cn(
+                "px-2 py-0.5 rounded text-xs font-medium",
+                selectedTask?.type === 'delivery' && "bg-emerald-100 text-emerald-700",
+                selectedTask?.type === 'return' && "bg-orange-100 text-orange-700",
+                selectedTask?.type === 'other' && "bg-blue-100 text-blue-700"
+              )}>
+
+                {selectedTask?.type === 'delivery' ?
+              'Pick-Up' :
+              selectedTask?.type === 'return' ?
+              'Drop-Off' :
+              'Other Task'}
               </span>
             </DialogTitle>
           </DialogHeader>
 
-          {selectedTask && (
-            <div className="flex gap-3">
+          {selectedTask &&
+        <div className="flex gap-3">
               {/* Left side - Task details */}
               <div className="flex-1 space-y-3">
                 {/* Title - for other tasks, show user-entered title first */}
-                {selectedTask.type === 'other' && selectedTask.title && (
-                  <div className="flex items-start gap-3">
+                {selectedTask.type === 'other' && selectedTask.title &&
+            <div className="flex items-start gap-3">
                     <Tag className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
                       <div className="text-xs text-slate-500 mb-0.5">Title</div>
                       <div className="text-sm font-medium text-slate-800">{selectedTask.title}</div>
                     </div>
                   </div>
-                )}
+            }
 
                 {/* Vehicle */}
-                {selectedTask.vehicleName && (
-                  <div className="flex items-start gap-3">
+                {selectedTask.vehicleName &&
+            <div className="flex items-start gap-3">
                     <Car className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
                       <div className="text-xs text-slate-500 mb-0.5">Vehicle</div>
                       <div className="text-sm font-medium text-slate-800">{selectedTask.vehicleName}</div>
                     </div>
                   </div>
-                )}
+            }
 
                 {/* Customer */}
-                {selectedTask.customerName && (
-                  <div className="flex items-start gap-3">
+                {selectedTask.customerName &&
+            <div className="flex items-start gap-3">
                     <User className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
                       <div className="text-xs text-slate-500 mb-0.5">Customer</div>
                       <div className="text-sm font-medium text-slate-800">{selectedTask.customerName}</div>
                     </div>
                   </div>
-                )}
+            }
 
                 {/* Time - no seconds */}
-                {selectedTask.time && (
-                  <div className="flex items-start gap-3">
+                {selectedTask.time &&
+            <div className="flex items-start gap-3">
                     <Clock className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
                       <div className="text-xs text-slate-500 mb-0.5">Time</div>
                       <div className="text-sm font-medium text-slate-800">{formatTime24h(selectedTask.time) || selectedTask.time}</div>
                     </div>
                   </div>
-                )}
+            }
 
                 {/* Location */}
-                {selectedTask.location && (
-                  <div className="flex items-start gap-3">
+                {selectedTask.location &&
+            <div className="flex items-start gap-3">
                     <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
                       <div className="text-xs text-slate-500 mb-0.5">Location</div>
                       <div className="text-sm font-medium text-slate-800">{selectedTask.location}</div>
                     </div>
                   </div>
-                )}
+            }
 
                 {/* Notes */}
-                {selectedTask.notes && (
-                  <div className="flex items-start gap-3">
+                {selectedTask.notes &&
+            <div className="flex items-start gap-3">
                     <FileText className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
                       <div className="text-xs text-slate-500 mb-0.5">Notes</div>
                       <div className="text-sm text-slate-700">{selectedTask.notes}</div>
                     </div>
                   </div>
-                )}
+            }
 
                 {/* Fuel Level */}
-                {selectedTask.fuelLevel && (selectedTask.type === 'delivery' || selectedTask.type === 'return') && (
-                  <div className="flex items-start gap-3">
+                {selectedTask.fuelLevel && (selectedTask.type === 'delivery' || selectedTask.type === 'return') &&
+            <div className="flex items-start gap-3">
                     <Fuel className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
                       <div className="text-xs text-slate-500 mb-0.5">Fuel Level</div>
                       <div className="text-sm font-medium text-slate-800">{selectedTask.fuelLevel}</div>
                     </div>
                   </div>
-                )}
+            }
 
                 {/* Payment Status */}
-                {selectedTask.paymentStatus && (selectedTask.type === 'delivery' || selectedTask.type === 'return') && (
-                  <div className="flex items-start gap-3">
+                {selectedTask.paymentStatus && (selectedTask.type === 'delivery' || selectedTask.type === 'return') &&
+            <div className="flex items-start gap-3">
                     <CreditCard className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
                       <div className="text-xs text-slate-500 mb-0.5">Payment</div>
                       <div className="text-sm font-medium text-slate-800">
-                        {selectedTask.paymentStatus === 'paid_in_full' ? 'Paid in Full' : 
-                          `Balance Due${selectedTask.balanceDueAmount ? ` (€${selectedTask.balanceDueAmount})` : ''}`}
+                        {selectedTask.paymentStatus === 'paid_in_full' ? 'Paid in Full' :
+                  `Balance Due${selectedTask.balanceDueAmount ? ` (€${selectedTask.balanceDueAmount})` : ''}`}
                       </div>
                     </div>
                   </div>
-                )}
+            }
 
                 {/* Additional Information */}
-                {(selectedTask.type === 'delivery' || selectedTask.type === 'return') && 
-                  selectedTask.additionalInfo && selectedTask.additionalInfo.length > 0 && (
-                  <>
-                    {selectedTask.additionalInfo.map((info, idx) => (
-                      <div key={idx} className="flex items-start gap-3">
+                {(selectedTask.type === 'delivery' || selectedTask.type === 'return') &&
+            selectedTask.additionalInfo && selectedTask.additionalInfo.length > 0 &&
+            <>
+                    {selectedTask.additionalInfo.map((info, idx) =>
+              <div key={idx} className="flex items-start gap-3">
                         <Info className="h-4 w-4 text-slate-400 mt-0.5" />
                         <div>
                           <div className="text-xs text-slate-500 mb-0.5">{info.categoryName}</div>
                           <div className="text-sm font-medium text-slate-800">{info.subcategoryValue}</div>
                         </div>
                       </div>
-                    ))}
+              )}
                   </>
-                )}
+            }
               </div>
 
               {/* Right side - Contract thumbnail (only when an actual contract exists) */}
               {(selectedTask.type === 'delivery' || selectedTask.type === 'return') &&
-                selectedTask.contractPath && (
-                  <div className="w-[120px] flex-shrink-0">
+          selectedTask.contractPath &&
+          <div className="w-[120px] flex-shrink-0">
                     <ContractPreview contractPath={selectedTask.contractPath} />
                   </div>
-                )}
+          }
             </div>
-          )}
+        }
         </DialogContent>
       </Dialog>
     </div>;
@@ -413,10 +413,10 @@ export function TimelineCalendar({
 function CurrentTimeIndicator({
   hours,
   rowHeights
-}: {
-  hours: number[];
-  rowHeights: number[];
-}) {
+
+
+
+}: {hours: number[];rowHeights: number[];}) {
   const now = new Date();
   const currentHour = now.getHours();
   const currentMinutes = now.getMinutes();
