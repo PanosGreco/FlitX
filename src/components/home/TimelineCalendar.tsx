@@ -228,7 +228,7 @@ export function TimelineCalendar({
                       }
                               {/* Vehicle name - visible for all task types */}
                               {task.vehicleName &&
-                      <div className={cn("text-[11px] mt-0.5 truncate font-bold", colors.text)}>
+                      <div className={cn("text-[13px] mt-0.5 truncate font-bold", colors.text)}>
                                   {task.vehicleName}
                                 </div>
                       }
