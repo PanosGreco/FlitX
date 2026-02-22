@@ -234,7 +234,7 @@ export function TimelineCalendar({
                       }
                               {/* Customer name for delivery/return */}
                               {task.customerName &&
-                      <div className={cn("text-[11px] truncate font-semibold", colors.text)}>
+                      <div className={cn("text-[13px] truncate font-semibold", colors.text)}>
                                   {task.customerName}
                                 </div>
                       }
