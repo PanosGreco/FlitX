@@ -1,116 +1,147 @@
 
 
-# Smart PDF Preview: Iframe in Production, New Tab in Preview/Safari
+# Needs Repair Booking Restriction + Status Terminology Update
 
 ## Overview
 
-The current `FilePreviewModal` always renders PDFs in an iframe, which fails inside Lovable's nested preview iframe. The fix: detect if the app is running inside an iframe (or Safari) and only then fall back to opening PDFs in a new tab. In production, the iframe preview works and should be kept.
+Two feature sets with minimal risk:
+
+**A) Needs Repair restriction**: Vehicles with `status = 'repair'` must be disabled in all booking forms. Currently, `getVehicleAvailability()` in `UnifiedBookingDialog` only checks bookings and maintenance blocks -- it completely ignores the vehicle's base status. The fix adds a third check.
+
+**B) Terminology update**: Rename "Under Maintenance" to "Unavailable -- Under Maintenance" in the status modal, and update the maintenance scheduling dialog text. UI-only changes, no logic modifications.
 
 ---
 
-## Changes
+## Current State Analysis
 
-### 1. `src/components/shared/FilePreviewModal.tsx` -- Smart PDF rendering
+**Database enum**: `vehicle_status = "available" | "rented" | "maintenance" | "repair"` -- "repair" already exists in the enum. No schema changes needed.
 
-Add environment detection and conditional rendering:
+**Availability logic gap**: `UnifiedBookingDialog.fetchAllData()` (line 170-184) fetches vehicles but does NOT include the `status` column. The `getVehicleAvailability()` function (line 195-234) only checks `rental_bookings` and `maintenance_blocks` -- never the vehicle's base status.
 
-- **Detect nested iframe**: `window.self !== window.top` means we're inside Lovable preview (or any iframe embed)
-- **Detect Safari**: Safari has known issues with PDF iframe rendering
-- **Production (not in iframe, not Safari)**: Keep the current iframe-based PDF preview with Download and Open in New Tab buttons
-- **Preview/Safari**: When user opens the modal with a PDF, automatically open in a new tab using `window.open(url, '_blank', 'noopener,noreferrer')` and close the modal
-- **Popup blocked handling**: If `window.open` returns `null`, show a fallback UI with a direct link instead of a blank screen
-- **File extension check**: Add extension-based PDF detection alongside MIME type (check for `.pdf` extension in the URL)
-- **Image resolution logging**: When an image loads in the modal, log `naturalWidth x naturalHeight` vs rendered dimensions to console for debugging blur issues
+**Booking validation**: Frontend-only. No backend trigger currently prevents inserting a booking for a repair-status vehicle. Adding a backend trigger is out of scope per constraints but noted as a future improvement.
 
-### 2. `src/components/home/ContractPreview.tsx` -- No changes needed
+---
 
-Already correctly uses `FilePreviewModal` which will handle the smart routing.
+## Component-Level Changes
 
-### 3. `src/components/fleet/VehicleDocuments.tsx` -- Add file extension fallback for fileType detection
+### 1. `src/components/booking/UnifiedBookingDialog.tsx`
 
-Currently checks `file_type === 'application/pdf'` from the database. Add a fallback check on the file extension from `file_path` in case the stored MIME type is `application/octet-stream` (for files uploaded before the `contentType` fix).
+**Data fetch**: Add `status` to the vehicle select query (line 173):
+```
+.select('id, make, model, year, license_plate, daily_rate, fuel_type, transmission_type, vehicle_type, type, status')
+```
 
-### 4. Upload logic -- Already correct
+**Vehicle interface**: Add `status` field to the `Vehicle` interface (line 32-43).
 
-All 4 upload points already include `{ contentType: file.type }`. No changes needed:
-- `VehicleDocuments.tsx` line 152
-- `RentalBookingDialog.tsx` line 223
-- `UnifiedBookingDialog.tsx` line 369
-- `DamageReport.tsx` line 136
+**Availability check**: Add a third check at the TOP of `getVehicleAvailability()` (before booking/maintenance checks):
+```
+// Check if vehicle needs repair (always unavailable regardless of dates)
+const vehicle = vehicles.find(v => v.id === vehicleId);
+if (vehicle?.status === 'repair') {
+  return {
+    available: false,
+    reason: 'repair',
+    conflictInfo: language === 'el'
+      ? 'Μη διαθέσιμο – Χρειάζεται Επισκευή'
+      : 'Unavailable – Needs Repair'
+  };
+}
+```
 
-### 5. `src/components/fleet/RentalBookingsList.tsx` and `src/components/daily-program/TaskItem.tsx` -- Add PDF extension detection
+This check runs even when dates are not selected (move it before the `if (!startDate || !endDate)` guard).
 
-Currently hardcode `fileType="image"`. Add a check: if the contract path ends in `.pdf`, pass `fileType="pdf"` instead.
+**Badge rendering** (line 900-906): Add a third badge variant for `repair`:
+```
+reason === 'repair' ? 'Needs Repair' : ...
+```
+
+### 2. `src/components/fleet/VehicleDetails.tsx` -- Status Modal
+
+**Line 435-443**: Change "Under Maintenance" label:
+- EN: `"Under Maintenance"` -> `"Unavailable – Under Maintenance"`
+- EL: `"Σε Συντήρηση"` -> `"Μη Διαθέσιμο – Σε Συντήρηση"`
+
+**Line 441**: Change sub-text from "Select dates" to "Schedule unavailability dates".
+
+### 3. `src/components/fleet/MaintenanceBlockDialog.tsx`
+
+**Line 110**: Change dialog title:
+- EN: `"Schedule Maintenance"` -> `"Schedule Unavailability"`
+- EL: `"Προγραμματισμός Συντήρησης"` -> `"Προγραμματισμός Μη Διαθεσιμότητας"`
+
+**Line 113-115**: Change description:
+- EN: `"Select dates for maintenance of ${vehicleName}"` -> `"Select dates that ${vehicleName} is unavailable"`
+- EL: Update Greek equivalent
+
+**Add sub-description** below the dialog description:
+- EN: `"Mark the dates during which this vehicle cannot be booked."`
+- EL: `"Σημειώστε τις ημέρες κατά τις οποίες αυτό το όχημα δεν μπορεί να κρατηθεί."`
+
+### 4. `src/contexts/LanguageContext.tsx`
+
+Update the `maintenance` translation value from `"Maintenance"` to `"Under Maintenance"` (used in status badges across the app). The "Unavailable" prefix only appears in the edit status modal, not in compact badges.
+
+---
+
+## Edge Cases
+
+| Scenario | Handling |
+|----------|----------|
+| Status changes during booking creation | The availability check runs on render. If status changes server-side mid-form, it won't be caught until form submission. Acceptable -- same behavior as existing booking/maintenance checks. |
+| Repair vehicle with existing future bookings | Existing bookings remain valid. The restriction only prevents NEW bookings. No retroactive cancellation. |
+| Vehicle toggled back to Available | Immediately becomes selectable again on next data fetch. No stale state. |
+| Date-based unavailability + repair | Repair check runs first (highest priority). Even without dates selected, repair vehicles show as disabled. |
+
+---
+
+## Risk Assessment
+
+- **Low risk**: No database changes. No logic changes to maintenance or booking processing.
+- **Backward compatible**: Existing bookings unaffected. Enum already includes "repair".
+- **No impact on**: Financial records, income modules, analytics, or aggregation.
 
 ---
 
 ## Technical Details
 
-### Environment detection helper (inside FilePreviewModal):
+### VehicleAvailability type update
 
-```text
-function isNestedIframe(): boolean {
-  try { return window.self !== window.top; } catch { return true; }
-}
+The existing `VehicleAvailability` interface uses `reason: 'booked' | 'maintenance'`. Add `'repair'` to the union:
 
-function isSafari(): boolean {
-  return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-}
-
-const shouldOpenInNewTab = isNestedIframe() || isSafari();
-```
-
-### PDF rendering logic:
-
-```text
-if fileType === "pdf" && url:
-  if shouldOpenInNewTab:
-    useEffect: open window.open(url, '_blank', 'noopener,noreferrer')
-    if popup is null (blocked): show fallback UI with direct <a> link
-    else: close modal via onOpenChange(false)
-  else:
-    render iframe (current behavior, works in production)
-```
-
-### File extension helper:
-
-```text
-function isPdfByExtension(path: string): boolean {
-  return path.split('?')[0].split('#')[0].toLowerCase().endsWith('.pdf');
+```typescript
+interface VehicleAvailability {
+  available: boolean;
+  reason?: 'booked' | 'maintenance' | 'repair';
+  conflictInfo?: string;
 }
 ```
 
-### Image resolution logging:
+### Files changed
 
-```text
-<img onLoad={(e) => {
-  const img = e.currentTarget;
-  console.log(`[FilePreview] natural: ${img.naturalWidth}x${img.naturalHeight}, rendered: ${img.width}x${img.height}`);
-}} />
-```
+| File | Type of Change |
+|------|---------------|
+| `src/components/booking/UnifiedBookingDialog.tsx` | Add `status` to fetch + Vehicle interface; add repair check in `getVehicleAvailability`; update badge for repair reason |
+| `src/components/fleet/VehicleDetails.tsx` | Rename "Under Maintenance" label in status modal |
+| `src/components/fleet/MaintenanceBlockDialog.tsx` | Update dialog title and description text |
+| `src/contexts/LanguageContext.tsx` | Minor translation label update |
 
----
+### Files NOT changed
 
-## Files Summary
+- Database schema (enum already has "repair")
+- `useVehicleStatus.ts` (already handles repair correctly)
+- Financial/income modules
+- `RentalBookingDialog.tsx` (vehicle is pre-selected, not user-chosen)
+- Backend/edge functions
 
-| File | Change |
-|------|--------|
-| `src/components/shared/FilePreviewModal.tsx` | Add iframe/Safari detection; conditional new-tab for PDFs; popup null check with fallback UI; image resolution logging |
-| `src/components/fleet/VehicleDocuments.tsx` | Add file extension fallback for PDF detection in fileType prop |
-| `src/components/fleet/RentalBookingsList.tsx` | Detect PDF contracts by extension, pass correct fileType |
-| `src/components/daily-program/TaskItem.tsx` | Detect PDF contracts by extension, pass correct fileType |
+### Testing checklist
 
-## No Changes Needed
-
-- Upload logic (already has `contentType: file.type`)
-- `ContractPreview.tsx` (already works via FilePreviewModal)
-- Storage buckets, database, RLS policies
-
-## Expected Results
-
-- In production: PDFs render inside the app via iframe (professional SaaS feel)
-- In Lovable preview / Safari: PDFs open in new tab reliably
-- If popup is blocked: user sees a clickable link fallback
-- Files uploaded before the MIME fix are detected by extension
-- Image blur can be diagnosed via console resolution logs
+1. Open booking form from Home -- verify repair vehicles show disabled with "Unavailable -- Needs Repair" badge
+2. Open booking form from Fleet calendar -- same check
+3. Set a vehicle to "Needs Repair" then try to book it -- confirm blocked
+4. Set it back to "Available" -- confirm selectable again
+5. Verify maintenance-blocked vehicles still show correct "Under Maintenance" badge
+6. Check status edit modal shows updated "Unavailable -- Under Maintenance" text
+7. Open maintenance scheduling dialog -- confirm new description text
+8. Verify Greek translations render correctly
+9. Confirm existing bookings for repair vehicles still display in history
 
