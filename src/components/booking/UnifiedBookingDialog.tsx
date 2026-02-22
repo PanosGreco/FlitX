@@ -898,7 +898,7 @@ export function UnifiedBookingDialog({
                             value={vehicle.id}
                             disabled={isUnavailable}
                             className={cn(
-                              isUnavailable && "opacity-60 cursor-not-allowed"
+                              isUnavailable && "cursor-not-allowed"
                             )}
                           >
                             <div className="flex items-center gap-2">
