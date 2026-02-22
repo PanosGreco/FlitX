@@ -40,6 +40,7 @@ interface Vehicle {
   transmission_type: string | null;
   vehicle_type: string;
   type: string;
+  status: string;
 }
 
 interface ExistingBooking {
@@ -60,7 +61,7 @@ interface MaintenanceBlock {
 
 interface VehicleAvailability {
   available: boolean;
-  reason?: 'booked' | 'maintenance';
+  reason?: 'booked' | 'maintenance' | 'repair';
   conflictInfo?: string;
 }
 
@@ -170,7 +171,7 @@ export function UnifiedBookingDialog({
       const [vehiclesResult, bookingsResult, maintenanceResult] = await Promise.all([
         supabase
           .from('vehicles')
-          .select('id, make, model, year, license_plate, daily_rate, fuel_type, transmission_type, vehicle_type, type')
+          .select('id, make, model, year, license_plate, daily_rate, fuel_type, transmission_type, vehicle_type, type, status')
           .eq('user_id', user.id),
         supabase
           .from('rental_bookings')
@@ -193,6 +194,18 @@ export function UnifiedBookingDialog({
 
   // Check vehicle availability for selected date range
   const getVehicleAvailability = (vehicleId: string): VehicleAvailability => {
+    // Check if vehicle needs repair (always unavailable regardless of dates)
+    const vehicle = vehicles.find(v => v.id === vehicleId);
+    if (vehicle?.status === 'repair') {
+      return {
+        available: false,
+        reason: 'repair',
+        conflictInfo: language === 'el'
+          ? 'Μη διαθέσιμο – Χρειάζεται Επισκευή'
+          : 'Unavailable – Needs Repair'
+      };
+    }
+
     if (!startDate || !endDate) return { available: true };
 
     // Check bookings
@@ -900,6 +913,8 @@ export function UnifiedBookingDialog({
                                 <Badge variant={availability.reason === 'booked' ? 'destructive' : 'secondary'} className="text-[10px] h-4 px-1 ml-auto">
                                   {availability.reason === 'booked' 
                                     ? (language === 'el' ? 'Κρατημένο' : 'Booked')
+                                    : availability.reason === 'repair'
+                                    ? (language === 'el' ? 'Επισκευή' : 'Needs Repair')
                                     : (language === 'el' ? 'Συντήρηση' : 'Maintenance')
                                   }
                                 </Badge>
