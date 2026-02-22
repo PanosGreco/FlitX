@@ -240,7 +240,7 @@ export function TimelineCalendar({
                       }
                               {/* Time - no seconds */}
                               {task.time &&
-                      <div className={cn("text-[11px] mt-0.5 font-semibold", colors.text)}>
+                      <div className={cn("text-[13px] mt-0.5 font-semibold", colors.text)}>
                                   {formatTime24h(task.time) || task.time}
                                 </div>
                       }
