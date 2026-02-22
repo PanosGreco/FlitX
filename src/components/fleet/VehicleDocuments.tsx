@@ -473,7 +473,7 @@ export function VehicleDocuments({ vehicleId }: VehicleDocumentsProps) {
           onOpenChange={(open) => { if (!open) setViewingDocument(null); }}
           url={viewingUrl}
           fileType={
-            viewingDocument?.file_type === 'application/pdf'
+            viewingDocument?.file_type === 'application/pdf' || (viewingDocument && viewingDocument.file_path.split('?')[0].split('#')[0].toLowerCase().endsWith('.pdf'))
               ? 'pdf'
               : viewingDocument && isImageFile(viewingDocument.file_type)
                 ? 'image'
