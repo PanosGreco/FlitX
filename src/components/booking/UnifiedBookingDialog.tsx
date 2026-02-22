@@ -898,14 +898,14 @@ export function UnifiedBookingDialog({
                             value={vehicle.id}
                             disabled={isUnavailable}
                             className={cn(
-                              isUnavailable && "opacity-50 line-through cursor-not-allowed"
+                              isUnavailable && "opacity-60 cursor-not-allowed"
                             )}
                           >
                             <div className="flex items-center gap-2">
                               {isUnavailable && (
                                 <AlertTriangle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
                               )}
-                              <span>
+                              <span className={cn(isUnavailable && "line-through")}>
                                 {vehicle.make} {vehicle.model} {vehicle.year}
                                 {vehicle.license_plate && ` (${vehicle.license_plate})`}
                               </span>
