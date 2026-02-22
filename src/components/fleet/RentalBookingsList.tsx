@@ -368,7 +368,7 @@ export function RentalBookingsList({
         open={isPhotoDialogOpen}
         onOpenChange={setIsPhotoDialogOpen}
         url={selectedPhoto}
-        fileType="image"
+        fileType={selectedPhoto && selectedPhoto.split('?')[0].split('#')[0].toLowerCase().endsWith('.pdf') ? 'pdf' : 'image'}
         title="Contract Document"
         actions={
           <Button variant="destructive" size="sm" onClick={() => setIsDeleteContractDialogOpen(true)} className="gap-2">

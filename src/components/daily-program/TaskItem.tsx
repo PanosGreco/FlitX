@@ -221,7 +221,7 @@ export function TaskItem({
         open={isContractOpen}
         onOpenChange={setIsContractOpen}
         url={contractUrl}
-        fileType="image"
+        fileType={contractUrl && contractUrl.split('?')[0].split('#')[0].toLowerCase().endsWith('.pdf') ? 'pdf' : 'image'}
         title="Contract Document"
         actions={
           <Button variant="destructive" size="sm" onClick={() => setIsDeleteContractDialogOpen(true)} className="gap-2">
