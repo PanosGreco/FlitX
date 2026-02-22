@@ -114,11 +114,6 @@ export function MaintenanceBlockDialog({
               ? `Επιλέξτε τις ημερομηνίες που το ${vehicleName} δεν είναι διαθέσιμο` 
               : `Select dates that ${vehicleName} is unavailable`}
           </DialogDescription>
-          <p className="text-xs text-muted-foreground mt-1">
-            {language === "el" 
-              ? "Σημειώστε τις ημέρες κατά τις οποίες αυτό το όχημα δεν μπορεί να κρατηθεί."
-              : "Mark the dates during which this vehicle cannot be booked."}
-          </p>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
