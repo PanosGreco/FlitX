@@ -910,7 +910,13 @@ export function UnifiedBookingDialog({
                                 {vehicle.license_plate && ` (${vehicle.license_plate})`}
                               </span>
                               {isUnavailable && (
-                                <Badge variant={availability.reason === 'booked' ? 'destructive' : 'secondary'} className="text-[10px] h-4 px-1 ml-auto">
+                                <Badge 
+                                  variant={availability.reason === 'booked' ? 'destructive' : 'secondary'} 
+                                  className={cn(
+                                    "text-[11px] h-5 px-1.5 ml-auto",
+                                    availability.reason === 'repair' && "bg-orange-100 text-orange-800 border-orange-200"
+                                  )}
+                                >
                                   {availability.reason === 'booked' 
                                     ? (language === 'el' ? 'Κρατημένο' : 'Booked')
                                     : availability.reason === 'repair'
