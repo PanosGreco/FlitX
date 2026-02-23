@@ -27,8 +27,18 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
+    titleKey: "finances",
+    href: "/finances",
+    icon: BarChart3,
+  },
+  {
     titleKey: "home",
     href: "/",
+    icon: Calendar,
+  },
+  {
+    titleKey: "dailyProgram",
+    href: "/daily-program",
     icon: Calendar,
   },
   {
@@ -37,19 +47,9 @@ const navItems: NavItem[] = [
     icon: Sparkles,
   },
   {
-    titleKey: "dailyProgram",
-    href: "/daily-program",
-    icon: Calendar,
-  },
-  {
     titleKey: "fleet",
     href: "/fleet",
     icon: Car,
-  },
-  {
-    titleKey: "finances",
-    href: "/finances",
-    icon: BarChart3,
   },
   {
     titleKey: "tracking",

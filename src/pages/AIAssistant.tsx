@@ -1,12 +1,12 @@
-import { MobileLayout } from '@/components/layout/MobileLayout';
+import { AppShell } from '@/components/layout/AppShell';
 import { AIAssistantLayout } from '@/components/ai-assistant/AIAssistantLayout';
 
 export default function AIAssistant() {
   return (
-    <MobileLayout>
+    <AppShell>
       <div className="h-[calc(100vh-4rem)]">
         <AIAssistantLayout />
       </div>
-    </MobileLayout>
+    </AppShell>
   );
 }

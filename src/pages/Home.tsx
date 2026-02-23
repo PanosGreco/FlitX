@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { MobileLayout } from "@/components/layout/MobileLayout";
+import { AppShell } from "@/components/layout/AppShell";
 import { MonthlyCalendar } from "@/components/home/MonthlyCalendar";
 import { TimelineCalendar } from "@/components/home/TimelineCalendar";
 import { RemindersWidget } from "@/components/home/RemindersWidget";
@@ -162,7 +162,7 @@ export default function Home() {
   };
 
   return (
-    <MobileLayout>
+    <AppShell>
       {/* No page-level scroll - all scrolling happens inside timeline */}
       <div className="h-[calc(100vh-64px)] bg-slate-50/50 p-5 overflow-hidden">
         {/* Main Layout - Reference: Left sidebar (small calendar + widgets), Right main area (timeline) */}
@@ -203,6 +203,6 @@ export default function Home() {
           onSuccess={handleRefresh}
         />
       </div>
-    </MobileLayout>
+    </AppShell>
   );
 }
