@@ -1,5 +1,5 @@
 
-import { AppShell } from "@/components/layout/AppShell";
+import { MobileLayout } from "@/components/layout/MobileLayout";
 import { UserProfile } from "@/components/profile/UserProfile";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -8,7 +8,7 @@ const Profile = () => {
   const { t, isLanguageLoading } = useLanguage();
   
   return (
-    <AppShell>
+    <MobileLayout>
       <div className="container py-6">
         {isLanguageLoading ? (
           <div className="space-y-4">
@@ -22,7 +22,7 @@ const Profile = () => {
           <UserProfile />
         )}
       </div>
-    </AppShell>
+    </MobileLayout>
   );
 };
 

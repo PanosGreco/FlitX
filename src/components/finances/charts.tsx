@@ -239,7 +239,7 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
             bottom: 5,
           }}
         >
-          <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.08} />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis 
             dataKey="name" 
             tick={{ fontSize: 11 }}
@@ -255,18 +255,16 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
             formatter={(value: number) => [`${currencySymbol}${value.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, undefined]}
             labelStyle={{ color: "#333" }}
             contentStyle={{
-              borderRadius: 12,
+              borderRadius: 8,
               border: "none",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-              background: "rgba(255,255,255,0.85)",
-              backdropFilter: "blur(10px)",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
             }}
           />
           <Legend 
             formatter={(value) => value === 'income' ? (lang === 'el' ? 'Έσοδα' : 'Income') : (lang === 'el' ? 'Έξοδα' : 'Expenses')}
           />
-          <Bar dataKey="income" name="income" fill="#22c55e" radius={[6, 6, 0, 0]} barSize={timeframe === 'week' ? 30 : 15} />
-          <Bar dataKey="expenses" name="expenses" fill="#ef4444" radius={[6, 6, 0, 0]} barSize={timeframe === 'week' ? 30 : 15} />
+          <Bar dataKey="income" name="income" fill="#22c55e" radius={[4, 4, 0, 0]} barSize={timeframe === 'week' ? 30 : 15} />
+          <Bar dataKey="expenses" name="expenses" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={timeframe === 'week' ? 30 : 15} />
         </RechartsBarChart>
       </ResponsiveContainer>
     </div>
@@ -317,21 +315,7 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
             bottom: 5,
           }}
         >
-          <defs>
-            <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f59e0b" stopOpacity={1} />
-              <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.2} />
-            </linearGradient>
-            <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ef4444" stopOpacity={1} />
-              <stop offset="100%" stopColor="#ef4444" stopOpacity={0.2} />
-            </linearGradient>
-            <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity={1} />
-              <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.2} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.08} />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
           <XAxis 
             dataKey="name" 
             tick={{ fontSize: 11 }}
@@ -350,45 +334,46 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
             ]}
             labelStyle={{ color: "#333" }}
             contentStyle={{
-              borderRadius: 12,
+              borderRadius: 8,
               border: "none",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-              background: "rgba(255,255,255,0.85)",
-              backdropFilter: "blur(10px)",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
             }}
           />
           <Legend 
             formatter={(value) => getLineName(value)}
           />
           <Line
-            type="monotone"
+            type="linear"
             dataKey="income"
             name="income"
-            stroke="url(#incomeGradient)"
-            activeDot={{ r: 5 }}
-            strokeWidth={2.5}
-            dot={{ r: 2 }}
+            stroke="#f59e0b"
+            activeDot={{ r: 6 }}
+            strokeWidth={2}
+            dot={{ r: 3 }}
             connectNulls={false}
+            isAnimationActive={false}
           />
           <Line
-            type="monotone"
+            type="linear"
             dataKey="expenses"
             name="expenses"
-            stroke="url(#expenseGradient)"
-            activeDot={{ r: 5 }}
-            strokeWidth={2.5}
-            dot={{ r: 2 }}
+            stroke="#ef4444"
+            activeDot={{ r: 6 }}
+            strokeWidth={2}
+            dot={{ r: 3 }}
             connectNulls={false}
+            isAnimationActive={false}
           />
           <Line
-            type="monotone"
+            type="linear"
             dataKey="revenue"
             name="revenue"
-            stroke="url(#revenueGradient)"
-            activeDot={{ r: 5 }}
-            strokeWidth={2.5}
-            dot={{ r: 2 }}
+            stroke="#3b82f6"
+            activeDot={{ r: 6 }}
+            strokeWidth={2}
+            dot={{ r: 3 }}
             connectNulls={false}
+            isAnimationActive={false}
           />
         </RechartsLineChart>
       </ResponsiveContainer>

@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useIncomeCategories } from "@/hooks/useIncomeCategories";
 import { IncomeSourceSelector } from "@/components/finances/IncomeSourceSelector";
-import { AppShell } from "@/components/layout/AppShell";
+import { MobileLayout } from "@/components/layout/MobileLayout";
 import { FinanceDashboard } from "@/components/finances/FinanceDashboard";
 import { 
   Dialog,
@@ -53,7 +53,7 @@ const Finance = () => {
   const isBoats = isBoatBusiness();
   
   // Use the page title hook
-  usePageTitle("analytics");
+  usePageTitle("finances");
 
   // Fetch financial records and vehicles when component mounts
   useEffect(() => {
@@ -307,9 +307,8 @@ const Finance = () => {
   };
   
   return (
-    <AppShell>
-      <div className="glass-bg min-h-screen">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <MobileLayout>
+      <div className="container py-6">
         <FinanceDashboard 
           onAddRecord={handleOpenAddFinance}
           financialRecords={financialRecords}
@@ -555,9 +554,8 @@ const Finance = () => {
             </form>
           </DialogContent>
         </Dialog>
-        </div>
       </div>
-    </AppShell>
+    </MobileLayout>
   );
 };
 

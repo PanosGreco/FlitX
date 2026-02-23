@@ -5,8 +5,7 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { TrendingUp, TrendingDown, Plus, Loader2, Eye, CalendarIcon, Trash2, X, RefreshCw, DollarSign, CreditCard, Wallet } from "lucide-react";
+import { TrendingUp, TrendingDown, Plus, Loader2, Eye, CalendarIcon, Trash2, X, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -30,8 +29,6 @@ import { IncomeBreakdown } from "@/components/finances/IncomeBreakdown";
 import { ExpenseBreakdown } from "@/components/finances/ExpenseBreakdown";
 import { differenceInDays } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
-import { useGlassTheme } from "@/hooks/useGlassTheme";
-import { Skeleton } from "@/components/ui/skeleton";
 import { getMaintenanceTypeLabel } from "@/constants/maintenanceTypes";
 import { 
   TimeframeType, 
@@ -88,7 +85,6 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   const isBoats = isBoatBusiness();
   const { t, language, isLanguageLoading } = useLanguage();
   const { user } = useAuth();
-  const { isGlassEnabled } = useGlassTheme();
   const { toast } = useToast();
   
   useEffect(() => {
@@ -400,50 +396,19 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   
   if (isLoading) {
     return (
-      <div className="space-y-6 animate-fade-in">
-        {/* Glass skeleton loading state */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className={cn("p-6 rounded-[20px] animate-pulse", isGlassEnabled ? "glass-skeleton" : "bg-muted")}>
-              <Skeleton className="h-4 w-20 mb-3" />
-              <Skeleton className="h-8 w-32" />
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[1, 2].map(i => (
-            <div key={i} className={cn("p-6 rounded-[20px] h-96 animate-pulse", isGlassEnabled ? "glass-skeleton" : "bg-muted")}>
-              <Skeleton className="h-5 w-40 mb-4" />
-              <Skeleton className="h-64 w-full" />
-            </div>
-          ))}
-        </div>
+      <div className="flex flex-col items-center justify-center h-96 gap-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="text-muted-foreground">
+          {language === 'el' ? 'Φόρτωση οικονομικών δεδομένων...' : 'Loading financial data...'}
+        </p>
       </div>
     );
   }
   
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Profile Header */}
-      {isGlassEnabled && (
-        <div className="flex items-center gap-4 mb-2">
-          <Avatar className="h-12 w-12 border-2 border-white/20">
-            <AvatarImage src="" />
-            <AvatarFallback className="bg-primary text-primary-foreground font-bold">
-              {user?.email?.charAt(0).toUpperCase() || 'F'}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h2 className="text-lg font-bold text-foreground">FlitX</h2>
-            <p className="text-sm text-muted-foreground">
-              {language === 'el' ? 'Οικονομικό Dashboard' : 'Financial Dashboard'}
-            </p>
-          </div>
-        </div>
-      )}
-
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold">{language === 'el' ? 'Αναλυτικά' : 'Analytics'}</h1>
+        <h1 className="text-2xl font-bold">{t.finances}</h1>
         
         <div className="flex items-center gap-2 flex-wrap">
           <Select value={timeframe} onValueChange={handleTimeframeChange} disabled={isLanguageLoading}>
@@ -514,9 +479,6 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           trend={summaryData.incomeChange >= 0 ? "up" : "down"} 
           prefix="€" 
           lang={language}
-          icon={<DollarSign className="h-5 w-5" />}
-          tintClass="bg-emerald-500/10"
-          isGlass={isGlassEnabled}
         />
         
         <SummaryCard 
@@ -527,9 +489,6 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           prefix="€"
           trendReversed
           lang={language}
-          icon={<CreditCard className="h-5 w-5" />}
-          tintClass="bg-destructive/10"
-          isGlass={isGlassEnabled}
         />
         
         <SummaryCard 
@@ -539,15 +498,12 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           trend={summaryData.profitChange >= 0 ? "up" : "down"} 
           prefix="€"
           lang={language}
-          icon={<Wallet className="h-5 w-5" />}
-          tintClass="bg-primary/10"
-          isGlass={isGlassEnabled}
         />
       </div>
       
-      {/* Charts */}
+      {/* Charts - Now using real backend data with timeframe sync */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className={cn(isGlassEnabled && "glass-card")}>
+        <Card>
           <CardHeader>
             <CardTitle className="text-lg">{language === 'el' ? 'Έσοδα έναντι Εξόδων' : 'Income vs Expenses'}</CardTitle>
           </CardHeader>
@@ -556,7 +512,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           </CardContent>
         </Card>
         
-        <Card className={cn(isGlassEnabled && "glass-card")}>
+        <Card>
           <CardHeader>
             <CardTitle className="text-lg">{language === 'el' ? 'Τάση Χρόνου' : 'Trend Over Time'}</CardTitle>
           </CardHeader>
@@ -693,7 +649,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   );
 }
 
-function SummaryCard({ title, value, change, trend, prefix = "", trendReversed = false, lang, icon, tintClass, isGlass }: {
+function SummaryCard({ title, value, change, trend, prefix = "", trendReversed = false, lang }: {
   title: string;
   value: number;
   change: number;
@@ -701,36 +657,24 @@ function SummaryCard({ title, value, change, trend, prefix = "", trendReversed =
   prefix?: string;
   trendReversed?: boolean;
   lang: string;
-  icon?: React.ReactNode;
-  tintClass?: string;
-  isGlass?: boolean;
 }) {
   const trendIsPositive = trend === "up";
   const displayedTrend = trendReversed ? !trendIsPositive : trendIsPositive;
   
   return (
-    <Card className={cn(
-      isGlass && "glass-card glass-card-hover"
-    )}>
+    <Card>
       <CardContent className="p-6">
         <div className="flex justify-between items-start">
-          <div className="flex items-start gap-3">
-            {icon && isGlass && (
-              <div className={cn("flex items-center justify-center w-10 h-10 rounded-xl", tintClass)}>
-                {icon}
-              </div>
-            )}
-            <div>
-              <p className="text-sm text-muted-foreground">{title}</p>
-              <h3 className="text-2xl font-semibold mt-1">
-                {prefix}{value.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-              </h3>
-            </div>
+          <div>
+            <p className="text-sm text-muted-foreground">{title}</p>
+            <h3 className="text-2xl font-semibold mt-1">
+              {prefix}{value.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </h3>
           </div>
           
           <div className={cn(
             "flex items-center text-sm",
-            displayedTrend ? "text-emerald-600" : "text-destructive"
+            displayedTrend ? "text-green-600" : "text-red-600"
           )}>
             {displayedTrend ? (
               <TrendingUp className="h-4 w-4 mr-1" />

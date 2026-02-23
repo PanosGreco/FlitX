@@ -1,5 +1,5 @@
 
-import { AppShell } from "@/components/layout/AppShell";
+import { MobileLayout } from "@/components/layout/MobileLayout";
 import { LiveTrackingMap } from "@/components/tracking/LiveTrackingMap";
 import { Suspense } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -9,7 +9,7 @@ const Tracking = () => {
   const { t, isLanguageLoading } = useLanguage();
   
   return (
-    <AppShell>
+    <MobileLayout>
       <div className="container py-6">
         {isLanguageLoading ? (
           <Skeleton className="h-[70vh] rounded-lg" />
@@ -26,7 +26,7 @@ const Tracking = () => {
           </Suspense>
         )}
       </div>
-    </AppShell>
+    </MobileLayout>
   );
 };
 
