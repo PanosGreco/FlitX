@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { MobileLayout } from "@/components/layout/MobileLayout";
+import { AppShell } from "@/components/layout/AppShell";
 import { DailyProgramSection } from "@/components/daily-program/DailyProgramSection";
 import { AddTaskDialog } from "@/components/daily-program/AddTaskDialog";
 import { cn } from "@/lib/utils";
@@ -42,7 +42,7 @@ export default function DailyProgram() {
   const handleDeleteTask = async (taskId: string) => {
     await deleteTask(taskId);
   };
-  return <MobileLayout>
+  return <AppShell>
       <div className="p-4 space-y-4">
         {/* Header with Date Picker */}
         <Card>
@@ -88,5 +88,5 @@ export default function DailyProgram() {
         {/* Add Task Dialog */}
         <AddTaskDialog isOpen={isAddDialogOpen} onClose={() => setIsAddDialogOpen(false)} onAddTask={handleAddTask} vehicles={vehicles} selectedDate={selectedDate} onDateChange={setSelectedDate} />
       </div>
-    </MobileLayout>;
+    </AppShell>;
 }
