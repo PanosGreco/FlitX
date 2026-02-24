@@ -343,34 +343,34 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
             formatter={(value) => getLineName(value)}
           />
           <Line
-            type="linear"
+            type="monotone"
             dataKey="income"
             name="income"
             stroke="#f59e0b"
             activeDot={{ r: 6 }}
-            strokeWidth={2}
+            strokeWidth={2.5}
             dot={{ r: 3 }}
             connectNulls={false}
             isAnimationActive={false}
           />
           <Line
-            type="linear"
+            type="monotone"
             dataKey="expenses"
             name="expenses"
             stroke="#ef4444"
             activeDot={{ r: 6 }}
-            strokeWidth={2}
+            strokeWidth={2.5}
             dot={{ r: 3 }}
             connectNulls={false}
             isAnimationActive={false}
           />
           <Line
-            type="linear"
+            type="monotone"
             dataKey="revenue"
             name="revenue"
             stroke="#3b82f6"
             activeDot={{ r: 6 }}
-            strokeWidth={2}
+            strokeWidth={2.5}
             dot={{ r: 3 }}
             connectNulls={false}
             isAnimationActive={false}
