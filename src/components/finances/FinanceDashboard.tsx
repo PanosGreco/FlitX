@@ -5,13 +5,14 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Plus, Loader2, Eye, CalendarIcon, Trash2, X, RefreshCw } from "lucide-react";
+import { TrendingUp, TrendingDown, Plus, Loader2, Eye, CalendarIcon, Trash2, X, RefreshCw, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { enUS, el } from 'date-fns/locale';
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { 
   Select, 
@@ -82,6 +83,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   const [deleteTransactionId, setDeleteTransactionId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRecurringOpen, setIsRecurringOpen] = useState(false);
+  const [profileData, setProfileData] = useState<{ name: string | null; company_name: string | null; avatar_url: string | null }>({ name: null, company_name: null, avatar_url: null });
   const isBoats = isBoatBusiness();
   const { t, language, isLanguageLoading } = useLanguage();
   const { user } = useAuth();
@@ -90,6 +92,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   useEffect(() => {
     if (user) {
       fetchVehicles();
+      fetchProfile();
     }
   }, [user]);
 
@@ -107,6 +110,22 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       }
     } catch (error) {
       console.error("Error fetching vehicles:", error);
+    }
+  };
+
+  const fetchProfile = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('name, company_name, avatar_url')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (!error && data) {
+        setProfileData(data);
+      }
+    } catch (error) {
+      console.error("Error fetching profile:", error);
     }
   };
 
@@ -407,6 +426,26 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Profile Header */}
+      <div className="flex items-center gap-4 mb-2">
+        <Avatar className="h-12 w-12">
+          {profileData.avatar_url ? (
+            <AvatarImage src={profileData.avatar_url} alt="Profile" />
+          ) : null}
+          <AvatarFallback>
+            <User className="h-5 w-5" />
+          </AvatarFallback>
+        </Avatar>
+        <div>
+          <h2 className="text-lg font-semibold leading-tight">
+            {profileData.company_name || profileData.name || (language === 'el' ? 'Η Εταιρεία μου' : 'My Company')}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {language === 'el' ? 'FlitX Οικονομικό Dashboard' : 'FlitX Financial Dashboard'}
+          </p>
+        </div>
+      </div>
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">{t.finances}</h1>
         
@@ -479,6 +518,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           trend={summaryData.incomeChange >= 0 ? "up" : "down"} 
           prefix="€" 
           lang={language}
+          variant="income"
         />
         
         <SummaryCard 
@@ -489,6 +529,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           prefix="€"
           trendReversed
           lang={language}
+          variant="expense"
         />
         
         <SummaryCard 
@@ -498,6 +539,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           trend={summaryData.profitChange >= 0 ? "up" : "down"} 
           prefix="€"
           lang={language}
+          variant="profit"
         />
       </div>
       
@@ -649,7 +691,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   );
 }
 
-function SummaryCard({ title, value, change, trend, prefix = "", trendReversed = false, lang }: {
+function SummaryCard({ title, value, change, trend, prefix = "", trendReversed = false, lang, variant }: {
   title: string;
   value: number;
   change: number;
@@ -657,12 +699,22 @@ function SummaryCard({ title, value, change, trend, prefix = "", trendReversed =
   prefix?: string;
   trendReversed?: boolean;
   lang: string;
+  variant?: 'income' | 'expense' | 'profit';
 }) {
   const trendIsPositive = trend === "up";
   const displayedTrend = trendReversed ? !trendIsPositive : trendIsPositive;
   
+  const variantStyles = {
+    income: "bg-[hsla(142,71%,45%,0.12)] border-[hsla(142,71%,45%,0.2)]",
+    expense: "bg-[hsla(0,84%,60%,0.12)] border-[hsla(0,84%,60%,0.2)]",
+    profit: "bg-[hsla(217,91%,60%,0.12)] border-[hsla(217,91%,60%,0.2)]",
+  };
+  
   return (
-    <Card>
+    <Card className={cn(
+      "rounded-2xl shadow-sm",
+      variant && variantStyles[variant]
+    )}>
       <CardContent className="p-6">
         <div className="flex justify-between items-start">
           <div>

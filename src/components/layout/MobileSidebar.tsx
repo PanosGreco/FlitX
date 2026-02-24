@@ -27,6 +27,11 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
+    titleKey: "finances",
+    href: "/finances",
+    icon: BarChart3,
+  },
+  {
     titleKey: "home",
     href: "/",
     icon: Calendar,
@@ -45,11 +50,6 @@ const navItems: NavItem[] = [
     titleKey: "fleet",
     href: "/fleet",
     icon: Car,
-  },
-  {
-    titleKey: "finances",
-    href: "/finances",
-    icon: BarChart3,
   },
   {
     titleKey: "tracking",

@@ -8,7 +8,7 @@ export const translations = {
   en: {
     // Navigation
     fleet: "Fleet",
-    finances: "Income & Expenses",
+    finances: "Analytics",
     tracking: "Live Tracking",
     profile: "Profile",
     
@@ -229,7 +229,7 @@ export const translations = {
   el: {
     // Navigation
     fleet: "Στόλος",
-    finances: "Έσοδα & Έξοδα",
+    finances: "Αναλυτικά",
     tracking: "Ζωντανή Παρακολούθηση",
     profile: "Προφίλ",
     
