@@ -174,25 +174,24 @@ export function TimelineCalendar({
 
       {/* Timeline Grid - with internal scroll only */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden flex-1 flex flex-col">
-        {/* Days Header - Fixed, aligned with grid */}
-        <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-200 flex-shrink-0">
-          <div className="border-r border-slate-200" /> {/* Time column spacer - no padding */}
-          {weekDays.map((day, idx) => {
-          const isToday = isSameDay(day, new Date());
-          const isSelected = isSameDay(day, selectedDate);
-          return <button key={idx} onClick={() => onDateSelect(day)} className={cn("py-4 text-center transition-colors border-l border-slate-200", isToday ? "bg-teal-50" : "bg-slate-100", isSelected && "bg-teal-50")}>
-                <div className={cn("text-xs font-bold uppercase tracking-wide mb-1", isToday ? "text-teal-600" : "text-slate-900")}>
-                  {format(day, 'EEE')}
-                </div>
-                <div className={cn("text-2xl font-semibold", isToday ? "text-teal-600" : "text-slate-900")}>
-                  {format(day, 'd')}
-                </div>
-              </button>;
-        })}
-        </div>
-
-        {/* Hour Rows - Scrollable */}
+        {/* Scrollable container for both header and grid */}
         <div ref={scrollContainerRef} className="relative flex-1 overflow-y-auto">
+          {/* Days Header - Sticky at top, inside scroll container for perfect alignment */}
+          <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-200 sticky top-0 z-10 bg-white">
+            <div className="border-r border-slate-200" /> {/* Time column spacer - no padding */}
+            {weekDays.map((day, idx) => {
+            const isToday = isSameDay(day, new Date());
+            const isSelected = isSameDay(day, selectedDate);
+            return <button key={idx} onClick={() => onDateSelect(day)} className={cn("py-4 text-center transition-colors border-l border-slate-200", isToday ? "bg-teal-50" : "bg-slate-100", isSelected && "bg-teal-50")}>
+                  <div className={cn("text-xs font-bold uppercase tracking-wide mb-1", isToday ? "text-teal-600" : "text-slate-900")}>
+                    {format(day, 'EEE')}
+                  </div>
+                  <div className={cn("text-2xl font-semibold", isToday ? "text-teal-600" : "text-slate-900")}>
+                    {format(day, 'd')}
+                  </div>
+                </button>;
+          })}
+          </div>
           {HOURS.map((hour, hourIdx) => {
           const rowHeight = rowHeights[hourIdx];
           return <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-200" style={{
