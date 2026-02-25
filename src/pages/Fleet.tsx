@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { VehicleGrid } from "@/components/fleet/VehicleGrid";
-import { MobileLayout } from "@/components/layout/MobileLayout";
+import { AppLayout } from "@/components/layout/AppLayout";
 import {
   Dialog,
   DialogContent,
@@ -303,7 +303,7 @@ const Fleet = () => {
   };
   
   return (
-    <MobileLayout>
+    <AppLayout>
       <div className="container py-6">
         <VehicleGrid 
           vehicles={vehicles} 
@@ -748,7 +748,7 @@ const Fleet = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </MobileLayout>
+    </AppLayout>
   );
 };
 

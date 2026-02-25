@@ -1,5 +1,5 @@
 import { VehicleDetails } from "@/components/fleet/VehicleDetails";
-import { MobileLayout } from "@/components/layout/MobileLayout";
+import { AppLayout } from "@/components/layout/AppLayout";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState, useCallback } from "react";
@@ -192,34 +192,34 @@ const VehicleDetail = () => {
   
   if (loading) {
     return (
-      <MobileLayout>
+      <AppLayout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
           <p className="text-muted-foreground">Loading vehicle...</p>
         </div>
-      </MobileLayout>
+      </AppLayout>
     );
   }
   
   if (!vehicle) {
     return (
-      <MobileLayout>
+      <AppLayout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
           <p className="text-muted-foreground">Vehicle not found</p>
         </div>
-      </MobileLayout>
+      </AppLayout>
     );
   }
   
   return (
-    <MobileLayout>
+    <AppLayout>
       <VehicleDetails 
         vehicleId={id} 
         vehicles={[vehicle]} 
         loading={false}
         translations={translations}
       />
-    </MobileLayout>
+    </AppLayout>
   );
 };
 
