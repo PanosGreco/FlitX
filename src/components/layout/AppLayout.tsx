@@ -2,7 +2,6 @@
 import { DesktopSidebar } from "./DesktopSidebar";
 import { BottomNavigation } from "./BottomNavigation";
 import { LanguageSwitcher } from "@/components/signup/LanguageSwitcher";
-import { BackgroundShader } from "@/components/ui/background-shader";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -10,8 +9,7 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   return (
-    <div className="flex min-h-screen w-full bg-background relative">
-      <BackgroundShader />
+    <div className="flex min-h-screen w-full bg-background">
       {/* Permanent desktop sidebar */}
       <DesktopSidebar />
 

@@ -3,7 +3,6 @@ import { useState, useEffect, useMemo } from "react";
 import { useIncomeCategories } from "@/hooks/useIncomeCategories";
 import { IncomeSourceSelector } from "@/components/finances/IncomeSourceSelector";
 import { AppLayout } from "@/components/layout/AppLayout";
-
 import { FinanceDashboard } from "@/components/finances/FinanceDashboard";
 import { 
   Dialog,
