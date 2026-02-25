@@ -24,7 +24,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </header>
 
         {/* Desktop top bar with language switcher */}
-        <header className="hidden lg:flex items-center justify-end h-12 px-6 border-b border-border bg-background">
+        <header className="hidden lg:flex items-center justify-end h-14 px-6 border-b border-border bg-background">
           <LanguageSwitcher />
         </header>
 
