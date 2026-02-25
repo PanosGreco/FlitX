@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { format, addDays, subDays, startOfWeek, isSameDay, getWeek } from "date-fns";
 import { ChevronLeft, ChevronRight, Loader2, Plus, MapPin, Clock, Car, User, FileText, Tag, Fuel, CreditCard, Info } from "lucide-react";
 import { formatTime24h } from "@/utils/dateFormatUtils";
@@ -101,40 +101,36 @@ export function TimelineCalendar({
     });
   };
 
-  // Calculate dynamic row height based on number of tasks
-  const getRowHeight = (dayIdx: number, hour: number) => {
-    const day = weekDays[dayIdx];
-    const dayTasks = getTasksForDate(day);
-    const tasksInHour = getTasksForHour(dayTasks, hour);
+  // Ref for measuring actual rendered row heights
+  const gridContainerRef = useRef<HTMLDivElement>(null);
+  const [measuredRowTops, setMeasuredRowTops] = useState<number[]>([]);
 
-    // Calculate max tasks across all days for this hour
-    let maxTasksInHour = 0;
-    weekDays.forEach((d) => {
-      const dt = getTasksForDate(d);
-      const th = getTasksForHour(dt, hour);
-      maxTasksInHour = Math.max(maxTasksInHour, th.length);
+  // Measure actual row positions after render
+  const measureRows = useCallback(() => {
+    if (!gridContainerRef.current) return;
+    const rows = gridContainerRef.current.querySelectorAll('[data-hour-row]');
+    const tops: number[] = [];
+    rows.forEach((row) => {
+      const el = row as HTMLElement;
+      tops.push(el.offsetTop);
     });
+    // Add the bottom of the last row
+    if (rows.length > 0) {
+      const lastRow = rows[rows.length - 1] as HTMLElement;
+      tops.push(lastRow.offsetTop + lastRow.offsetHeight);
+    }
+    setMeasuredRowTops(tops);
+  }, []);
 
-    // Minimum height is HOUR_HEIGHT, expand if more than 1 task
-    const minTaskHeight = 60;
-    if (maxTasksInHour <= 1) return HOUR_HEIGHT;
-    return Math.max(HOUR_HEIGHT, maxTasksInHour * minTaskHeight + 12);
-  };
-
-  // Calculate row heights for all hours
-  const rowHeights = useMemo(() => {
-    return HOURS.map((hour) => {
-      let maxTasksInHour = 0;
-      weekDays.forEach((day) => {
-        const dayTasks = getTasksForDate(day);
-        const tasksInHour = getTasksForHour(dayTasks, hour);
-        maxTasksInHour = Math.max(maxTasksInHour, tasksInHour.length);
-      });
-      const minTaskHeight = 60;
-      if (maxTasksInHour <= 1) return HOUR_HEIGHT;
-      return Math.max(HOUR_HEIGHT, maxTasksInHour * minTaskHeight + 12);
-    });
-  }, [tasks, weekDays]);
+  // Measure after tasks change or layout updates
+  useEffect(() => {
+    measureRows();
+    // Use ResizeObserver to re-measure when rows resize
+    if (!gridContainerRef.current) return;
+    const observer = new ResizeObserver(() => measureRows());
+    observer.observe(gridContainerRef.current);
+    return () => observer.disconnect();
+  }, [tasks, weekDays, measureRows]);
   if (loading) {
     return <div className="bg-white rounded-xl shadow-sm h-full flex items-center justify-center min-h-[500px]">
         <Loader2 className="h-8 w-8 animate-spin text-slate-300" />
@@ -192,13 +188,19 @@ export function TimelineCalendar({
         </div>
 
         {/* Hour Rows - Scrollable */}
-        <div ref={scrollContainerRef} className="relative flex-1 overflow-y-auto">
+        <div ref={(el) => { scrollContainerRef.current = el; gridContainerRef.current = el; }} className="relative flex-1 overflow-y-auto">
           {HOURS.map((hour, hourIdx) => {
-          const rowHeight = rowHeights[hourIdx];
-          return <div key={hour} className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-200" style={{
-            minHeight: `${rowHeight}px`
+          // Calculate max tasks across all days for this hour
+          let maxTasksInHour = 0;
+          weekDays.forEach((d) => {
+            const dt = getTasksForDate(d);
+            const th = getTasksForHour(dt, hour);
+            maxTasksInHour = Math.max(maxTasksInHour, th.length);
+          });
+          return <div key={hour} data-hour-row={hour} className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-slate-200" style={{
+            minHeight: `${HOUR_HEIGHT}px`
           }}>
-                {/* Time Label - aligned with border */}
+                {/* Time Label */}
                 <div className="flex items-start justify-end pr-3 pt-1 text-xs font-medium border-r border-slate-200 mx-0 my-0 px-0 text-secondary-foreground">
                   {`${hour.toString().padStart(2, '0')}:00`}
                 </div>
@@ -208,44 +210,53 @@ export function TimelineCalendar({
               const dayTasks = getTasksForDate(day);
               const isToday = isSameDay(day, new Date());
               const tasksInHour = getTasksForHour(dayTasks, hour);
-              return <div key={dayIdx} className={cn("relative border-l border-slate-200 p-1", isToday && "bg-teal-50/30")}>
-                      {/* Stack tasks vertically within the hour */}
-                      <div className="flex flex-col gap-1">
+              const taskCount = tasksInHour.length;
+              // Use flex-wrap grid for multiple tasks
+              const useGrid = taskCount > 1;
+              return <div key={dayIdx} className={cn("relative border-l border-slate-200 p-1 overflow-hidden", isToday && "bg-teal-50/30")}>
+                      <div className={cn(
+                        useGrid ? "grid gap-1" : "flex flex-col gap-1",
+                      )} style={useGrid ? {
+                        gridTemplateColumns: taskCount <= 2 ? `repeat(${taskCount}, 1fr)` : `repeat(auto-fit, minmax(60px, 1fr))`
+                      } : undefined}>
                         {tasksInHour.map((task) => {
                     const colors = TASK_COLORS[task.type];
-                    return <div key={task.id} onClick={() => setSelectedTask(task)} className={cn("rounded-lg border-l-[3px] px-2 py-1.5 cursor-pointer transition-all", colors.bg, colors.border, colors.hover)} style={{
-                      minHeight: '56px'
-                    }}>
+                    const isCompact = taskCount >= 3;
+                    return <div key={task.id} onClick={() => setSelectedTask(task)} className={cn(
+                      "rounded-lg border-l-[3px] cursor-pointer transition-all overflow-hidden",
+                      colors.bg, colors.border, colors.hover,
+                      isCompact ? "px-1 py-0.5" : "px-2 py-1.5"
+                    )}>
                               {/* Task Type Header */}
-                              <div className={cn("font-bold text-[13px] leading-tight", colors.text)}>
+                              <div className={cn("font-bold leading-tight truncate", colors.text, isCompact ? "text-[10px]" : "text-[13px]")}>
                                 {task.type === 'delivery' ? 'Pick-Up' : task.type === 'return' ? 'Drop-Off' : 'Other Task'}
                               </div>
                               {/* Title for other tasks */}
                               {task.type === 'other' && task.title &&
-                      <div className={cn("text-[11px] mt-0.5 truncate font-bold", colors.text)}>
+                      <div className={cn("mt-0.5 truncate font-bold", colors.text, isCompact ? "text-[9px]" : "text-[11px]")}>
                                   {task.title}
                                 </div>
                       }
-                              {/* Vehicle name - visible for all task types */}
+                              {/* Vehicle name */}
                               {task.vehicleName &&
-                      <div className={cn("text-[13px] mt-0.5 truncate font-bold", colors.text)}>
+                      <div className={cn("mt-0.5 truncate font-bold", colors.text, isCompact ? "text-[9px]" : "text-[13px]")}>
                                   {task.vehicleName}
                                 </div>
                       }
-                              {/* Customer name for delivery/return */}
-                              {task.customerName &&
+                              {/* Customer name */}
+                              {!isCompact && task.customerName &&
                       <div className={cn("text-[13px] truncate font-semibold", colors.text)}>
                                   {task.customerName}
                                 </div>
                       }
-                              {/* Time - no seconds */}
-                              {task.time &&
+                              {/* Time */}
+                              {!isCompact && task.time &&
                       <div className={cn("text-[13px] mt-0.5 font-semibold", colors.text)}>
                                   {formatTime24h(task.time) || task.time}
                                 </div>
                       }
                               {/* Location */}
-                              {task.location &&
+                              {!isCompact && task.location &&
                       <div className={cn("text-[13px] mt-0.5 truncate font-semibold", colors.text)}>
                                   {task.location}
                                 </div>
@@ -258,8 +269,8 @@ export function TimelineCalendar({
               </div>;
         })}
           
-          {/* Current time indicator line */}
-          <CurrentTimeIndicator hours={HOURS} rowHeights={rowHeights} />
+          {/* Current time indicator line - uses measured positions */}
+          <CurrentTimeIndicator hours={HOURS} measuredRowTops={measuredRowTops} />
         </div>
       </div>
 
@@ -412,11 +423,16 @@ export function TimelineCalendar({
 }
 function CurrentTimeIndicator({
   hours,
-  rowHeights
+  measuredRowTops
+}: {hours: number[]; measuredRowTops: number[];}) {
+  const [, setTick] = useState(0);
 
+  // Update every minute
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
-
-}: {hours: number[];rowHeights: number[];}) {
   const now = new Date();
   const currentHour = now.getHours();
   const currentMinutes = now.getMinutes();
@@ -426,14 +442,19 @@ function CurrentTimeIndicator({
     return null;
   }
 
-  // Calculate position based on dynamic row heights
-  let topPosition = 0;
-  for (let i = 0; i < currentHour - hours[0]; i++) {
-    topPosition += rowHeights[i];
+  // Use measured positions if available
+  const hourIndex = currentHour - hours[0];
+  if (measuredRowTops.length <= hourIndex + 1) {
+    // Fallback before measurements are ready
+    return null;
   }
-  const currentHourHeight = rowHeights[currentHour - hours[0]] || HOUR_HEIGHT;
-  const minuteOffset = currentMinutes / 60 * currentHourHeight;
-  topPosition += minuteOffset;
+
+  const rowTop = measuredRowTops[hourIndex];
+  const rowBottom = measuredRowTops[hourIndex + 1];
+  const rowHeight = rowBottom - rowTop;
+  const minuteOffset = (currentMinutes / 60) * rowHeight;
+  const topPosition = rowTop + minuteOffset;
+
   return <div className="absolute left-[60px] right-0 flex items-center pointer-events-none z-50" style={{
     top: `${topPosition}px`
   }}>
