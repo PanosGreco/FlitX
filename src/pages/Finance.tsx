@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useIncomeCategories } from "@/hooks/useIncomeCategories";
 import { IncomeSourceSelector } from "@/components/finances/IncomeSourceSelector";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { BackgroundGlow } from "@/components/ui/background-glow";
+
 import { FinanceDashboard } from "@/components/finances/FinanceDashboard";
 import { 
   Dialog,
@@ -309,7 +309,6 @@ const Finance = () => {
   
   return (
     <AppLayout>
-      <BackgroundGlow>
       <div className="container py-6">
         <FinanceDashboard 
           onAddRecord={handleOpenAddFinance}
@@ -557,7 +556,6 @@ const Finance = () => {
           </DialogContent>
         </Dialog>
       </div>
-      </BackgroundGlow>
     </AppLayout>
   );
 };
