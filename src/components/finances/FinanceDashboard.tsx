@@ -156,6 +156,13 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     ? allTransactions 
     : allTransactions.slice(0, 5);
 
+  // Helper to get vehicle name
+  const getVehicleName = (vehicleId: string | null | undefined): string | null => {
+    if (!vehicleId) return null;
+    const vehicle = vehicles.find(v => v.id === vehicleId);
+    return vehicle ? `${vehicle.year} ${vehicle.make} ${vehicle.model}` : null;
+  };
+
   // Generate standardized title for transactions
   const getTransactionTitle = (record: FinancialRecord): string => {
     const isIncome = record.type === 'income';
@@ -166,12 +173,10 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     if (isIncome) {
       // Income titles
       if (record.category === 'rental') {
-        // Rental income - show vehicle and customer info from description
         return `${prefix} – ${record.description || 'Rental'}`;
       } else if (record.category === 'additional') {
         return `${prefix} – ${record.description || 'Additional Income'}`;
       } else {
-        // Manual income - show source type
         const sourceType = record.income_source_type;
         const sourceLabels: Record<string, string> = {
           walk_in: language === 'el' ? 'Απευθείας Κράτηση' : 'Direct Booking',
@@ -181,7 +186,6 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         const sourceLabel = sourceType ? sourceLabels[sourceType] || sourceType : '';
         const spec = record.income_source_specification;
         if (spec) {
-          // For 'other' with spec, show spec as standalone; for collaboration show with source
           if (sourceType === 'other') {
             return `${prefix} – ${spec}`;
           }
@@ -207,10 +211,17 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       
       const categoryLabel = categoryLabels[record.category] || record.category;
       
-      // For maintenance, show subcategory
+      // For maintenance, show structured: Category · Subcategory · Vehicle
       if (record.category === 'maintenance' && record.expense_subcategory) {
         const subcatLabel = getMaintenanceTypeLabel(record.expense_subcategory, language);
-        return `${prefix} – ${categoryLabel} (${subcatLabel})`;
+        // If subcatLabel equals the key (custom type), use it directly
+        const displaySubcat = subcatLabel === record.expense_subcategory 
+          ? record.expense_subcategory 
+          : subcatLabel;
+        const vehicleName = getVehicleName(record.vehicle_id);
+        const parts = [prefix, categoryLabel, displaySubcat];
+        if (vehicleName) parts.push(vehicleName);
+        return parts.join(' · ');
       }
       
       // For other expenses with subcategory - show as standalone

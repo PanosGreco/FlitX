@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { MAINTENANCE_TYPES, getMaintenanceTypeLabel, getMaintenanceTypeOptions } from "@/constants/maintenanceTypes";
+import { useMaintenanceCategories } from "@/hooks/useMaintenanceCategories";
 
 interface MaintenanceRecord {
   id: string;
@@ -48,6 +49,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
   const [showAllRecords, setShowAllRecords] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [serviceType, setServiceType] = useState("oil_change");
+  const [customServiceType, setCustomServiceType] = useState("");
   const [serviceDate, setServiceDate] = useState(new Date().toISOString().substring(0, 10));
   const [nextServiceDate, setNextServiceDate] = useState("");
   const [cost, setCost] = useState("");
@@ -57,6 +59,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
   const { toast } = useToast();
   const { language, isLanguageLoading } = useLanguage();
   const { user } = useAuth();
+  const { userMaintenanceCategories, refetchMaintenanceCategories } = useMaintenanceCategories();
   
   useEffect(() => {
     if (vehicleId && user) {
@@ -93,7 +96,8 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
   };
   
   const handleAddRecord = async () => {
-    if (!serviceType || !serviceDate || !cost) {
+    const finalServiceType = serviceType === 'other' ? customServiceType.trim() : serviceType;
+    if (!finalServiceType || !serviceDate || !cost) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -120,7 +124,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
         .insert([{
           vehicle_id: vehicleId,
           user_id: user.id,
-          type: serviceType,
+          type: finalServiceType,
           date: serviceDate,
           next_date: nextServiceDate || null,
           cost: costValue,
@@ -157,8 +161,8 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
             category: 'maintenance',
             amount: costValue,
             date: serviceDate,
-            description: `${getServiceTypeLabel(serviceType)}${notes ? ': ' + notes : ''}`,
-            expense_subcategory: serviceType, // Store the key, not the label
+            description: `${serviceType === 'other' ? finalServiceType : getServiceTypeLabel(serviceType)}${notes ? ': ' + notes : ''}`,
+            expense_subcategory: finalServiceType,
             source_section: 'vehicle_maintenance',
             vehicle_fuel_type: vehicleData?.fuel_type || null,
             vehicle_year: vehicleData?.year || null
@@ -175,12 +179,14 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
       });
       
       setServiceType("oil_change");
+      setCustomServiceType("");
       setServiceDate(new Date().toISOString().substring(0, 10));
       setNextServiceDate("");
       setCost("");
       setNotes("");
       setIsDialogOpen(false);
       fetchMaintenanceRecords();
+      refetchMaintenanceCategories();
     } catch (error) {
       console.error("Exception adding maintenance record:", error);
     }
@@ -369,7 +375,16 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label htmlFor="service-type">{language === 'el' ? 'Τύπος Σέρβις' : 'Service Type'}</Label>
-              <Select value={serviceType} onValueChange={setServiceType} disabled={isLanguageLoading}>
+              <Select value={serviceType} onValueChange={(val) => {
+                if (val.startsWith('__custom_maint__:')) {
+                  const custom = val.replace('__custom_maint__:', '');
+                  setServiceType('other');
+                  setCustomServiceType(custom);
+                } else {
+                  setServiceType(val);
+                  if (val !== 'other') setCustomServiceType('');
+                }
+              }} disabled={isLanguageLoading}>
                 <SelectTrigger>
                   <SelectValue placeholder={language === 'el' ? 'Επιλέξτε τύπο σέρβις' : 'Select service type'} />
                 </SelectTrigger>
@@ -379,9 +394,29 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
                       {option.label}
                     </SelectItem>
                   ))}
+                  {userMaintenanceCategories.map(cat => (
+                    <SelectItem key={cat} value={`__custom_maint__:${cat}`}>
+                      {cat}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
+            
+            {serviceType === 'other' && (
+              <div className="space-y-2">
+                <Label>
+                  {language === 'el' ? 'Νέα Κατηγορία Συντήρησης' : 'New Maintenance Category'} *
+                </Label>
+                <Input
+                  placeholder={language === 'el' ? 'Εισάγετε νέα κατηγορία...' : 'Enter new category...'}
+                  value={customServiceType}
+                  onChange={(e) => setCustomServiceType(e.target.value)}
+                  required
+                  disabled={isLanguageLoading}
+                />
+              </div>
+            )}
             
             <div className="space-y-2">
               <Label htmlFor="service-date">{language === 'el' ? 'Ημερομηνία Σέρβις' : 'Service Date'}</Label>
