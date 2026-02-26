@@ -18,7 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -389,16 +389,31 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
                   <SelectValue placeholder={language === 'el' ? 'Επιλέξτε τύπο σέρβις' : 'Select service type'} />
                 </SelectTrigger>
                 <SelectContent>
-                  {getMaintenanceTypeOptions(language).map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
+                  <SelectGroup>
+                    {getMaintenanceTypeOptions(language).filter(o => o.value !== 'other').map(option => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="other" className="bg-muted/50 rounded-sm">
+                      {language === 'el' ? 'Άλλο' : 'Other'}
                     </SelectItem>
-                  ))}
-                  {userMaintenanceCategories.map(cat => (
-                    <SelectItem key={cat} value={`__custom_maint__:${cat}`}>
-                      {cat}
-                    </SelectItem>
-                  ))}
+                  </SelectGroup>
+                  {userMaintenanceCategories.length > 0 && (
+                    <>
+                      <SelectSeparator />
+                      <SelectGroup>
+                        <SelectLabel className="text-xs text-muted-foreground font-medium">
+                          {language === 'el' ? 'Προσαρμοσμένες Κατηγορίες' : 'Custom Categories'}
+                        </SelectLabel>
+                        {userMaintenanceCategories.map(cat => (
+                          <SelectItem key={cat} value={`__custom_maint__:${cat}`}>
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
