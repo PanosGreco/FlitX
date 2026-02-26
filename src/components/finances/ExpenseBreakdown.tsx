@@ -276,7 +276,9 @@ export function ExpenseBreakdown({
         const subcategory = key.replace('maintenance_', '');
         const maintenanceLabel = getMaintenanceTypeLabel(subcategory, lang);
         const categoryLabel = EXPENSE_CATEGORY_LABELS['maintenance']?.[lang === 'el' ? 'el' : 'en'] || 'Vehicle Maintenance';
-        label = `${categoryLabel} (${maintenanceLabel})`;
+        // If label equals the key, it's a custom type - show the raw name
+        const displaySubcat = maintenanceLabel === subcategory ? subcategory : maintenanceLabel;
+        label = `${categoryLabel} (${displaySubcat})`;
       } else if (key.startsWith('other_')) {
         const subcategory = key.replace('other_', '');
         // Display as standalone category name (autonomous)

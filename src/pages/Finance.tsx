@@ -30,6 +30,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { getMaintenanceTypeOptions, getMaintenanceTypeLabel } from "@/constants/maintenanceTypes";
+import { useMaintenanceCategories } from "@/hooks/useMaintenanceCategories";
 
 const Finance = () => {
   const [isAddFinanceOpen, setIsAddFinanceOpen] = useState(false);
@@ -37,6 +38,8 @@ const Finance = () => {
   const [recordType, setRecordType] = useState("income");
   const [expenseCategory, setExpenseCategory] = useState("fuel");
   const [expenseSubcategory, setExpenseSubcategory] = useState("");
+  const [maintenanceIsCustom, setMaintenanceIsCustom] = useState(false);
+  const [customMaintenanceType, setCustomMaintenanceType] = useState("");
   const [incomeSourceType, setIncomeSourceType] = useState("walk_in");
   const [incomeSourceSpecification, setIncomeSourceSpecification] = useState("");
   const [amount, setAmount] = useState("");
@@ -47,6 +50,7 @@ const Finance = () => {
   const [financialRecords, setFinancialRecords] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const { userIncomeCategories, refetchCategories: refetchIncomeCategories } = useIncomeCategories();
+  const { userMaintenanceCategories, refetchMaintenanceCategories } = useMaintenanceCategories();
   const [userExpenseCategories, setUserExpenseCategories] = useState<string[]>([]);
   const { toast } = useToast();
   const { t, language, isLanguageLoading } = useLanguage();
@@ -163,6 +167,8 @@ const Finance = () => {
     setRecordType("income");
     setExpenseCategory("fuel");
     setExpenseSubcategory("");
+    setMaintenanceIsCustom(false);
+    setCustomMaintenanceType("");
     setIncomeSourceType("walk_in");
     setIncomeSourceSpecification("");
     setAmount("");
@@ -290,6 +296,7 @@ const Finance = () => {
         // Close the dialog and refresh categories
         setIsAddFinanceOpen(false);
         refetchIncomeCategories();
+        refetchMaintenanceCategories();
         fetchUserCategories();
       }
     } catch (error) {
@@ -417,7 +424,22 @@ const Finance = () => {
                   <Label htmlFor="maintenanceType">
                     {language === 'el' ? 'Τύπος Συντήρησης' : 'Maintenance Type'} *
                   </Label>
-                  <Select value={expenseSubcategory} onValueChange={setExpenseSubcategory} disabled={isLanguageLoading}>
+                  <Select value={maintenanceIsCustom ? 'other' : expenseSubcategory} onValueChange={(val) => {
+                    if (val.startsWith('__custom_maint__:')) {
+                      const custom = val.replace('__custom_maint__:', '');
+                      setMaintenanceIsCustom(false);
+                      setCustomMaintenanceType('');
+                      setExpenseSubcategory(custom);
+                    } else if (val === 'other') {
+                      setMaintenanceIsCustom(true);
+                      setExpenseSubcategory('');
+                      setCustomMaintenanceType('');
+                    } else {
+                      setMaintenanceIsCustom(false);
+                      setCustomMaintenanceType('');
+                      setExpenseSubcategory(val);
+                    }
+                  }} disabled={isLanguageLoading}>
                     <SelectTrigger>
                       <SelectValue placeholder={language === 'el' ? 'Επιλέξτε τύπο...' : 'Select type...'} />
                     </SelectTrigger>
@@ -427,11 +449,34 @@ const Finance = () => {
                           {option.label}
                         </SelectItem>
                       ))}
+                      {userMaintenanceCategories.map(cat => (
+                        <SelectItem key={cat} value={`__custom_maint__:${cat}`}>
+                          {cat}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               )}
 
+              {/* Free-text input when "Other" maintenance type is selected */}
+              {recordType === "expense" && expenseCategory === 'maintenance' && maintenanceIsCustom && (
+                <div className="space-y-2">
+                  <Label>
+                    {language === 'el' ? 'Νέα Κατηγορία Συντήρησης' : 'New Maintenance Category'} *
+                  </Label>
+                  <Input
+                    placeholder={language === 'el' ? 'Εισάγετε νέα κατηγορία...' : 'Enter new category...'}
+                    value={customMaintenanceType}
+                    onChange={(e) => {
+                      setCustomMaintenanceType(e.target.value);
+                      setExpenseSubcategory(e.target.value);
+                    }}
+                    required
+                    disabled={isLanguageLoading}
+                  />
+                </div>
+              )}
               {/* Free-text subcategory for 'other' expense category (required) */}
               {recordType === "expense" && expenseCategory === 'other' && (
                 <div className="space-y-2">
