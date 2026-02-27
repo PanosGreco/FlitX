@@ -93,6 +93,16 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     if (user) {
       fetchVehicles();
       fetchProfile();
+      // Fire-and-forget: trigger recurring transaction processing on mount
+      supabase.functions.invoke('process-recurring-transactions', {
+        body: { source: 'frontend' }
+      }).then((res) => {
+        if (res.data?.generated > 0) {
+          onRecordDeleted?.(); // refresh financial records
+        }
+      }).catch(() => {
+        // Silent fail - backend cron handles this too
+      });
     }
   }, [user]);
 
