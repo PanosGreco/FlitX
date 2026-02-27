@@ -1,147 +1,46 @@
 
 
-# Needs Repair Booking Restriction + Status Terminology Update
+## Recurring Transactions Auto-Generation Fix
 
-## Overview
+### Problem
+`generateDueTransactions()` in `RecurringTransactionsModal.tsx` only runs on manual button click. No background processing exists.
 
-Two feature sets with minimal risk:
+### Implementation Steps
 
-**A) Needs Repair restriction**: Vehicles with `status = 'repair'` must be disabled in all booking forms. Currently, `getVehicleAvailability()` in `UnifiedBookingDialog` only checks bookings and maintenance blocks -- it completely ignores the vehicle's base status. The fix adds a third check.
+**1. Create Edge Function `supabase/functions/process-recurring-transactions/index.ts`**
+- Uses `SUPABASE_SERVICE_ROLE_KEY` to bypass RLS and process all users
+- Queries `recurring_transactions` where `is_active = true` AND `next_generation_date <= today`
+- For each rule, runs catch-up loop (mirrors lines 269-339 of RecurringTransactionsModal):
+  - Generates `financial_records` for each missed cycle
+  - Duplicate prevention: checks `source_section = 'recurring'` + date + category + amount + type + user_id
+  - Advances `next_generation_date` via `calculateNextDate` logic
+  - Updates `last_generated_date`
+  - Deactivates rules past `end_date`
+  - Safety cap: 100 iterations per rule
+- Joins `vehicles` table for `vehicle_fuel_type` and `vehicle_year`
+- Copies `income_source_type`, `income_source_specification`, `expense_subcategory` to generated records
+- `verify_jwt = false` in config.toml; secured by checking `Authorization: Bearer SERVICE_ROLE_KEY`
 
-**B) Terminology update**: Rename "Under Maintenance" to "Unavailable -- Under Maintenance" in the status modal, and update the maintenance scheduling dialog text. UI-only changes, no logic modifications.
+**2. Set up hourly pg_cron schedule (via database insert tool)**
+- Enable `pg_cron` and `pg_net` extensions
+- Schedule `process-recurring-transactions-hourly` at `0 * * * *`
+- Calls the edge function URL with service role key in Authorization header
 
----
+**3. Add frontend fallback auto-trigger in `FinanceDashboard.tsx`**
+- On mount (when `user` is available), invoke the edge function once via `supabase.functions.invoke('process-recurring-transactions')`
+- Fire-and-forget; does not block UI
+- Refreshes financial records after completion
 
-## Current State Analysis
+**4. No changes to:**
+- `RecurringTransactionsModal.tsx` (manual Generate button stays)
+- `AddRecurringTransactionDialog.tsx`
+- Database schema
+- Category/aggregation/breakdown logic
 
-**Database enum**: `vehicle_status = "available" | "rented" | "maintenance" | "repair"` -- "repair" already exists in the enum. No schema changes needed.
-
-**Availability logic gap**: `UnifiedBookingDialog.fetchAllData()` (line 170-184) fetches vehicles but does NOT include the `status` column. The `getVehicleAvailability()` function (line 195-234) only checks `rental_bookings` and `maintenance_blocks` -- never the vehicle's base status.
-
-**Booking validation**: Frontend-only. No backend trigger currently prevents inserting a booking for a repair-status vehicle. Adding a backend trigger is out of scope per constraints but noted as a future improvement.
-
----
-
-## Component-Level Changes
-
-### 1. `src/components/booking/UnifiedBookingDialog.tsx`
-
-**Data fetch**: Add `status` to the vehicle select query (line 173):
-```
-.select('id, make, model, year, license_plate, daily_rate, fuel_type, transmission_type, vehicle_type, type, status')
-```
-
-**Vehicle interface**: Add `status` field to the `Vehicle` interface (line 32-43).
-
-**Availability check**: Add a third check at the TOP of `getVehicleAvailability()` (before booking/maintenance checks):
-```
-// Check if vehicle needs repair (always unavailable regardless of dates)
-const vehicle = vehicles.find(v => v.id === vehicleId);
-if (vehicle?.status === 'repair') {
-  return {
-    available: false,
-    reason: 'repair',
-    conflictInfo: language === 'el'
-      ? 'Μη διαθέσιμο – Χρειάζεται Επισκευή'
-      : 'Unavailable – Needs Repair'
-  };
-}
-```
-
-This check runs even when dates are not selected (move it before the `if (!startDate || !endDate)` guard).
-
-**Badge rendering** (line 900-906): Add a third badge variant for `repair`:
-```
-reason === 'repair' ? 'Needs Repair' : ...
-```
-
-### 2. `src/components/fleet/VehicleDetails.tsx` -- Status Modal
-
-**Line 435-443**: Change "Under Maintenance" label:
-- EN: `"Under Maintenance"` -> `"Unavailable – Under Maintenance"`
-- EL: `"Σε Συντήρηση"` -> `"Μη Διαθέσιμο – Σε Συντήρηση"`
-
-**Line 441**: Change sub-text from "Select dates" to "Schedule unavailability dates".
-
-### 3. `src/components/fleet/MaintenanceBlockDialog.tsx`
-
-**Line 110**: Change dialog title:
-- EN: `"Schedule Maintenance"` -> `"Schedule Unavailability"`
-- EL: `"Προγραμματισμός Συντήρησης"` -> `"Προγραμματισμός Μη Διαθεσιμότητας"`
-
-**Line 113-115**: Change description:
-- EN: `"Select dates for maintenance of ${vehicleName}"` -> `"Select dates that ${vehicleName} is unavailable"`
-- EL: Update Greek equivalent
-
-**Add sub-description** below the dialog description:
-- EN: `"Mark the dates during which this vehicle cannot be booked."`
-- EL: `"Σημειώστε τις ημέρες κατά τις οποίες αυτό το όχημα δεν μπορεί να κρατηθεί."`
-
-### 4. `src/contexts/LanguageContext.tsx`
-
-Update the `maintenance` translation value from `"Maintenance"` to `"Under Maintenance"` (used in status badges across the app). The "Unavailable" prefix only appears in the edit status modal, not in compact badges.
-
----
-
-## Edge Cases
-
-| Scenario | Handling |
-|----------|----------|
-| Status changes during booking creation | The availability check runs on render. If status changes server-side mid-form, it won't be caught until form submission. Acceptable -- same behavior as existing booking/maintenance checks. |
-| Repair vehicle with existing future bookings | Existing bookings remain valid. The restriction only prevents NEW bookings. No retroactive cancellation. |
-| Vehicle toggled back to Available | Immediately becomes selectable again on next data fetch. No stale state. |
-| Date-based unavailability + repair | Repair check runs first (highest priority). Even without dates selected, repair vehicles show as disabled. |
-
----
-
-## Risk Assessment
-
-- **Low risk**: No database changes. No logic changes to maintenance or booking processing.
-- **Backward compatible**: Existing bookings unaffected. Enum already includes "repair".
-- **No impact on**: Financial records, income modules, analytics, or aggregation.
-
----
-
-## Technical Details
-
-### VehicleAvailability type update
-
-The existing `VehicleAvailability` interface uses `reason: 'booked' | 'maintenance'`. Add `'repair'` to the union:
-
-```typescript
-interface VehicleAvailability {
-  available: boolean;
-  reason?: 'booked' | 'maintenance' | 'repair';
-  conflictInfo?: string;
-}
-```
-
-### Files changed
-
-| File | Type of Change |
-|------|---------------|
-| `src/components/booking/UnifiedBookingDialog.tsx` | Add `status` to fetch + Vehicle interface; add repair check in `getVehicleAvailability`; update badge for repair reason |
-| `src/components/fleet/VehicleDetails.tsx` | Rename "Under Maintenance" label in status modal |
-| `src/components/fleet/MaintenanceBlockDialog.tsx` | Update dialog title and description text |
-| `src/contexts/LanguageContext.tsx` | Minor translation label update |
-
-### Files NOT changed
-
-- Database schema (enum already has "repair")
-- `useVehicleStatus.ts` (already handles repair correctly)
-- Financial/income modules
-- `RentalBookingDialog.tsx` (vehicle is pre-selected, not user-chosen)
-- Backend/edge functions
-
-### Testing checklist
-
-1. Open booking form from Home -- verify repair vehicles show disabled with "Unavailable -- Needs Repair" badge
-2. Open booking form from Fleet calendar -- same check
-3. Set a vehicle to "Needs Repair" then try to book it -- confirm blocked
-4. Set it back to "Available" -- confirm selectable again
-5. Verify maintenance-blocked vehicles still show correct "Under Maintenance" badge
-6. Check status edit modal shows updated "Unavailable -- Under Maintenance" text
-7. Open maintenance scheduling dialog -- confirm new description text
-8. Verify Greek translations render correctly
-9. Confirm existing bookings for repair vehicles still display in history
+### Files
+| Action | File |
+|--------|------|
+| Create | `supabase/functions/process-recurring-transactions/index.ts` |
+| DB Insert | pg_cron + pg_net extensions + hourly schedule |
+| Modify | `src/components/finances/FinanceDashboard.tsx` (add auto-trigger on mount) |
 
