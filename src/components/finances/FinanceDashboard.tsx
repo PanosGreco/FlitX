@@ -198,6 +198,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       const categoryLabels: Record<string, string> = {
         fuel: language === 'el' ? 'Καύσιμα' : 'Fuel',
         maintenance: language === 'el' ? 'Συντήρηση Οχήματος' : 'Vehicle Maintenance',
+        vehicle_parts: language === 'el' ? 'Ανταλλακτικά Οχήματος' : 'Vehicle Parts',
         carwash: language === 'el' ? 'Πλύσιμο' : 'Car Wash',
         insurance: language === 'el' ? 'Ασφάλεια' : 'Insurance',
         tax: language === 'el' ? 'Φόροι/Τέλη' : 'Taxes/Fees',
@@ -214,12 +215,20 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       // For maintenance, show structured: Category · Subcategory · Vehicle
       if (record.category === 'maintenance' && record.expense_subcategory) {
         const subcatLabel = getMaintenanceTypeLabel(record.expense_subcategory, language);
-        // If subcatLabel equals the key (custom type), use it directly
         const displaySubcat = subcatLabel === record.expense_subcategory 
           ? record.expense_subcategory 
           : subcatLabel;
         const vehicleName = getVehicleName(record.vehicle_id);
         const parts = [prefix, categoryLabel, displaySubcat];
+        if (vehicleName) parts.push(vehicleName);
+        return parts.join(' · ');
+      }
+      
+      // For vehicle parts, show structured: Category · Subcategory · Vehicle
+      if (record.category === 'vehicle_parts') {
+        const vehicleName = getVehicleName(record.vehicle_id);
+        const parts = [prefix, categoryLabel];
+        if (record.expense_subcategory) parts.push(record.expense_subcategory);
         if (vehicleName) parts.push(vehicleName);
         return parts.join(' · ');
       }
