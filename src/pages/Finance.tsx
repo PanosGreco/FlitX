@@ -33,6 +33,8 @@ import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { getMaintenanceTypeOptions, getMaintenanceTypeLabel } from "@/constants/maintenanceTypes";
 import { useMaintenanceCategories } from "@/hooks/useMaintenanceCategories";
+import { useExpenseCategories } from "@/hooks/useExpenseCategories";
+import { useVehiclePartsCategories } from "@/hooks/useVehiclePartsCategories";
 
 const Finance = () => {
   const [isAddFinanceOpen, setIsAddFinanceOpen] = useState(false);
@@ -42,6 +44,8 @@ const Finance = () => {
   const [expenseSubcategory, setExpenseSubcategory] = useState("");
   const [maintenanceIsCustom, setMaintenanceIsCustom] = useState(false);
   const [customMaintenanceType, setCustomMaintenanceType] = useState("");
+  const [vehiclePartsIsCustom, setVehiclePartsIsCustom] = useState(false);
+  const [customVehiclePart, setCustomVehiclePart] = useState("");
   const [incomeSourceType, setIncomeSourceType] = useState("walk_in");
   const [incomeSourceSpecification, setIncomeSourceSpecification] = useState("");
   const [amount, setAmount] = useState("");
@@ -53,7 +57,8 @@ const Finance = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { userIncomeCategories, refetchCategories: refetchIncomeCategories } = useIncomeCategories();
   const { userMaintenanceCategories, refetchMaintenanceCategories } = useMaintenanceCategories();
-  const [userExpenseCategories, setUserExpenseCategories] = useState<string[]>([]);
+  const { userExpenseCategories, refetchExpenseCategories } = useExpenseCategories();
+  const { vehiclePartsSubcategories, refetchVehiclePartsCategories } = useVehiclePartsCategories();
   const { toast } = useToast();
   const { t, language, isLanguageLoading } = useLanguage();
   const isBoats = isBoatBusiness();
@@ -65,7 +70,6 @@ const Finance = () => {
   useEffect(() => {
     fetchFinancialRecords();
     fetchVehicles();
-    fetchUserCategories();
     
     // Subscribe to real-time changes
     const channel = supabase
@@ -102,32 +106,7 @@ const Finance = () => {
     }
   };
 
-  const fetchUserCategories = async () => {
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.user) return;
 
-      // Fetch user-created expense categories (from 'other' with subcategory)
-      const { data: expenseData } = await supabase
-        .from('financial_records')
-        .select('expense_subcategory')
-        .eq('category', 'other')
-        .eq('type', 'expense')
-        .eq('source_section', 'manual')
-        .not('expense_subcategory', 'is', null);
-
-      if (expenseData) {
-        const unique = [...new Set(
-          expenseData
-            .map(r => r.expense_subcategory?.trim())
-            .filter(Boolean)
-        )] as string[];
-        setUserExpenseCategories(unique);
-      }
-    } catch (error) {
-      console.error("Error fetching user categories:", error);
-    }
-  };
   const fetchFinancialRecords = async () => {
     try {
       setIsLoading(true);
@@ -171,6 +150,8 @@ const Finance = () => {
     setExpenseSubcategory("");
     setMaintenanceIsCustom(false);
     setCustomMaintenanceType("");
+    setVehiclePartsIsCustom(false);
+    setCustomVehiclePart("");
     setIncomeSourceType("walk_in");
     setIncomeSourceSpecification("");
     setAmount("");
@@ -235,8 +216,8 @@ const Finance = () => {
       
       // Add expense subcategory
       if (recordType === "expense") {
-        if (expenseCategory === 'maintenance' || expenseCategory === 'other' || expenseCategory === 'marketing') {
-          newRecord.expense_subcategory = expenseSubcategory;
+        if (expenseCategory === 'maintenance' || expenseCategory === 'other' || expenseCategory === 'marketing' || expenseCategory === 'vehicle_parts') {
+          newRecord.expense_subcategory = expenseSubcategory || null;
         }
       }
       
@@ -299,7 +280,8 @@ const Finance = () => {
         setIsAddFinanceOpen(false);
         refetchIncomeCategories();
         refetchMaintenanceCategories();
-        fetchUserCategories();
+        refetchExpenseCategories();
+        refetchVehiclePartsCategories();
       }
     } catch (error) {
       console.error("Exception adding financial record:", error);
@@ -373,10 +355,16 @@ const Finance = () => {
                       const spec = val.replace('__custom_exp__:', '');
                       setExpenseCategory('other');
                       setExpenseSubcategory(spec);
+                      setVehiclePartsIsCustom(false);
+                      setCustomVehiclePart('');
                     } else {
                       setExpenseCategory(val);
-                      if (val !== 'maintenance' && val !== 'other' && val !== 'marketing') {
+                      if (val !== 'maintenance' && val !== 'other' && val !== 'marketing' && val !== 'vehicle_parts') {
                         setExpenseSubcategory('');
+                      }
+                      if (val !== 'vehicle_parts') {
+                        setVehiclePartsIsCustom(false);
+                        setCustomVehiclePart('');
                       }
                     }
                   }} disabled={isLanguageLoading}>
@@ -393,10 +381,9 @@ const Finance = () => {
                             <SelectItem value="docking">{t.dockingFees}</SelectItem>
                             <SelectItem value="licensing">{t.licensing}</SelectItem>
                             <SelectItem value="salary">{t.employeeSalaries}</SelectItem>
-                            {userExpenseCategories.map((cat) => (
-                              <SelectItem key={cat} value={`__custom_exp__:${cat}`}>{cat}</SelectItem>
-                            ))}
-                            <SelectItem value="other">{t.other}</SelectItem>
+                            <SelectItem value="other" className="bg-muted/50 rounded-sm">
+                              {t.other}
+                            </SelectItem>
                           </>
                         ) : (
                           <>
@@ -408,19 +395,31 @@ const Finance = () => {
                             <SelectItem value="tax">{t.taxesFees}</SelectItem>
                             <SelectItem value="salary">{t.employeeSalaries}</SelectItem>
                             <SelectItem value="marketing">{language === 'el' ? 'Μάρκετινγκ' : 'Marketing'}</SelectItem>
-                            {userExpenseCategories.map((cat) => (
-                              <SelectItem key={cat} value={`__custom_exp__:${cat}`}>{cat}</SelectItem>
-                            ))}
-                            <SelectItem value="other">{t.other}</SelectItem>
+                            <SelectItem value="other" className="bg-muted/50 rounded-sm">
+                              {t.other}
+                            </SelectItem>
                           </>
                         )}
                       </SelectGroup>
+                      {userExpenseCategories.length > 0 && (
+                        <>
+                          <SelectSeparator />
+                          <SelectGroup>
+                            <SelectLabel className="text-xs text-muted-foreground font-medium">
+                              {language === 'el' ? 'Προσαρμοσμένες Κατηγορίες' : 'Custom Categories'}
+                            </SelectLabel>
+                            {userExpenseCategories.map((cat) => (
+                              <SelectItem key={cat} value={`__custom_exp__:${cat}`}>{cat}</SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
               )}
 
-              {/* Expense Subcategory - dropdown for maintenance, free-text for other */}
+              {/* Expense Subcategory - dropdown for maintenance */}
               {recordType === "expense" && expenseCategory === 'maintenance' && (
                 <div className="space-y-2">
                   <Label htmlFor="maintenanceType">
@@ -494,15 +493,95 @@ const Finance = () => {
                   />
                 </div>
               )}
+
+              {/* Vehicle Parts - optional subcategory */}
+              {recordType === "expense" && expenseCategory === 'vehicle_parts' && (
+                <div className="space-y-2">
+                  <Label>
+                    {language === 'el' ? 'Τύπος Ανταλλακτικού (προαιρετικό)' : 'Part Type (optional)'}
+                  </Label>
+                  <Select 
+                    value={vehiclePartsIsCustom ? '__new__' : (expenseSubcategory || '__none__')} 
+                    onValueChange={(val) => {
+                      if (val === '__none__') {
+                        setVehiclePartsIsCustom(false);
+                        setCustomVehiclePart('');
+                        setExpenseSubcategory('');
+                      } else if (val === '__new__') {
+                        setVehiclePartsIsCustom(true);
+                        setCustomVehiclePart('');
+                        setExpenseSubcategory('');
+                      } else if (val.startsWith('__vp__:')) {
+                        const part = val.replace('__vp__:', '');
+                        setVehiclePartsIsCustom(false);
+                        setCustomVehiclePart('');
+                        setExpenseSubcategory(part);
+                      } else {
+                        setVehiclePartsIsCustom(false);
+                        setExpenseSubcategory(val);
+                      }
+                    }} 
+                    disabled={isLanguageLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={language === 'el' ? 'Επιλέξτε τύπο...' : 'Select type...'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="__none__">
+                          {language === 'el' ? 'Χωρίς προδιαγραφή' : 'No specification'}
+                        </SelectItem>
+                        <SelectItem value="__new__" className="bg-muted/50 rounded-sm">
+                          {language === 'el' ? 'Προσθήκη νέου...' : 'Add new...'}
+                        </SelectItem>
+                      </SelectGroup>
+                      {vehiclePartsSubcategories.length > 0 && (
+                        <>
+                          <SelectSeparator />
+                          <SelectGroup>
+                            <SelectLabel className="text-xs text-muted-foreground font-medium">
+                              {language === 'el' ? 'Αποθηκευμένα Ανταλλακτικά' : 'Saved Parts'}
+                            </SelectLabel>
+                            {vehiclePartsSubcategories.map(part => (
+                              <SelectItem key={part} value={`__vp__:${part}`}>
+                                {part}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Free-text input for new vehicle part */}
+              {recordType === "expense" && expenseCategory === 'vehicle_parts' && vehiclePartsIsCustom && (
+                <div className="space-y-2">
+                  <Label>
+                    {language === 'el' ? 'Νέο Ανταλλακτικό' : 'New Part Type'}
+                  </Label>
+                  <Input
+                    placeholder={language === 'el' ? 'π.χ. Μπαταρία, Ελαστικά...' : 'e.g. Battery, Tires...'}
+                    value={customVehiclePart}
+                    onChange={(e) => {
+                      setCustomVehiclePart(e.target.value);
+                      setExpenseSubcategory(e.target.value);
+                    }}
+                    disabled={isLanguageLoading}
+                  />
+                </div>
+              )}
+
               {/* Free-text subcategory for 'other' expense category (required) */}
               {recordType === "expense" && expenseCategory === 'other' && (
                 <div className="space-y-2">
                   <Label htmlFor="expenseSubcat">
-                    {language === 'el' ? 'Προσδιορισμός' : 'Specification'} *
+                    {language === 'el' ? 'Όνομα Νέας Κατηγορίας' : 'New Category Name'} *
                   </Label>
                   <Input 
                     id="expenseSubcat"
-                    placeholder={language === 'el' ? 'Περιγράψτε το έξοδο...' : 'Describe the expense...'}
+                    placeholder={language === 'el' ? 'Εισάγετε όνομα κατηγορίας...' : 'Enter category name...'}
                     value={expenseSubcategory}
                     onChange={(e) => setExpenseSubcategory(e.target.value)}
                     required
