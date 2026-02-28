@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      additional_cost_categories: {
+        Row: {
+          created_at: string
+          id: string
+          is_system: boolean
+          name: string
+          normalized_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          name: string
+          normalized_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_system?: boolean
+          name?: string
+          normalized_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       additional_info_categories: {
         Row: {
           created_at: string
@@ -120,6 +147,54 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      booking_additional_costs: {
+        Row: {
+          amount: number
+          booking_id: string
+          category_id: string | null
+          created_at: string
+          id: string
+          insurance_type: string | null
+          name: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          booking_id: string
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          insurance_type?: string | null
+          name: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          booking_id?: string
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          insurance_type?: string | null
+          name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_additional_costs_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "rental_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_additional_costs_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "additional_cost_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       booking_additional_info: {
         Row: {
