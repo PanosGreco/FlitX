@@ -160,10 +160,18 @@ export function IncomeBreakdown({
       const sourceType = record.income_source_type || 'other';
       const month = getMonth(new Date(record.date));
 
-      // For collaboration and other, create dynamic categories based on specification
+      // For additional cost records, categorize by their specific cost name
       let categoryKey: string;
       let displayLabel: string;
-      if (sourceType === 'collaboration' && record.income_source_specification) {
+      if (record.category === 'additional' && record.description) {
+        // Extract cost name from description like "Insurance (Additional Cost) - Premium - Vehicle"
+        // or "Baby Seat (Additional Cost) - Vehicle"
+        const match = record.description.match(/^(.+?)\s*\(Additional Cost\)/);
+        const costName = match ? match[1].trim() : 'Additional Cost';
+        const normalizedKey = costName.toLowerCase().replace(/\s+/g, '_');
+        categoryKey = `additional_${normalizedKey}`;
+        displayLabel = `${costName} (${lang === 'el' ? 'Επιπλέον' : 'Additional Cost'})`;
+      } else if (sourceType === 'collaboration' && record.income_source_specification) {
         const normalizedSpec = normalizeSpecification(record.income_source_specification);
         const displaySpec = getDisplaySpecification(record.income_source_specification);
         categoryKey = `${sourceType}_${normalizedSpec}`;
@@ -173,7 +181,7 @@ export function IncomeBreakdown({
         const normalizedSpec = normalizeSpecification(record.income_source_specification);
         const displaySpec = getDisplaySpecification(record.income_source_specification);
         categoryKey = `other_${normalizedSpec}`;
-        displayLabel = displaySpec; // Standalone label, no "Other" prefix
+        displayLabel = displaySpec;
       } else {
         categoryKey = sourceType;
         displayLabel = INCOME_SOURCE_LABELS[sourceType]?.[lang === 'el' ? 'el' : 'en'] || sourceType;
