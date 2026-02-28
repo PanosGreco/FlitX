@@ -667,6 +667,7 @@ export function UnifiedBookingDialog({
                       selected={startDate}
                       onSelect={setStartDate}
                       initialFocus
+                      className="p-3 pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
@@ -727,6 +728,7 @@ export function UnifiedBookingDialog({
                       onSelect={setEndDate}
                       disabled={(date) => startDate ? isBefore(date, startDate) : false}
                       initialFocus
+                      className="p-3 pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>
