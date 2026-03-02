@@ -39,7 +39,7 @@ import { VehicleMaintenance } from "./VehicleMaintenance";
 import { VehicleReminders } from "./VehicleReminders";
 import { VehicleDocuments } from "./VehicleDocuments";
 import { DamageReport } from "@/components/damage/DamageReport";
-import { RentalBookingDialog } from "./RentalBookingDialog";
+import { UnifiedBookingDialog } from "@/components/booking/UnifiedBookingDialog";
 import { RentalBookingsList } from "./RentalBookingsList";
 import { CalendarView } from "./CalendarView";
 import { VehicleFinanceTab } from "./VehicleFinanceTab";
@@ -484,7 +484,7 @@ export function VehicleDetails({
       type: vehicle.type || ''
     }} onSaved={handleVehicleSaved} />
 
-      <RentalBookingDialog isOpen={isRentalBookingOpen} onClose={() => setIsRentalBookingOpen(false)} vehicleId={vehicleId || ""} vehicleName={`${vehicle.year} ${vehicle.make} ${vehicle.model}`} onBookingAdded={handleBookingAdded} vehicleDailyRate={vehicle.daily_rate || vehicle.dailyRate || 0} preselectedStartDate={selectedDates.length > 0 ? selectedDates[0] : undefined} preselectedEndDate={selectedDates.length > 1 ? selectedDates[selectedDates.length - 1] : undefined} />
+      <UnifiedBookingDialog isOpen={isRentalBookingOpen} onClose={() => setIsRentalBookingOpen(false)} onSuccess={() => { handleBookingAdded({ customer_name: 'Booking' }); }} preselectedVehicleId={vehicleId || ""} preselectedStartDate={selectedDates.length > 0 ? selectedDates[0] : undefined} preselectedEndDate={selectedDates.length > 1 ? selectedDates[selectedDates.length - 1] : undefined} />
 
       <MaintenanceBlockDialog isOpen={isMaintenanceBlockOpen} onClose={() => setIsMaintenanceBlockOpen(false)} vehicleId={vehicleId || ""} vehicleName={`${vehicle.year} ${vehicle.make} ${vehicle.model}`} onBlockAdded={handleMaintenanceBlockAdded} />
     </div>;
