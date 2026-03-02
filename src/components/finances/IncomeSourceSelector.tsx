@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { useIncomeCategories } from "@/hooks/useIncomeCategories";
 import { useCollaborations } from "@/hooks/useCollaborations";
+import { useAdditionalCosts } from "@/hooks/useAdditionalCosts";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface IncomeSourceSelectorProps {
@@ -37,6 +38,7 @@ export function IncomeSourceSelector({
   const { language } = useLanguage();
   const { userIncomeCategories } = useIncomeCategories();
   const { collaborations, refetchCollaborations } = useCollaborations();
+  const { savedCategories } = useAdditionalCosts();
   const [isCreatingCollab, setIsCreatingCollab] = useState(false);
   const [newCollabName, setNewCollabName] = useState("");
 
@@ -102,6 +104,7 @@ export function IncomeSourceSelector({
 
   const hasCollaborations = collaborations.length > 0;
   const hasUserCategories = userIncomeCategories.length > 0;
+  const hasAdditionalCostCategories = savedCategories.length > 0;
 
   return (
     <div className="space-y-3">
@@ -143,7 +146,7 @@ export function IncomeSourceSelector({
           </SelectGroup>
 
           {/* User-Created Categories (from Other) */}
-          {hasUserCategories && (
+          {(hasUserCategories || hasAdditionalCostCategories) && (
             <>
               <SelectSeparator />
               <SelectGroup>
@@ -157,6 +160,13 @@ export function IncomeSourceSelector({
                     {cat}
                   </SelectItem>
                 ))}
+                {savedCategories
+                  .filter(cat => !userIncomeCategories.some(uc => uc.toLowerCase() === cat.name.toLowerCase()))
+                  .map((cat) => (
+                    <SelectItem key={`ac-${cat.id}`} value={`__custom__:${cat.name}`}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
               </SelectGroup>
             </>
           )}
