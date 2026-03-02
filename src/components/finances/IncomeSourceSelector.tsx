@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
   Select,
-  SelectContent,
+  SelectContentManualScroll,
   SelectGroup,
   SelectItem,
   SelectLabel,
@@ -16,6 +16,7 @@ import {
 import { useIncomeCategories } from "@/hooks/useIncomeCategories";
 import { useCollaborations } from "@/hooks/useCollaborations";
 import { useAdditionalCosts } from "@/hooks/useAdditionalCosts";
+import { useInsuranceTypes } from "@/hooks/useInsuranceTypes";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 interface IncomeSourceSelectorProps {
@@ -39,13 +40,19 @@ export function IncomeSourceSelector({
   const { userIncomeCategories } = useIncomeCategories();
   const { collaborations, refetchCollaborations } = useCollaborations();
   const { savedCategories } = useAdditionalCosts();
+  const { insuranceTypes } = useInsuranceTypes();
   const [isCreatingCollab, setIsCreatingCollab] = useState(false);
   const [newCollabName, setNewCollabName] = useState("");
 
   // Build the current select value for controlled display
   const getSelectValue = () => {
+    if (incomeSourceType === 'additional_cost' && incomeSourceSpecification) {
+      return `__additional_cost__:${incomeSourceSpecification}`;
+    }
+    if (incomeSourceType === 'insurance' && incomeSourceSpecification) {
+      return `__insurance__:${incomeSourceSpecification}`;
+    }
     if (incomeSourceType === 'other' && incomeSourceSpecification) {
-      // Check if it's a user-created "other" category
       if (userIncomeCategories.includes(incomeSourceSpecification)) {
         return `__custom__:${incomeSourceSpecification}`;
       }
@@ -64,7 +71,13 @@ export function IncomeSourceSelector({
     setIsCreatingCollab(false);
     setNewCollabName("");
 
-    if (val.startsWith('__custom__:')) {
+    if (val.startsWith('__additional_cost__:')) {
+      const spec = val.replace('__additional_cost__:', '');
+      onSourceChange('additional_cost', spec);
+    } else if (val.startsWith('__insurance__:')) {
+      const spec = val.replace('__insurance__:', '');
+      onSourceChange('insurance', spec);
+    } else if (val.startsWith('__custom__:')) {
       const spec = val.replace('__custom__:', '');
       onSourceChange('other', spec);
     } else if (val.startsWith('__collab__:')) {
@@ -74,7 +87,6 @@ export function IncomeSourceSelector({
       setIsCreatingCollab(true);
       onSourceChange('collaboration', '');
     } else if (val === 'collaboration') {
-      // Just selected the parent "Collaboration" — show sub-selection
       onSourceChange('collaboration', '');
     } else {
       onSourceChange(val, val === 'other' ? '' : '');
@@ -105,6 +117,7 @@ export function IncomeSourceSelector({
   const hasCollaborations = collaborations.length > 0;
   const hasUserCategories = userIncomeCategories.length > 0;
   const hasAdditionalCostCategories = savedCategories.length > 0;
+  const hasInsuranceTypes = insuranceTypes.length > 0;
 
   return (
     <div className="space-y-3">
@@ -126,7 +139,7 @@ export function IncomeSourceSelector({
             }
           />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContentManualScroll scrollHeight="280px">
           {/* Core Categories */}
           <SelectGroup>
             <SelectLabel className="text-xs text-muted-foreground font-medium">
@@ -146,7 +159,7 @@ export function IncomeSourceSelector({
           </SelectGroup>
 
           {/* User-Created Categories (from Other) */}
-          {(hasUserCategories || hasAdditionalCostCategories) && (
+          {(hasUserCategories || hasAdditionalCostCategories || hasInsuranceTypes) && (
             <>
               <SelectSeparator />
               <SelectGroup>
@@ -163,14 +176,19 @@ export function IncomeSourceSelector({
                 {savedCategories
                   .filter(cat => !userIncomeCategories.some(uc => uc.toLowerCase() === cat.name.toLowerCase()))
                   .map((cat) => (
-                    <SelectItem key={`ac-${cat.id}`} value={`__custom__:${cat.name}`}>
+                    <SelectItem key={`ac-${cat.id}`} value={`__additional_cost__:${cat.name}`}>
                       {cat.name}
                     </SelectItem>
                   ))}
+                {insuranceTypes.map((ins) => (
+                  <SelectItem key={`ins-${ins.id}`} value={`__insurance__:${ins.name_original}`}>
+                    {`Insurance - ${ins.name_original}`}
+                  </SelectItem>
+                ))}
               </SelectGroup>
             </>
           )}
-        </SelectContent>
+        </SelectContentManualScroll>
       </Select>
 
       {/* Collaboration: show sub-selector when collaboration is selected */}

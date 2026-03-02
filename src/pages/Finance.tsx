@@ -208,9 +208,23 @@ const Finance = () => {
       
       // Add income source tracking
       if (recordType === "income") {
-        newRecord.income_source_type = incomeSourceType;
-        if (incomeSourceType === 'collaboration' || incomeSourceType === 'other') {
+        if (incomeSourceType === 'additional_cost' && incomeSourceSpecification) {
+          // Save as 'additional' category with proper description for aggregation
+          newRecord.category = 'additional';
+          newRecord.description = `${incomeSourceSpecification} (Additional Cost) - Manual`;
+          newRecord.income_source_type = 'other';
           newRecord.income_source_specification = incomeSourceSpecification;
+        } else if (incomeSourceType === 'insurance' && incomeSourceSpecification) {
+          // Save as 'additional' category with insurance type description for aggregation
+          newRecord.category = 'additional';
+          newRecord.description = `Insurance - ${incomeSourceSpecification} (Additional Cost) - Manual`;
+          newRecord.income_source_type = 'other';
+          newRecord.income_source_specification = `Insurance - ${incomeSourceSpecification}`;
+        } else {
+          newRecord.income_source_type = incomeSourceType;
+          if (incomeSourceType === 'collaboration' || incomeSourceType === 'other') {
+            newRecord.income_source_specification = incomeSourceSpecification;
+          }
         }
       }
       
