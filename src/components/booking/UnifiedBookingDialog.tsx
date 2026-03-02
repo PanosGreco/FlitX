@@ -21,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { IncomeSourceSelector } from "@/components/finances/IncomeSourceSelector";
 import { useAdditionalCosts, BookingAdditionalCost } from "@/hooks/useAdditionalCosts";
+import { useInsuranceTypes } from "@/hooks/useInsuranceTypes";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { validateFileSize, compressImage } from "@/utils/imageUtils";
@@ -71,7 +72,7 @@ interface UnifiedBookingDialogProps {
   embedded?: boolean;
 }
 
-const INSURANCE_TYPES = ['Basic', 'Premium', 'Full Coverage', 'Third Party'];
+
 
 export function UnifiedBookingDialog({ 
   isOpen, 
@@ -85,6 +86,9 @@ export function UnifiedBookingDialog({
   const { user } = useAuth();
   const { language } = useLanguage();
   const { savedCategories, saveBookingCosts, fetchCategories } = useAdditionalCosts();
+  const { insuranceTypes, fetchInsuranceTypes, findOrCreateInsuranceType } = useInsuranceTypes();
+  const [addingNewInsuranceType, setAddingNewInsuranceType] = useState(false);
+  const [newInsuranceTypeName, setNewInsuranceTypeName] = useState("");
   
   // Form state
   const [startDate, setStartDate] = useState<Date | undefined>(preselectedStartDate);
@@ -147,6 +151,7 @@ export function UnifiedBookingDialog({
     if (isOpen && user) {
       fetchAllData();
       fetchCategories();
+      fetchInsuranceTypes();
     }
   }, [isOpen, user]);
 
@@ -297,7 +302,7 @@ export function UnifiedBookingDialog({
   const dynamicCostsTotal = dynamicCosts.reduce((sum, c) => sum + (c.amount || 0), 0);
   // All additional costs total
   const allAdditionalCostsTotal = effectiveInsuranceCost + dynamicCostsTotal;
-  const totalAmount = pricingMode === 'custom' ? customTotalPrice : (baseAmount + allAdditionalCostsTotal);
+  const totalAmount = pricingMode === 'custom' ? (customTotalPrice + allAdditionalCostsTotal) : (baseAmount + allAdditionalCostsTotal);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -380,48 +385,49 @@ export function UnifiedBookingDialog({
 
       // Create base rental income record
       const baseAmountToRecord = pricingMode === 'custom' ? customTotalPrice : baseAmount;
+      const recordDescription = pricingMode === 'custom' 
+          ? `Rental: ${vehicleName} - ${customerName} (Custom price)`
+          : `Rental: ${vehicleName} - ${customerName} (${rentalDays} days × €${effectiveRate}/day)`;
       await supabase.from('financial_records').insert({
         user_id: user.id, vehicle_id: selectedVehicleId, booking_id: booking.id,
         type: 'income', category: 'rental', amount: baseAmountToRecord,
         date: format(startDate, 'yyyy-MM-dd'),
-        description: pricingMode === 'custom' 
-          ? `Rental: ${vehicleName} - ${customerName} (Custom price)`
-          : `Rental: ${vehicleName} - ${customerName} (${rentalDays} days × €${effectiveRate}/day)`,
+        description: recordDescription,
         income_source_type: incomeSourceType,
         income_source_specification: incomeSourceSpecification || null,
         source_section: 'booking'
       });
 
-      // Create SEPARATE income records for each additional cost
-      if (pricingMode !== 'custom') {
-        // Insurance
-        if (effectiveInsuranceCost > 0) {
+      // Create SEPARATE income records for each additional cost (always, including custom total)
+      // Save insurance type to DB for reuse
+      if (insuranceType) {
+        await findOrCreateInsuranceType(insuranceType);
+      }
+      if (effectiveInsuranceCost > 0) {
+        await supabase.from('financial_records').insert({
+          user_id: user.id, vehicle_id: selectedVehicleId, booking_id: booking.id,
+          type: 'income', category: 'additional',
+          amount: effectiveInsuranceCost,
+          date: format(startDate, 'yyyy-MM-dd'),
+          description: `Insurance - ${insuranceType} (Additional Cost) - ${vehicleName}`,
+          income_source_type: incomeSourceType,
+          income_source_specification: incomeSourceSpecification || null,
+          source_section: 'booking'
+        });
+      }
+
+      for (const cost of dynamicCosts) {
+        if (cost.amount > 0 && cost.name) {
           await supabase.from('financial_records').insert({
             user_id: user.id, vehicle_id: selectedVehicleId, booking_id: booking.id,
             type: 'income', category: 'additional',
-            amount: effectiveInsuranceCost,
+            amount: cost.amount,
             date: format(startDate, 'yyyy-MM-dd'),
-            description: `Insurance (Additional Cost) - ${insuranceType} - ${vehicleName}`,
+            description: `${cost.name} (Additional Cost) - ${vehicleName}`,
             income_source_type: incomeSourceType,
             income_source_specification: incomeSourceSpecification || null,
             source_section: 'booking'
           });
-        }
-
-        // Dynamic costs - each as separate record
-        for (const cost of dynamicCosts) {
-          if (cost.amount > 0 && cost.name) {
-            await supabase.from('financial_records').insert({
-              user_id: user.id, vehicle_id: selectedVehicleId, booking_id: booking.id,
-              type: 'income', category: 'additional',
-              amount: cost.amount,
-              date: format(startDate, 'yyyy-MM-dd'),
-              description: `${cost.name} (Additional Cost) - ${vehicleName}`,
-              income_source_type: incomeSourceType,
-              income_source_specification: incomeSourceSpecification || null,
-              source_section: 'booking'
-            });
-          }
         }
       }
 
@@ -695,8 +701,8 @@ export function UnifiedBookingDialog({
                 </div>
               )}
 
-              {/* Additional Costs Section */}
-              {pricingMode !== 'custom' && (
+              {/* Additional Costs Section - always visible */}
+              {(
                 <div className="pt-3 border-t space-y-3">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium">{language === 'el' ? 'Επιπλέον Χρεώσεις' : 'Additional Costs'}</Label>
@@ -713,14 +719,61 @@ export function UnifiedBookingDialog({
                       <span className="text-sm font-medium">{language === 'el' ? 'Ασφάλεια' : 'Insurance'}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Select value={insuranceType} onValueChange={setInsuranceType}>
-                        <SelectTrigger className="h-8 flex-1">
-                          <SelectValue placeholder={language === 'el' ? 'Τύπος ασφάλειας' : 'Insurance type'} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {INSURANCE_TYPES.map(type => <SelectItem key={type} value={type}>{type}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      {addingNewInsuranceType ? (
+                        <div className="flex items-center gap-1 flex-1">
+                          <Input
+                            value={newInsuranceTypeName}
+                            onChange={(e) => setNewInsuranceTypeName(e.target.value)}
+                            placeholder={language === 'el' ? 'Νέος τύπος...' : 'New type...'}
+                            className="h-8 flex-1"
+                            autoFocus
+                            onKeyDown={async (e) => {
+                              if (e.key === 'Enter' && newInsuranceTypeName.trim()) {
+                                const created = await findOrCreateInsuranceType(newInsuranceTypeName.trim());
+                                if (created) setInsuranceType(created.name_original);
+                                setNewInsuranceTypeName("");
+                                setAddingNewInsuranceType(false);
+                              } else if (e.key === 'Escape') {
+                                setNewInsuranceTypeName("");
+                                setAddingNewInsuranceType(false);
+                              }
+                            }}
+                          />
+                          <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={async () => {
+                            if (newInsuranceTypeName.trim()) {
+                              const created = await findOrCreateInsuranceType(newInsuranceTypeName.trim());
+                              if (created) setInsuranceType(created.name_original);
+                            }
+                            setNewInsuranceTypeName("");
+                            setAddingNewInsuranceType(false);
+                          }}>
+                            <Plus className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => { setNewInsuranceTypeName(""); setAddingNewInsuranceType(false); }}>
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Select value={insuranceType} onValueChange={(val) => {
+                          if (val === '__add_new__') {
+                            setAddingNewInsuranceType(true);
+                          } else {
+                            setInsuranceType(val);
+                          }
+                        }}>
+                          <SelectTrigger className="h-8 flex-1">
+                            <SelectValue placeholder={language === 'el' ? 'Τύπος ασφάλειας' : 'Insurance type'} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {insuranceTypes.map(type => (
+                              <SelectItem key={type.id} value={type.name_original}>{type.name_original}</SelectItem>
+                            ))}
+                            <SelectItem value="__add_new__" className="text-primary font-medium">
+                              <span className="flex items-center gap-1"><Plus className="h-3 w-3" />{language === 'el' ? 'Προσθήκη Νέου' : 'Add New'}</span>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <span className="text-muted-foreground text-sm">€</span>
                         <Input type="number" value={insuranceAmount || ''} onChange={(e) => setInsuranceAmount(Number(e.target.value))} min={0} step="0.01" className="w-20 h-8" placeholder="0" />
@@ -813,26 +866,29 @@ export function UnifiedBookingDialog({
 
               {/* Analytical Price Breakdown */}
               <div className="pt-3 border-t space-y-1">
-                {pricingMode !== 'custom' && (
-                  <>
-                    <div className="flex justify-between text-sm">
-                      <span>{rentalDays} {rentalDays > 1 ? (language === 'el' ? 'ημέρες' : 'days') : (language === 'el' ? 'ημέρα' : 'day')} × €{effectiveRate}/{language === 'el' ? 'ημέρα' : 'day'}</span>
-                      <span>€{baseAmount.toFixed(2)}</span>
-                    </div>
-                    {effectiveInsuranceCost > 0 && (
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>{language === 'el' ? 'Ασφάλεια' : 'Insurance'} ({insuranceType})</span>
-                        <span>+€{effectiveInsuranceCost.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {dynamicCosts.filter(c => c.amount > 0 && c.name).map(cost => (
-                      <div key={cost.id} className="flex justify-between text-sm text-muted-foreground">
-                        <span>{cost.name}</span>
-                        <span>+€{cost.amount.toFixed(2)}</span>
-                      </div>
-                    ))}
-                  </>
+                {pricingMode === 'custom' ? (
+                  <div className="flex justify-between text-sm">
+                    <span>{language === 'el' ? 'Συνολική τιμή' : 'Custom total'}</span>
+                    <span>€{customTotalPrice.toFixed(2)}</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between text-sm">
+                    <span>{rentalDays} {rentalDays > 1 ? (language === 'el' ? 'ημέρες' : 'days') : (language === 'el' ? 'ημέρα' : 'day')} × €{effectiveRate}/{language === 'el' ? 'ημέρα' : 'day'}</span>
+                    <span>€{baseAmount.toFixed(2)}</span>
+                  </div>
                 )}
+                {effectiveInsuranceCost > 0 && (
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>{language === 'el' ? 'Ασφάλεια' : 'Insurance'} ({insuranceType})</span>
+                    <span>+€{effectiveInsuranceCost.toFixed(2)}</span>
+                  </div>
+                )}
+                {dynamicCosts.filter(c => c.amount > 0 && c.name).map(cost => (
+                  <div key={cost.id} className="flex justify-between text-sm text-muted-foreground">
+                    <span>{cost.name}</span>
+                    <span>+€{cost.amount.toFixed(2)}</span>
+                  </div>
+                ))}
                 <div className="flex justify-between text-sm font-semibold pt-1">
                   <span>{language === 'el' ? 'Σύνολο' : 'Total'}</span>
                   <span className="text-green-600">€{totalAmount.toFixed(2)}</span>

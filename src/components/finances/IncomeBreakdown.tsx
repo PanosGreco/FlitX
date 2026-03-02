@@ -164,10 +164,23 @@ export function IncomeBreakdown({
       let categoryKey: string;
       let displayLabel: string;
       if (record.category === 'additional' && record.description) {
-        // Extract cost name from description like "Insurance (Additional Cost) - Premium - Vehicle"
+        // Extract cost name from description like "Insurance - Full Coverage (Additional Cost) - Vehicle"
+        // or "Insurance (Additional Cost) - Premium - Vehicle" (legacy format)
         // or "Baby Seat (Additional Cost) - Vehicle"
-        const match = record.description.match(/^(.+?)\s*\(Additional Cost\)/);
-        const costName = match ? match[1].trim() : 'Additional Cost';
+        const insuranceWithTypeMatch = record.description.match(/^Insurance\s*-\s*(.+?)\s*\(Additional Cost\)/);
+        const legacyInsuranceMatch = record.description.match(/^Insurance\s*\(Additional Cost\)\s*-\s*(.+?)\s*-/);
+        const genericMatch = record.description.match(/^(.+?)\s*\(Additional Cost\)/);
+        
+        let costName: string;
+        if (insuranceWithTypeMatch) {
+          costName = `Insurance - ${insuranceWithTypeMatch[1].trim()}`;
+        } else if (legacyInsuranceMatch) {
+          costName = `Insurance - ${legacyInsuranceMatch[1].trim()}`;
+        } else if (genericMatch) {
+          costName = genericMatch[1].trim();
+        } else {
+          costName = 'Additional Cost';
+        }
         const normalizedKey = costName.toLowerCase().replace(/\s+/g, '_');
         categoryKey = `additional_${normalizedKey}`;
         displayLabel = `${costName} (${lang === 'el' ? 'Επιπλέον' : 'Additional Cost'})`;

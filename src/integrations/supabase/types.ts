@@ -483,6 +483,30 @@ export type Database = {
           },
         ]
       }
+      insurance_types: {
+        Row: {
+          created_at: string
+          id: string
+          name_normalized: string
+          name_original: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name_normalized: string
+          name_original: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name_normalized?: string
+          name_original?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       maintenance_blocks: {
         Row: {
           created_at: string
