@@ -33,6 +33,9 @@ export interface VehicleData {
   passengerCapacity?: number;
   transmissionType?: string;
   vehicleType?: string;
+  is_sold?: boolean;
+  sale_price?: number;
+  sale_date?: string;
 }
 interface VehicleCardProps {
   vehicle: VehicleData;
@@ -67,14 +70,20 @@ export function VehicleCard({
   };
   return <Link to={`/vehicle/${vehicle.id}`} className="block bg-white rounded-lg shadow-card overflow-hidden transition-all hover:shadow-md active:shadow-sm focus:outline-none focus:ring-2 focus:ring-flitx-blue-200">
       <div className="relative">
-        {vehicle.image ? <img src={vehicle.image} alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`} className="h-40 w-full object-scale-down" /> : <div className="h-40 w-full bg-flitx-gray-100 flex items-center justify-center">
+        {vehicle.image ? <img src={vehicle.image} alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`} className={cn("h-40 w-full object-scale-down", vehicle.is_sold && "opacity-60")} /> : <div className={cn("h-40 w-full bg-flitx-gray-100 flex items-center justify-center", vehicle.is_sold && "opacity-60")}>
             <Car className="h-16 w-16 text-flitx-gray-300" />
           </div>}
         
-        <Badge className={cn("absolute top-3 right-3 flex items-center", statusColors[displayStatus])} variant="outline">
-          {statusIcons[displayStatus as keyof typeof statusIcons]}
-          {statusLabels[displayStatus]}
-        </Badge>
+        {vehicle.is_sold ? (
+          <Badge className="absolute top-3 right-3 bg-red-600 text-white border-red-700 font-bold" variant="outline">
+            {language === 'el' ? 'ΠΩΛΗΘΗΚΕ' : 'SOLD'}
+          </Badge>
+        ) : (
+          <Badge className={cn("absolute top-3 right-3 flex items-center", statusColors[displayStatus])} variant="outline">
+            {statusIcons[displayStatus as keyof typeof statusIcons]}
+            {statusLabels[displayStatus]}
+          </Badge>
+        )}
       </div>
       
       <div className="p-4">
@@ -89,16 +98,22 @@ export function VehicleCard({
           {vehicle.passengerCapacity ? ` • ${vehicle.passengerCapacity >= 7 ? '7+' : vehicle.passengerCapacity} ${language === 'el' ? 'άτομα' : 'people'}` : ''}
         </div>
         
-        <div className="mt-3 flex justify-between items-center">
-          <div className="text-xs text-flitx-gray-400">
-            {vehicle.mileage.toLocaleString()} {language === 'el' ? 'χλμ' : 'km'}
+        {vehicle.is_sold && vehicle.sale_price != null ? (
+          <div className="mt-3 text-sm font-medium text-red-600">
+            {language === 'el' ? 'Τιμή Πώλησης' : 'Sale Price'}: €{Number(vehicle.sale_price).toLocaleString()}
           </div>
-          
-          <div className="flex items-center text-flitx-blue font-semibold">
-            <Calendar className="w-4 h-4 mr-1" />
-            <span>€{vehicle.dailyRate}/{t.day}</span>
+        ) : (
+          <div className="mt-3 flex justify-between items-center">
+            <div className="text-xs text-flitx-gray-400">
+              {vehicle.mileage.toLocaleString()} {language === 'el' ? 'χλμ' : 'km'}
+            </div>
+            
+            <div className="flex items-center text-flitx-blue font-semibold">
+              <Calendar className="w-4 h-4 mr-1" />
+              <span>€{vehicle.dailyRate}/{t.day}</span>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </Link>;
 }

@@ -40,6 +40,10 @@ const Finance = () => {
   const [isAddFinanceOpen, setIsAddFinanceOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recordType, setRecordType] = useState("income");
+  const [isVehicleSaleMode, setIsVehicleSaleMode] = useState(false);
+  const [saleVehicleId, setSaleVehicleId] = useState("");
+  const [salePrice, setSalePrice] = useState("");
+  const [saleDate, setSaleDate] = useState(new Date().toISOString().substring(0, 10));
   const [expenseCategory, setExpenseCategory] = useState("fuel");
   const [expenseSubcategory, setExpenseSubcategory] = useState("");
   const [maintenanceIsCustom, setMaintenanceIsCustom] = useState(false);
@@ -95,11 +99,11 @@ const Finance = () => {
 
       const { data, error } = await supabase
         .from('vehicles')
-        .select('id, make, model, year, fuel_type')
+        .select('id, make, model, year, fuel_type, is_sold')
         .order('make');
 
       if (!error && data) {
-        setVehicles(data);
+        setVehicles(data as any);
       }
     } catch (error) {
       console.error("Error fetching vehicles:", error);
@@ -146,6 +150,10 @@ const Finance = () => {
     setIsAddFinanceOpen(true);
     // Reset form fields
     setRecordType("income");
+    setIsVehicleSaleMode(false);
+    setSaleVehicleId("");
+    setSalePrice("");
+    setSaleDate(new Date().toISOString().substring(0, 10));
     setExpenseCategory("fuel");
     setExpenseSubcategory("");
     setMaintenanceIsCustom(false);
@@ -158,6 +166,124 @@ const Finance = () => {
     setDate(new Date().toISOString().substring(0, 10));
     setNotes("");
     setSelectedVehicleId("");
+  };
+
+  // Get active (non-sold) vehicles for sale dropdown
+  const activeVehicles = useMemo(() => vehicles.filter(v => {
+    // Check if the vehicle has is_sold info - we need to fetch full vehicle data
+    // For now, filter by checking the vehicles array
+    return true; // Will be refined after fetch includes is_sold
+  }), [vehicles]);
+
+  const handleSubmitVehicleSale = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!saleVehicleId || !salePrice) return;
+    
+    setIsSubmitting(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user) {
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Fetch full vehicle data for depreciation calculation
+      const { data: vehicleData } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('id', saleVehicleId)
+        .single();
+
+      if (!vehicleData) {
+        toast({ title: "Error", description: "Vehicle not found", variant: "destructive" });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Import depreciation utils inline
+      const { calculateUsageDepreciation } = await import("@/utils/depreciationUtils");
+
+      // Calculate remaining value for depreciation
+      const purchasePrice = vehicleData.purchase_price ? Number(vehicleData.purchase_price) : 0;
+      const netIncome = 0; // We need vehicle-specific income to calculate remaining
+      
+      // Fetch vehicle financial records to calculate net income
+      const { data: vehicleRecords } = await supabase
+        .from('financial_records')
+        .select('type, amount')
+        .eq('vehicle_id', saleVehicleId);
+      
+      const vehicleIncome = (vehicleRecords || []).filter(r => r.type === 'income').reduce((s, r) => s + Number(r.amount), 0);
+      const vehicleExpenses = (vehicleRecords || []).filter(r => r.type === 'expense').reduce((s, r) => s + Number(r.amount), 0);
+      const vehicleNetIncome = vehicleIncome - vehicleExpenses;
+      
+      // Remaining for depreciation = max(0, purchasePrice - netIncome)
+      const remainingForDepreciation = purchasePrice > 0 ? Math.max(0, purchasePrice - vehicleNetIncome) : 0;
+      
+      const salePriceNum = parseFloat(salePrice);
+      const profitOrLoss = salePriceNum - remainingForDepreciation;
+      const isProfit = profitOrLoss >= 0;
+
+      // Create financial record for the sale
+      const saleRecord: any = {
+        user_id: session.session.user.id,
+        type: isProfit ? 'income' : 'expense',
+        category: 'vehicle_sale',
+        amount: Math.abs(profitOrLoss),
+        date: saleDate,
+        description: isProfit 
+          ? `Profit from Vehicle Sale - ${vehicleData.year} ${vehicleData.make} ${vehicleData.model}`
+          : `Loss from Vehicle Sale - ${vehicleData.year} ${vehicleData.make} ${vehicleData.model}`,
+        vehicle_id: saleVehicleId,
+        source_section: 'vehicle_sale',
+        income_source_type: 'vehicle_sale',
+        income_source_specification: `Sale Price: €${salePriceNum} | Remaining: €${remainingForDepreciation.toFixed(2)}`,
+      };
+
+      const { error: recordError } = await supabase
+        .from('financial_records')
+        .insert([saleRecord]);
+
+      if (recordError) {
+        console.error("Error creating sale record:", recordError);
+        toast({ title: "Error", description: "Failed to create sale record", variant: "destructive" });
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Mark vehicle as sold
+      const { error: vehicleError } = await supabase
+        .from('vehicles')
+        .update({ 
+          is_sold: true, 
+          sale_price: salePriceNum, 
+          sale_date: saleDate 
+        })
+        .eq('id', saleVehicleId);
+
+      if (vehicleError) {
+        console.error("Error marking vehicle as sold:", vehicleError);
+        toast({ title: "Error", description: "Failed to update vehicle", variant: "destructive" });
+        setIsSubmitting(false);
+        return;
+      }
+
+      toast({
+        title: language === 'el' ? 'Πώληση Καταγράφηκε' : 'Sale Recorded',
+        description: isProfit
+          ? `${language === 'el' ? 'Κέρδος' : 'Profit'}: +€${Math.abs(profitOrLoss).toFixed(2)}`
+          : `${language === 'el' ? 'Ζημία' : 'Loss'}: -€${Math.abs(profitOrLoss).toFixed(2)}`,
+      });
+
+      setIsAddFinanceOpen(false);
+      fetchFinancialRecords();
+      fetchVehicles();
+    } catch (error) {
+      console.error("Error in vehicle sale:", error);
+      toast({ title: "Error", description: "An error occurred", variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   const handleSubmitFinanceRecord = async (e: React.FormEvent) => {
@@ -325,20 +451,87 @@ const Finance = () => {
         <Dialog open={isAddFinanceOpen} onOpenChange={setIsAddFinanceOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>{t.addTransaction}</DialogTitle>
+              <DialogTitle>{isVehicleSaleMode 
+                ? (language === 'el' ? 'Πώληση Οχήματος' : 'Vehicle Sale')
+                : t.addTransaction}</DialogTitle>
               <DialogDescription>
-                {t.enterTransactionDetails}
+                {isVehicleSaleMode 
+                  ? (language === 'el' ? 'Καταγράψτε πώληση οχήματος' : 'Record a vehicle sale')
+                  : t.enterTransactionDetails}
               </DialogDescription>
             </DialogHeader>
             
+            {isVehicleSaleMode ? (
+              <form onSubmit={handleSubmitVehicleSale} className="space-y-4">
+                <div className="space-y-2">
+                  <Label>{language === 'el' ? 'Επιλέξτε Όχημα' : 'Select Vehicle'}</Label>
+                  <Select value={saleVehicleId} onValueChange={setSaleVehicleId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={language === 'el' ? 'Επιλέξτε όχημα...' : 'Select vehicle...'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {vehicles.filter(v => !(v as any).is_sold).map((vehicle) => (
+                        <SelectItem key={vehicle.id} value={vehicle.id}>
+                          {vehicle.year} {vehicle.make} {vehicle.model}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{language === 'el' ? 'Τιμή Πώλησης (€)' : 'Sale Price (€)'}</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    required
+                    value={salePrice}
+                    onChange={(e) => setSalePrice(e.target.value)}
+                    placeholder="e.g. 15000"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>{language === 'el' ? 'Ημερομηνία Πώλησης' : 'Sale Date'}</Label>
+                  <Input
+                    type="date"
+                    required
+                    value={saleDate}
+                    onChange={(e) => setSaleDate(e.target.value)}
+                  />
+                </div>
+
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsVehicleSaleMode(false)}>
+                    {language === 'el' ? 'Πίσω' : 'Back'}
+                  </Button>
+                  <Button type="submit" className="bg-flitx-blue hover:bg-flitx-blue-600" disabled={isSubmitting || !saleVehicleId || !salePrice}>
+                    {isSubmitting 
+                      ? (language === 'el' ? 'Καταγραφή...' : 'Recording...') 
+                      : (language === 'el' ? 'Καταγραφή Πώλησης' : 'Record Sale')}
+                  </Button>
+                </DialogFooter>
+              </form>
+            ) : (
             <form onSubmit={handleSubmitFinanceRecord} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="recordType">{t.transactionType}</Label>
-                <Select value={recordType} onValueChange={setRecordType} disabled={isLanguageLoading}>
+                <Select value={recordType} onValueChange={(val) => {
+                  if (val === 'vehicle_sale') {
+                    setIsVehicleSaleMode(true);
+                  } else {
+                    setRecordType(val);
+                  }
+                }} disabled={isLanguageLoading}>
                   <SelectTrigger>
                     <SelectValue placeholder={t.selectType} />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="vehicle_sale" className="font-medium">
+                      {language === 'el' ? '🚗 Πώληση Οχήματος' : '🚗 Vehicle Sale'}
+                    </SelectItem>
+                    <SelectSeparator />
                     <SelectItem value="income">{t.income}</SelectItem>
                     <SelectItem value="expense">{t.expense}</SelectItem>
                   </SelectContent>
@@ -707,6 +900,7 @@ const Finance = () => {
                 </Button>
               </DialogFooter>
             </form>
+            )}
           </DialogContent>
         </Dialog>
       </div>

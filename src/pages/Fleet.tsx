@@ -108,6 +108,9 @@ const Fleet = () => {
         transmissionType: v.transmission_type ?? 'manual',
         passengerCapacity: v.passenger_capacity ?? undefined,
         vehicleType: v.vehicle_type ?? 'car',
+        is_sold: (v as any).is_sold ?? false,
+        sale_price: (v as any).sale_price ?? undefined,
+        sale_date: (v as any).sale_date ?? undefined,
       }));
 
       setVehicles(transformedVehicles);

@@ -34,6 +34,9 @@ interface VehicleFinanceTabProps {
   vehicleType?: string;
   vehicleYear: number; // Vehicle model year (required for depreciation)
   vehicleCreatedAt?: string | null; // Date vehicle was added to the fleet
+  isSold?: boolean;
+  salePrice?: number | null;
+  saleDate?: string | null;
 }
 const ITEMS_PER_PAGE = 10;
 const DEFAULT_VISIBLE_ITEMS = 4;
@@ -47,7 +50,10 @@ export function VehicleFinanceTab({
   initialMileage = 0,
   vehicleType = 'car',
   vehicleYear,
-  vehicleCreatedAt
+  vehicleCreatedAt,
+  isSold = false,
+  salePrice,
+  saleDate
 }: VehicleFinanceTabProps) {
   const {
     language
@@ -251,9 +257,39 @@ export function VehicleFinanceTab({
 
       {/* Finance Metrics Row: Purchase/Depreciation + Vehicle Averages + Value Loss */}
       {purchaseValue && purchaseValue > 0 && <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Unified Depreciation Card: Purchase Value + Progress Circle OR Net Profit */}
-          {/* Fixed height to match summary cards above (h-[106px] matches CardContent p-4 with content) */}
-          {depreciationStatus && <Card className="border-border bg-card h-[106px] overflow-hidden">
+          {/* SOLD State or Depreciation Card */}
+          {isSold ? (
+            <Card className="border-red-200 bg-red-50 h-[106px] overflow-hidden">
+              <CardContent className="p-4 h-full flex items-center">
+                <div className="flex items-center justify-between w-full gap-3">
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-xs font-bold text-red-600 uppercase tracking-wide">
+                      {language === 'el' ? 'ΠΩΛΗΘΗΚΕ' : 'SOLD'}
+                    </span>
+                    {salePrice != null && (
+                      <div className="text-lg font-bold text-foreground mt-1">
+                        €{Number(salePrice).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[10px] font-medium text-muted-foreground uppercase">
+                      {language === 'el' ? 'Αποτέλεσμα Πώλησης' : 'Net Sale Result'}
+                    </span>
+                    {(() => {
+                      const saleResult = (salePrice ?? 0) - (depreciationStatus?.remainingForDepreciation ?? 0);
+                      return (
+                        <div className={`text-lg font-bold ${saleResult >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {saleResult >= 0 ? '+' : ''}€{saleResult.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+          depreciationStatus && <Card className="border-border bg-card h-[106px] overflow-hidden">
               <CardContent className="p-4 h-full flex items-center">
                 {!depreciationStatus.isFullyDepreciated ? <div className="flex items-center justify-between w-full gap-3 px-[32px]">
                     {/* Purchase Value - Left Side */}
@@ -325,7 +361,8 @@ export function VehicleFinanceTab({
                     </div>
                   </div>}
               </CardContent>
-            </Card>}
+            </Card>
+          )}
 
           {/* Vehicle Averages Card - NEW */}
           <Card className="border-border bg-card h-[130px] overflow-hidden">
