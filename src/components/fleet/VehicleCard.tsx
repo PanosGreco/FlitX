@@ -100,7 +100,7 @@ export function VehicleCard({
         
         {vehicle.is_sold && vehicle.sale_price != null ? (
           <div className="mt-3 text-sm font-medium text-red-600">
-            {language === 'el' ? 'Τιμή Πώλησης' : 'Sale Price'}: €{Number(vehicle.sale_price).toLocaleString()}
+            {language === 'el' ? 'Πωλήθηκε για' : 'Sold for'}: €{Number(vehicle.sale_price).toLocaleString()}
           </div>
         ) : (
           <div className="mt-3 flex justify-between items-center">
