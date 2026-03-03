@@ -180,6 +180,16 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       ? (language === 'el' ? 'Έσοδο' : 'Income Record')
       : (language === 'el' ? 'Έξοδο' : 'Expense Record');
     
+    // Vehicle Sale records
+    if (record.category === 'vehicle_sale') {
+      const vehicleName = getVehicleName(record.vehicle_id);
+      if (isIncome) {
+        return `${language === 'el' ? 'Κέρδος από Πώληση' : 'Profit from Vehicle Sale'}${vehicleName ? ` – ${vehicleName}` : ''}`;
+      } else {
+        return `${language === 'el' ? 'Ζημία από Πώληση' : 'Loss from Vehicle Sale'}${vehicleName ? ` – ${vehicleName}` : ''}`;
+      }
+    }
+
     if (isIncome) {
       // Income titles
       if (record.category === 'rental') {
@@ -315,6 +325,19 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           .from('rental_bookings')
           .delete()
           .eq('id', record.booking_id);
+
+      } else if (record.category === 'vehicle_sale' && record.vehicle_id) {
+        // VEHICLE SALE REVERSAL: restore vehicle to active state
+        await supabase
+          .from('vehicles')
+          .update({ is_sold: false, sale_price: null, sale_date: null })
+          .eq('id', record.vehicle_id);
+
+        // Delete the financial record
+        await supabase
+          .from('financial_records')
+          .delete()
+          .eq('id', recordId);
 
       } else if (record.category === 'maintenance' && record.vehicle_id) {
         // If this is a maintenance expense, also delete the vehicle_maintenance record

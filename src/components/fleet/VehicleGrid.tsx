@@ -100,6 +100,13 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
       );
     }
 
+    // Sort sold vehicles to bottom
+    result = [...result].sort((a, b) => {
+      const aSold = (a as any).is_sold ? 1 : 0;
+      const bSold = (b as any).is_sold ? 1 : 0;
+      return aSold - bSold;
+    });
+
     return result;
   }, [vehicles, searchQuery, filters]);
 

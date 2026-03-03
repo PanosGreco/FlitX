@@ -297,11 +297,17 @@ export function VehicleDetails({
               <div className="flex-1">
                 <h1 className="text-2xl font-bold flex items-center">
                   {vehicle.year} {vehicle.make} {vehicle.model}
-                  <Badge className={`ml-3 flex items-center ${statusColors[computedStatus]}`} variant="outline">
-                    {computedStatus === 'repair' && <AlertTriangle className="h-3.5 w-3.5 mr-1" />}
-                    {computedStatus === 'maintenance' && <Wrench className="h-3.5 w-3.5 mr-1" />}
-                    {statusLabels[computedStatus]}
-                  </Badge>
+                  {vehicle.is_sold ? (
+                    <Badge className="ml-3 bg-red-600 text-white border-red-700 font-bold" variant="outline">
+                      {language === 'el' ? 'ΠΩΛΗΘΗΚΕ' : 'SOLD'}
+                    </Badge>
+                  ) : (
+                    <Badge className={`ml-3 flex items-center ${statusColors[computedStatus]}`} variant="outline">
+                      {computedStatus === 'repair' && <AlertTriangle className="h-3.5 w-3.5 mr-1" />}
+                      {computedStatus === 'maintenance' && <Wrench className="h-3.5 w-3.5 mr-1" />}
+                      {statusLabels[computedStatus]}
+                    </Badge>
+                  )}
                 </h1>
                 
                 <div className="flex items-center text-flitx-gray-500 mt-1 flex-wrap">
@@ -390,6 +396,9 @@ export function VehicleDetails({
                       vehicleType={vehicle.vehicle_type}
                       vehicleYear={vehicle.year}
                       vehicleCreatedAt={vehicle.created_at}
+                      isSold={vehicle.is_sold ?? false}
+                      salePrice={vehicle.sale_price ?? null}
+                      saleDate={vehicle.sale_date ?? null}
                     />
                   </TabsContent>
                 </>}

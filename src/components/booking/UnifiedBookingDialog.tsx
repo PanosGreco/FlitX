@@ -207,11 +207,11 @@ export function UnifiedBookingDialog({
     if (!user) return;
     try {
       const [vehiclesResult, bookingsResult, maintenanceResult] = await Promise.all([
-        supabase.from('vehicles').select('id, make, model, year, license_plate, daily_rate, fuel_type, transmission_type, vehicle_type, type, status').eq('user_id', user.id),
+        supabase.from('vehicles').select('id, make, model, year, license_plate, daily_rate, fuel_type, transmission_type, vehicle_type, type, status, is_sold').eq('user_id', user.id),
         supabase.from('rental_bookings').select('id, vehicle_id, start_date, end_date, customer_name').eq('user_id', user.id).in('status', ['confirmed', 'active', 'pending']),
         supabase.from('maintenance_blocks').select('id, vehicle_id, start_date, end_date, description').eq('user_id', user.id)
       ]);
-      if (!vehiclesResult.error) setVehicles(vehiclesResult.data || []);
+      if (!vehiclesResult.error) setVehicles((vehiclesResult.data || []).filter((v: any) => !v.is_sold));
       if (!bookingsResult.error) setAllBookings(bookingsResult.data || []);
       if (!maintenanceResult.error) setAllMaintenanceBlocks(maintenanceResult.data || []);
     } catch (error) {
