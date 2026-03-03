@@ -57,8 +57,9 @@ export function useDailyTasks(selectedDate: Date) {
 
     const { data, error } = await supabase
       .from('vehicles')
-      .select('id, make, model, license_plate')
-      .eq('user_id', user.id);
+      .select('id, make, model, license_plate, is_sold')
+      .eq('user_id', user.id)
+      .eq('is_sold', false);
 
     if (error) {
       console.error('Error fetching vehicles:', error);
