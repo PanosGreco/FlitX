@@ -528,12 +528,12 @@ const Finance = () => {
                     <SelectValue placeholder={t.selectType} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="vehicle_sale" className="font-medium">
-                      {language === 'el' ? '🚗 Πώληση Οχήματος' : '🚗 Vehicle Sale'}
-                    </SelectItem>
-                    <SelectSeparator />
                     <SelectItem value="income">{t.income}</SelectItem>
                     <SelectItem value="expense">{t.expense}</SelectItem>
+                    <SelectSeparator />
+                    <SelectItem value="vehicle_sale" className="font-medium">
+                      {language === 'el' ? 'Πώληση Οχήματος' : 'Vehicle Sale'}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -827,7 +827,7 @@ const Finance = () => {
                     <SelectItem value="none">
                       {language === 'el' ? 'Κανένα όχημα' : 'No vehicle (global)'}
                     </SelectItem>
-                    {vehicles.map((vehicle) => (
+                    {vehicles.filter(v => !(v as any).is_sold).map((vehicle) => (
                       <SelectItem key={vehicle.id} value={vehicle.id}>
                         {vehicle.year} {vehicle.make} {vehicle.model}
                       </SelectItem>

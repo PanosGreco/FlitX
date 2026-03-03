@@ -259,28 +259,34 @@ export function VehicleFinanceTab({
       {purchaseValue && purchaseValue > 0 && <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* SOLD State or Depreciation Card */}
           {isSold ? (
-            <Card className="border-red-200 bg-red-50 h-[106px] overflow-hidden">
-              <CardContent className="p-4 h-full flex items-center">
+            <Card className="border-red-200 bg-red-50 h-[130px] overflow-hidden">
+              <CardContent className="p-4 h-full flex flex-col justify-center">
                 <div className="flex items-center justify-between w-full gap-3">
                   <div className="flex flex-col min-w-0 flex-1">
-                    <span className="text-xs font-bold text-red-600 uppercase tracking-wide">
-                      {language === 'el' ? 'ΠΩΛΗΘΗΚΕ' : 'SOLD'}
+                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      {language === 'el' ? 'Αξία Αγοράς' : 'Purchase Value'}
                     </span>
-                    {salePrice != null && (
-                      <div className="text-lg font-bold text-foreground mt-1">
-                        €{Number(salePrice).toLocaleString()}
-                      </div>
-                    )}
+                    <div className="text-2xl font-bold text-foreground mt-1">
+                      €{purchaseValue.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                    </div>
                   </div>
-                  <div className="flex flex-col items-end">
-                    <span className="text-[10px] font-medium text-muted-foreground uppercase">
-                      {language === 'el' ? 'Αποτέλεσμα Πώλησης' : 'Net Sale Result'}
+                  <div className="flex flex-col items-end border-l border-red-200 pl-3 shrink-0">
+                    <span className="text-xs font-bold text-red-600 uppercase tracking-wide">
+                      🔴 {language === 'el' ? 'ΠΩΛΗΘΗΚΕ' : 'SOLD'}
                     </span>
                     {(() => {
                       const saleResult = (salePrice ?? 0) - (depreciationStatus?.remainingForDepreciation ?? 0);
+                      const isProfit = saleResult >= 0;
                       return (
-                        <div className={`text-lg font-bold ${saleResult >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {saleResult >= 0 ? '+' : ''}€{saleResult.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                        <div className="mt-1">
+                          <span className="text-[10px] font-medium text-muted-foreground uppercase">
+                            {isProfit 
+                              ? (language === 'el' ? 'Κέρδος από Πώληση' : 'Profit from Sale')
+                              : (language === 'el' ? 'Ζημία από Πώληση' : 'Loss from Sale')}
+                          </span>
+                          <div className={`text-lg font-bold ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
+                            {isProfit ? '+' : ''}€{saleResult.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                          </div>
                         </div>
                       );
                     })()}
