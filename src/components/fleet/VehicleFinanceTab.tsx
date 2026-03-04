@@ -437,6 +437,7 @@ export function VehicleFinanceTab({
           </Card>
 
           {/* Vehicle Value Loss Over Time Card */}
+          {!isSold && (
           <Card className="border-border bg-card h-[106px] overflow-hidden">
             <CardContent className="p-4 h-full">
               <div className="flex items-center justify-between mb-1">
@@ -477,6 +478,7 @@ export function VehicleFinanceTab({
                 </div>}
             </CardContent>
           </Card>
+          )}
         </div>}
 
       {/* Transaction History */}
