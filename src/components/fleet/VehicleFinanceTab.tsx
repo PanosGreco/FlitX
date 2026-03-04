@@ -280,6 +280,14 @@ export function VehicleFinanceTab({
                       €{(salePrice ?? 0).toLocaleString(undefined, { minimumFractionDigits: 0 })}
                     </span>
                   </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-medium text-muted-foreground tracking-wide">
+                      {language === 'el' ? 'Καθαρό Εισόδημα Ενοικιάσεων' : 'Net Income from Rentals'}
+                    </span>
+                    <span className="text-sm font-normal text-foreground">
+                      €{netIncome.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
                   <div className="border-t border-red-200 pt-2 mt-1">
                     {(() => {
                       const saleResult = (salePrice ?? 0) - (depreciationStatus?.remainingForDepreciation ?? 0);
@@ -288,8 +296,8 @@ export function VehicleFinanceTab({
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
                             {isProfit 
-                              ? (language === 'el' ? 'ΚΕΡΔΟΣ' : 'PROFIT')
-                              : (language === 'el' ? 'ΖΗΜΙΑ' : 'LOSS')}
+                              ? (language === 'el' ? 'ΚΕΡΔΟΣ ΑΠΟ ΠΩΛΗΣΗ' : 'PROFIT FROM SALE')
+                              : (language === 'el' ? 'ΖΗΜΙΑ ΑΠΟ ΠΩΛΗΣΗ' : 'LOSS FROM SALE')}
                           </span>
                           <span className={`text-2xl font-extrabold ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
                             {isProfit ? '+' : '−'}€{Math.abs(saleResult).toLocaleString(undefined, { minimumFractionDigits: 0 })}
