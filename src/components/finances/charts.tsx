@@ -14,7 +14,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, startOfWeek, startOfMonth, startOfYear, subDays, subMonths, endOfDay, min, max } from "date-fns";
+import { format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, startOfWeek, startOfMonth, startOfYear, endOfWeek, endOfMonth, subMonths, endOfDay, min, max, differenceInDays } from "date-fns";
 import { el, enUS } from "date-fns/locale";
 
 interface FinancialRecord {
@@ -49,7 +49,8 @@ const getTimeBuckets = (timeframe: string, lang: string, records: FinancialRecor
       return eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
         key: format(date, 'yyyy-MM-dd'),
         label: format(date, 'EEE', { locale }),
-        date
+        date,
+        bucketType: 'daily' as const
       }));
     case 'month':
       startDate = startOfMonth(now);
@@ -57,7 +58,8 @@ const getTimeBuckets = (timeframe: string, lang: string, records: FinancialRecor
       return eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
         key: format(date, 'yyyy-MM-dd'),
         label: format(date, 'd', { locale }),
-        date
+        date,
+        bucketType: 'daily' as const
       }));
     case 'year':
       startDate = startOfYear(now);
@@ -65,47 +67,78 @@ const getTimeBuckets = (timeframe: string, lang: string, records: FinancialRecor
       return eachMonthOfInterval({ start: startDate, end: endDate }).map(date => ({
         key: format(date, 'yyyy-MM'),
         label: format(date, 'MMM', { locale }),
-        date
+        date,
+        bucketType: 'monthly' as const
       }));
     case 'all':
+      // All time always uses monthly buckets
+      if (records.length === 0) {
+        startDate = subMonths(now, 1);
+        return eachMonthOfInterval({ start: startDate, end: endDate }).map(date => ({
+          key: format(date, 'yyyy-MM'),
+          label: format(date, 'MMM yy', { locale }),
+          date,
+          bucketType: 'monthly' as const
+        }));
+      }
+      {
+        const dates = records.map(r => new Date(r.date));
+        startDate = min(dates);
+        endDate = max([max(dates), now]);
+        return eachMonthOfInterval({ start: startDate, end: endDate }).map(date => ({
+          key: format(date, 'yyyy-MM'),
+          label: format(date, 'MMM yy', { locale }),
+          date,
+          bucketType: 'monthly' as const
+        }));
+      }
     case 'custom':
-      // For all time or custom range, use the actual data range
+      // For custom range, use the actual data range with adaptive scaling
       if (records.length === 0) {
         startDate = subMonths(now, 1);
         return eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
           key: format(date, 'yyyy-MM-dd'),
           label: format(date, 'd', { locale }),
-          date
+          date,
+          bucketType: 'daily' as const
         }));
       }
-      const dates = records.map(r => new Date(r.date));
-      startDate = min(dates);
-      endDate = max(dates);
-      
-      // Determine granularity based on date range
-      const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-      
-      if (daysDiff <= 31) {
-        // Daily for up to a month
-        return eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
-          key: format(date, 'yyyy-MM-dd'),
-          label: format(date, 'd MMM', { locale }),
-          date
-        }));
-      } else {
-        // Monthly for longer periods
-        return eachMonthOfInterval({ start: startDate, end: endDate }).map(date => ({
-          key: format(date, 'yyyy-MM'),
-          label: format(date, 'MMM yy', { locale }),
-          date
-        }));
+      {
+        const dates = records.map(r => new Date(r.date));
+        startDate = min(dates);
+        endDate = max(dates);
+        const daysDiff = differenceInDays(endDate, startDate);
+        
+        if (daysDiff <= 31) {
+          return eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
+            key: format(date, 'yyyy-MM-dd'),
+            label: format(date, 'd MMM', { locale }),
+            date,
+            bucketType: 'daily' as const
+          }));
+        } else if (daysDiff <= 120) {
+          return eachWeekOfInterval({ start: startDate, end: endDate }, { weekStartsOn: 1 }).map(date => ({
+            key: format(date, 'yyyy-MM-dd'),
+            label: format(date, 'd MMM', { locale }),
+            date,
+            bucketType: 'weekly' as const
+          }));
+        } else {
+          return eachMonthOfInterval({ start: startDate, end: endDate }).map(date => ({
+            key: format(date, 'yyyy-MM'),
+            label: format(date, 'MMM yy', { locale }),
+            date,
+            bucketType: 'monthly' as const
+          }));
+        }
       }
     default:
       startDate = startOfMonth(now);
       return eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
         key: format(date, 'yyyy-MM-dd'),
         label: format(date, 'd', { locale }),
-        date
+        date,
+        bucketType: 'daily' as const
       }));
   }
 };
@@ -193,13 +226,50 @@ const aggregateByCategory = (records: FinancialRecord[], lang: string) => {
     .sort((a, b) => b.amount - a.amount);
 };
 
-// Format currency for Y-axis
-const formatYAxis = (value: number, lang: string) => {
-  const symbol = lang === 'el' ? '€' : '$';
+// Format currency for Y-axis — always use €
+const formatYAxis = (value: number) => {
   if (value >= 1000) {
-    return `${symbol}${(value / 1000).toFixed(0)}k`;
+    return `${(value / 1000).toFixed(0)}k€`;
   }
-  return `${symbol}${value}`;
+  return `${value}€`;
+};
+
+// Cumulative aggregation for LineChart only
+const aggregateCumulative = (records: FinancialRecord[], timeframe: string, lang: string) => {
+  const buckets = getTimeBuckets(timeframe, lang, records);
+  
+  if (buckets.length === 0) return [];
+  
+  const incomeRecords = records.filter(r => r.type === 'income');
+  const expenseRecords = records.filter(r => r.type === 'expense');
+  
+  return buckets.map(bucket => {
+    const bucketType = (bucket as any).bucketType;
+    let bucketEnd: Date;
+    
+    if (bucketType === 'weekly') {
+      bucketEnd = endOfDay(endOfWeek(bucket.date, { weekStartsOn: 1 }));
+    } else if (bucketType === 'monthly' || bucket.key.length === 7) {
+      bucketEnd = endOfDay(endOfMonth(bucket.date));
+    } else {
+      bucketEnd = endOfDay(bucket.date);
+    }
+    
+    const income = incomeRecords
+      .filter(r => new Date(r.date) <= bucketEnd)
+      .reduce((sum, r) => sum + Number(r.amount), 0);
+    
+    const expenses = expenseRecords
+      .filter(r => new Date(r.date) <= bucketEnd)
+      .reduce((sum, r) => sum + Number(r.amount), 0);
+    
+    return {
+      name: bucket.label,
+      income,
+      expenses,
+      netIncome: income - expenses
+    };
+  });
 };
 
 export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'month' }: ChartProps) {
@@ -246,7 +316,7 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
             tickLine={false}
           />
           <YAxis 
-            tickFormatter={(value) => formatYAxis(value, lang)}
+            tickFormatter={formatYAxis}
             tick={{ fontSize: 11 }}
             tickLine={false}
             axisLine={false}
@@ -273,33 +343,19 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
 
 export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'month' }: ChartProps) {
   const chartData = useMemo(() => {
-    // Records are already pre-filtered by parent component
-    const data = aggregateByTimeBuckets(financialRecords, timeframe, lang);
+    const data = aggregateCumulative(financialRecords, timeframe, lang);
     
     if (data.length === 0 || data.every(d => d.income === 0 && d.expenses === 0)) {
-      return [{ name: lang === 'el' ? 'Δεν υπάρχουν δεδομένα' : 'No data', income: 0, expenses: 0, revenue: 0 }];
-    }
-    
-    // For month view, sample every 3rd day to avoid crowding
-    if (timeframe === 'month' && data.length > 15) {
-      return data.filter((_, i) => i % 3 === 0 || i === data.length - 1);
-    }
-
-    // For all time or custom with many data points, sample appropriately
-    if ((timeframe === 'all' || timeframe === 'custom') && data.length > 20) {
-      const step = Math.ceil(data.length / 15);
-      return data.filter((_, i) => i % step === 0 || i === data.length - 1);
+      return [{ name: lang === 'el' ? 'Δεν υπάρχουν δεδομένα' : 'No data', income: 0, expenses: 0, netIncome: 0 }];
     }
     
     return data;
   }, [financialRecords, timeframe, lang]);
 
-  const currencySymbol = lang === 'el' ? '€' : '$';
-
   const getLineName = (name: string) => {
     if (name === 'income') return lang === 'el' ? 'Έσοδα' : 'Income';
     if (name === 'expenses') return lang === 'el' ? 'Έξοδα' : 'Expenses';
-    if (name === 'revenue') return lang === 'el' ? 'Καθαρά' : 'Revenue';
+    if (name === 'netIncome') return lang === 'el' ? 'Καθαρό Εισόδημα' : 'Net Income';
     return name;
   };
 
@@ -322,14 +378,14 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
             tickLine={false}
           />
           <YAxis 
-            tickFormatter={(value) => formatYAxis(value, lang)}
+            tickFormatter={formatYAxis}
             tick={{ fontSize: 11 }}
             tickLine={false}
             axisLine={false}
           />
           <Tooltip 
             formatter={(value: number, name: string) => [
-              `${currencySymbol}${value.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+              `${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€`,
               getLineName(name)
             ]}
             labelStyle={{ color: "#333" }}
@@ -346,7 +402,7 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
             type="monotone"
             dataKey="income"
             name="income"
-            stroke="#f59e0b"
+            stroke="#22c55e"
             activeDot={{ r: 6 }}
             strokeWidth={2.5}
             dot={{ r: 3 }}
@@ -366,8 +422,8 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
           />
           <Line
             type="monotone"
-            dataKey="revenue"
-            name="revenue"
+            dataKey="netIncome"
+            name="netIncome"
             stroke="#3b82f6"
             activeDot={{ r: 6 }}
             strokeWidth={2.5}
