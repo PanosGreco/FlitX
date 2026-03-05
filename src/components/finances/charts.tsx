@@ -403,9 +403,9 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
             dataKey="income"
             name="income"
             stroke="#22c55e"
-            activeDot={{ r: 6 }}
+            activeDot={{ r: 5, strokeWidth: 0 }}
             strokeWidth={2.5}
-            dot={{ r: 3 }}
+            dot={false}
             connectNulls={false}
             isAnimationActive={false}
           />
@@ -414,9 +414,9 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
             dataKey="expenses"
             name="expenses"
             stroke="#ef4444"
-            activeDot={{ r: 6 }}
+            activeDot={{ r: 5, strokeWidth: 0 }}
             strokeWidth={2.5}
-            dot={{ r: 3 }}
+            dot={false}
             connectNulls={false}
             isAnimationActive={false}
           />
@@ -425,9 +425,9 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
             dataKey="netIncome"
             name="netIncome"
             stroke="#3b82f6"
-            activeDot={{ r: 6 }}
+            activeDot={{ r: 5, strokeWidth: 0 }}
             strokeWidth={2.5}
-            dot={{ r: 3 }}
+            dot={false}
             connectNulls={false}
             isAnimationActive={false}
           />
