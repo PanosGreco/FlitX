@@ -91,6 +91,7 @@ const getParentCategory = (key: string): string => {
   if (key.startsWith('other_')) return 'other';
   if (key.startsWith('marketing_')) return 'marketing';
   if (key.startsWith('vehicle_parts_')) return 'vehicle_parts';
+  if (key.startsWith('tax_')) return 'tax';
   return key;
 };
 
