@@ -74,6 +74,8 @@ export function RentalBookingDialog({
   const [adjustedRate, setAdjustedRate] = useState(vehicleDailyRate);
   const [customTotalPrice, setCustomTotalPrice] = useState(0);
   const [additionalCosts, setAdditionalCosts] = useState<AdditionalCost[]>([]);
+  const [vatEnabled, setVatEnabled] = useState(false);
+  const { vatRate, setVatRate } = useVatSettings();
   const [existingBookings, setExistingBookings] = useState<ExistingBooking[]>([]);
   const [conflictError, setConflictError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
