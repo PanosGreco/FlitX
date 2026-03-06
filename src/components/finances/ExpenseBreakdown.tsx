@@ -246,6 +246,8 @@ export function ExpenseBreakdown({
         aggregationKey = `marketing_${record.expense_subcategory}`;
       } else if (baseCategory === 'vehicle_parts' && record.expense_subcategory) {
         aggregationKey = `vehicle_parts_${record.expense_subcategory}`;
+      } else if (baseCategory === 'tax' && record.expense_subcategory) {
+        aggregationKey = `tax_${record.expense_subcategory}`;
       }
       if (!categoryData[aggregationKey]) {
         categoryData[aggregationKey] = {
