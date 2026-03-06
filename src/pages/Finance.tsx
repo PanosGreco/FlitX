@@ -36,6 +36,8 @@ import { useMaintenanceCategories } from "@/hooks/useMaintenanceCategories";
 import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { useVehiclePartsCategories } from "@/hooks/useVehiclePartsCategories";
 import { useTaxesFeesCategories } from "@/hooks/useTaxesFeesCategories";
+import { useVatSettings } from "@/hooks/useVatSettings";
+import { VatControl } from "@/components/finances/VatControl";
 
 const Finance = () => {
   const [isAddFinanceOpen, setIsAddFinanceOpen] = useState(false);
@@ -59,6 +61,8 @@ const Finance = () => {
   const [date, setDate] = useState(new Date().toISOString().substring(0, 10));
   const [notes, setNotes] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
+  const [vatEnabled, setVatEnabled] = useState(false);
+  const { vatRate, setVatRate } = useVatSettings();
   const [vehicles, setVehicles] = useState<Array<{id: string; make: string; model: string; year: number; fuel_type?: string}>>([]);
   const [financialRecords, setFinancialRecords] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -172,6 +176,7 @@ const Finance = () => {
     setDate(new Date().toISOString().substring(0, 10));
     setNotes("");
     setSelectedVehicleId("");
+    setVatEnabled(false);
   };
 
   // Get active (non-sold) vehicles for sale dropdown
@@ -412,6 +417,30 @@ const Finance = () => {
           if (maintenanceError) {
             console.error("Error creating vehicle maintenance record:", maintenanceError);
             // Don't fail the whole operation, just log the error
+          }
+        }
+
+        // VAT auto-expense: create a separate tax expense when VAT is enabled on income
+        if (recordType === "income" && vatEnabled && vatRate > 0) {
+          const vatAmount = parseFloat(amount) * (vatRate / 100);
+          if (vatAmount > 0) {
+            const { error: vatError } = await supabase
+              .from('financial_records')
+              .insert({
+                user_id: session.session.user.id,
+                type: 'expense' as const,
+                category: 'tax',
+                expense_subcategory: 'Income Tax',
+                amount: vatAmount,
+                date: date,
+                description: `Income Tax (VAT ${vatRate}%) - auto`,
+                source_section: 'vat_auto',
+                vehicle_id: selectedVehicleId || null,
+              });
+
+            if (vatError) {
+              console.error("Error creating VAT expense record:", vatError);
+            }
           }
         }
 
@@ -956,6 +985,16 @@ const Finance = () => {
                   disabled={isLanguageLoading}
                 />
               </div>
+
+              {/* VAT Control - only for income */}
+              {recordType === "income" && (
+                <VatControl
+                  vatEnabled={vatEnabled}
+                  onVatEnabledChange={setVatEnabled}
+                  vatRate={vatRate}
+                  onVatRateChange={setVatRate}
+                />
+              )}
               
               <DialogFooter>
                 <Button 

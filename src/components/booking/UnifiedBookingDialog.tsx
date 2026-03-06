@@ -25,6 +25,8 @@ import { useInsuranceTypes } from "@/hooks/useInsuranceTypes";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { validateFileSize, compressImage } from "@/utils/imageUtils";
+import { useVatSettings } from "@/hooks/useVatSettings";
+import { VatControl } from "@/components/finances/VatControl";
 
 interface Vehicle {
   id: string;
@@ -89,6 +91,8 @@ export function UnifiedBookingDialog({
   const { insuranceTypes, fetchInsuranceTypes, findOrCreateInsuranceType } = useInsuranceTypes();
   const [addingNewInsuranceType, setAddingNewInsuranceType] = useState(false);
   const [newInsuranceTypeName, setNewInsuranceTypeName] = useState("");
+  const [vatEnabled, setVatEnabled] = useState(false);
+  const { vatRate, setVatRate } = useVatSettings();
   
   // Form state
   const [startDate, setStartDate] = useState<Date | undefined>(preselectedStartDate);
@@ -463,6 +467,25 @@ export function UnifiedBookingDialog({
         }
       }
 
+      // VAT auto-expense: applies to total booking amount (base + additional costs)
+      if (vatEnabled && vatRate > 0) {
+        const vatAmount = totalAmount * (vatRate / 100);
+        if (vatAmount > 0) {
+          await supabase.from('financial_records').insert({
+            user_id: user.id,
+            vehicle_id: selectedVehicleId,
+            booking_id: booking.id,
+            type: 'expense' as const,
+            category: 'tax',
+            expense_subcategory: 'Income Tax',
+            amount: vatAmount,
+            date: format(startDate, 'yyyy-MM-dd'),
+            description: `Income Tax (VAT ${vatRate}%) - auto`,
+            source_section: 'vat_auto',
+          });
+        }
+      }
+
       toast.success(language === 'el' ? `Κράτηση δημιουργήθηκε: €${totalAmount.toFixed(2)}` : `Booking created: €${totalAmount.toFixed(2)}`);
       resetForm();
       onSuccess();
@@ -488,6 +511,7 @@ export function UnifiedBookingDialog({
     setPaymentStatus('paid_in_full'); setBalanceDueAmount(0); setFuelLevel("");
     setAdditionalInfoRows([{ categoryName: 'Insurance', subcategoryValue: '', isDefault: true }]);
     setVehicleSearch(""); setFuelTypeFilter([]); setVehicleTypeFilter([]); setTransmissionTypeFilter([]);
+    setVatEnabled(false);
   };
 
   const formContent = (
@@ -863,6 +887,14 @@ export function UnifiedBookingDialog({
                   )}
                 </div>
               )}
+
+              {/* VAT Control */}
+              <VatControl
+                vatEnabled={vatEnabled}
+                onVatEnabledChange={setVatEnabled}
+                vatRate={vatRate}
+                onVatRateChange={setVatRate}
+              />
 
               {/* Analytical Price Breakdown */}
               <div className="pt-3 border-t space-y-1">

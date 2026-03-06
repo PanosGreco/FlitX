@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 import { IncomeSourceSelector } from "@/components/finances/IncomeSourceSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { validateFileSize, compressImage } from "@/utils/imageUtils";
+import { useVatSettings } from "@/hooks/useVatSettings";
+import { VatControl } from "@/components/finances/VatControl";
 
 interface AdditionalCost {
   id: string;
@@ -72,6 +74,8 @@ export function RentalBookingDialog({
   const [adjustedRate, setAdjustedRate] = useState(vehicleDailyRate);
   const [customTotalPrice, setCustomTotalPrice] = useState(0);
   const [additionalCosts, setAdditionalCosts] = useState<AdditionalCost[]>([]);
+  const [vatEnabled, setVatEnabled] = useState(false);
+  const { vatRate, setVatRate } = useVatSettings();
   const [existingBookings, setExistingBookings] = useState<ExistingBooking[]>([]);
   const [conflictError, setConflictError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -402,6 +406,25 @@ export function RentalBookingDialog({
         }
       }
 
+      // VAT auto-expense: applies to total booking amount (base + additional costs)
+      if (vatEnabled && vatRate > 0) {
+        const vatAmount = totalAmount * (vatRate / 100);
+        if (vatAmount > 0) {
+          await supabase.from('financial_records').insert({
+            user_id: session.session.user.id,
+            vehicle_id: vehicleId,
+            booking_id: booking.id,
+            type: 'expense' as const,
+            category: 'tax',
+            expense_subcategory: 'Income Tax',
+            amount: vatAmount,
+            date: format(startDate, 'yyyy-MM-dd'),
+            description: `Income Tax (VAT ${vatRate}%) - auto`,
+            source_section: 'vat_auto',
+          });
+        }
+      }
+
       toast({
         title: "Booking Created",
         description: `Rental booked: $${totalAmount.toFixed(2)}. Tasks added to Daily Program.`,
@@ -427,6 +450,7 @@ export function RentalBookingDialog({
       setAdditionalCosts([]);
       setIncomeSourceType('walk_in');
       setIncomeSourceSpecification('');
+      setVatEnabled(false);
       
     } catch (error) {
       console.error('Error creating booking:', error);
@@ -718,6 +742,14 @@ export function RentalBookingDialog({
                 ))}
               </div>
             )}
+
+            {/* VAT Control */}
+            <VatControl
+              vatEnabled={vatEnabled}
+              onVatEnabledChange={setVatEnabled}
+              vatRate={vatRate}
+              onVatRateChange={setVatRate}
+            />
 
             {/* Total Summary */}
             {rentalDays > 0 && (
