@@ -66,6 +66,7 @@ const Finance = () => {
   const { userMaintenanceCategories, refetchMaintenanceCategories } = useMaintenanceCategories();
   const { userExpenseCategories, refetchExpenseCategories } = useExpenseCategories();
   const { vehiclePartsSubcategories, refetchVehiclePartsCategories } = useVehiclePartsCategories();
+  const { taxSubcategories, refetchTaxCategories } = useTaxesFeesCategories();
   const { toast } = useToast();
   const { t, language, isLanguageLoading } = useLanguage();
   const isBoats = isBoatBusiness();
