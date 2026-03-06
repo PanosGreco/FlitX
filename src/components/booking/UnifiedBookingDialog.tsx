@@ -25,6 +25,8 @@ import { useInsuranceTypes } from "@/hooks/useInsuranceTypes";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { validateFileSize, compressImage } from "@/utils/imageUtils";
+import { useVatSettings } from "@/hooks/useVatSettings";
+import { VatControl } from "@/components/finances/VatControl";
 
 interface Vehicle {
   id: string;
