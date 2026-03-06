@@ -133,19 +133,19 @@ export function TaskItem({
                       <FileText className="h-3.5 w-3.5" />
                     </Button>}
                 </div>
-                {task.type === 'other' && task.title ? (
-                  <h4 className={`font-medium text-sm truncate ${task.completed ? 'line-through' : ''}`}>
+                {task.type === 'other' && task.title ?
+              <h4 className={`font-medium text-sm truncate ${task.completed ? 'line-through' : ''}`}>
                     {task.title}
-                  </h4>
-                ) : task.vehicleName ? (
-                  <h4 className={`font-medium text-sm truncate ${task.completed ? 'line-through' : ''}`}>
+                  </h4> :
+              task.vehicleName ?
+              <h4 className={`font-medium text-sm truncate ${task.completed ? 'line-through' : ''}`}>
                     {task.vehicleName}
-                  </h4>
-                ) : (
-                  <h4 className={`font-medium text-sm text-muted-foreground ${task.completed ? 'line-through' : ''}`}>
+                  </h4> :
+
+              <h4 className={`font-medium text-sm text-muted-foreground ${task.completed ? 'line-through' : ''}`}>
                     General Task
                   </h4>
-                )}
+              }
               </div>
               <div className="flex space-x-1 flex-shrink-0">
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsEditDialogOpen(true)}>
@@ -175,34 +175,34 @@ export function TaskItem({
               </p>}
 
             {/* Fuel & Payment - only for delivery/return tasks */}
-            {(task.type === 'delivery' || task.type === 'return') && (task.fuelLevel || task.paymentStatus) && (
-              <div className="space-y-1">
-                {task.fuelLevel && (
-                  <div className="flex items-center text-xs text-muted-foreground">
+            {(task.type === 'delivery' || task.type === 'return') && (task.fuelLevel || task.paymentStatus) &&
+          <div className="space-y-1">
+                {task.fuelLevel &&
+            <div className="flex items-center text-xs text-muted-foreground">
                     <Fuel className="h-3 w-3 mr-1" />
-                    <span>Fuel Level: {task.fuelLevel}</span>
+                    <span className="text-sm">Fuel Level: {task.fuelLevel}</span>
                   </div>
-                )}
-                {task.paymentStatus && (
-                  <div className="flex items-center text-xs text-muted-foreground">
+            }
+                {task.paymentStatus &&
+            <div className="flex items-center text-xs text-muted-foreground">
                     <CreditCard className="h-3 w-3 mr-1" />
-                    <span>{task.paymentStatus === 'paid_in_full' ? 'Paid in Full' : `Balance Due${task.balanceDueAmount ? ` (€${task.balanceDueAmount})` : ''}`}</span>
+                    <span className="text-sm">{task.paymentStatus === 'paid_in_full' ? 'Paid in Full' : `Balance Due${task.balanceDueAmount ? ` (€${task.balanceDueAmount})` : ''}`}</span>
                   </div>
-                )}
+            }
               </div>
-            )}
+          }
 
             {/* Additional Information - only for delivery/return tasks */}
-            {(task.type === 'delivery' || task.type === 'return') && task.additionalInfo && task.additionalInfo.length > 0 && (
-              <div className="space-y-1">
-                {task.additionalInfo.map((info, idx) => (
-                  <div key={idx} className="flex items-center text-xs text-muted-foreground">
+            {(task.type === 'delivery' || task.type === 'return') && task.additionalInfo && task.additionalInfo.length > 0 &&
+          <div className="space-y-1">
+                {task.additionalInfo.map((info, idx) =>
+            <div key={idx} className="flex items-center text-xs text-muted-foreground">
                     <Info className="h-3 w-3 mr-1" />
-                    <span>{info.categoryName}: {info.subcategoryValue}</span>
+                    <span className="text-sm">{info.categoryName}: {info.subcategoryValue}</span>
                   </div>
-                ))}
-              </div>
             )}
+              </div>
+          }
 
             {/* Complete Button */}
             <div className="flex justify-end pt-1">
@@ -218,18 +218,18 @@ export function TaskItem({
 
       {/* Full-resolution Contract Viewer */}
       <FilePreviewModal
-        open={isContractOpen}
-        onOpenChange={setIsContractOpen}
-        url={contractUrl}
-        fileType={contractUrl && contractUrl.split('?')[0].split('#')[0].toLowerCase().endsWith('.pdf') ? 'pdf' : 'image'}
-        title="Contract Document"
-        actions={
-          <Button variant="destructive" size="sm" onClick={() => setIsDeleteContractDialogOpen(true)} className="gap-2">
+      open={isContractOpen}
+      onOpenChange={setIsContractOpen}
+      url={contractUrl}
+      fileType={contractUrl && contractUrl.split('?')[0].split('#')[0].toLowerCase().endsWith('.pdf') ? 'pdf' : 'image'}
+      title="Contract Document"
+      actions={
+      <Button variant="destructive" size="sm" onClick={() => setIsDeleteContractDialogOpen(true)} className="gap-2">
             <Trash2 className="h-4 w-4" />
             Delete Contract
           </Button>
-        }
-      />
+      } />
+    
       {/* Delete Contract Confirmation */}
       <AlertDialog open={isDeleteContractDialogOpen} onOpenChange={setIsDeleteContractDialogOpen}>
         <AlertDialogContent>
