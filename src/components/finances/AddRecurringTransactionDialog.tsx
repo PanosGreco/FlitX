@@ -627,6 +627,17 @@ export function AddRecurringTransactionDialog({
                       />
                     </div>
                   )}
+
+                  {category === 'tax' && (
+                    <div className="space-y-2">
+                      <Label>{language === 'el' ? 'Τύπος Φόρου/Τέλους (προαιρετικό)' : 'Tax/Fee Type (optional)'}</Label>
+                      <Input
+                        value={expenseSubcategory}
+                        onChange={(e) => setExpenseSubcategory(e.target.value)}
+                        placeholder={language === 'el' ? 'π.χ. Φόρος Εισοδήματος, Τέλη Κυκλοφορίας...' : 'e.g. Income Tax, Road Tax...'}
+                      />
+                    </div>
+                  )}
                 </>
               )}
 
