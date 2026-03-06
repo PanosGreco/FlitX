@@ -1,101 +1,99 @@
 
 
-## Updated Plan: Analytics Line Graph — Cumulative Data & UI Corrections
+## Revised Plan: Automatic VAT / Income Tax Handling
 
-### Target File
-`src/components/finances/charts.tsx` — only the `LineChart` component and supporting functions. `BarChart`, `PieChart`, and `CategoryBreakdown` remain untouched.
+### Target Files
+- `src/hooks/useVatSettings.ts` (new) — localStorage-based VAT rate persistence
+- `src/components/finances/VatControl.tsx` (new) — reusable checkbox + rate input
+- `src/pages/Finance.tsx` — add VAT control to income form, auto-generate tax expense
+- `src/components/booking/UnifiedBookingDialog.tsx` — add VAT control below Additional Costs
+- `src/components/fleet/RentalBookingDialog.tsx` — add VAT control below Additional Costs
 
-### Confirmed: No Other Charts Affected
-- `BarChart` (line 205) uses `aggregateByTimeBuckets` — will continue to use it unchanged.
-- `PieChart` (line 388) uses `aggregateByCategory` — completely separate.
-- `CategoryBreakdown` (line 463) — unrelated display component.
-- The new `aggregateCumulative` function will only be called by `LineChart`.
-
----
-
-### Change 1 — Update `getTimeBuckets` with Adaptive Custom Range Scaling
-
-Current behavior (lines 71–102): `all` and `custom` only distinguish daily (≤31 days) vs monthly (>31 days).
-
-New behavior — replace the branching logic for `all` and `custom`:
-
-| Range Length | Bucket Type | Label Format |
-|---|---|---|
-| 1–31 days | Daily | `d MMM` |
-| 32–120 days | Weekly | `d MMM` (week start) |
-| 121 days – 12 months | Monthly | `MMM yy` |
-| `all` timeframe | Always monthly | `MMM yy` |
-
-Implementation: compute `daysDiff`, then call `eachDayOfInterval`, `eachWeekOfInterval`, or `eachMonthOfInterval` accordingly. For `all`, always use monthly.
+### No Database Changes
+The VAT rate is stored in `localStorage` (key: `fleetx_vat_rate`). No new tables, no schema modifications.
 
 ---
 
-### Change 2 — New `aggregateCumulative` Function
+### 1. VAT Rate Storage — `useVatSettings` Hook
 
-Create a new function that replaces `aggregateByTimeBuckets` for the LineChart only.
+New file: `src/hooks/useVatSettings.ts`
 
-Algorithm:
-```text
-buckets = getTimeBuckets(timeframe, lang, records)
+- Reads/writes `localStorage.getItem('fleetx_vat_rate')`
+- Returns `{ vatRate: number, setVatRate: (rate: number) => void }`
+- Default: `10` if no stored value
+- When user edits the rate and submits a form, the new rate is saved to localStorage automatically
 
-For each bucket at index i:
-  bucket_end = end of bucket's date (endOfDay for daily, end of week for weekly, end of month for monthly)
-  
-  income_total = SUM(all income records where record.date <= bucket_end)
-  expense_total = SUM(all expense records where record.date <= bucket_end)
-  netIncome = income_total - expense_total
+---
 
-  return { name: bucket.label, income: income_total, expenses: expense_total, netIncome }
+### 2. VAT UI Component — `VatControl`
+
+New file: `src/components/finances/VatControl.tsx`
+
+UI when unchecked:
+```
+☐ Apply VAT
 ```
 
-Key guarantees:
-- Uses `date <= bucket_end`, not "records inside bucket" — ensures correct cumulative totals regardless of bucket grouping.
-- If no new records exist for a bucket, cumulative totals equal the previous bucket's totals — lines stay flat/horizontal automatically since the SUM result is identical.
+UI when checked:
+```
+☑ Apply VAT
+Rate: [ 10 ] %
+```
+
+Props: `{ vatEnabled, onVatEnabledChange, vatRate, onVatRateChange }`
+
+The rate input only appears when the checkbox is enabled.
 
 ---
 
-### Change 3 — Remove All Sampling Logic from LineChart
+### 3. Integration — Finance.tsx (Analytics Add Record)
 
-Remove lines 283–292 (the `filter` calls that sample every 3rd day or every Nth point). Bucket grouping (daily/weekly/monthly) already controls point density — no sampling needed.
+When `recordType === 'income'`, render `<VatControl />` below the Notes field, before DialogFooter.
 
----
-
-### Change 4 — Rename "Revenue" → "Net Income"
-
-- Data key: `revenue` → `netIncome`
-- `getLineName`: `'revenue'` case → `'netIncome'`, label: `'Net Income'` / `'Καθαρό Εισόδημα'`
-- Empty state object: `revenue: 0` → `netIncome: 0`
-
----
-
-### Change 5 — Fix Line Colors
-
-| Line | Current | New |
-|---|---|---|
-| Income | `#f59e0b` (amber) | `#22c55e` (green) |
-| Expenses | `#ef4444` (red) | `#ef4444` (unchanged) |
-| Net Income | `#3b82f6` (blue) | `#3b82f6` (unchanged) |
+On submit, if VAT is enabled:
+1. Insert the income record as normal
+2. Calculate `vatAmount = amount * (vatRate / 100)`
+3. Insert a second record:
+   - `type: 'expense'`
+   - `category: 'tax'`
+   - `expense_subcategory: 'Income Tax'`
+   - `amount: vatAmount`
+   - `date: same as income`
+   - `description: 'Income Tax (VAT {rate}%) - auto'`
+   - `source_section: 'vat_auto'`
+   - `vehicle_id: same if applicable`
+4. Save the rate to localStorage
 
 ---
 
-### Change 6 — Fix Currency to Always Use €
+### 4. Integration — UnifiedBookingDialog
 
-- `formatYAxis` (line 197): always use `€` regardless of `lang`.
-- `LineChart` tooltip (line 332): always use `€`.
-- Format: `{value}€` (euro at end) for consistency with SOLD block.
+Render `<VatControl />` below the Additional Costs section.
 
----
-
-### Change 7 — Tooltip Reads Cumulative Data
-
-The tooltip formatter reads directly from the cumulative dataset produced by `aggregateCumulative`. Each data point already contains cumulative `income`, `expenses`, and `netIncome` — the tooltip simply displays these values with the `€` symbol. No additional calculation needed.
+On booking submit, if VAT is enabled:
+- VAT applies to the **total booking amount** (base rental + all additional costs)
+- `vatAmount = totalAmount * (vatRate / 100)`
+- Insert expense record with same fields as above, plus `booking_id`
 
 ---
 
-### What Does NOT Change
-- `BarChart` — keeps using `aggregateByTimeBuckets` with its own sampling
-- `PieChart` — keeps using `aggregateByCategory`
-- `CategoryBreakdown` — unchanged
-- Database schema, financial records, summary cards, transaction history
-- All other analytics components
+### 5. Integration — RentalBookingDialog
+
+Same pattern as UnifiedBookingDialog. VAT applies to the full `totalAmount` which already includes additional costs.
+
+---
+
+### 6. Anti-Recursion Guarantee
+
+All VAT auto-generated records use `source_section: 'vat_auto'`. The VAT checkbox only appears on income creation forms. Since auto-generated VAT records are expenses (not income), they can never trigger the VAT checkbox flow. There is no code path where an expense record could re-trigger VAT generation.
+
+---
+
+### 7. What Does NOT Change
+
+- Database schema — no new tables, no column changes
+- `financial_records` structure — only new rows inserted
+- Analytics aggregation, cumulative charts, expense breakdown
+- Transaction history display (VAT records appear naturally as tax expenses)
+- Category system, recurring transactions, existing booking logic
 
