@@ -91,6 +91,8 @@ export function UnifiedBookingDialog({
   const { insuranceTypes, fetchInsuranceTypes, findOrCreateInsuranceType } = useInsuranceTypes();
   const [addingNewInsuranceType, setAddingNewInsuranceType] = useState(false);
   const [newInsuranceTypeName, setNewInsuranceTypeName] = useState("");
+  const [vatEnabled, setVatEnabled] = useState(false);
+  const { vatRate, setVatRate } = useVatSettings();
   
   // Form state
   const [startDate, setStartDate] = useState<Date | undefined>(preselectedStartDate);
