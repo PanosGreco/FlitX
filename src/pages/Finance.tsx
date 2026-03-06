@@ -823,6 +823,70 @@ const Finance = () => {
                   />
                 </div>
               )}
+
+              {/* Taxes & Fees subcategory selector */}
+              {recordType === "expense" && expenseCategory === 'tax' && (
+                <div className="space-y-2">
+                  <Label>
+                    {language === 'el' ? 'Τύπος Φόρου/Τέλους' : 'Tax/Fee Type'}
+                  </Label>
+                  <Select 
+                    value={taxIsCustom ? '__new_tax__' : (expenseSubcategory || '')} 
+                    onValueChange={(val) => {
+                      if (val === '__new_tax__') {
+                        setTaxIsCustom(true);
+                        setCustomTaxType('');
+                        setExpenseSubcategory('');
+                      } else if (val.startsWith('__tax__:')) {
+                        const tax = val.replace('__tax__:', '');
+                        setTaxIsCustom(false);
+                        setCustomTaxType('');
+                        setExpenseSubcategory(tax);
+                      } else {
+                        setTaxIsCustom(false);
+                        setExpenseSubcategory(val);
+                      }
+                    }} 
+                    disabled={isLanguageLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={language === 'el' ? 'Επιλέξτε τύπο...' : 'Select type...'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {taxSubcategories.map(tax => (
+                          <SelectItem key={tax} value={`__tax__:${tax}`}>
+                            {tax}
+                          </SelectItem>
+                        ))}
+                        <SelectSeparator />
+                        <SelectItem value="__new_tax__" className="bg-muted/50 rounded-sm">
+                          {language === 'el' ? '+ Προσθήκη Νέου' : '+ Add New'}
+                        </SelectItem>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {/* Free-text input for new tax/fee type */}
+              {recordType === "expense" && expenseCategory === 'tax' && taxIsCustom && (
+                <div className="space-y-2">
+                  <Label>
+                    {language === 'el' ? 'Νέος Τύπος Φόρου/Τέλους' : 'New Tax/Fee Type'} *
+                  </Label>
+                  <Input
+                    placeholder={language === 'el' ? 'π.χ. Δημοτικός Φόρος, Τέλη Κυκλοφορίας...' : 'e.g. Municipal Tax, Road Tax...'}
+                    value={customTaxType}
+                    onChange={(e) => {
+                      setCustomTaxType(e.target.value);
+                      setExpenseSubcategory(e.target.value);
+                    }}
+                    required
+                    disabled={isLanguageLoading}
+                  />
+                </div>
+              )}
               
               {/* Vehicle Selector - Optional link to vehicle */}
               <div className="space-y-2">
