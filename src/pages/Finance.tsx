@@ -176,6 +176,7 @@ const Finance = () => {
     setDate(new Date().toISOString().substring(0, 10));
     setNotes("");
     setSelectedVehicleId("");
+    setVatEnabled(false);
   };
 
   // Get active (non-sold) vehicles for sale dropdown
