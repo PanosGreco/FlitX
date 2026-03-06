@@ -467,6 +467,25 @@ export function UnifiedBookingDialog({
         }
       }
 
+      // VAT auto-expense: applies to total booking amount (base + additional costs)
+      if (vatEnabled && vatRate > 0) {
+        const vatAmount = totalAmount * (vatRate / 100);
+        if (vatAmount > 0) {
+          await supabase.from('financial_records').insert({
+            user_id: user.id,
+            vehicle_id: selectedVehicleId,
+            booking_id: booking.id,
+            type: 'expense' as const,
+            category: 'tax',
+            expense_subcategory: 'Income Tax',
+            amount: vatAmount,
+            date: format(startDate, 'yyyy-MM-dd'),
+            description: `Income Tax (VAT ${vatRate}%) - auto`,
+            source_section: 'vat_auto',
+          });
+        }
+      }
+
       toast.success(language === 'el' ? `Κράτηση δημιουργήθηκε: €${totalAmount.toFixed(2)}` : `Booking created: €${totalAmount.toFixed(2)}`);
       resetForm();
       onSuccess();
