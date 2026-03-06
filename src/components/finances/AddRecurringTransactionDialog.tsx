@@ -544,7 +544,7 @@ export function AddRecurringTransactionDialog({
                         setExpenseSubcategory(spec);
                       } else {
                         setCategory(val);
-                        if (val !== 'maintenance' && val !== 'other' && val !== 'marketing') {
+                        if (val !== 'maintenance' && val !== 'other' && val !== 'marketing' && val !== 'tax') {
                           setExpenseSubcategory('');
                         }
                       }
