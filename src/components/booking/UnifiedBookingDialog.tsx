@@ -492,6 +492,7 @@ export function UnifiedBookingDialog({
     setPaymentStatus('paid_in_full'); setBalanceDueAmount(0); setFuelLevel("");
     setAdditionalInfoRows([{ categoryName: 'Insurance', subcategoryValue: '', isDefault: true }]);
     setVehicleSearch(""); setFuelTypeFilter([]); setVehicleTypeFilter([]); setTransmissionTypeFilter([]);
+    setVatEnabled(false);
   };
 
   const formContent = (
