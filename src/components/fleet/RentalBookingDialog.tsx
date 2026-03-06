@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 import { IncomeSourceSelector } from "@/components/finances/IncomeSourceSelector";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { validateFileSize, compressImage } from "@/utils/imageUtils";
+import { useVatSettings } from "@/hooks/useVatSettings";
+import { VatControl } from "@/components/finances/VatControl";
 
 interface AdditionalCost {
   id: string;
