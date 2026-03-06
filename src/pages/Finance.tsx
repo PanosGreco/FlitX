@@ -961,6 +961,16 @@ const Finance = () => {
                   disabled={isLanguageLoading}
                 />
               </div>
+
+              {/* VAT Control - only for income */}
+              {recordType === "income" && (
+                <VatControl
+                  vatEnabled={vatEnabled}
+                  onVatEnabledChange={setVatEnabled}
+                  vatRate={vatRate}
+                  onVatRateChange={setVatRate}
+                />
+              )}
               
               <DialogFooter>
                 <Button 
