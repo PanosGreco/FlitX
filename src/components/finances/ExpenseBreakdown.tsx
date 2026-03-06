@@ -91,6 +91,7 @@ const getParentCategory = (key: string): string => {
   if (key.startsWith('other_')) return 'other';
   if (key.startsWith('marketing_')) return 'marketing';
   if (key.startsWith('vehicle_parts_')) return 'vehicle_parts';
+  if (key.startsWith('tax_')) return 'tax';
   return key;
 };
 
@@ -246,6 +247,8 @@ export function ExpenseBreakdown({
         aggregationKey = `marketing_${record.expense_subcategory}`;
       } else if (baseCategory === 'vehicle_parts' && record.expense_subcategory) {
         aggregationKey = `vehicle_parts_${record.expense_subcategory}`;
+      } else if (baseCategory === 'tax' && record.expense_subcategory) {
+        aggregationKey = `tax_${record.expense_subcategory}`;
       }
       if (!categoryData[aggregationKey]) {
         categoryData[aggregationKey] = {
@@ -292,6 +295,10 @@ export function ExpenseBreakdown({
       } else if (key.startsWith('vehicle_parts_')) {
         const subcategory = key.replace('vehicle_parts_', '');
         const categoryLabel = EXPENSE_CATEGORY_LABELS['vehicle_parts']?.[lang === 'el' ? 'el' : 'en'] || 'Vehicle Parts';
+        label = `${categoryLabel} (${subcategory})`;
+      } else if (key.startsWith('tax_')) {
+        const subcategory = key.replace('tax_', '');
+        const categoryLabel = EXPENSE_CATEGORY_LABELS['tax']?.[lang === 'el' ? 'el' : 'en'] || 'Taxes';
         label = `${categoryLabel} (${subcategory})`;
       } else {
         label = EXPENSE_CATEGORY_LABELS[key]?.[lang === 'el' ? 'el' : 'en'] || key;

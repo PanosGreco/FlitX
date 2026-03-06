@@ -544,7 +544,7 @@ export function AddRecurringTransactionDialog({
                         setExpenseSubcategory(spec);
                       } else {
                         setCategory(val);
-                        if (val !== 'maintenance' && val !== 'other' && val !== 'marketing') {
+                        if (val !== 'maintenance' && val !== 'other' && val !== 'marketing' && val !== 'tax') {
                           setExpenseSubcategory('');
                         }
                       }
@@ -624,6 +624,17 @@ export function AddRecurringTransactionDialog({
                         value={expenseSubcategory}
                         onChange={(e) => setExpenseSubcategory(e.target.value)}
                         placeholder={language === 'el' ? 'π.χ. Social Media, Google Ads...' : 'e.g. Social Media, Google Ads...'}
+                      />
+                    </div>
+                  )}
+
+                  {category === 'tax' && (
+                    <div className="space-y-2">
+                      <Label>{language === 'el' ? 'Τύπος Φόρου/Τέλους (προαιρετικό)' : 'Tax/Fee Type (optional)'}</Label>
+                      <Input
+                        value={expenseSubcategory}
+                        onChange={(e) => setExpenseSubcategory(e.target.value)}
+                        placeholder={language === 'el' ? 'π.χ. Φόρος Εισοδήματος, Τέλη Κυκλοφορίας...' : 'e.g. Income Tax, Road Tax...'}
                       />
                     </div>
                   )}
