@@ -420,7 +420,30 @@ const Finance = () => {
           }
         }
 
-        toast({
+        // VAT auto-expense: create a separate tax expense when VAT is enabled on income
+        if (recordType === "income" && vatEnabled && vatRate > 0) {
+          const vatAmount = parseFloat(amount) * (vatRate / 100);
+          if (vatAmount > 0) {
+            const { error: vatError } = await supabase
+              .from('financial_records')
+              .insert({
+                user_id: session.session.user.id,
+                type: 'expense' as const,
+                category: 'tax',
+                expense_subcategory: 'Income Tax',
+                amount: vatAmount,
+                date: date,
+                description: `Income Tax (VAT ${vatRate}%) - auto`,
+                source_section: 'vat_auto',
+                vehicle_id: selectedVehicleId || null,
+              });
+
+            if (vatError) {
+              console.error("Error creating VAT expense record:", vatError);
+            }
+          }
+        }
+
           title: language === 'el' ? "Επιτυχία" : "Record Added",
           description: language === 'el'
             ? `Προστέθηκε νέα εγγραφή ${recordType === "income" ? "εσόδων" : "εξόδων"}`
