@@ -573,12 +573,16 @@ const Finance = () => {
                       setCustomVehiclePart('');
                     } else {
                       setExpenseCategory(val);
-                      if (val !== 'maintenance' && val !== 'other' && val !== 'marketing' && val !== 'vehicle_parts') {
+                      if (val !== 'maintenance' && val !== 'other' && val !== 'marketing' && val !== 'vehicle_parts' && val !== 'tax') {
                         setExpenseSubcategory('');
                       }
                       if (val !== 'vehicle_parts') {
                         setVehiclePartsIsCustom(false);
                         setCustomVehiclePart('');
+                      }
+                      if (val !== 'tax') {
+                        setTaxIsCustom(false);
+                        setCustomTaxType('');
                       }
                     }
                   }} disabled={isLanguageLoading}>
