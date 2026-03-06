@@ -362,7 +362,7 @@ const Finance = () => {
       
       // Add expense subcategory
       if (recordType === "expense") {
-        if (expenseCategory === 'maintenance' || expenseCategory === 'other' || expenseCategory === 'marketing' || expenseCategory === 'vehicle_parts') {
+        if (expenseCategory === 'maintenance' || expenseCategory === 'other' || expenseCategory === 'marketing' || expenseCategory === 'vehicle_parts' || expenseCategory === 'tax') {
           newRecord.expense_subcategory = expenseSubcategory || null;
         }
       }
