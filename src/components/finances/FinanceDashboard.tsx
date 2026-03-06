@@ -258,6 +258,11 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         return `${prefix} – ${record.expense_subcategory}`;
       }
       
+      // For tax expenses with subcategory - show structured
+      if (record.category === 'tax' && record.expense_subcategory) {
+        return `${prefix} · ${categoryLabel} · ${record.expense_subcategory}`;
+      }
+      
       if (record.expense_subcategory) {
         return `${prefix} – ${categoryLabel} (${record.expense_subcategory})`;
       }
