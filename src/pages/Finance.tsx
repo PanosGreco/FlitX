@@ -61,6 +61,8 @@ const Finance = () => {
   const [date, setDate] = useState(new Date().toISOString().substring(0, 10));
   const [notes, setNotes] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
+  const [vatEnabled, setVatEnabled] = useState(false);
+  const { vatRate, setVatRate } = useVatSettings();
   const [vehicles, setVehicles] = useState<Array<{id: string; make: string; model: string; year: number; fuel_type?: string}>>([]);
   const [financialRecords, setFinancialRecords] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
