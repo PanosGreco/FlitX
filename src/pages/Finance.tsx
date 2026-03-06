@@ -670,7 +670,7 @@ const Finance = () => {
                           </SelectItem>
                         ))}
                         <SelectItem value="other" className="bg-muted/50 rounded-sm">
-                          {language === 'el' ? 'Άλλο' : 'Other'}
+                          {language === 'el' ? '+ Προσθήκη Νέου' : '+ Add New'}
                         </SelectItem>
                       </SelectGroup>
                       {userMaintenanceCategories.length > 0 && (
