@@ -428,6 +428,7 @@ const Finance = () => {
         refetchMaintenanceCategories();
         refetchExpenseCategories();
         refetchVehiclePartsCategories();
+        refetchTaxCategories();
       }
     } catch (error) {
       console.error("Exception adding financial record:", error);
