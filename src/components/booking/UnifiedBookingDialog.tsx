@@ -868,6 +868,14 @@ export function UnifiedBookingDialog({
                 </div>
               )}
 
+              {/* VAT Control */}
+              <VatControl
+                vatEnabled={vatEnabled}
+                onVatEnabledChange={setVatEnabled}
+                vatRate={vatRate}
+                onVatRateChange={setVatRate}
+              />
+
               {/* Analytical Price Breakdown */}
               <div className="pt-3 border-t space-y-1">
                 {pricingMode === 'custom' ? (
