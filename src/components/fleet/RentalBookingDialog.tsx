@@ -450,6 +450,7 @@ export function RentalBookingDialog({
       setAdditionalCosts([]);
       setIncomeSourceType('walk_in');
       setIncomeSourceSpecification('');
+      setVatEnabled(false);
       
     } catch (error) {
       console.error('Error creating booking:', error);
