@@ -444,6 +444,7 @@ const Finance = () => {
           }
         }
 
+        toast({
           title: language === 'el' ? "Επιτυχία" : "Record Added",
           description: language === 'el'
             ? `Προστέθηκε νέα εγγραφή ${recordType === "income" ? "εσόδων" : "εξόδων"}`
