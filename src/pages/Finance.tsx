@@ -35,6 +35,7 @@ import { getMaintenanceTypeOptions, getMaintenanceTypeLabel } from "@/constants/
 import { useMaintenanceCategories } from "@/hooks/useMaintenanceCategories";
 import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { useVehiclePartsCategories } from "@/hooks/useVehiclePartsCategories";
+import { useTaxesFeesCategories } from "@/hooks/useTaxesFeesCategories";
 
 const Finance = () => {
   const [isAddFinanceOpen, setIsAddFinanceOpen] = useState(false);
