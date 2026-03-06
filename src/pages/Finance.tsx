@@ -36,6 +36,8 @@ import { useMaintenanceCategories } from "@/hooks/useMaintenanceCategories";
 import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { useVehiclePartsCategories } from "@/hooks/useVehiclePartsCategories";
 import { useTaxesFeesCategories } from "@/hooks/useTaxesFeesCategories";
+import { useVatSettings } from "@/hooks/useVatSettings";
+import { VatControl } from "@/components/finances/VatControl";
 
 const Finance = () => {
   const [isAddFinanceOpen, setIsAddFinanceOpen] = useState(false);
