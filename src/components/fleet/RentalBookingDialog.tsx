@@ -406,6 +406,25 @@ export function RentalBookingDialog({
         }
       }
 
+      // VAT auto-expense: applies to total booking amount (base + additional costs)
+      if (vatEnabled && vatRate > 0) {
+        const vatAmount = totalAmount * (vatRate / 100);
+        if (vatAmount > 0) {
+          await supabase.from('financial_records').insert({
+            user_id: session.session.user.id,
+            vehicle_id: vehicleId,
+            booking_id: booking.id,
+            type: 'expense' as const,
+            category: 'tax',
+            expense_subcategory: 'Income Tax',
+            amount: vatAmount,
+            date: format(startDate, 'yyyy-MM-dd'),
+            description: `Income Tax (VAT ${vatRate}%) - auto`,
+            source_section: 'vat_auto',
+          });
+        }
+      }
+
       toast({
         title: "Booking Created",
         description: `Rental booked: $${totalAmount.toFixed(2)}. Tasks added to Daily Program.`,
