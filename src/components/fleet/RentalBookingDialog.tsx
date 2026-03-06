@@ -723,6 +723,14 @@ export function RentalBookingDialog({
               </div>
             )}
 
+            {/* VAT Control */}
+            <VatControl
+              vatEnabled={vatEnabled}
+              onVatEnabledChange={setVatEnabled}
+              vatRate={vatRate}
+              onVatRateChange={setVatRate}
+            />
+
             {/* Total Summary */}
             {rentalDays > 0 && (
               <div className="pt-3 border-t space-y-1">
