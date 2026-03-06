@@ -164,6 +164,8 @@ const Finance = () => {
     setCustomMaintenanceType("");
     setVehiclePartsIsCustom(false);
     setCustomVehiclePart("");
+    setTaxIsCustom(false);
+    setCustomTaxType("");
     setIncomeSourceType("walk_in");
     setIncomeSourceSpecification("");
     setAmount("");
