@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { BarChart, LineChart } from "@/components/finances/charts";
 import { IncomeBreakdown } from "@/components/finances/IncomeBreakdown";
 import { ExpenseBreakdown } from "@/components/finances/ExpenseBreakdown";
+import { AssetTrackingWidget } from "@/components/finances/AssetTrackingWidget";
 import { differenceInDays } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { getMaintenanceTypeLabel } from "@/constants/maintenanceTypes";
