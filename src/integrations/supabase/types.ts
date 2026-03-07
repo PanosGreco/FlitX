@@ -741,6 +741,77 @@ export type Database = {
           },
         ]
       }
+      user_asset_categories: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_vehicle_category: boolean | null
+          name: string
+          sort_order: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_vehicle_category?: boolean | null
+          name: string
+          sort_order?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_vehicle_category?: boolean | null
+          name?: string
+          sort_order?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_assets: {
+        Row: {
+          asset_name: string
+          asset_value: number
+          category_id: string
+          created_at: string | null
+          id: string
+          sort_order: number | null
+          updated_at: string | null
+          user_id: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          asset_name: string
+          asset_value?: number
+          category_id: string
+          created_at?: string | null
+          id?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          asset_name?: string
+          asset_value?: number
+          category_id?: string
+          created_at?: string | null
+          id?: string
+          sort_order?: number | null
+          updated_at?: string | null
+          user_id?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_assets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "user_asset_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_notes: {
         Row: {
           content: string

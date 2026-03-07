@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { BarChart, LineChart } from "@/components/finances/charts";
 import { IncomeBreakdown } from "@/components/finances/IncomeBreakdown";
 import { ExpenseBreakdown } from "@/components/finances/ExpenseBreakdown";
+import { AssetTrackingWidget } from "@/components/finances/AssetTrackingWidget";
 import { differenceInDays } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { getMaintenanceTypeLabel } from "@/constants/maintenanceTypes";
@@ -639,6 +640,9 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         timeframe={timeframe}
         vehicleProfitRanking={vehicleProfitRanking}
       />
+
+      {/* Asset Tracking Widget */}
+      <AssetTrackingWidget />
         
       {/* Transactions - Global list, independent of date filters */}
       <Card>
