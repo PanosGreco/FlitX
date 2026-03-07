@@ -639,6 +639,9 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         timeframe={timeframe}
         vehicleProfitRanking={vehicleProfitRanking}
       />
+
+      {/* Asset Tracking Widget */}
+      <AssetTrackingWidget />
         
       {/* Transactions - Global list, independent of date filters */}
       <Card>
