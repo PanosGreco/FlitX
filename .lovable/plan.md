@@ -1,101 +1,137 @@
 
 
-## Updated Plan: Analytics Line Graph — Cumulative Data & UI Corrections
+## Implementation Plan — Asset Tracking Widget (Revised)
 
-### Target File
-`src/components/finances/charts.tsx` — only the `LineChart` component and supporting functions. `BarChart`, `PieChart`, and `CategoryBreakdown` remain untouched.
+### Database — Two New Tables
 
-### Confirmed: No Other Charts Affected
-- `BarChart` (line 205) uses `aggregateByTimeBuckets` — will continue to use it unchanged.
-- `PieChart` (line 388) uses `aggregateByCategory` — completely separate.
-- `CategoryBreakdown` (line 463) — unrelated display component.
-- The new `aggregateCumulative` function will only be called by `LineChart`.
+**Table 1: `user_asset_categories`** — Explicit category storage
 
----
-
-### Change 1 — Update `getTimeBuckets` with Adaptive Custom Range Scaling
-
-Current behavior (lines 71–102): `all` and `custom` only distinguish daily (≤31 days) vs monthly (>31 days).
-
-New behavior — replace the branching logic for `all` and `custom`:
-
-| Range Length | Bucket Type | Label Format |
-|---|---|---|
-| 1–31 days | Daily | `d MMM` |
-| 32–120 days | Weekly | `d MMM` (week start) |
-| 121 days – 12 months | Monthly | `MMM yy` |
-| `all` timeframe | Always monthly | `MMM yy` |
-
-Implementation: compute `daysDiff`, then call `eachDayOfInterval`, `eachWeekOfInterval`, or `eachMonthOfInterval` accordingly. For `all`, always use monthly.
-
----
-
-### Change 2 — New `aggregateCumulative` Function
-
-Create a new function that replaces `aggregateByTimeBuckets` for the LineChart only.
-
-Algorithm:
-```text
-buckets = getTimeBuckets(timeframe, lang, records)
-
-For each bucket at index i:
-  bucket_end = end of bucket's date (endOfDay for daily, end of week for weekly, end of month for monthly)
-  
-  income_total = SUM(all income records where record.date <= bucket_end)
-  expense_total = SUM(all expense records where record.date <= bucket_end)
-  netIncome = income_total - expense_total
-
-  return { name: bucket.label, income: income_total, expenses: expense_total, netIncome }
+```sql
+CREATE TABLE public.user_asset_categories (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  name text NOT NULL,
+  sort_order integer DEFAULT 0,
+  is_vehicle_category boolean DEFAULT false,
+  created_at timestamptz DEFAULT now()
+);
+-- RLS: standard user-scoped SELECT, INSERT, UPDATE, DELETE
 ```
 
-Key guarantees:
-- Uses `date <= bucket_end`, not "records inside bucket" — ensures correct cumulative totals regardless of bucket grouping.
-- If no new records exist for a bucket, cumulative totals equal the previous bucket's totals — lines stay flat/horizontal automatically since the SUM result is identical.
+**Table 2: `user_assets`** — Individual asset entries
+
+```sql
+CREATE TABLE public.user_assets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  category_id uuid NOT NULL REFERENCES public.user_asset_categories(id) ON DELETE CASCADE,
+  asset_name text NOT NULL,
+  asset_value numeric NOT NULL DEFAULT 0,
+  vehicle_id uuid DEFAULT NULL,
+  sort_order integer DEFAULT 0,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now()
+);
+-- RLS: standard user-scoped SELECT, INSERT, UPDATE, DELETE
+```
+
+This ensures categories persist independently of assets, support ordering, and are future-proof for metadata.
 
 ---
 
-### Change 3 — Remove All Sampling Logic from LineChart
+### New Files
 
-Remove lines 283–292 (the `filter` calls that sample every 3rd day or every Nth point). Bucket grouping (daily/weekly/monthly) already controls point density — no sampling needed.
+**`src/hooks/useUserAssets.ts`** — CRUD hook:
+- `fetchCategories()` / `fetchAssets()` — load all for current user
+- `upsertCategory(name)` — create or update category
+- `upsertAsset(asset)` — insert or update asset row
+- `deleteAsset(id)` — remove single asset
+- `deleteCategory(id)` — removes category (cascade deletes its assets)
 
----
-
-### Change 4 — Rename "Revenue" → "Net Income"
-
-- Data key: `revenue` → `netIncome`
-- `getLineName`: `'revenue'` case → `'netIncome'`, label: `'Net Income'` / `'Καθαρό Εισόδημα'`
-- Empty state object: `revenue: 0` → `netIncome: 0`
-
----
-
-### Change 5 — Fix Line Colors
-
-| Line | Current | New |
-|---|---|---|
-| Income | `#f59e0b` (amber) | `#22c55e` (green) |
-| Expenses | `#ef4444` (red) | `#ef4444` (unchanged) |
-| Net Income | `#3b82f6` (blue) | `#3b82f6` (unchanged) |
+**`src/components/finances/AssetTrackingWidget.tsx`** — Main widget:
+- Fetches `user_asset_categories` and `user_assets` for the user
+- Fetches `vehicles` table to auto-populate vehicle sections
+- Renders category sections as table groups with visual dividers
 
 ---
 
-### Change 6 — Fix Currency to Always Use €
+### Vehicle Auto-Population Logic
 
-- `formatYAxis` (line 197): always use `€` regardless of `lang`.
-- `LineChart` tooltip (line 332): always use `€`.
-- Format: `{value}€` (euro at end) for consistency with SOLD block.
+Vehicles are the **source of truth** for vehicle rows — NOT `user_assets`.
+
+1. Query `vehicles` for the current user, group by `vehicle_type`
+2. For each vehicle type group, find or auto-create a corresponding `user_asset_categories` row (with `is_vehicle_category = true`) on first widget load
+3. Display every vehicle as a row: `{make} {model} {year}` | value input
+4. Value comes from matching `user_assets` row (by `vehicle_id`); if none exists, show empty input
+5. On value entry, upsert into `user_assets` with the `vehicle_id` link
+6. Vehicle names are read-only (derived from fleet); only value is editable
+7. Vehicles always appear even with no value entered
 
 ---
 
-### Change 7 — Tooltip Reads Cumulative Data
+### Custom Categories & Assets
 
-The tooltip formatter reads directly from the cumulative dataset produced by `aggregateCumulative`. Each data point already contains cumulative `income`, `expenses`, and `netIncome` — the tooltip simply displays these values with the `€` symbol. No additional calculation needed.
+- "Add Category" button at widget bottom → text input for name → inserts into `user_asset_categories`
+- "Add Asset" button per category → adds row with editable name + value inputs
+- Delete buttons (trash icon, ghost variant) for individual assets and entire categories
+- Edits persist via debounced upserts to `user_assets`
+
+---
+
+### Calculations (Client-Side)
+
+- Category total = `SUM(asset_value)` for all assets in that category (including vehicle rows with values)
+- Total Assets = sum of all category totals
+- Totals update instantly on value change
+
+---
+
+### UI Design
+
+```text
+────────────────────────────────────
+CARS
+────────────────────────────────────
+Asset Name              │  Value (€)
+BMW X3 2020             │   €28,000
+Audi A4 2019            │   €24,000
+                Total Cars   €52,000
+
+────────────────────────────────────
+HELMETS
+────────────────────────────────────
+Shoei NXR               │      €400
+Arai Profile-V          │      €500
+              Total Helmets     €900
+                    [+ Add Asset]
+
+════════════════════════════════════
+        TOTAL ASSETS      €52,900
+════════════════════════════════════
+                  [+ Add Category]
+```
+
+- Card-based layout matching existing widgets
+- Category headers: bold text, `bg-muted/50` background, `Separator` dividers between sections
+- Values: right-aligned, formatted with `€` symbol and thousand separators (e.g., `€28,000`)
+- Category totals: bold row at section bottom
+- Final total: emphasized summary row with larger/bolder font
+- Delete: ghost trash button, visible on hover
+- Categories display in `sort_order` (defaulting to creation order)
+
+---
+
+### Integration Point
+
+**`src/components/finances/FinanceDashboard.tsx`** — line ~641, insert `<AssetTrackingWidget />` between `<ExpenseBreakdown />` and the Transactions `<Card>`.
 
 ---
 
 ### What Does NOT Change
-- `BarChart` — keeps using `aggregateByTimeBuckets` with its own sampling
-- `PieChart` — keeps using `aggregateByCategory`
-- `CategoryBreakdown` — unchanged
-- Database schema, financial records, summary cards, transaction history
-- All other analytics components
+
+- `financial_records` table and all financial logic
+- Income/expense analytics, charts, cumulative graphs
+- Transaction history
+- Category/subcategory systems for expenses/income
+- Currency formatting elsewhere in the app
 
