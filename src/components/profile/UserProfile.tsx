@@ -351,7 +351,7 @@ export function UserProfile() {
 
                     <div className="space-y-2">
                       <Label htmlFor="phone">{t.personalInfo.phone}</Label>
-                      <Input
+                      <AutoSizeInput
                         id="phone"
                         type="tel"
                         value={phone}
