@@ -217,6 +217,10 @@ const Fleet = () => {
     if (vehicleType === 'atv') {
       return 'atv';
     }
+    // For types with no predefined categories, customCategory is always used
+    if (VEHICLE_CATEGORIES[vehicleType]?.length === 0 && customCategory.trim()) {
+      return normalizeCategory(customCategory);
+    }
     if (isCustomCategory && customCategory.trim()) {
       return normalizeCategory(customCategory);
     }
@@ -386,34 +390,47 @@ const Fleet = () => {
                 </Select>
               </div>
 
-              {/* Vehicle Category - Dynamic based on type */}
+              {/* Vehicle Category - Universal for all types except ATV */}
               {vehicleType !== 'atv' && (
                 <div className="space-y-1">
                   <Label htmlFor="vehicleCategory">
                     {language === 'el' ? 'Κατηγορία' : 'Category'}
                   </Label>
                   {!isCustomCategory ? (
-                    <Select 
-                      disabled={isLanguageLoading || isSubmitting}
-                      value={vehicleCategory}
-                      onValueChange={handleCategoryChange}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={language === 'el' ? 'Επιλέξτε κατηγορία...' : 'Select category...'} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          {VEHICLE_CATEGORIES[vehicleType].map((cat) => (
-                            <SelectItem key={cat.value} value={cat.value}>
-                              {cat.label[language === 'el' ? 'el' : 'en']}
+                    VEHICLE_CATEGORIES[vehicleType]?.length > 0 ? (
+                      <Select 
+                        disabled={isLanguageLoading || isSubmitting}
+                        value={vehicleCategory}
+                        onValueChange={handleCategoryChange}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={language === 'el' ? 'Επιλέξτε κατηγορία...' : 'Select category...'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {VEHICLE_CATEGORIES[vehicleType].map((cat) => (
+                              <SelectItem key={cat.value} value={cat.value}>
+                                {cat.label[language === 'el' ? 'el' : 'en']}
+                              </SelectItem>
+                            ))}
+                            <SelectItem value="custom" className="text-muted-foreground italic">
+                              {language === 'el' ? 'Προσαρμοσμένη κατηγορία...' : 'Custom Category...'}
                             </SelectItem>
-                          ))}
-                          <SelectItem value="custom" className="text-muted-foreground italic">
-                            {language === 'el' ? 'Προσαρμοσμένη κατηγορία...' : 'Custom Category...'}
-                          </SelectItem>
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      // No predefined categories - show custom input directly with option to use it
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder={language === 'el' ? 'π.χ. BKJH' : 'e.g. BKJH'}
+                          value={customCategory}
+                          onChange={(e) => setCustomCategory(e.target.value)}
+                          disabled={isLanguageLoading || isSubmitting}
+                          className="flex-1"
+                        />
+                      </div>
+                    )
                   ) : (
                     <div className="flex gap-2">
                       <Input 
@@ -439,6 +456,32 @@ const Fleet = () => {
                   )}
                 </div>
               )}
+
+              {/* Make & Model - Primary Identification Fields */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="make">{t.make}</Label>
+                  <Input 
+                    id="make" 
+                    placeholder="e.g. Toyota" 
+                    required 
+                    disabled={isLanguageLoading || isSubmitting}
+                    value={make}
+                    onChange={(e) => setMake(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="model">{t.model}</Label>
+                  <Input 
+                    id="model" 
+                    placeholder="e.g. Corolla" 
+                    required 
+                    disabled={isLanguageLoading || isSubmitting}
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                  />
+                </div>
+              </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
@@ -501,54 +544,29 @@ const Fleet = () => {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="passengerCapacity">{language === 'el' ? 'Αριθμός Επιβατών' : 'Number of People'}</Label>
-                  <Select 
-                    disabled={isLanguageLoading || isSubmitting}
-                    value={passengerCapacity}
-                    onValueChange={setPassengerCapacity}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={language === 'el' ? 'Επιλέξτε...' : 'Select...'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectItem value="1">1</SelectItem>
-                        <SelectItem value="2">2</SelectItem>
-                        <SelectItem value="3">3</SelectItem>
-                        <SelectItem value="4">4</SelectItem>
-                        <SelectItem value="5">5</SelectItem>
-                        <SelectItem value="6">6</SelectItem>
-                        <SelectItem value="7">7+</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="make">{t.make}</Label>
-                  <Input 
-                    id="make" 
-                    placeholder="e.g. Toyota" 
-                    required 
-                    disabled={isLanguageLoading || isSubmitting}
-                    value={make}
-                    onChange={(e) => setMake(e.target.value)}
-                  />
-                </div>
-              </div>
-
+              {/* Passengers */}
               <div className="space-y-1">
-                <Label htmlFor="model">{t.model}</Label>
-                <Input 
-                  id="model" 
-                  placeholder="e.g. Corolla" 
-                  required 
+                <Label htmlFor="passengerCapacity">{language === 'el' ? 'Αριθμός Επιβατών' : 'Number of People'}</Label>
+                <Select 
                   disabled={isLanguageLoading || isSubmitting}
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                />
+                  value={passengerCapacity}
+                  onValueChange={setPassengerCapacity}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={language === 'el' ? 'Επιλέξτε...' : 'Select...'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="1">1</SelectItem>
+                      <SelectItem value="2">2</SelectItem>
+                      <SelectItem value="3">3</SelectItem>
+                      <SelectItem value="4">4</SelectItem>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="6">6</SelectItem>
+                      <SelectItem value="7">7+</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="grid grid-cols-2 gap-3">

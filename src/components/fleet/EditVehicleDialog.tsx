@@ -160,6 +160,10 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     if (vehicleType === 'atv') {
       return 'atv';
     }
+    // For types with no predefined categories, customCategory is always used
+    if (VEHICLE_CATEGORIES[vehicleType]?.length === 0 && customCategory.trim()) {
+      return normalizeCategory(customCategory);
+    }
     if (isCustomCategory && customCategory.trim()) {
       return normalizeCategory(customCategory);
     }
@@ -293,30 +297,42 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
             </Select>
           </div>
 
-          {/* Vehicle Category - Dynamic */}
+          {/* Vehicle Category - Universal for all types except ATV */}
           {vehicleType !== 'atv' && (
             <div className="space-y-2">
               <Label htmlFor="vehicle-category">
                 {language === 'el' ? 'Κατηγορία' : 'Category'}
               </Label>
               {!isCustomCategory ? (
-                <Select value={vehicleCategory} onValueChange={handleCategoryChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={language === 'el' ? 'Επιλέξτε κατηγορία...' : 'Select category...'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {VEHICLE_CATEGORIES[vehicleType].map((cat) => (
-                        <SelectItem key={cat.value} value={cat.value}>
-                          {cat.label[language === 'el' ? 'el' : 'en']}
+                VEHICLE_CATEGORIES[vehicleType]?.length > 0 ? (
+                  <Select value={vehicleCategory} onValueChange={handleCategoryChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder={language === 'el' ? 'Επιλέξτε κατηγορία...' : 'Select category...'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {VEHICLE_CATEGORIES[vehicleType].map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label[language === 'el' ? 'el' : 'en']}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="custom" className="text-muted-foreground italic">
+                          {language === 'el' ? 'Προσαρμοσμένη κατηγορία...' : 'Custom Category...'}
                         </SelectItem>
-                      ))}
-                      <SelectItem value="custom" className="text-muted-foreground italic">
-                        {language === 'el' ? 'Προσαρμοσμένη κατηγορία...' : 'Custom Category...'}
-                      </SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  // No predefined categories - show custom input directly
+                  <div className="flex gap-2">
+                    <Input 
+                      placeholder={language === 'el' ? 'π.χ. BKJH' : 'e.g. BKJH'}
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                )
               ) : (
                 <div className="flex gap-2">
                   <Input 

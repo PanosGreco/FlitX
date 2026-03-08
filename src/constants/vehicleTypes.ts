@@ -1,6 +1,6 @@
 // Vehicle Type & Category Constants
 // Top-level vehicle types
-export const VEHICLE_TYPES = ['car', 'motorbike', 'atv'] as const;
+export const VEHICLE_TYPES = ['car', 'van', 'truck', 'motorbike', 'atv', 'snowmobile', 'camper', 'bicycle', 'jet_ski'] as const;
 export type VehicleType = typeof VEHICLE_TYPES[number];
 
 // Vehicle category options based on vehicle type
@@ -10,9 +10,12 @@ export const VEHICLE_CATEGORIES: Record<VehicleType, { value: string; label: { e
     { value: 'suv', label: { en: 'SUV', el: 'SUV' } },
     { value: 'economy', label: { en: 'Economy', el: 'Οικονομικό' } },
     { value: 'luxury', label: { en: 'Luxury', el: 'Πολυτελές' } },
-    { value: 'van', label: { en: 'Van', el: 'Βαν' } },
-    { value: 'truck', label: { en: 'Truck', el: 'Φορτηγό' } },
+    { value: 'hatchback', label: { en: 'Hatchback', el: 'Χάτσμπακ' } },
+    { value: 'coupe', label: { en: 'Coupe', el: 'Κουπέ' } },
+    { value: 'convertible', label: { en: 'Convertible', el: 'Κάμπριο' } },
   ],
+  van: [], // Custom subcategories only
+  truck: [], // Custom subcategories only
   motorbike: [
     { value: '50cc', label: { en: '50cc', el: '50cc' } },
     { value: '125cc', label: { en: '125cc', el: '125cc' } },
@@ -20,13 +23,30 @@ export const VEHICLE_CATEGORIES: Record<VehicleType, { value: string; label: { e
     { value: 'touring_sport', label: { en: 'Touring / Sport', el: 'Touring / Sport' } },
   ],
   atv: [], // ATV has no subcategories - the category is simply "ATV"
+  snowmobile: [
+    { value: 'touring', label: { en: 'Touring', el: 'Touring' } },
+    { value: 'mountain', label: { en: 'Mountain', el: 'Ορεινό' } },
+    { value: 'utility', label: { en: 'Utility', el: 'Utility' } },
+  ],
+  camper: [], // Custom subcategories only
+  bicycle: [], // Custom subcategories only
+  jet_ski: [
+    { value: 'recreational', label: { en: 'Recreational', el: 'Ψυχαγωγικό' } },
+    { value: 'performance', label: { en: 'Performance', el: 'Αγωνιστικό' } },
+  ],
 };
 
 // Labels for vehicle types
 export const VEHICLE_TYPE_LABELS: Record<VehicleType, { en: string; el: string }> = {
   car: { en: 'Car', el: 'Αυτοκίνητο' },
+  van: { en: 'Van', el: 'Βαν' },
+  truck: { en: 'Truck', el: 'Φορτηγό' },
   motorbike: { en: 'Motorbike', el: 'Μοτοσυκλέτα' },
   atv: { en: 'ATV', el: 'ATV' },
+  snowmobile: { en: 'Snowmobile', el: 'Snowmobile' },
+  camper: { en: 'Camper', el: 'Τροχόσπιτο' },
+  bicycle: { en: 'Bicycle', el: 'Ποδήλατο' },
+  jet_ski: { en: 'Jet Ski', el: 'Jet Ski' },
 };
 
 // Map category to its parent vehicle type

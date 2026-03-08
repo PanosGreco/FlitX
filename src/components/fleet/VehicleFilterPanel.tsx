@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronDown, ChevronUp, Car, Bike } from "lucide-react";
+import { ChevronDown, ChevronUp, Car, Bike, Truck, Snowflake, Waves, Tent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,6 +25,22 @@ import {
   VehicleType 
 } from "@/constants/vehicleTypes";
 import { TRANSMISSION_TYPES, TRANSMISSION_TYPE_LABELS } from "@/constants/transmissionTypes";
+
+// Icon mapping for vehicle types
+const getVehicleIcon = (type: VehicleType) => {
+  switch (type) {
+    case 'car': return Car;
+    case 'van': return Truck;
+    case 'truck': return Truck;
+    case 'motorbike': return Bike;
+    case 'atv': return Car;
+    case 'snowmobile': return Snowflake;
+    case 'camper': return Tent;
+    case 'bicycle': return Bike;
+    case 'jet_ski': return Waves;
+    default: return Car;
+  }
+};
 
 export interface VehicleFilters {
   yearSort: 'asc' | 'desc' | null;
@@ -217,20 +233,22 @@ export function VehicleFilterPanel({
             <Label className="text-xs text-muted-foreground">
               {language === 'el' ? 'Τύπος Οχήματος' : 'Vehicle Type'}
             </Label>
-            <div className="flex gap-2">
-              {VEHICLE_TYPES.map(type => (
-                <Button
-                  key={type}
-                  variant={filters.vehicleTypes.includes(type) ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleVehicleTypeToggle(type)}
-                  className="flex-1 text-xs h-8"
-                >
-                  {type === 'car' && <Car className="h-3 w-3 mr-1" />}
-                  {type === 'motorbike' && <Bike className="h-3 w-3 mr-1" />}
-                  {getVehicleTypeLabel(type, language)}
-                </Button>
-              ))}
+            <div className="flex flex-wrap gap-2">
+              {VEHICLE_TYPES.map(type => {
+                const IconComponent = getVehicleIcon(type);
+                return (
+                  <Button
+                    key={type}
+                    variant={filters.vehicleTypes.includes(type) ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleVehicleTypeToggle(type)}
+                    className="text-xs h-8 px-2"
+                  >
+                    <IconComponent className="h-3 w-3 mr-1" />
+                    {getVehicleTypeLabel(type, language)}
+                  </Button>
+                );
+              })}
             </div>
           </div>
 
