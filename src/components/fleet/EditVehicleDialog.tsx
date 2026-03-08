@@ -294,8 +294,8 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
             </Select>
           </div>
 
-          {/* Vehicle Category - Universal for all types except ATV */}
-          {vehicleType !== 'atv' && (
+          {/* Vehicle Category - Universal for all types */}
+          {(
             <div className="space-y-2">
               <Label htmlFor="vehicle-category">
                 {language === 'el' ? 'Κατηγορία' : 'Category'}

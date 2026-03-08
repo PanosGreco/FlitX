@@ -387,8 +387,8 @@ const Fleet = () => {
                 </Select>
               </div>
 
-              {/* Vehicle Category - Universal for all types except ATV */}
-              {vehicleType !== 'atv' && (
+              {/* Vehicle Category - Universal for all types */}
+              {(
                 <div className="space-y-1">
                   <Label htmlFor="vehicleCategory">
                     {language === 'el' ? 'Κατηγορία' : 'Category'}
