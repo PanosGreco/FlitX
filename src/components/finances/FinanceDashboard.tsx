@@ -502,12 +502,12 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold">{t.finances}</h1>
+        <h1 className="text-2xl font-bold">{t('common:finances')}</h1>
         
         <div className="flex items-center gap-2 flex-wrap">
           <Select value={timeframe} onValueChange={handleTimeframeChange} disabled={isLanguageLoading}>
             <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder={t.selectTimeframe} />
+              <SelectValue placeholder={t('selectTimeframe')} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="week">{TIMEFRAME_LABELS.week[language === 'el' ? 'el' : 'en']}</SelectItem>
@@ -544,7 +544,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
             disabled={isLanguageLoading}
           >
             <RefreshCw className="w-4 h-4 mr-2" />
-            {language === 'el' ? 'Επαναλαμβανόμενα' : 'Recurring'}
+            {t('recurring')}
           </Button>
 
           <Button 
@@ -552,7 +552,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
             disabled={isLanguageLoading}
           >
             <Plus className="w-4 h-4 mr-2" />
-            {t.addRecord}
+            {t('addRecord')}
           </Button>
         </div>
       </div>
