@@ -60,16 +60,18 @@ export function AssetTrackingWidget() {
     initRef.current = true;
 
     const vehicleTypes = [...new Set(vehicles.map((v) => v.vehicle_type))];
-    const existingVehicleCats = categories.filter((c) => c.is_vehicle_category);
+    const existingNames = new Set(
+      categories.filter((c) => c.is_vehicle_category).map((c) => c.name)
+    );
 
     const missing = vehicleTypes.filter(
-      (vt) => !existingVehicleCats.some((c) => c.name === (VEHICLE_TYPE_LABELS[vt]?.en || vt))
+      (vt) => !existingNames.has(VEHICLE_TYPE_LABELS[vt]?.en || vt)
     );
 
     if (missing.length > 0) {
       Promise.all(missing.map((vt) => addCategory(VEHICLE_TYPE_LABELS[vt]?.en || vt, true)));
     }
-  }, [loading, vehicles]);
+  }, [loading, vehicles, categories]);
 
   const handleDebouncedUpsert = useCallback(
     (key: string, data: Parameters<typeof upsertAsset>[0]) => {
@@ -86,7 +88,9 @@ export function AssetTrackingWidget() {
     vehiclesByType[v.vehicle_type].push(v);
   });
 
-  const vehicleCategories = categories.filter((c) => c.is_vehicle_category);
+  const vehicleCategories = categories
+    .filter((c) => c.is_vehicle_category)
+    .filter((c, i, arr) => arr.findIndex((x) => x.name === c.name) === i);
   const customCategories = categories.filter((c) => !c.is_vehicle_category);
 
   // Calculate totals
@@ -114,9 +118,9 @@ export function AssetTrackingWidget() {
     grandTotal += categoryTotal;
 
     return (
-      <div key={cat.id} className="mb-6">
-        <Separator className="mb-3" />
-        <div className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-2 mb-2">
+      <div key={cat.id} className="mb-3">
+        <Separator className="mb-1" />
+        <div className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-1.5 mb-1">
           <span className="font-bold text-sm uppercase tracking-wide">{catLabel}</span>
         </div>
         <div className="space-y-1">
@@ -167,9 +171,9 @@ export function AssetTrackingWidget() {
     grandTotal += categoryTotal;
 
     return (
-      <div key={cat.id} className="mb-6">
-        <Separator className="mb-3" />
-        <div className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-2 mb-2">
+      <div key={cat.id} className="mb-3">
+        <Separator className="mb-1" />
+        <div className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-1.5 mb-1">
           <span className="font-bold text-sm uppercase tracking-wide">{cat.name}</span>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteCategory(cat.id)}>
             <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
@@ -248,7 +252,7 @@ export function AssetTrackingWidget() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
           <Package className="h-5 w-5" />
           {lang === "el" ? "Περιουσιακά Στοιχεία" : "Assets"}
@@ -265,15 +269,15 @@ export function AssetTrackingWidget() {
             {customCategories.map(renderCustomCategory)}
 
             {/* Grand Total */}
-            <Separator className="my-4" />
-            <div className="flex justify-end px-3 py-3 bg-primary/5 rounded-lg">
+            <Separator className="my-2" />
+            <div className="flex justify-end px-3 py-2 bg-primary/5 rounded-lg">
               <span className="text-base font-bold">
                 {lang === "el" ? "Συνολικά Περιουσιακά Στοιχεία" : "Total Assets"}: {formatCurrency(grandTotal)}
               </span>
             </div>
 
             {/* Add Category */}
-            <div className="mt-4">
+            <div className="mt-2">
               {showNewCategory ? (
                 <div className="flex items-center gap-2">
                   <Input
