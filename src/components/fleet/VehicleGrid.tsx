@@ -191,9 +191,9 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
           ) : (
             <div className="col-span-full py-8 text-center text-muted-foreground">
               {searchQuery || activeFilterCount > 0 ? (
-                <p>{t.noSearchResults}</p>
+                <p>{t('noSearchResults')}</p>
               ) : (
-                <p>{t.noVehicles}</p>
+                <p>{t('noVehicles')}</p>
               )}
             </div>
           )}
