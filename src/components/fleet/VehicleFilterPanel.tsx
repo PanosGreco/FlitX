@@ -233,20 +233,22 @@ export function VehicleFilterPanel({
             <Label className="text-xs text-muted-foreground">
               {language === 'el' ? 'Τύπος Οχήματος' : 'Vehicle Type'}
             </Label>
-            <div className="flex gap-2">
-              {VEHICLE_TYPES.map(type => (
-                <Button
-                  key={type}
-                  variant={filters.vehicleTypes.includes(type) ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => handleVehicleTypeToggle(type)}
-                  className="flex-1 text-xs h-8"
-                >
-                  {type === 'car' && <Car className="h-3 w-3 mr-1" />}
-                  {type === 'motorbike' && <Bike className="h-3 w-3 mr-1" />}
-                  {getVehicleTypeLabel(type, language)}
-                </Button>
-              ))}
+            <div className="flex flex-wrap gap-2">
+              {VEHICLE_TYPES.map(type => {
+                const IconComponent = getVehicleIcon(type);
+                return (
+                  <Button
+                    key={type}
+                    variant={filters.vehicleTypes.includes(type) ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleVehicleTypeToggle(type)}
+                    className="text-xs h-8 px-2"
+                  >
+                    <IconComponent className="h-3 w-3 mr-1" />
+                    {getVehicleTypeLabel(type, language)}
+                  </Button>
+                );
+              })}
             </div>
           </div>
 
