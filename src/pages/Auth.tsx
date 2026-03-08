@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, User, Eye, EyeOff, Building2, MapPin } from "lucide-react";
+import { Loader2, Mail, Lock, User, Eye, EyeOff, Building2, MapPin, ArrowLeft } from "lucide-react";
 import { z } from "zod";
 import AuthLayout from "@/components/auth/AuthLayout";
 
@@ -22,6 +22,18 @@ const COUNTRIES = [
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+const signupStep1Schema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
+const signupStep2Schema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  companyName: z.string().min(2, "Company name must be at least 2 characters"),
+  country: z.string().min(1, "Please select a country"),
+  city: z.string().min(2, "City must be at least 2 characters"),
 });
 
 const signupSchema = z.object({
@@ -44,6 +56,7 @@ export default function Auth() {
   const { toast } = useToast();
   
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
+  const [signupStep, setSignupStep] = useState<1 | 2>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -108,23 +121,62 @@ export default function Auth() {
     }
   };
 
+  const handleStep1Continue = () => {
+    setErrors({});
+    const result = signupStep1Schema.safeParse({
+      email: signupEmail,
+      password: signupPassword,
+    });
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0] as string] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+    setSignupStep(2);
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
     
-    const result = signupSchema.safeParse({
+    // Validate step 2 fields
+    const step2Result = signupStep2Schema.safeParse({
+      name: signupName,
+      companyName: signupCompanyName,
+      country: signupCountry,
+      city: signupCity,
+    });
+    
+    if (!step2Result.success) {
+      const fieldErrors: Record<string, string> = {};
+      step2Result.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0] as string] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+
+    // Full validation as safety net
+    const fullResult = signupSchema.safeParse({
       name: signupName,
       companyName: signupCompanyName,
       country: signupCountry,
       city: signupCity,
       email: signupEmail,
       password: signupPassword,
-      confirmPassword: signupConfirmPassword,
+      confirmPassword: signupPassword, // No confirm password field, use password directly
     });
     
-    if (!result.success) {
+    if (!fullResult.success) {
       const fieldErrors: Record<string, string> = {};
-      result.error.errors.forEach((err) => {
+      fullResult.error.errors.forEach((err) => {
         if (err.path[0]) {
           fieldErrors[err.path[0] as string] = err.message;
         }
@@ -160,6 +212,13 @@ export default function Auth() {
     }
   };
 
+  const handleTabSwitch = (tab: "login" | "signup") => {
+    setActiveTab(tab);
+    setSignupStep(1);
+    setErrors({});
+    setShowPassword(false);
+  };
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -171,19 +230,35 @@ export default function Auth() {
     );
   }
 
+  const signupHeadline = signupStep === 1 ? "Create Your FlitX Account" : "Complete Your Profile";
+  const signupSubtitle = signupStep === 1 ? "Start managing your fleet in minutes" : "Tell us about your business";
+
   return (
     <AuthLayout>
       {/* Headline */}
       <div className="mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-          {activeTab === "login" ? "Welcome Back" : "Create Your FlitX Account"}
+          {activeTab === "login" ? "Welcome Back" : signupHeadline}
         </h1>
         <p className="mt-2 text-muted-foreground text-sm">
-          {activeTab === "login"
-            ? "Sign in to your FlitX account"
-            : "Start managing your fleet in minutes"}
+          {activeTab === "login" ? "Sign in to your FlitX account" : signupSubtitle}
         </p>
       </div>
+
+      {/* Step indicator for signup */}
+      {activeTab === "signup" && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              Step {signupStep} of 2 — {signupStep === 1 ? "Create Account" : "Complete Your Profile"}
+            </span>
+          </div>
+          <div className="flex gap-1.5">
+            <div className="h-1 flex-1 rounded-full bg-primary" />
+            <div className={`h-1 flex-1 rounded-full transition-colors ${signupStep === 2 ? "bg-primary" : "bg-muted"}`} />
+          </div>
+        </div>
+      )}
 
       {/* Login Form */}
       {activeTab === "login" ? (
@@ -240,8 +315,63 @@ export default function Auth() {
             )}
           </Button>
         </form>
+      ) : signupStep === 1 ? (
+        /* Signup Step 1 — Email + Password */
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleStep1Continue();
+          }}
+          className="space-y-5"
+        >
+          <div className="space-y-2">
+            <Label htmlFor="signup-email">Email</Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="signup-email"
+                type="email"
+                placeholder="Enter your email"
+                value={signupEmail}
+                onChange={(e) => setSignupEmail(e.target.value)}
+                className="pl-10 h-11"
+                disabled={isSubmitting}
+                autoFocus
+              />
+            </div>
+            {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="signup-password">Password</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="signup-password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Create a password"
+                value={signupPassword}
+                onChange={(e) => setSignupPassword(e.target.value)}
+                className="pl-10 pr-10 h-11"
+                disabled={isSubmitting}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+          </div>
+
+          <Button type="submit" className="w-full h-11 text-base">
+            Create Account
+          </Button>
+        </form>
       ) : (
-        /* Signup Form */
+        /* Signup Step 2 — Profile */
         <form onSubmit={handleSignup} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="signup-name">Full Name</Label>
@@ -255,6 +385,7 @@ export default function Auth() {
                 onChange={(e) => setSignupName(e.target.value)}
                 className="pl-10 h-11"
                 disabled={isSubmitting}
+                autoFocus
               />
             </div>
             {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
@@ -313,71 +444,6 @@ export default function Auth() {
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="signup-email">Email</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="signup-email"
-                type="email"
-                placeholder="Enter your email"
-                value={signupEmail}
-                onChange={(e) => setSignupEmail(e.target.value)}
-                className="pl-10 h-11"
-                disabled={isSubmitting}
-              />
-            </div>
-            {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="signup-password">Password</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="signup-password"
-                type={showPassword ? "text" : "password"}
-                placeholder="Create a password"
-                value={signupPassword}
-                onChange={(e) => setSignupPassword(e.target.value)}
-                className="pl-10 pr-10 h-11"
-                disabled={isSubmitting}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-            {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="signup-confirm-password">Confirm Password</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="signup-confirm-password"
-                type={showConfirmPassword ? "text" : "password"}
-                placeholder="Confirm your password"
-                value={signupConfirmPassword}
-                onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                className="pl-10 pr-10 h-11"
-                disabled={isSubmitting}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-            {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
-          </div>
-
           <Button type="submit" className="w-full h-11 text-base" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
@@ -385,9 +451,18 @@ export default function Auth() {
                 Creating account...
               </>
             ) : (
-              "Create Account"
+              "Complete Setup"
             )}
           </Button>
+
+          <button
+            type="button"
+            onClick={() => { setSignupStep(1); setErrors({}); }}
+            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mx-auto"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back
+          </button>
         </form>
       )}
 
@@ -398,7 +473,7 @@ export default function Auth() {
             Don't have an account?{" "}
             <button
               type="button"
-              onClick={() => { setActiveTab("signup"); setErrors({}); }}
+              onClick={() => handleTabSwitch("signup")}
               className="font-semibold text-primary hover:underline"
             >
               Sign Up
@@ -409,7 +484,7 @@ export default function Auth() {
             Already have an account?{" "}
             <button
               type="button"
-              onClick={() => { setActiveTab("login"); setErrors({}); }}
+              onClick={() => handleTabSwitch("login")}
               className="font-semibold text-primary hover:underline"
             >
               Sign In
