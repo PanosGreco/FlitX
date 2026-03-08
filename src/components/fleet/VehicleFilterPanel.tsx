@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronDown, ChevronUp, Car, Bike, Truck, Snowflake, Waves, Tent, BicycleIcon } from "lucide-react";
+import { ChevronDown, ChevronUp, Car, Bike, Truck, Snowflake, Waves, Tent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
