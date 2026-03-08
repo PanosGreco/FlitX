@@ -123,14 +123,14 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold">{t.fleet}</h1>
+        <h1 className="text-2xl font-bold">{t('fleet')}</h1>
         
         <Button 
           onClick={onAddVehicle}
           disabled={isLanguageLoading}
         >
           <PlusCircle className="w-4 h-4 mr-2" />
-          {t.addVehicle}
+          {t('addVehicle')}
         </Button>
       </div>
       
