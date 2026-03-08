@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, Lock, User, Eye, EyeOff, Building2, MapPin, ArrowLeft } from "lucide-react";
 import { z } from "zod";
 import AuthLayout from "@/components/auth/AuthLayout";
+import { PasswordStrengthMeter } from "@/components/signup/PasswordStrengthMeter";
 
 const COUNTRIES = [
   { value: "greece", label: "Greece" },
@@ -30,6 +31,7 @@ const signupStep1Schema = z.object({
 });
 
 const signupStep2Schema = z.object({
+  confirmPassword: z.string().min(1, "Please confirm your password"),
   name: z.string().min(2, "Name must be at least 2 characters"),
   companyName: z.string().min(2, "Company name must be at least 2 characters"),
   country: z.string().min(1, "Please select a country"),
@@ -55,7 +57,7 @@ export default function Auth() {
   const { t } = useLanguage();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
+  const [activeTab, setActiveTab] = useState<"login" | "signup">("signup");
   const [signupStep, setSignupStep] = useState<1 | 2>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -144,8 +146,9 @@ export default function Auth() {
     e.preventDefault();
     setErrors({});
     
-    // Validate step 2 fields
+    // Validate step 2 fields including confirm password match
     const step2Result = signupStep2Schema.safeParse({
+      confirmPassword: signupConfirmPassword,
       name: signupName,
       companyName: signupCompanyName,
       country: signupCountry,
@@ -160,6 +163,12 @@ export default function Auth() {
         }
       });
       setErrors(fieldErrors);
+      return;
+    }
+
+    // Check password match
+    if (signupConfirmPassword !== signupPassword) {
+      setErrors({ confirmPassword: "Passwords do not match." });
       return;
     }
 
@@ -364,6 +373,7 @@ export default function Auth() {
               </button>
             </div>
             {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+            <PasswordStrengthMeter password={signupPassword} />
           </div>
 
           <Button type="submit" className="w-full h-11 text-base">
@@ -373,6 +383,40 @@ export default function Auth() {
       ) : (
         /* Signup Step 2 — Profile */
         <form onSubmit={handleSignup} className="space-y-4">
+          {/* Confirm Password */}
+          <div className="space-y-2">
+            <Label htmlFor="signup-confirm-password">Confirm Password</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="signup-confirm-password"
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Re-enter your password"
+                value={signupConfirmPassword}
+                onChange={(e) => {
+                  setSignupConfirmPassword(e.target.value);
+                  if (errors.confirmPassword) {
+                    setErrors((prev) => { const { confirmPassword, ...rest } = prev; return rest; });
+                  }
+                }}
+                className="pl-10 pr-10 h-11"
+                disabled={isSubmitting}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {signupConfirmPassword && signupConfirmPassword !== signupPassword && (
+              <p className="text-sm text-destructive">Passwords do not match.</p>
+            )}
+            {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="signup-name">Full Name</Label>
             <div className="relative">
