@@ -118,9 +118,9 @@ export function AssetTrackingWidget() {
     grandTotal += categoryTotal;
 
     return (
-      <div key={cat.id} className="mb-6">
-        <Separator className="mb-3" />
-        <div className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-2 mb-2">
+      <div key={cat.id} className="mb-3">
+        <Separator className="mb-1" />
+        <div className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-1.5 mb-1">
           <span className="font-bold text-sm uppercase tracking-wide">{catLabel}</span>
         </div>
         <div className="space-y-1">
