@@ -674,9 +674,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
               ))}
               {allTransactions.length > 5 && !showAllTransactions && (
                 <div className="text-center text-sm text-muted-foreground pt-2">
-                  {language === 'el' 
-                    ? `Εμφάνιση 5 από ${allTransactions.length} συναλλαγές`
-                    : `Showing 5 of ${allTransactions.length} transactions`}
+                  {t('showingOf', { count: allTransactions.length })}
                 </div>
               )}
             </div>
