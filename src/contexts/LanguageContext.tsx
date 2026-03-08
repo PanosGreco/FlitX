@@ -26,7 +26,7 @@ interface LanguageProviderProps {
 }
 
 export const LanguageProvider = ({ children }: LanguageProviderProps) => {
-  const { t } = useTranslation();
+  const { t } = useTranslation(ALL_NAMESPACES as unknown as string[]);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isLanguageLoading, setIsLanguageLoading] = useState(true);
 

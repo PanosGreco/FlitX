@@ -69,6 +69,8 @@ const resources = {
   fr: { common: frCommon, ai: frAi },
 };
 
+export const ALL_NAMESPACES = ['common', 'fleet', 'finance', 'profile', 'auth', 'ai', 'home', 'tracking', 'dailyProgram'] as const;
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -76,7 +78,8 @@ i18n
     resources,
     fallbackLng: 'en',
     defaultNS: 'common',
-    ns: ['common', 'fleet', 'finance', 'profile', 'auth', 'ai', 'home', 'tracking', 'dailyProgram'],
+    ns: [...ALL_NAMESPACES],
+    fallbackNS: [...ALL_NAMESPACES],
     interpolation: {
       escapeValue: false,
     },
