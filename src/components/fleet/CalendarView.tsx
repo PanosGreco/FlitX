@@ -7,7 +7,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 
 interface RentalBooking {
   id: string;
@@ -50,7 +50,7 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
   const [bookedDates, setBookedDates] = useState<Set<string>>(new Set());
   const [maintenanceDates, setMaintenanceDates] = useState<Set<string>>(new Set());
   const [dateInfoMap, setDateInfoMap] = useState<Map<string, DateInfo[]>>(new Map());
-  const { language } = useLanguage();
+  const { t } = useTranslation('common');
 
   useEffect(() => {
     fetchData();
@@ -58,7 +58,6 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
 
   const fetchData = async () => {
     try {
-      // Fetch bookings and maintenance blocks in parallel
       const [bookingsResult, maintenanceResult] = await Promise.all([
         supabase
           .from('rental_bookings')
@@ -76,7 +75,6 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
       } else {
         setBookings(bookingsResult.data || []);
         
-        // Calculate booked dates and date info
         const booked = new Set<string>();
         const infoMap = new Map<string, DateInfo[]>();
         
@@ -88,7 +86,6 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
             booked.add(format(date, 'yyyy-MM-dd'));
           });
           
-          // Add pickup info for start date
           const startKey = format(start, 'yyyy-MM-dd');
           const startInfo: DateInfo = {
             type: 'pickup',
@@ -102,7 +99,6 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
             infoMap.set(startKey, [startInfo]);
           }
           
-          // Add return info for end date
           const endKey = format(end, 'yyyy-MM-dd');
           const endInfo: DateInfo = {
             type: 'return',
@@ -126,7 +122,6 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
       } else {
         setMaintenanceBlocks(maintenanceResult.data || []);
         
-        // Calculate maintenance dates
         const maintenance = new Set<string>();
         (maintenanceResult.data || []).forEach(block => {
           const start = new Date(block.start_date);
@@ -143,7 +138,6 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
     }
   };
 
-  // Calculate selected dates as a range
   const selectedDates = useMemo(() => {
     if (!selectionStart) return [];
     if (!selectionEnd) return [selectionStart];
@@ -154,30 +148,24 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
     return eachDayOfInterval({ start, end });
   }, [selectionStart, selectionEnd]);
 
-  // Handle date click for range selection
   const handleDateClick = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
     const isBooked = bookedDates.has(dateStr);
     const isMaintenance = maintenanceDates.has(dateStr);
     
-    // Don't allow selecting booked or maintenance dates
     if (isBooked || isMaintenance) return;
     
     if (!selectionStart) {
-      // First click - set start date
       setSelectionStart(date);
       setSelectionEnd(null);
     } else if (!selectionEnd) {
-      // Second click - set end date
       setSelectionEnd(date);
     } else {
-      // Third click - start new selection
       setSelectionStart(date);
       setSelectionEnd(null);
     }
   };
 
-  // Handle new booking with selected dates
   const handleNewBooking = () => {
     onNewBooking(selectedDates);
     setSelectionStart(null);
@@ -208,7 +196,6 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
     setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
 
-  // Custom day component with popover for pickup/return info
   const DayWithPopover = ({ date, ...props }: { date: Date } & React.HTMLAttributes<HTMLButtonElement>) => {
     const dateInfo = getDateInfo(date);
     const hasInfo = dateInfo && dateInfo.length > 0;
@@ -255,10 +242,7 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
             {dateInfo.map((info, idx) => (
               <div key={idx} className={cn("text-sm", idx > 0 && "pt-2 border-t border-border")}>
                 <div className="font-medium text-foreground mb-1">
-                  {info.type === 'pickup' 
-                    ? (language === 'el' ? 'Παραλαβή' : 'Pickup')
-                    : (language === 'el' ? 'Επιστροφή' : 'Return')
-                  }
+                  {info.type === 'pickup' ? t('pickup') : t('return')}
                 </div>
                 <div className="text-xs text-muted-foreground mb-1">
                   {info.customerName}
@@ -285,7 +269,6 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
 
   return (
     <div className="space-y-4">
-      {/* Calendar Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={previousMonth}>
@@ -304,7 +287,7 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
           className="bg-flitx-blue hover:bg-flitx-blue-600"
         >
           <Plus className="h-4 w-4 mr-2" />
-          {language === 'el' ? 'Νέα Κράτηση' : 'New Booking'}
+          {t('newBooking')}
         </Button>
       </div>
 
@@ -354,19 +337,19 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
           <div className="flex flex-wrap items-center gap-4 mt-4 text-sm">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-primary rounded"></div>
-              <span>{language === 'el' ? 'Επιλεγμένα' : 'Selected'}</span>
+              <span>{t('selected')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-red-600 rounded"></div>
-              <span>{language === 'el' ? 'Κρατημένα' : 'Booked'}</span>
+              <span>{t('booked')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-orange-500 rounded"></div>
-              <span>{language === 'el' ? 'Συντήρηση' : 'Maintenance'}</span>
+              <span>{t('maintenance')}</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-accent rounded"></div>
-              <span>{language === 'el' ? 'Σήμερα' : 'Today'}</span>
+              <span>{t('today')}</span>
             </div>
           </div>
         </CardContent>
@@ -379,10 +362,10 @@ export function CalendarView({ vehicleId, onNewBooking, refreshTrigger }: Calend
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="font-medium text-blue-900">
-                  {language === 'el' ? 'Επιλεγμένες Ημερομηνίες' : 'Selected Dates'}
+                  {t('selectedDates')}
                 </h4>
                 <p className="text-sm text-blue-700">
-                  {selectedDates.length} {language === 'el' ? 'ημέρες' : 'day'}{selectedDates.length === 1 ? '' : 's'} {language === 'el' ? 'επιλεγμένες' : 'selected'}
+                  {selectedDates.length} {t('days')} {t('selected')}
                 </p>
               </div>
               <div className="text-right">
