@@ -552,7 +552,7 @@ const Finance = () => {
             ) : (
             <form onSubmit={handleSubmitFinanceRecord} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="recordType">{t.transactionType}</Label>
+                <Label htmlFor="recordType">{t('transactionType')}</Label>
                 <Select value={recordType} onValueChange={(val) => {
                   if (val === 'vehicle_sale') {
                     setIsVehicleSaleMode(true);
