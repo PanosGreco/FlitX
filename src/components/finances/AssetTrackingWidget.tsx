@@ -231,7 +231,7 @@ export function AssetTrackingWidget() {
             onClick={() =>
               upsertAsset({
                 category_id: cat.id,
-                asset_name: lang === "el" ? "Νέο στοιχείο" : "New asset",
+                asset_name: "",
                 asset_value: 0,
               })
             }
