@@ -882,7 +882,7 @@ function buildBusinessContext(
 
 // ============= ENHANCED SYSTEM PROMPT WITH DATA DICTIONARY =============
 
-function buildSystemPrompt(context: ReturnType<typeof buildBusinessContext>, presetType?: string) {
+function buildSystemPrompt(context: ReturnType<typeof buildBusinessContext>, presetType?: string, language?: string) {
   
   // === DATA DICTIONARY FOR SEMANTIC MAPPING ===
   const dataDictionary = `
