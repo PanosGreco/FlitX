@@ -493,10 +493,10 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         </Avatar>
         <div>
           <h2 className="text-lg font-semibold leading-tight">
-            {profileData.company_name || profileData.name || (language === 'el' ? 'Η Εταιρεία μου' : 'My Company')}
+            {profileData.company_name || profileData.name || t('myCompany')}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {language === 'el' ? 'FlitX Οικονομικό Dashboard' : 'FlitX Financial Dashboard'}
+            {t('financialDashboard')}
           </p>
         </div>
       </div>
