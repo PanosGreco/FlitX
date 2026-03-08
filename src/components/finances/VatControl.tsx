@@ -1,7 +1,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 
 interface VatControlProps {
   vatEnabled: boolean;
@@ -11,7 +11,7 @@ interface VatControlProps {
 }
 
 export function VatControl({ vatEnabled, onVatEnabledChange, vatRate, onVatRateChange }: VatControlProps) {
-  const { language } = useLanguage();
+  const { t } = useTranslation('finance');
 
   return (
     <div className="space-y-2 p-3 bg-muted/30 rounded-lg border border-border/50">
@@ -22,14 +22,14 @@ export function VatControl({ vatEnabled, onVatEnabledChange, vatRate, onVatRateC
           onCheckedChange={(checked) => onVatEnabledChange(checked === true)}
         />
         <Label htmlFor="vat-checkbox" className="cursor-pointer text-sm font-medium">
-          {language === 'el' ? 'Εφαρμογή ΦΠΑ' : 'Apply VAT'}
+          {t('applyVat')}
         </Label>
       </div>
 
       {vatEnabled && (
         <div className="flex items-center gap-2 pl-6">
           <Label className="text-sm text-muted-foreground whitespace-nowrap">
-            {language === 'el' ? 'Ποσοστό:' : 'Rate:'}
+            {t('vatRate')}
           </Label>
           <Input
             type="number"
