@@ -1,0 +1,14 @@
+{
+  "greeting": "Hallo{{name}}, ich bin bereit dir zu helfen",
+  "subtitle": "Frag mich alles oder probiere einen der Vorschläge unten",
+  "presets": {
+    "marketingGrowth": {
+      "title": "Marketing- und Wachstumsvorschläge",
+      "description": "Erhalte KI-gestützte Marketingstrategien und Wachstumschancen"
+    },
+    "expenseOptimization": {
+      "title": "Kostenoptimierung und Kostenreduzierung",
+      "description": "Analysiere Ausgaben und finde Einsparmöglichkeiten"
+    }
+  }
+}
