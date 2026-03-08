@@ -330,7 +330,7 @@ export function UserProfile() {
                   <div className="grid gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">{t.personalInfo.firstName}</Label>
-                      <Input
+                      <AutoSizeInput
                         id="name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
