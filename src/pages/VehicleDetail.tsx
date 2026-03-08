@@ -3,7 +3,6 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState, useCallback } from "react";
-import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
@@ -44,65 +43,12 @@ interface Vehicle {
   sale_date?: string | null;
 }
 
-interface VehicleTranslations {
-  [key: string]: string | VehicleTranslations;
-}
-
 const VehicleDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
-  const { t } = useLanguage();
   const { user } = useAuth();
-  
-  const getTransValue = (key: string, fallback: string): string => {
-    const value = t[key as keyof typeof t];
-    return typeof value === 'string' ? value : fallback;
-  };
-  
-  const translations: VehicleTranslations = {
-    serviceReminders: getTransValue('serviceReminders', 'Service Reminders'),
-    fuelType: getTransValue('fuelType', 'Fuel Type'),
-    costPerMile: getTransValue('costPerMile', 'Cost Per Mile'),
-    fuelCosts: getTransValue('fuelCosts', 'Fuel Costs'),
-    totalServiceCost: getTransValue('totalServiceCost', 'Total Service Cost'),
-    milesPerDay: getTransValue('milesPerDay', 'Miles Per Day'),
-    lastServiceDate: getTransValue('lastServiceDate', 'Last Service Date'),
-    totalServices: getTransValue('totalServices', 'Total Services'),
-    performance: getTransValue('performance', 'Performance'),
-    vehicleMaintenance: getTransValue('vehicleMaintenance', 'Vehicle Maintenance'),
-    repair: getTransValue('repair', 'Repair'),
-    documents: getTransValue('documents', 'Documents'),
-    availability: getTransValue('availability', 'Availability'),
-    finance: getTransValue('finance', 'Finance'),
-    overview: getTransValue('overview', 'Overview'),
-    uploadDocuments: getTransValue('uploadDocuments', 'Upload Documents'),
-    selectDays: getTransValue('selectDays', 'Select days when the vehicle is booked or unavailable'),
-    dailyRate: getTransValue('dailyRate', 'Daily Rate'),
-    totalRevenue: getTransValue('totalRevenue', 'Total Revenue'),
-    totalExpenses: getTransValue('totalExpenses', 'Total Expenses'),
-    netProfit: getTransValue('netProfit', 'Net Profit'),
-    editFinance: getTransValue('editFinance', 'Edit Finance'),
-    enterFinanceDetails: getTransValue('enterFinanceDetails', 'Enter finance details for this vehicle'),
-    financeUpdated: getTransValue('financeUpdated', 'Finance Updated'),
-    financeDetailsUpdated: getTransValue('financeDetailsUpdated', 'Finance details have been updated'),
-    documentUploaded: getTransValue('documentUploaded', 'Document Uploaded'),
-    documentSaved: getTransValue('documentSaved', 'Your document has been saved'),
-    rentalIncomeAdded: getTransValue('rentalIncomeAdded', 'Rental Income Added'),
-    addedIncome: getTransValue('addedIncome', 'Added $'),
-    toIncomeFor: getTransValue('toIncomeFor', ' to income for '),
-    editStatus: getTransValue('editStatus', 'Edit Status'),
-    selectStatus: getTransValue('selectStatus', 'Select a status for this vehicle'),
-    statusUpdated: getTransValue('statusUpdated', 'Status Updated'),
-    vehicleStatusChanged: getTransValue('vehicleStatusChanged', 'Vehicle status changed to '),
-  };
-
-  Object.keys(t).forEach(key => {
-    if (translations[key] === undefined) {
-      translations[key] = t[key as keyof typeof t] as string | VehicleTranslations;
-    }
-  });
 
   const fetchVehicle = useCallback(async () => {
     if (!id || !user) return;
@@ -122,12 +68,10 @@ const VehicleDetail = () => {
       }
       
       if (!data) {
-        // Vehicle not found - redirect to fleet
         navigate('/');
         return;
       }
       
-      // Transform backend data to component format - PRESERVE ALL database values
       const vehicleData: Vehicle = {
         id: data.id,
         make: data.make || 'Unknown',
@@ -177,7 +121,6 @@ const VehicleDetail = () => {
     fetchVehicle();
   }, [fetchVehicle]);
 
-  // Realtime subscription for vehicle updates
   useEffect(() => {
     if (!id || !user) return;
 
@@ -223,7 +166,6 @@ const VehicleDetail = () => {
         vehicleId={id} 
         vehicles={[vehicle]} 
         loading={false}
-        translations={translations}
       />
     </AppLayout>
   );

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { COUNTRY_LANGUAGE_MAP, SupportedLanguage } from "@/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,7 +55,7 @@ const signupSchema = z.object({
 export default function Auth() {
   const navigate = useNavigate();
   const { signIn, signUp, user, isLoading: authLoading } = useAuth();
-  const { t } = useLanguage();
+  const { setLanguage } = useLanguage();
   const { toast } = useToast();
   
   const [activeTab, setActiveTab] = useState<"login" | "signup">("signup");
@@ -213,6 +214,11 @@ export default function Auth() {
         variant: "destructive",
       });
     } else {
+      // Auto-set language based on country selection
+      const countryLang = COUNTRY_LANGUAGE_MAP[signupCountry] as SupportedLanguage | undefined;
+      if (countryLang) {
+        setLanguage(countryLang);
+      }
       toast({
         title: "Account created!",
         description: "You have successfully signed up and logged in.",

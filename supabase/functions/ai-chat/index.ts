@@ -30,7 +30,7 @@ serve(async (req) => {
       });
     }
 
-    const { messages, conversationId, presetType } = await req.json();
+    const { messages, conversationId, presetType, language } = await req.json();
 
     // === SECURITY: Input Validation ===
     // Validate message length to prevent abuse
@@ -98,7 +98,7 @@ serve(async (req) => {
     );
 
     // Build system prompt with business context and data dictionary
-    const systemPrompt = buildSystemPrompt(businessContext, presetType);
+    const systemPrompt = buildSystemPrompt(businessContext, presetType, language);
 
     // Call Lovable AI Gateway
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -882,7 +882,7 @@ function buildBusinessContext(
 
 // ============= ENHANCED SYSTEM PROMPT WITH DATA DICTIONARY =============
 
-function buildSystemPrompt(context: ReturnType<typeof buildBusinessContext>, presetType?: string) {
+function buildSystemPrompt(context: ReturnType<typeof buildBusinessContext>, presetType?: string, language?: string) {
   
   // === DATA DICTIONARY FOR SEMANTIC MAPPING ===
   const dataDictionary = `
@@ -1224,8 +1224,16 @@ CRITICAL BEHAVIORAL RULES (MUST FOLLOW EXACTLY)
     • Example: "manual vehicle maintenance" → use maintenance cost from manual transmission group
 `;
 
+  // === LANGUAGE INSTRUCTION ===
+  const LANGUAGE_NAMES: Record<string, string> = { en: 'English', el: 'Greek', it: 'Italian', es: 'Spanish', de: 'German', fr: 'French' };
+  const userLang = language || 'en';
+  const langName = LANGUAGE_NAMES[userLang] || 'English';
+  const languageInstruction = userLang !== 'en' 
+    ? `\n\nCRITICAL LANGUAGE RULE: The user's language is ${userLang} (${langName}). You MUST respond ENTIRELY in ${langName}. All text, explanations, labels, and data descriptions must be in ${langName}.\n`
+    : '';
+
   // === BUILD COMPLETE SYSTEM PROMPT ===
-  const basePrompt = `You are FlitX AI Assistant, a precise business intelligence assistant for ${context.profile.company || 'this fleet management company'} located in ${context.profile.location}.
+  const basePrompt = `You are FlitX AI Assistant, a precise business intelligence assistant for ${context.profile.company || 'this fleet management company'} located in ${context.profile.location}.${languageInstruction}
 
 ${dataDictionary}
 
