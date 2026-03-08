@@ -369,10 +369,8 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       }
 
       toast({
-        title: language === 'el' ? 'Διαγράφηκε' : 'Deleted',
-        description: language === 'el' 
-          ? 'Η συναλλαγή και τα σχετικά δεδομένα διαγράφηκαν επιτυχώς'
-          : 'Transaction and related data have been deleted successfully',
+        title: t('deleted'),
+        description: t('transactionDeleted'),
       });
 
       // Trigger refresh
@@ -381,10 +379,8 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     } catch (error) {
       console.error('Error deleting transaction:', error);
       toast({
-        title: language === 'el' ? 'Σφάλμα' : 'Error',
-        description: language === 'el' 
-          ? 'Αποτυχία διαγραφής συναλλαγής'
-          : 'Failed to delete transaction',
+        title: t('error'),
+        description: t('failedToDelete'),
         variant: 'destructive'
       });
     } finally {
