@@ -340,7 +340,7 @@ export function UserProfile() {
 
                     <div className="space-y-2">
                       <Label htmlFor="email">{t.personalInfo.email}</Label>
-                      <Input
+                      <AutoSizeInput
                         id="email"
                         type="email"
                         value={email}
