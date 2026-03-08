@@ -540,54 +540,29 @@ const Fleet = () => {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="passengerCapacity">{language === 'el' ? 'Αριθμός Επιβατών' : 'Number of People'}</Label>
-                  <Select 
-                    disabled={isLanguageLoading || isSubmitting}
-                    value={passengerCapacity}
-                    onValueChange={setPassengerCapacity}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={language === 'el' ? 'Επιλέξτε...' : 'Select...'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectItem value="1">1</SelectItem>
-                        <SelectItem value="2">2</SelectItem>
-                        <SelectItem value="3">3</SelectItem>
-                        <SelectItem value="4">4</SelectItem>
-                        <SelectItem value="5">5</SelectItem>
-                        <SelectItem value="6">6</SelectItem>
-                        <SelectItem value="7">7+</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-1">
-                  <Label htmlFor="make">{t.make}</Label>
-                  <Input 
-                    id="make" 
-                    placeholder="e.g. Toyota" 
-                    required 
-                    disabled={isLanguageLoading || isSubmitting}
-                    value={make}
-                    onChange={(e) => setMake(e.target.value)}
-                  />
-                </div>
-              </div>
-
+              {/* Passengers */}
               <div className="space-y-1">
-                <Label htmlFor="model">{t.model}</Label>
-                <Input 
-                  id="model" 
-                  placeholder="e.g. Corolla" 
-                  required 
+                <Label htmlFor="passengerCapacity">{language === 'el' ? 'Αριθμός Επιβατών' : 'Number of People'}</Label>
+                <Select 
                   disabled={isLanguageLoading || isSubmitting}
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                />
+                  value={passengerCapacity}
+                  onValueChange={setPassengerCapacity}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={language === 'el' ? 'Επιλέξτε...' : 'Select...'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="1">1</SelectItem>
+                      <SelectItem value="2">2</SelectItem>
+                      <SelectItem value="3">3</SelectItem>
+                      <SelectItem value="4">4</SelectItem>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="6">6</SelectItem>
+                      <SelectItem value="7">7+</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="grid grid-cols-2 gap-3">
