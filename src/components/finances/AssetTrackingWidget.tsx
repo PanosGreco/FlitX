@@ -269,8 +269,8 @@ export function AssetTrackingWidget() {
             {customCategories.map(renderCustomCategory)}
 
             {/* Grand Total */}
-            <Separator className="my-4" />
-            <div className="flex justify-end px-3 py-3 bg-primary/5 rounded-lg">
+            <Separator className="my-2" />
+            <div className="flex justify-end px-3 py-2 bg-primary/5 rounded-lg">
               <span className="text-base font-bold">
                 {lang === "el" ? "Συνολικά Περιουσιακά Στοιχεία" : "Total Assets"}: {formatCurrency(grandTotal)}
               </span>
