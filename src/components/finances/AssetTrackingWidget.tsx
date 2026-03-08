@@ -88,7 +88,9 @@ export function AssetTrackingWidget() {
     vehiclesByType[v.vehicle_type].push(v);
   });
 
-  const vehicleCategories = categories.filter((c) => c.is_vehicle_category);
+  const vehicleCategories = categories
+    .filter((c) => c.is_vehicle_category)
+    .filter((c, i, arr) => arr.findIndex((x) => x.name === c.name) === i);
   const customCategories = categories.filter((c) => !c.is_vehicle_category);
 
   // Calculate totals

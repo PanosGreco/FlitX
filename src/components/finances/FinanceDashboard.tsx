@@ -642,7 +642,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       />
 
       {/* Assets + Transactions side-by-side */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
       {/* Asset Tracking Widget */}
       <AssetTrackingWidget />
         
