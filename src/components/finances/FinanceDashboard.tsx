@@ -87,7 +87,8 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   const [isRecurringOpen, setIsRecurringOpen] = useState(false);
   const [profileData, setProfileData] = useState<{ name: string | null; company_name: string | null; avatar_url: string | null }>({ name: null, company_name: null, avatar_url: null });
   const isBoats = isBoatBusiness();
-  const { t, language, isLanguageLoading } = useLanguage();
+  const { language, isLanguageLoading } = useLanguage();
+  const { t } = useTranslation('finance');
   const { user } = useAuth();
   const { toast } = useToast();
   
