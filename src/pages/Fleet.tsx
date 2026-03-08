@@ -214,9 +214,6 @@ const Fleet = () => {
 
   // Get final category value (normalized for custom)
   const getFinalCategory = () => {
-    if (vehicleType === 'atv') {
-      return 'atv';
-    }
     // For types with no predefined categories, customCategory is always used
     if (VEHICLE_CATEGORIES[vehicleType]?.length === 0 && customCategory.trim()) {
       return normalizeCategory(customCategory);
@@ -244,7 +241,7 @@ const Fleet = () => {
     try {
       const finalCategory = getFinalCategory();
       
-      if (!finalCategory && vehicleType !== 'atv') {
+      if (!finalCategory) {
         toast({
           title: language === 'el' ? 'Σφάλμα' : 'Error',
           description: language === 'el' ? 'Παρακαλώ επιλέξτε κατηγορία' : 'Please select a category',
@@ -390,8 +387,8 @@ const Fleet = () => {
                 </Select>
               </div>
 
-              {/* Vehicle Category - Universal for all types except ATV */}
-              {vehicleType !== 'atv' && (
+              {/* Vehicle Category - Universal for all types */}
+              {(
                 <div className="space-y-1">
                   <Label htmlFor="vehicleCategory">
                     {language === 'el' ? 'Κατηγορία' : 'Category'}

@@ -103,7 +103,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     }
     
     const category = vehicle.type ?? '';
-    if (category && !isStandardCategory(category) && category !== 'atv') {
+    if (category && !isStandardCategory(category)) {
       setIsCustomCategory(true);
       setCustomCategory(category.toUpperCase());
       setVehicleCategory('');
@@ -157,9 +157,6 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
 
   // Get final category value (normalized for custom)
   const getFinalCategory = () => {
-    if (vehicleType === 'atv') {
-      return 'atv';
-    }
     // For types with no predefined categories, customCategory is always used
     if (VEHICLE_CATEGORIES[vehicleType]?.length === 0 && customCategory.trim()) {
       return normalizeCategory(customCategory);
@@ -173,7 +170,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
   const handleSave = async () => {
     const finalCategory = getFinalCategory();
     
-    if (!finalCategory && vehicleType !== 'atv') {
+    if (!finalCategory) {
       toast({
         title: language === 'el' ? 'Σφάλμα' : 'Error',
         description: language === 'el' ? 'Παρακαλώ επιλέξτε κατηγορία' : 'Please select a category',
@@ -297,8 +294,8 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
             </Select>
           </div>
 
-          {/* Vehicle Category - Universal for all types except ATV */}
-          {vehicleType !== 'atv' && (
+          {/* Vehicle Category - Universal for all types */}
+          {(
             <div className="space-y-2">
               <Label htmlFor="vehicle-category">
                 {language === 'el' ? 'Κατηγορία' : 'Category'}
