@@ -722,26 +722,22 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {language === 'el' ? 'Διαγραφή Συναλλαγής' : 'Delete Transaction'}
+              {t('deleteTransaction')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {language === 'el' 
-                ? 'Είστε βέβαιοι ότι θέλετε να διαγράψετε αυτήν τη συναλλαγή; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί. Αν αυτή η συναλλαγή συνδέεται με κράτηση ή συντήρηση, θα διαγραφούν και τα σχετικά δεδομένα.'
-                : 'Are you sure you want to delete this transaction? This action cannot be undone. If this transaction is linked to a booking or maintenance record, related data will also be deleted.'}
+              {t('deleteTransactionDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>
-              {language === 'el' ? 'Ακύρωση' : 'Cancel'}
+              {t('cancel')}
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => deleteTransactionId && handleDeleteTransaction(deleteTransactionId)}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting 
-                ? (language === 'el' ? 'Διαγραφή...' : 'Deleting...') 
-                : (language === 'el' ? 'Διαγραφή' : 'Delete')}
+              {isDeleting ? t('deleting') : t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
