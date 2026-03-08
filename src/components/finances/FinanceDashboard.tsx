@@ -602,7 +602,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">{language === 'el' ? 'Έσοδα έναντι Εξόδων' : 'Income vs Expenses'}</CardTitle>
+            <CardTitle className="text-lg">{t('incomeVsExpenses')}</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <BarChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} />
