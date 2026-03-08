@@ -1,101 +1,53 @@
 
 
-## Updated Plan: Analytics Line Graph — Cumulative Data & UI Corrections
+## Plan — Assets Widget UI Improvements
 
-### Target File
-`src/components/finances/charts.tsx` — only the `LineChart` component and supporting functions. `BarChart`, `PieChart`, and `CategoryBreakdown` remain untouched.
+### 1. Remove Max-Width Constraint
+**File:** `src/pages/Finance.tsx` line 478
+- Change `className="container py-6"` to `className="w-full max-w-none px-4 lg:px-6 py-6"` — the `container` class applies `max-width` and `mx-auto`, which is the source of the horizontal whitespace.
 
-### Confirmed: No Other Charts Affected
-- `BarChart` (line 205) uses `aggregateByTimeBuckets` — will continue to use it unchanged.
-- `PieChart` (line 388) uses `aggregateByCategory` — completely separate.
-- `CategoryBreakdown` (line 463) — unrelated display component.
-- The new `aggregateCumulative` function will only be called by `LineChart`.
+### 2. Side-by-Side Layout (Assets + Transactions)
+**File:** `src/components/finances/FinanceDashboard.tsx` lines 644-691
+- Wrap `<AssetTrackingWidget />` and the Transactions `<Card>` in:
+  ```
+  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+  ```
 
----
+### 3. Fix Table Column Spacing
+**File:** `src/components/finances/AssetTrackingWidget.tsx`
+- Change the value column wrapper from `w-32` to `w-auto` and use `shrink-0` so the value input only takes the space it needs
+- Change asset rows from `flex items-center gap-2` to `gap-1` to tighten spacing
+- This applies to both vehicle rows (line 137/141) and custom asset rows (line 190/204)
 
-### Change 1 — Update `getTimeBuckets` with Adaptive Custom Range Scaling
+### 4. Currency Formatting — €30.000
+**File:** `src/components/finances/AssetTrackingWidget.tsx` line 30-32
+- Change locale from `en-US` to `de-DE` and keep `€` prefix:
+  ```typescript
+  function formatCurrency(value: number): string {
+    return `€${value.toLocaleString("de-DE", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  }
+  ```
 
-Current behavior (lines 71–102): `all` and `custom` only distinguish daily (≤31 days) vs monthly (>31 days).
+### 5. Fix Vehicle Category Duplication
+**File:** `src/components/finances/AssetTrackingWidget.tsx`
+- Replace the `vehicleCategoriesReady` state with a `useRef(false)` flag
+- Remove `categories` from the `useEffect` dependency array to prevent re-triggering
 
-New behavior — replace the branching logic for `all` and `custom`:
+### 6. Rename Button
+- Change "Add Category" → "Add Asset Category" (and Greek equivalent)
 
-| Range Length | Bucket Type | Label Format |
-|---|---|---|
-| 1–31 days | Daily | `d MMM` |
-| 32–120 days | Weekly | `d MMM` (week start) |
-| 121 days – 12 months | Monthly | `MMM yy` |
-| `all` timeframe | Always monthly | `MMM yy` |
+### 7. Remove Number Input Arrows
+**File:** `src/index.css`
+- Add CSS to hide spinners:
+  ```css
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"] { -moz-appearance: textfield; }
+  ```
 
-Implementation: compute `daysDiff`, then call `eachDayOfInterval`, `eachWeekOfInterval`, or `eachMonthOfInterval` accordingly. For `all`, always use monthly.
-
----
-
-### Change 2 — New `aggregateCumulative` Function
-
-Create a new function that replaces `aggregateByTimeBuckets` for the LineChart only.
-
-Algorithm:
-```text
-buckets = getTimeBuckets(timeframe, lang, records)
-
-For each bucket at index i:
-  bucket_end = end of bucket's date (endOfDay for daily, end of week for weekly, end of month for monthly)
-  
-  income_total = SUM(all income records where record.date <= bucket_end)
-  expense_total = SUM(all expense records where record.date <= bucket_end)
-  netIncome = income_total - expense_total
-
-  return { name: bucket.label, income: income_total, expenses: expense_total, netIncome }
-```
-
-Key guarantees:
-- Uses `date <= bucket_end`, not "records inside bucket" — ensures correct cumulative totals regardless of bucket grouping.
-- If no new records exist for a bucket, cumulative totals equal the previous bucket's totals — lines stay flat/horizontal automatically since the SUM result is identical.
-
----
-
-### Change 3 — Remove All Sampling Logic from LineChart
-
-Remove lines 283–292 (the `filter` calls that sample every 3rd day or every Nth point). Bucket grouping (daily/weekly/monthly) already controls point density — no sampling needed.
-
----
-
-### Change 4 — Rename "Revenue" → "Net Income"
-
-- Data key: `revenue` → `netIncome`
-- `getLineName`: `'revenue'` case → `'netIncome'`, label: `'Net Income'` / `'Καθαρό Εισόδημα'`
-- Empty state object: `revenue: 0` → `netIncome: 0`
-
----
-
-### Change 5 — Fix Line Colors
-
-| Line | Current | New |
-|---|---|---|
-| Income | `#f59e0b` (amber) | `#22c55e` (green) |
-| Expenses | `#ef4444` (red) | `#ef4444` (unchanged) |
-| Net Income | `#3b82f6` (blue) | `#3b82f6` (unchanged) |
-
----
-
-### Change 6 — Fix Currency to Always Use €
-
-- `formatYAxis` (line 197): always use `€` regardless of `lang`.
-- `LineChart` tooltip (line 332): always use `€`.
-- Format: `{value}€` (euro at end) for consistency with SOLD block.
-
----
-
-### Change 7 — Tooltip Reads Cumulative Data
-
-The tooltip formatter reads directly from the cumulative dataset produced by `aggregateCumulative`. Each data point already contains cumulative `income`, `expenses`, and `netIncome` — the tooltip simply displays these values with the `€` symbol. No additional calculation needed.
-
----
-
-### What Does NOT Change
-- `BarChart` — keeps using `aggregateByTimeBuckets` with its own sampling
-- `PieChart` — keeps using `aggregateByCategory`
-- `CategoryBreakdown` — unchanged
-- Database schema, financial records, summary cards, transaction history
-- All other analytics components
+### Files Modified
+- `src/pages/Finance.tsx` — remove container max-width
+- `src/components/finances/FinanceDashboard.tsx` — grid wrapper
+- `src/components/finances/AssetTrackingWidget.tsx` — column spacing, currency format, duplication fix, button rename
+- `src/index.css` — hide number spinners
 
