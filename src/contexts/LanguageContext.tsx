@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "react-i18next";
-import i18n, { SupportedLanguage, SUPPORTED_LANGUAGES } from "@/i18n";
+import i18n, { SupportedLanguage, SUPPORTED_LANGUAGES, ALL_NAMESPACES } from "@/i18n";
 
 type LanguageContextType = {
   language: string;
