@@ -1,10 +1,11 @@
 import { TrendingUp, PiggyBank } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface PresetButton {
   id: string;
-  title: string;
-  description: string;
+  titleKey: string;
+  descriptionKey: string;
   icon: typeof TrendingUp;
   presetType: 'marketing_growth' | 'expense_optimization';
 }
@@ -12,15 +13,15 @@ interface PresetButton {
 const PRESET_BUTTONS: PresetButton[] = [
   {
     id: 'marketing',
-    title: 'Marketing and Growth Suggestions',
-    description: 'Get AI-powered marketing strategies and growth opportunities',
+    titleKey: 'presets.marketingGrowth.title',
+    descriptionKey: 'presets.marketingGrowth.description',
     icon: TrendingUp,
     presetType: 'marketing_growth'
   },
   {
     id: 'expenses',
-    title: 'Expense Optimization and Cost Reduction',
-    description: 'Analyze expenses and find cost-saving opportunities',
+    titleKey: 'presets.expenseOptimization.title',
+    descriptionKey: 'presets.expenseOptimization.description',
     icon: PiggyBank,
     presetType: 'expense_optimization'
   }
@@ -32,14 +33,17 @@ interface PresetActionButtonsProps {
 }
 
 export function PresetActionButtons({ onSelect, disabled }: PresetActionButtonsProps) {
+  const { t } = useTranslation('ai');
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
       {PRESET_BUTTONS.map((button) => {
         const Icon = button.icon;
+        const title = t(button.titleKey);
         return (
           <button
             key={button.id}
-            onClick={() => onSelect(button.presetType, button.title)}
+            onClick={() => onSelect(button.presetType, title)}
             disabled={disabled}
             className={cn(
               "group relative overflow-hidden rounded-2xl p-5",
@@ -62,10 +66,10 @@ export function PresetActionButtons({ onSelect, disabled }: PresetActionButtonsP
               {/* Text content */}
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-gray-900 mb-1 leading-tight">
-                  {button.title}
+                  {title}
                 </h3>
                 <p className="text-sm text-gray-500 leading-snug">
-                  {button.description}
+                  {t(button.descriptionKey)}
                 </p>
               </div>
             </div>

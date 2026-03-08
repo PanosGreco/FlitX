@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from 'react-i18next';
 import { AnimatedBackground } from './AnimatedBackground';
 import { StaticLogo } from './StaticLogo';
 import { PresetActionButtons } from './PresetActionButtons';
@@ -14,6 +15,7 @@ interface EmptyStateViewProps {
 
 export function EmptyStateView({ onPresetSelect, onSendMessage, disabled }: EmptyStateViewProps) {
   const { user } = useAuth();
+  const { t } = useTranslation('ai');
   const [firstName, setFirstName] = useState<string>('');
 
   useEffect(() => {
@@ -47,12 +49,12 @@ export function EmptyStateView({ onPresetSelect, onSendMessage, disabled }: Empt
 
         {/* 2. GREETING FIRST (Title) */}
         <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 mb-2 text-center">
-          Hey{firstName ? ` ${firstName}` : ''}, ready to assist you
+          {t('greeting', { name: firstName ? ` ${firstName}` : '' })}
         </h1>
 
         {/* 3. INSTRUCTION SECOND (Subtitle) */}
         <p className="text-base text-gray-500 mb-8 text-center">
-          Ask me anything or try one of the suggestions below
+          {t('subtitle')}
         </p>
 
         {/* 4. CENTERED INPUT BAR */}

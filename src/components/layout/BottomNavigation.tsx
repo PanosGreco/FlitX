@@ -8,7 +8,7 @@ import {
   Sparkles,
   User
 } from "lucide-react";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 
 interface NavItem {
   titleKey: string;
@@ -27,19 +27,7 @@ const navItems: NavItem[] = [
 ];
 
 export function BottomNavigation() {
-  const { t } = useLanguage();
-
-  const getLabel = (key: string): string => {
-    const value = t[key as keyof typeof t];
-    if (typeof value === 'string') {
-      if (key === 'home') return 'Home';
-      return value;
-    }
-    if (key === 'dailyProgram') return 'Tasks';
-    if (key === 'aiAssistant') return 'AI';
-    if (key === 'home') return 'Home';
-    return key;
-  };
+  const { t } = useTranslation('common');
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-sidebar border-t border-sidebar-border">
@@ -59,7 +47,7 @@ export function BottomNavigation() {
           >
             <item.icon className="h-5 w-5" />
             <span className="text-[10px] mt-0.5 leading-tight truncate max-w-[56px] text-center">
-              {getLabel(item.titleKey)}
+              {t(item.titleKey)}
             </span>
           </NavLink>
         ))}
