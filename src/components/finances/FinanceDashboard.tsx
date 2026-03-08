@@ -473,7 +473,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       <div className="flex flex-col items-center justify-center h-96 gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="text-muted-foreground">
-          {language === 'el' ? 'Φόρτωση οικονομικών δεδομένων...' : 'Loading financial data...'}
+          {t('loadingFinancial')}
         </p>
       </div>
     );
