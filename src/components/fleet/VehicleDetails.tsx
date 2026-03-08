@@ -47,26 +47,18 @@ import { EditVehicleDialog } from "./EditVehicleDialog";
 import { MaintenanceBlockDialog } from "./MaintenanceBlockDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import { useVehicleStatus, ComputedStatus } from "@/hooks/useVehicleStatus";
-interface VehicleTranslations {
-  [key: string]: string | VehicleTranslations;
-}
-function getTranslation(translations: VehicleTranslations | undefined, key: string, fallback: string): string {
-  if (!translations) return fallback;
-  const value = translations[key];
-  return typeof value === 'string' ? value : fallback;
-}
+
 interface VehicleDetailsProps {
   vehicleId?: string;
   vehicles: any[];
   loading?: boolean;
-  translations?: VehicleTranslations;
 }
 export function VehicleDetails({
   vehicleId,
   vehicles = [],
   loading = false,
-  translations
 }: VehicleDetailsProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("reminders");
@@ -86,10 +78,8 @@ export function VehicleDetails({
   const {
     toast
   } = useToast();
-  const {
-    t,
-    language
-  } = useLanguage();
+  const { language } = useLanguage();
+  const { t } = useTranslation(['fleet', 'common']);
   const vehicle = vehicles.find(v => v.id === vehicleId) || {
     id: "default",
     make: "Vehicle",
@@ -120,58 +110,20 @@ export function VehicleDetails({
     market_value_at_purchase: null
   };
 
-  // Use computed status from calendar data
   const {
     computedStatus,
     isLoading: statusLoading,
     refetch: refetchStatus
   } = useVehicleStatus(vehicleId, vehicle.status === 'repair' ? 'repair' : undefined);
 
-  // Sync needsRepair state with vehicle status
   useEffect(() => {
     setNeedsRepair(vehicle.status === 'repair');
   }, [vehicle.status]);
-  const trans = translations || {
-    serviceReminders: "Service Reminders",
-    fuelType: "Fuel Type",
-    costPerMile: "Cost Per Mile",
-    fuelCosts: "Fuel Costs",
-    totalServiceCost: "Total Service Cost",
-    milesPerDay: "Miles Per Day",
-    lastServiceDate: "Last Service Date",
-    totalServices: "Total Services",
-    performance: "Performance",
-    vehicleMaintenance: "Maintenance",
-    repair: "Repair",
-    documents: "Documents",
-    availability: "Availability",
-    finance: "Finance",
-    overview: "Overview",
-    uploadDocuments: "Upload Documents",
-    selectDays: "Select days when the vehicle is booked or unavailable",
-    dailyRate: "Daily Rate",
-    totalRevenue: "Total Revenue",
-    totalExpenses: "Total Expenses",
-    netProfit: "Net Profit",
-    editFinance: "Edit Finance",
-    enterFinanceDetails: "Enter finance details for this vehicle",
-    financeUpdated: "Finance Updated",
-    financeDetailsUpdated: "Finance details have been updated",
-    documentUploaded: "Document Uploaded",
-    documentSaved: "Your document has been saved",
-    rentalIncomeAdded: "Rental Income Added",
-    addedIncome: "Added $",
-    toIncomeFor: " to income for ",
-    editStatus: "Edit Status",
-    selectStatus: "Select a status for this vehicle",
-    statusUpdated: "Status Updated",
-    vehicleStatusChanged: "Vehicle status changed to "
-  };
+
   const safeNumber = (value: any) => {
     return typeof value === 'number' ? value : 0;
   };
 
-  // Status colors based on computed status
   const statusColors: Record<ComputedStatus, string> = {
     available: "bg-green-100 text-green-800 border-green-200",
     rented: "bg-red-100 text-red-800 border-red-200",
@@ -179,10 +131,10 @@ export function VehicleDetails({
     repair: "bg-orange-100 text-orange-800 border-orange-200"
   };
   const statusLabels: Record<ComputedStatus, string> = {
-    available: typeof t.available === 'string' ? t.available : 'Available',
-    rented: typeof t.rented === 'string' ? t.rented : 'Rented',
-    maintenance: typeof t.maintenance === 'string' ? t.maintenance : 'Maintenance',
-    repair: typeof t.repair === 'string' ? t.repair : 'Needs Repair'
+    available: t('common:available'),
+    rented: t('common:rented'),
+    maintenance: t('common:maintenance'),
+    repair: t('common:repair')
   };
   const handleEditStatus = () => {
     setNeedsRepair(vehicle.status === 'repair');
@@ -190,7 +142,6 @@ export function VehicleDetails({
   };
   const handleSaveStatus = async () => {
     try {
-      // Only save the base_status (repair toggle)
       const newStatus = needsRepair ? 'repair' : 'available';
       const {
         error
@@ -200,14 +151,14 @@ export function VehicleDetails({
       if (error) {
         console.error('Error updating vehicle status:', error);
         toast({
-          title: language === 'el' ? 'Σφάλμα' : "Error",
+          title: t('common:error'),
           description: language === 'el' ? 'Αποτυχία ενημέρωσης κατάστασης' : "Failed to update vehicle status",
           variant: "destructive"
         });
         return;
       }
       toast({
-        title: getTranslation(trans, 'statusUpdated', 'Status Updated'),
+        title: t('fleet:statusUpdated'),
         description: needsRepair ? language === 'el' ? 'Το όχημα σημειώθηκε ως χρειάζεται επισκευή' : 'Vehicle marked as needs repair' : language === 'el' ? 'Το όχημα είναι διαθέσιμο' : 'Vehicle is available'
       });
       setRefreshVehicle(prev => prev + 1);
@@ -216,7 +167,7 @@ export function VehicleDetails({
     } catch (err) {
       console.error('Error in handleSaveStatus:', err);
       toast({
-        title: "Error",
+        title: t('common:error'),
         description: "Failed to update vehicle status",
         variant: "destructive"
       });
@@ -246,8 +197,8 @@ export function VehicleDetails({
       };
       setDocuments(prev => [...prev, newDoc]);
       toast({
-        title: getTranslation(trans, 'documentUploaded', 'Document Uploaded'),
-        description: getTranslation(trans, 'documentSaved', 'Your document has been saved')
+        title: t('fleet:documentUploaded'),
+        description: t('fleet:documentSaved')
       });
     }
   };
@@ -268,16 +219,14 @@ export function VehicleDetails({
     setRefreshBookings(prev => prev + 1);
     refetchStatus();
   };
-  const getTrans = (key: string, fallback: string): string => {
-    return getTranslation(trans, key, fallback);
-  };
+
   return <div className="animate-fade-in">
       <div className="bg-white shadow-bottom">
         <div className="container py-4">
           <div className="flex items-center mb-4">
             <Button variant="ghost" size="sm" className="mr-2" onClick={() => navigate(-1)}>
               <ChevronLeft className="h-4 w-4 mr-1" />
-              {typeof t.cancel === 'string' ? t.cancel : 'Cancel'}
+              {t('common:cancel')}
             </Button>
           </div>
           
@@ -338,7 +287,7 @@ export function VehicleDetails({
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleEditStatus}>
                   <Settings className="h-4 w-4 mr-2" />
-                  {getTrans('editStatus', 'Edit Status')}
+                  {t('fleet:editStatus')}
                 </Button>
               </div>
             </div>}
@@ -348,11 +297,11 @@ export function VehicleDetails({
               <TabsTrigger value="reminders" className="px-4 py-2 flex-grow">
                 {language === 'el' ? 'Υπενθυμίσεις' : 'Reminders'}
               </TabsTrigger>
-              <TabsTrigger value="maintenance" className="px-4 py-2 flex-grow">{getTrans('vehicleMaintenance', 'Maintenance')}</TabsTrigger>
+              <TabsTrigger value="maintenance" className="px-4 py-2 flex-grow">{t('common:maintenance')}</TabsTrigger>
               <TabsTrigger value="damage" className="px-4 py-2 flex-grow">{language === 'el' ? 'Ζημιές' : 'Damages'}</TabsTrigger>
-              <TabsTrigger value="documents" className="px-4 py-2 flex-grow">{getTrans('documents', 'Documents')}</TabsTrigger>
+              <TabsTrigger value="documents" className="px-4 py-2 flex-grow">{t('fleet:documents')}</TabsTrigger>
               <TabsTrigger value="availability" className="px-4 py-2 flex-grow">{language === 'el' ? 'Κρατήσεις' : 'Reservations'}</TabsTrigger>
-              <TabsTrigger value="finance" className="px-4 py-2 flex-grow">{getTrans('finance', 'Finance')}</TabsTrigger>
+              <TabsTrigger value="finance" className="px-4 py-2 flex-grow">{t('fleet:finance')}</TabsTrigger>
             </TabsList>
           
             <div className="container py-0">
@@ -407,17 +356,16 @@ export function VehicleDetails({
         </div>
       </div>
 
-      {/* Edit Status Dialog - Simplified */}
+      {/* Edit Status Dialog */}
       <Dialog open={isEditStatusOpen} onOpenChange={setIsEditStatusOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {getTrans('editStatus', 'Edit Status')}
+              {t('fleet:editStatus')}
             </DialogTitle>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
-            {/* Current Status Display */}
             <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
               <span className="text-sm font-medium">{language === 'el' ? 'Κατάσταση:' : 'Status:'}</span>
               <Badge className={statusColors[computedStatus]} variant="outline">
@@ -427,21 +375,17 @@ export function VehicleDetails({
               </Badge>
             </div>
 
-            {/* Status Options */}
             <div className="space-y-3">
-              {/* Available Option */}
               <button type="button" onClick={() => setNeedsRepair(false)} className={`w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-colors ${!needsRepair && computedStatus !== 'rented' && computedStatus !== 'maintenance' ? 'border-green-500 bg-green-50' : 'border-border hover:border-green-300 hover:bg-green-50/50'}`}>
                 <div className="h-3 w-3 rounded-full bg-green-500" />
-                <span className="font-medium">{language === 'el' ? 'Διαθέσιμο' : 'Available'}</span>
+                <span className="font-medium">{t('common:available')}</span>
               </button>
 
-              {/* Needs Repair Option */}
               <button type="button" onClick={() => setNeedsRepair(true)} className={`w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-colors ${needsRepair ? 'border-orange-500 bg-orange-50' : 'border-border hover:border-orange-300 hover:bg-orange-50/50'}`}>
                 <AlertTriangle className="h-4 w-4 text-orange-500" />
-                <span className="font-medium">{language === 'el' ? 'Χρειάζεται Επισκευή' : 'Needs Repair'}</span>
+                <span className="font-medium">{t('common:repair')}</span>
               </button>
 
-              {/* Under Maintenance Option */}
               <button type="button" onClick={handleScheduleMaintenance} className={`w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-colors ${computedStatus === 'maintenance' ? 'border-orange-500 bg-orange-50' : 'border-border hover:border-orange-300 hover:bg-orange-50/50'}`}>
                 <Wrench className="h-4 w-4 text-orange-500" />
                 <div className="flex-1 text-left">
@@ -452,11 +396,10 @@ export function VehicleDetails({
                 </div>
               </button>
 
-              {/* Rented Status (Read-only, shown if currently rented) */}
               {computedStatus === 'rented' && <div className="w-full flex items-center gap-3 p-4 rounded-lg border-2 border-red-500 bg-red-50 opacity-75">
                   <div className="h-3 w-3 rounded-full bg-red-500" />
                   <div className="flex-1">
-                    <span className="font-medium">{language === 'el' ? 'Ενοικιασμένο' : 'Rented'}</span>
+                    <span className="font-medium">{t('common:rented')}</span>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {language === 'el' ? 'Ελέγχεται από κρατήσεις' : 'Controlled by bookings'}
                     </p>
@@ -467,10 +410,10 @@ export function VehicleDetails({
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditStatusOpen(false)}>
-              {typeof t.cancel === 'string' ? t.cancel : 'Cancel'}
+              {t('common:cancel')}
             </Button>
             <Button className="bg-flitx-blue hover:bg-flitx-blue-600" onClick={handleSaveStatus}>
-              {typeof t.save === 'string' ? t.save : 'Save'}
+              {t('common:save')}
             </Button>
           </DialogFooter>
         </DialogContent>
