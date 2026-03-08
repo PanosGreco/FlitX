@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronDown, ChevronUp, Car, Bike } from "lucide-react";
+import { ChevronDown, ChevronUp, Car, Bike, Truck, Snowflake, Waves, Tent, BicycleIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,6 +25,22 @@ import {
   VehicleType 
 } from "@/constants/vehicleTypes";
 import { TRANSMISSION_TYPES, TRANSMISSION_TYPE_LABELS } from "@/constants/transmissionTypes";
+
+// Icon mapping for vehicle types
+const getVehicleIcon = (type: VehicleType) => {
+  switch (type) {
+    case 'car': return Car;
+    case 'van': return Truck;
+    case 'truck': return Truck;
+    case 'motorbike': return Bike;
+    case 'atv': return Car;
+    case 'snowmobile': return Snowflake;
+    case 'camper': return Tent;
+    case 'bicycle': return Bike;
+    case 'jet_ski': return Waves;
+    default: return Car;
+  }
+};
 
 export interface VehicleFilters {
   yearSort: 'asc' | 'desc' | null;
