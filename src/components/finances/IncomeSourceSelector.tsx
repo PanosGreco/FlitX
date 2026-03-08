@@ -203,11 +203,11 @@ export function IncomeSourceSelector({
       </Select>
 
       {/* Collaboration: show sub-selector when collaboration is selected */}
-      {incomeSourceType === 'collaboration' && !incomeSourceSpecification && (
+      {incomeSourceType === 'collaboration' && (
         <div className="space-y-2">
           {hasCollaborations && (
             <Select
-              value=""
+              value={incomeSourceSpecification || ""}
               onValueChange={(val) => {
                 if (val === '__new_collab__') {
                   setIsCreatingCollab(true);
