@@ -277,7 +277,7 @@ export function AssetTrackingWidget() {
             </div>
 
             {/* Add Category */}
-            <div className="mt-4">
+            <div className="mt-2">
               {showNewCategory ? (
                 <div className="flex items-center gap-2">
                   <Input
