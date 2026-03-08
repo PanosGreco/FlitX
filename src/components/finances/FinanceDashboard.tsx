@@ -645,7 +645,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       {/* Transactions - Global list, independent of date filters */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">{language === 'el' ? 'Συναλλαγές' : 'Transactions'}</CardTitle>
+          <CardTitle className="text-lg">{t('transactions')}</CardTitle>
           {allTransactions.length > 5 && (
             <Button 
               variant="outline" 
