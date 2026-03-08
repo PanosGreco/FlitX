@@ -146,8 +146,9 @@ export default function Auth() {
     e.preventDefault();
     setErrors({});
     
-    // Validate step 2 fields
+    // Validate step 2 fields including confirm password match
     const step2Result = signupStep2Schema.safeParse({
+      confirmPassword: signupConfirmPassword,
       name: signupName,
       companyName: signupCompanyName,
       country: signupCountry,
@@ -162,6 +163,12 @@ export default function Auth() {
         }
       });
       setErrors(fieldErrors);
+      return;
+    }
+
+    // Check password match
+    if (signupConfirmPassword !== signupPassword) {
+      setErrors({ confirmPassword: "Passwords do not match." });
       return;
     }
 
