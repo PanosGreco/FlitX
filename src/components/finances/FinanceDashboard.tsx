@@ -693,7 +693,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CalendarIcon className="h-5 w-5" />
-              {language === 'el' ? 'Όλες οι Συναλλαγές' : 'All Transactions'}
+              {t('allTransactions')}
               <span className="text-muted-foreground font-normal text-sm">
                 ({allTransactions.length})
               </span>
