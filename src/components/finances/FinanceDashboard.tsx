@@ -680,7 +680,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
             </div>
           ) : (
             <p className="text-center text-muted-foreground py-8">
-              {language === 'el' ? 'Δεν υπάρχουν συναλλαγές' : 'No transactions found'}
+              {t('noTransactions')}
             </p>
           )}
         </CardContent>
