@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, Lock, User, Eye, EyeOff, Building2, MapPin, ArrowLeft } from "lucide-react";
 import { z } from "zod";
 import AuthLayout from "@/components/auth/AuthLayout";
+import { PasswordStrengthMeter } from "@/components/signup/PasswordStrengthMeter";
 
 const COUNTRIES = [
   { value: "greece", label: "Greece" },

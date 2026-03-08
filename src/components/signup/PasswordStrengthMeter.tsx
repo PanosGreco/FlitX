@@ -1,47 +1,63 @@
 
 import React from "react";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { Check } from "lucide-react";
 
 interface PasswordStrengthMeterProps {
-  score: number;
+  password: string;
 }
 
-export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({ score }) => {
-  const { t } = useLanguage();
+const REQUIREMENTS = [
+  { label: "At least 8 characters", test: (p: string) => p.length >= 8 },
+  { label: "Include uppercase letters", test: (p: string) => /[A-Z]/.test(p) },
+  { label: "Include numbers", test: (p: string) => /[0-9]/.test(p) },
+  { label: "Include special characters", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+];
 
-  let strengthLabel = "";
-  let strengthColor = "";
+export const PasswordStrengthMeter: React.FC<PasswordStrengthMeterProps> = ({ password }) => {
+  if (!password) return null;
 
-  if (score === 0) {
-    strengthLabel = t.signup.passwordWeak;
-    strengthColor = "bg-red-500";
-  } else if (score < 3) {
-    strengthLabel = t.signup.passwordMedium;
-    strengthColor = "bg-yellow-500";
-  } else {
-    strengthLabel = t.signup.passwordStrong;
-    strengthColor = "bg-green-500";
-  }
+  const metRequirements = REQUIREMENTS.map((r) => r.test(password));
+  const score = metRequirements.filter(Boolean).length;
 
-  const bars = [1, 2, 3, 4].map((index) => (
-    <div 
-      key={index}
-      className={`h-2 flex-1 rounded-full transition-colors ${
-        index <= score ? strengthColor : "bg-gray-200"
-      }`}
-    />
-  ));
+  const strengthLabel = score <= 1 ? "Weak" : score <= 3 ? "Medium" : "Strong password";
+  const barColor = score <= 1 ? "bg-destructive" : score <= 3 ? "bg-yellow-500" : "bg-green-500";
+  const textColor = score <= 1 ? "text-destructive" : score <= 3 ? "text-yellow-600" : "text-green-600";
+
+  const unmetRequirements = REQUIREMENTS.filter((_, i) => !metRequirements[i]);
 
   return (
-    <div className="mt-1 space-y-1">
-      <div className="flex gap-1">{bars}</div>
-      {score > 0 && (
-        <p className={`text-xs font-medium ${
-          score === 0 ? "text-red-500" : 
-          score < 3 ? "text-yellow-500" : "text-green-500"
-        }`}>
-          {strengthLabel}
-        </p>
+    <div className="mt-2 space-y-2">
+      {/* Strength bar */}
+      <div className="flex gap-1">
+        {[0, 1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
+              i < score ? barColor : "bg-muted"
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* Strength label */}
+      <p className={`text-xs font-medium ${textColor}`}>{strengthLabel}</p>
+
+      {/* Dynamic suggestions — hidden when all met */}
+      {unmetRequirements.length > 0 && (
+        <ul className="space-y-0.5">
+          {REQUIREMENTS.map((req, i) => (
+            <li
+              key={req.label}
+              className={`text-xs flex items-center gap-1.5 transition-all duration-200 ${
+                metRequirements[i] ? "text-green-600 line-through opacity-60" : "text-muted-foreground"
+              }`}
+            >
+              {metRequirements[i] && <Check className="h-3 w-3 shrink-0" />}
+              {!metRequirements[i] && <span className="h-3 w-3 shrink-0 inline-block rounded-full border border-muted-foreground/40" />}
+              {req.label}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
