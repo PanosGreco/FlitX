@@ -241,7 +241,7 @@ const Fleet = () => {
     try {
       const finalCategory = getFinalCategory();
       
-      if (!finalCategory && vehicleType !== 'atv') {
+      if (!finalCategory) {
         toast({
           title: language === 'el' ? 'Σφάλμα' : 'Error',
           description: language === 'el' ? 'Παρακαλώ επιλέξτε κατηγορία' : 'Please select a category',
