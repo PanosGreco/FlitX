@@ -616,34 +616,34 @@ const Finance = () => {
                     }
                   }} disabled={isLanguageLoading}>
                     <SelectTrigger>
-                      <SelectValue placeholder={t.selectCategory} />
+                    <SelectValue placeholder={t('selectCategory')} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
                         {isBoats ? (
                           <>
-                            <SelectItem value="fuel">{t.fuel}</SelectItem>
-                            <SelectItem value="maintenance">{t.boatMaintenance}</SelectItem>
-                            <SelectItem value="cleaning">{t.cleaning}</SelectItem>
-                            <SelectItem value="docking">{t.dockingFees}</SelectItem>
-                            <SelectItem value="licensing">{t.licensing}</SelectItem>
-                            <SelectItem value="salary">{t.employeeSalaries}</SelectItem>
+                            <SelectItem value="fuel">{t('fuel')}</SelectItem>
+                            <SelectItem value="maintenance">{t('boatMaintenance')}</SelectItem>
+                            <SelectItem value="cleaning">{t('cleaning')}</SelectItem>
+                            <SelectItem value="docking">{t('dockingFees')}</SelectItem>
+                            <SelectItem value="licensing">{t('licensing')}</SelectItem>
+                            <SelectItem value="salary">{t('employeeSalaries')}</SelectItem>
                             <SelectItem value="other" className="bg-muted/50 rounded-sm">
-                              {t.other}
+                              {t('other')}
                             </SelectItem>
                           </>
                         ) : (
                           <>
-                            <SelectItem value="fuel">{t.fuel}</SelectItem>
-                            <SelectItem value="maintenance">{t.vehicleMaintenance}</SelectItem>
+                            <SelectItem value="fuel">{t('fuel')}</SelectItem>
+                            <SelectItem value="maintenance">{t('vehicleMaintenance')}</SelectItem>
                             <SelectItem value="vehicle_parts">{language === 'el' ? 'Ανταλλακτικά Οχήματος' : 'Vehicle Parts'}</SelectItem>
-                            <SelectItem value="carwash">{t.carWash}</SelectItem>
-                            <SelectItem value="insurance">{t.insurance}</SelectItem>
-                            <SelectItem value="tax">{t.taxesFees}</SelectItem>
-                            <SelectItem value="salary">{t.employeeSalaries}</SelectItem>
+                            <SelectItem value="carwash">{t('carWash')}</SelectItem>
+                            <SelectItem value="insurance">{t('insurance')}</SelectItem>
+                            <SelectItem value="tax">{t('taxesFees')}</SelectItem>
+                            <SelectItem value="salary">{t('employeeSalaries')}</SelectItem>
                             <SelectItem value="marketing">{language === 'el' ? 'Μάρκετινγκ' : 'Marketing'}</SelectItem>
                             <SelectItem value="other" className="bg-muted/50 rounded-sm">
-                              {t.other}
+                              {t('other')}
                             </SelectItem>
                           </>
                         )}
