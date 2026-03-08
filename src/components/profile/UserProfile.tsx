@@ -399,7 +399,7 @@ export function UserProfile() {
                         <Label htmlFor="city">
                           {language === "el" ? "Πόλη" : "City"}
                         </Label>
-                        <Input
+                        <AutoSizeInput
                           id="city"
                           value={city}
                           onChange={(e) => setCity(e.target.value)}
