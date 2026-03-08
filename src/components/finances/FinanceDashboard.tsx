@@ -9,6 +9,7 @@ import { TrendingUp, TrendingDown, Plus, Loader2, Eye, CalendarIcon, Trash2, X, 
 import { cn } from "@/lib/utils";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { enUS, el } from 'date-fns/locale';
@@ -86,7 +87,8 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   const [isRecurringOpen, setIsRecurringOpen] = useState(false);
   const [profileData, setProfileData] = useState<{ name: string | null; company_name: string | null; avatar_url: string | null }>({ name: null, company_name: null, avatar_url: null });
   const isBoats = isBoatBusiness();
-  const { t, language, isLanguageLoading } = useLanguage();
+  const { language, isLanguageLoading } = useLanguage();
+  const { t } = useTranslation('finance');
   const { user } = useAuth();
   const { toast } = useToast();
   
@@ -177,17 +179,15 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   // Generate standardized title for transactions
   const getTransactionTitle = (record: FinancialRecord): string => {
     const isIncome = record.type === 'income';
-    const prefix = isIncome 
-      ? (language === 'el' ? 'Έσοδο' : 'Income Record')
-      : (language === 'el' ? 'Έξοδο' : 'Expense Record');
+    const prefix = isIncome ? t('incomeRecord') : t('expenseRecord');
     
     // Vehicle Sale records
     if (record.category === 'vehicle_sale') {
       const vehicleName = getVehicleName(record.vehicle_id);
       if (isIncome) {
-        return `${language === 'el' ? 'Κέρδος από Πώληση' : 'Profit from Vehicle Sale'}${vehicleName ? ` – ${vehicleName}` : ''}`;
+        return `${t('profitFromSale')}${vehicleName ? ` – ${vehicleName}` : ''}`;
       } else {
-        return `${language === 'el' ? 'Ζημία από Πώληση' : 'Loss from Vehicle Sale'}${vehicleName ? ` – ${vehicleName}` : ''}`;
+        return `${t('lossFromSale')}${vehicleName ? ` – ${vehicleName}` : ''}`;
       }
     }
 
@@ -200,9 +200,9 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       } else {
         const sourceType = record.income_source_type;
         const sourceLabels: Record<string, string> = {
-          walk_in: language === 'el' ? 'Απευθείας Κράτηση' : 'Direct Booking',
-          collaboration: language === 'el' ? 'Συνεργασία' : 'Collaboration',
-          other: language === 'el' ? 'Άλλο' : 'Other'
+          walk_in: t('directBooking'),
+          collaboration: t('collaboration'),
+          other: t('other')
         };
         const sourceLabel = sourceType ? sourceLabels[sourceType] || sourceType : '';
         const spec = record.income_source_specification;
@@ -217,18 +217,18 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     } else {
       // Expense titles
       const categoryLabels: Record<string, string> = {
-        fuel: language === 'el' ? 'Καύσιμα' : 'Fuel',
-        maintenance: language === 'el' ? 'Συντήρηση Οχήματος' : 'Vehicle Maintenance',
-        vehicle_parts: language === 'el' ? 'Ανταλλακτικά Οχήματος' : 'Vehicle Parts',
-        carwash: language === 'el' ? 'Πλύσιμο' : 'Car Wash',
-        insurance: language === 'el' ? 'Ασφάλεια' : 'Insurance',
-        tax: language === 'el' ? 'Φόροι/Τέλη' : 'Taxes/Fees',
-        salary: language === 'el' ? 'Μισθοί' : 'Salaries',
-        cleaning: language === 'el' ? 'Καθαρισμός' : 'Cleaning',
-        docking: language === 'el' ? 'Τέλη Ελλιμενισμού' : 'Docking Fees',
-        licensing: language === 'el' ? 'Άδειες' : 'Licensing',
-        marketing: language === 'el' ? 'Μάρκετινγκ' : 'Marketing',
-        other: language === 'el' ? 'Άλλο' : 'Other'
+        fuel: t('fuel'),
+        maintenance: t('vehicleMaintenance'),
+        vehicle_parts: t('vehicleParts'),
+        carwash: t('carWash'),
+        insurance: t('insurance'),
+        tax: t('taxesFees'),
+        salary: t('salaries'),
+        cleaning: t('cleaning'),
+        docking: t('dockingFees'),
+        licensing: t('licensing'),
+        marketing: t('marketing'),
+        other: t('other')
       };
       
       const categoryLabel = categoryLabels[record.category] || record.category;
@@ -369,10 +369,8 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       }
 
       toast({
-        title: language === 'el' ? 'Διαγράφηκε' : 'Deleted',
-        description: language === 'el' 
-          ? 'Η συναλλαγή και τα σχετικά δεδομένα διαγράφηκαν επιτυχώς'
-          : 'Transaction and related data have been deleted successfully',
+        title: t('deleted'),
+        description: t('transactionDeleted'),
       });
 
       // Trigger refresh
@@ -381,10 +379,8 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     } catch (error) {
       console.error('Error deleting transaction:', error);
       toast({
-        title: language === 'el' ? 'Σφάλμα' : 'Error',
-        description: language === 'el' 
-          ? 'Αποτυχία διαγραφής συναλλαγής'
-          : 'Failed to delete transaction',
+        title: t('error'),
+        description: t('failedToDelete'),
         variant: 'destructive'
       });
     } finally {
@@ -477,7 +473,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       <div className="flex flex-col items-center justify-center h-96 gap-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
         <p className="text-muted-foreground">
-          {language === 'el' ? 'Φόρτωση οικονομικών δεδομένων...' : 'Loading financial data...'}
+          {t('loadingFinancial')}
         </p>
       </div>
     );
@@ -497,21 +493,21 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         </Avatar>
         <div>
           <h2 className="text-lg font-semibold leading-tight">
-            {profileData.company_name || profileData.name || (language === 'el' ? 'Η Εταιρεία μου' : 'My Company')}
+            {profileData.company_name || profileData.name || t('myCompany')}
           </h2>
           <p className="text-sm text-muted-foreground">
-            {language === 'el' ? 'FlitX Οικονομικό Dashboard' : 'FlitX Financial Dashboard'}
+            {t('financialDashboard')}
           </p>
         </div>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold">{t.finances}</h1>
+        <h1 className="text-2xl font-bold">{t('common:finances')}</h1>
         
         <div className="flex items-center gap-2 flex-wrap">
           <Select value={timeframe} onValueChange={handleTimeframeChange} disabled={isLanguageLoading}>
             <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder={t.selectTimeframe} />
+              <SelectValue placeholder={t('selectTimeframe')} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="week">{TIMEFRAME_LABELS.week[language === 'el' ? 'el' : 'en']}</SelectItem>
@@ -548,7 +544,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
             disabled={isLanguageLoading}
           >
             <RefreshCw className="w-4 h-4 mr-2" />
-            {language === 'el' ? 'Επαναλαμβανόμενα' : 'Recurring'}
+            {t('recurring')}
           </Button>
 
           <Button 
@@ -556,7 +552,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
             disabled={isLanguageLoading}
           >
             <Plus className="w-4 h-4 mr-2" />
-            {t.addRecord}
+            {t('addRecord')}
           </Button>
         </div>
       </div>
@@ -571,7 +567,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <SummaryCard 
-          title={t.income} 
+          title={t('income')} 
           value={summaryData.totalIncome} 
           change={summaryData.incomeChange} 
           trend={summaryData.incomeChange >= 0 ? "up" : "down"} 
@@ -581,7 +577,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         />
         
         <SummaryCard 
-          title={t.expense} 
+          title={t('expense')} 
           value={summaryData.totalExpenses} 
           change={summaryData.expenseChange} 
           trend={summaryData.expenseChange >= 0 ? "up" : "down"} 
@@ -592,7 +588,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         />
         
         <SummaryCard 
-          title={t.netProfit} 
+          title={t('netIncome')} 
           value={summaryData.netProfit} 
           change={summaryData.profitChange} 
           trend={summaryData.profitChange >= 0 ? "up" : "down"} 
@@ -606,7 +602,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">{language === 'el' ? 'Έσοδα έναντι Εξόδων' : 'Income vs Expenses'}</CardTitle>
+            <CardTitle className="text-lg">{t('incomeVsExpenses')}</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <BarChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} />
@@ -615,7 +611,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">{language === 'el' ? 'Τάση Χρόνου' : 'Trend Over Time'}</CardTitle>
+            <CardTitle className="text-lg">{t('trendOverTime')}</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <LineChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} />
@@ -649,7 +645,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       {/* Transactions - Global list, independent of date filters */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">{language === 'el' ? 'Συναλλαγές' : 'Transactions'}</CardTitle>
+          <CardTitle className="text-lg">{t('transactions')}</CardTitle>
           {allTransactions.length > 5 && (
             <Button 
               variant="outline" 
@@ -657,7 +653,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
               onClick={() => setShowAllTransactions(true)}
             >
               <Eye className="h-4 w-4 mr-2" />
-              {language === 'el' ? 'Όλες' : 'View All'} ({allTransactions.length})
+              {t('viewAll')} ({allTransactions.length})
             </Button>
           )}
         </CardHeader>
@@ -678,15 +674,13 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
               ))}
               {allTransactions.length > 5 && !showAllTransactions && (
                 <div className="text-center text-sm text-muted-foreground pt-2">
-                  {language === 'el' 
-                    ? `Εμφάνιση 5 από ${allTransactions.length} συναλλαγές`
-                    : `Showing 5 of ${allTransactions.length} transactions`}
+                  {t('showingOf', { count: allTransactions.length })}
                 </div>
               )}
             </div>
           ) : (
             <p className="text-center text-muted-foreground py-8">
-              {language === 'el' ? 'Δεν υπάρχουν συναλλαγές' : 'No transactions found'}
+              {t('noTransactions')}
             </p>
           )}
         </CardContent>
@@ -699,7 +693,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CalendarIcon className="h-5 w-5" />
-              {language === 'el' ? 'Όλες οι Συναλλαγές' : 'All Transactions'}
+              {t('allTransactions')}
               <span className="text-muted-foreground font-normal text-sm">
                 ({allTransactions.length})
               </span>
@@ -728,26 +722,22 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {language === 'el' ? 'Διαγραφή Συναλλαγής' : 'Delete Transaction'}
+              {t('deleteTransaction')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {language === 'el' 
-                ? 'Είστε βέβαιοι ότι θέλετε να διαγράψετε αυτήν τη συναλλαγή; Αυτή η ενέργεια δεν μπορεί να αναιρεθεί. Αν αυτή η συναλλαγή συνδέεται με κράτηση ή συντήρηση, θα διαγραφούν και τα σχετικά δεδομένα.'
-                : 'Are you sure you want to delete this transaction? This action cannot be undone. If this transaction is linked to a booking or maintenance record, related data will also be deleted.'}
+              {t('deleteTransactionDesc')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>
-              {language === 'el' ? 'Ακύρωση' : 'Cancel'}
+              {t('cancel')}
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={() => deleteTransactionId && handleDeleteTransaction(deleteTransactionId)}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting 
-                ? (language === 'el' ? 'Διαγραφή...' : 'Deleting...') 
-                : (language === 'el' ? 'Διαγραφή' : 'Delete')}
+              {isDeleting ? t('deleting') : t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

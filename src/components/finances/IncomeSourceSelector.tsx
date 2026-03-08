@@ -18,7 +18,7 @@ import { useIncomeCategories } from "@/hooks/useIncomeCategories";
 import { useCollaborations } from "@/hooks/useCollaborations";
 import { useAdditionalCosts } from "@/hooks/useAdditionalCosts";
 import { useInsuranceTypes } from "@/hooks/useInsuranceTypes";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 
 interface IncomeSourceSelectorProps {
   incomeSourceType: string;
@@ -37,7 +37,7 @@ export function IncomeSourceSelector({
   showLabel = true,
   labelText,
 }: IncomeSourceSelectorProps) {
-  const { language } = useLanguage();
+  const { t } = useTranslation('finance');
   const { userIncomeCategories } = useIncomeCategories();
   const { collaborations, refetchCollaborations } = useCollaborations();
   const { savedCategories } = useAdditionalCosts();
@@ -97,13 +97,10 @@ export function IncomeSourceSelector({
   const handleCreateCollaboration = () => {
     const trimmed = newCollabName.trim();
     if (!trimmed) return;
-
-    // Case-insensitive duplicate check
     const exists = collaborations.some(
       (c) => c.toLowerCase() === trimmed.toLowerCase()
     );
     if (exists) {
-      // Reuse existing
       const match = collaborations.find(
         (c) => c.toLowerCase() === trimmed.toLowerCase()
       )!;
@@ -124,7 +121,7 @@ export function IncomeSourceSelector({
     <div className="space-y-3">
       {showLabel && (
         <Label className="text-base font-semibold">
-          {labelText || (language === 'el' ? 'Πηγή Κράτησης' : 'Booking Source')}
+          {labelText || t('bookingSource')}
         </Label>
       )}
 
@@ -134,62 +131,41 @@ export function IncomeSourceSelector({
         disabled={disabled}
       >
         <SelectTrigger>
-          <SelectValue
-            placeholder={
-              language === 'el' ? 'Επιλέξτε πηγή' : 'Select source'
-            }
-          />
+          <SelectValue placeholder={t('selectSource')} />
         </SelectTrigger>
         <SelectContentManualScroll scrollHeight="280px">
-          {/* Core Categories */}
           <SelectGroup>
             <SelectLabel className="text-xs text-muted-foreground font-medium">
-              {language === 'el' ? 'Βασικές Πηγές' : 'Core Sources'}
+              {t('coreSources')}
             </SelectLabel>
-            <SelectItem value="walk_in">
-              {language === 'el' ? 'Απευθείας Κράτηση' : 'Direct Booking'}
-            </SelectItem>
-
-            <SelectItem value="collaboration">
-              {language === 'el' ? 'Συνεργασία' : 'Collaboration'}
-            </SelectItem>
-
-            <SelectItem value="other">
-              {language === 'el' ? '+ Προσθήκη Νέας' : '+ Add New'}
-            </SelectItem>
+            <SelectItem value="walk_in">{t('directBooking')}</SelectItem>
+            <SelectItem value="collaboration">{t('collaboration')}</SelectItem>
+            <SelectItem value="other">{t('addNewSource')}</SelectItem>
           </SelectGroup>
 
-          {/* Hidden item for selected collaboration with specification */}
           {incomeSourceType === 'collaboration' && incomeSourceSpecification && (
             <SelectItem
               value={`__collab__:${incomeSourceSpecification}`}
               className="hidden"
             >
-              {language === 'el' ? 'Συνεργασία' : 'Collaboration'} – {incomeSourceSpecification}
+              {t('collaboration')} – {incomeSourceSpecification}
             </SelectItem>
           )}
 
-          {/* User-Created Categories (from Other) */}
           {(hasUserCategories || hasAdditionalCostCategories || hasInsuranceTypes) && (
             <>
               <SelectSeparator />
               <SelectGroup>
                 <SelectLabel className="text-xs text-muted-foreground font-medium">
-                  {language === 'el'
-                    ? 'Προσαρμοσμένες Πηγές'
-                    : 'Custom Sources'}
+                  {t('customSources')}
                 </SelectLabel>
                 {userIncomeCategories.map((cat) => (
-                  <SelectItem key={cat} value={`__custom__:${cat}`}>
-                    {cat}
-                  </SelectItem>
+                  <SelectItem key={cat} value={`__custom__:${cat}`}>{cat}</SelectItem>
                 ))}
                 {savedCategories
                   .filter(cat => !userIncomeCategories.some(uc => uc.toLowerCase() === cat.name.toLowerCase()))
                   .map((cat) => (
-                    <SelectItem key={`ac-${cat.id}`} value={`__additional_cost__:${cat.name}`}>
-                      {cat.name}
-                    </SelectItem>
+                    <SelectItem key={`ac-${cat.id}`} value={`__additional_cost__:${cat.name}`}>{cat.name}</SelectItem>
                   ))}
                 {insuranceTypes.map((ins) => (
                   <SelectItem key={`ins-${ins.id}`} value={`__insurance__:${ins.name_original}`}>
@@ -202,7 +178,6 @@ export function IncomeSourceSelector({
         </SelectContentManualScroll>
       </Select>
 
-      {/* Collaboration: show sub-selector when collaboration is selected */}
       {incomeSourceType === 'collaboration' && (
         <div className="space-y-2">
           {hasCollaborations && (
@@ -219,23 +194,17 @@ export function IncomeSourceSelector({
               }}
             >
               <SelectTrigger>
-                <SelectValue
-                  placeholder={
-                    language === 'el' ? 'Επιλέξτε συνεργασία...' : 'Select collaboration...'
-                  }
-                />
+                <SelectValue placeholder={t('selectCollaboration')} />
               </SelectTrigger>
               <SelectContent>
                 {collaborations.map((collab) => (
-                  <SelectItem key={collab} value={collab}>
-                    {collab}
-                  </SelectItem>
+                  <SelectItem key={collab} value={collab}>{collab}</SelectItem>
                 ))}
                 <SelectSeparator />
                 <SelectItem value="__new_collab__">
                   <span className="flex items-center gap-1.5 text-primary">
                     <Plus className="h-3.5 w-3.5" />
-                    {language === 'el' ? 'Νέα Συνεργασία' : 'New Collaboration'}
+                    {t('newCollaboration')}
                   </span>
                 </SelectItem>
               </SelectContent>
@@ -247,11 +216,7 @@ export function IncomeSourceSelector({
               <Input
                 value={newCollabName}
                 onChange={(e) => setNewCollabName(e.target.value)}
-                placeholder={
-                  language === 'el'
-                    ? 'Όνομα συνεργάτη...'
-                    : 'Collaboration name...'
-                }
+                placeholder={t('collaborationName')}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault();
@@ -265,23 +230,18 @@ export function IncomeSourceSelector({
                 onClick={handleCreateCollaboration}
                 disabled={!newCollabName.trim()}
               >
-                {language === 'el' ? 'Προσθήκη' : 'Add'}
+                {t('add')}
               </Button>
             </div>
           )}
         </div>
       )}
 
-      {/* Other: free text specification */}
       {incomeSourceType === 'other' && !userIncomeCategories.includes(incomeSourceSpecification) && (
         <Input
           value={incomeSourceSpecification}
-          onChange={(e) =>
-            onSourceChange('other', e.target.value)
-          }
-          placeholder={
-            language === 'el' ? 'Προσδιορίστε...' : 'Specify source...'
-          }
+          onChange={(e) => onSourceChange('other', e.target.value)}
+          placeholder={t('specifySource')}
         />
       )}
     </div>
