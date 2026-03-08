@@ -561,11 +561,11 @@ const Finance = () => {
                   }
                 }} disabled={isLanguageLoading}>
                   <SelectTrigger>
-                    <SelectValue placeholder={t.selectType} />
+                    <SelectValue placeholder={t('selectType')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="income">{t.income}</SelectItem>
-                    <SelectItem value="expense">{t.expense}</SelectItem>
+                    <SelectItem value="income">{t('income')}</SelectItem>
+                    <SelectItem value="expense">{t('expense')}</SelectItem>
                     <SelectSeparator />
                     <SelectItem value="vehicle_sale" className="font-medium">
                       {language === 'el' ? 'Πώληση Οχήματος' : 'Vehicle Sale'}
