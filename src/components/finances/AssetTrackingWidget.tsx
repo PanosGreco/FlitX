@@ -252,7 +252,7 @@ export function AssetTrackingWidget() {
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center gap-2">
           <Package className="h-5 w-5" />
           {lang === "el" ? "Περιουσιακά Στοιχεία" : "Assets"}
