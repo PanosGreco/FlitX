@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 
 interface MaintenanceBlockDialogProps {
   isOpen: boolean;
@@ -20,83 +20,40 @@ interface MaintenanceBlockDialogProps {
   onBlockAdded: () => void;
 }
 
-export function MaintenanceBlockDialog({
-  isOpen,
-  onClose,
-  vehicleId,
-  vehicleName,
-  onBlockAdded,
-}: MaintenanceBlockDialogProps) {
+export function MaintenanceBlockDialog({ isOpen, onClose, vehicleId, vehicleName, onBlockAdded }: MaintenanceBlockDialogProps) {
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
   const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const { language } = useLanguage();
+  const { t } = useTranslation(['fleet', 'common']);
 
   const handleSave = async () => {
     if (!startDate || !endDate) {
-      toast({
-        title: language === "el" ? "Σφάλμα" : "Error",
-        description: language === "el" 
-          ? "Παρακαλώ επιλέξτε ημερομηνίες έναρξης και λήξης" 
-          : "Please select start and end dates",
-        variant: "destructive",
-      });
+      toast({ title: t('common:error'), description: t('fleet:selectStartEndDates'), variant: "destructive" });
       return;
     }
-
     if (endDate < startDate) {
-      toast({
-        title: language === "el" ? "Σφάλμα" : "Error",
-        description: language === "el" 
-          ? "Η ημερομηνία λήξης πρέπει να είναι μετά την έναρξη" 
-          : "End date must be after start date",
-        variant: "destructive",
-      });
+      toast({ title: t('common:error'), description: t('fleet:endDateAfterStart'), variant: "destructive" });
       return;
     }
-
     setIsLoading(true);
     try {
       const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.user) {
-        throw new Error("Not authenticated");
-      }
-
+      if (!session?.session?.user) throw new Error("Not authenticated");
       const { error } = await supabase.from("maintenance_blocks").insert({
-        vehicle_id: vehicleId,
-        user_id: session.session.user.id,
-        start_date: format(startDate, "yyyy-MM-dd"),
-        end_date: format(endDate, "yyyy-MM-dd"),
+        vehicle_id: vehicleId, user_id: session.session.user.id,
+        start_date: format(startDate, "yyyy-MM-dd"), end_date: format(endDate, "yyyy-MM-dd"),
         description: description || null,
       });
-
       if (error) throw error;
-
-      toast({
-        title: language === "el" ? "Επιτυχία" : "Success",
-        description: language === "el" 
-          ? "Το πρόγραμμα συντήρησης προστέθηκε" 
-          : "Maintenance schedule added",
-      });
-
+      toast({ title: t('common:success'), description: t('fleet:maintenanceScheduleAdded') });
       onBlockAdded();
       onClose();
-      
-      // Reset form
-      setStartDate(undefined);
-      setEndDate(undefined);
-      setDescription("");
+      setStartDate(undefined); setEndDate(undefined); setDescription("");
     } catch (error) {
       console.error("Error adding maintenance block:", error);
-      toast({
-        title: language === "el" ? "Σφάλμα" : "Error",
-        description: language === "el" 
-          ? "Αποτυχία προσθήκης συντήρησης" 
-          : "Failed to add maintenance",
-        variant: "destructive",
-      });
+      toast({ title: t('common:error'), description: t('fleet:failedAddMaintenance'), variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -106,100 +63,49 @@ export function MaintenanceBlockDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {language === "el" ? "Προγραμματισμός Μη Διαθεσιμότητας" : "Schedule Unavailability"}
-          </DialogTitle>
-          <DialogDescription>
-            {language === "el" 
-              ? `Επιλέξτε τις ημερομηνίες που το ${vehicleName} δεν είναι διαθέσιμο` 
-              : `Select dates that ${vehicleName} is unavailable`}
-          </DialogDescription>
+          <DialogTitle>{t('fleet:scheduleUnavailability')}</DialogTitle>
+          <DialogDescription>{t('fleet:selectUnavailableDates', { name: vehicleName })}</DialogDescription>
         </DialogHeader>
-
         <div className="space-y-4 py-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>{language === "el" ? "Ημερομηνία Έναρξης" : "Start Date"}</Label>
+              <Label>{t('fleet:startDate')}</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !startDate && "text-muted-foreground"
-                    )}
-                  >
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "MMM dd, yyyy") : (
-                      <span>{language === "el" ? "Επιλέξτε" : "Pick date"}</span>
-                    )}
+                    {startDate ? format(startDate, "MMM dd, yyyy") : <span>{t('fleet:pickDate')}</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={setStartDate}
-                    initialFocus
-                    className="p-3 pointer-events-auto"
-                  />
+                  <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus className="p-3 pointer-events-auto" />
                 </PopoverContent>
               </Popover>
             </div>
-
             <div className="space-y-2">
-              <Label>{language === "el" ? "Ημερομηνία Λήξης" : "End Date"}</Label>
+              <Label>{t('fleet:endDate')}</Label>
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !endDate && "text-muted-foreground"
-                    )}
-                  >
+                  <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {endDate ? format(endDate, "MMM dd, yyyy") : (
-                      <span>{language === "el" ? "Επιλέξτε" : "Pick date"}</span>
-                    )}
+                    {endDate ? format(endDate, "MMM dd, yyyy") : <span>{t('fleet:pickDate')}</span>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={endDate}
-                    onSelect={setEndDate}
-                    disabled={(date) => startDate ? date < startDate : false}
-                    initialFocus
-                    className="p-3 pointer-events-auto"
-                  />
+                  <Calendar mode="single" selected={endDate} onSelect={setEndDate} disabled={(date) => startDate ? date < startDate : false} initialFocus className="p-3 pointer-events-auto" />
                 </PopoverContent>
               </Popover>
             </div>
           </div>
-
           <div className="space-y-2">
-            <Label>{language === "el" ? "Περιγραφή (προαιρετικό)" : "Description (optional)"}</Label>
-            <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder={language === "el" 
-                ? "π.χ. Αλλαγή λαδιών, Επισκευή φρένων..." 
-                : "e.g., Oil change, Brake repair..."}
-              className="resize-none"
-              rows={3}
-            />
+            <Label>{t('fleet:description')}</Label>
+            <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('fleet:descriptionPlaceholder')} className="resize-none" rows={3} />
           </div>
         </div>
-
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isLoading}>
-            {language === "el" ? "Ακύρωση" : "Cancel"}
-          </Button>
+          <Button variant="outline" onClick={onClose} disabled={isLoading}>{t('common:cancel')}</Button>
           <Button onClick={handleSave} disabled={isLoading}>
-            {isLoading 
-              ? (language === "el" ? "Αποθήκευση..." : "Saving...") 
-              : (language === "el" ? "Προσθήκη Συντήρησης" : "Add Maintenance")}
+            {isLoading ? t('common:saving') : t('fleet:addMaintenance')}
           </Button>
         </DialogFooter>
       </DialogContent>

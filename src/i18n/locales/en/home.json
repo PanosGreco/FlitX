@@ -1,3 +1,10 @@
 {
-  "title": "Home"
+  "title": "Home",
+  "dailyVehicleReminders": "Daily Vehicle Reminders",
+  "remindersAppearHere": "Daily vehicle-related reminders will appear here.",
+  "manageRemindersDesc": "You can manage and add reminders individually for each vehicle through the Vehicle's Reminders section.",
+  "openDailyProgram": "Open Daily Program",
+  "notebook": "Notebook",
+  "takeQuickNotes": "Take quick notes for {{date}}",
+  "writeNotes": "Write notes for {{date}}"
 }
