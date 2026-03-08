@@ -155,9 +155,19 @@ export function IncomeSourceSelector({
             </SelectItem>
 
             <SelectItem value="other">
-              {language === 'el' ? 'Άλλο' : 'Other'}
+              {language === 'el' ? '+ Προσθήκη Νέας' : '+ Add New'}
             </SelectItem>
           </SelectGroup>
+
+          {/* Hidden item for selected collaboration with specification */}
+          {incomeSourceType === 'collaboration' && incomeSourceSpecification && (
+            <SelectItem
+              value={`__collab__:${incomeSourceSpecification}`}
+              className="hidden"
+            >
+              {language === 'el' ? 'Συνεργασία' : 'Collaboration'} – {incomeSourceSpecification}
+            </SelectItem>
+          )}
 
           {/* User-Created Categories (from Other) */}
           {(hasUserCategories || hasAdditionalCostCategories || hasInsuranceTypes) && (
