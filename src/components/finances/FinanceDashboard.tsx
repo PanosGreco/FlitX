@@ -611,7 +611,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">{language === 'el' ? 'Τάση Χρόνου' : 'Trend Over Time'}</CardTitle>
+            <CardTitle className="text-lg">{t('trendOverTime')}</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
             <LineChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} />
