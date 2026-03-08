@@ -9,6 +9,7 @@ import { TrendingUp, TrendingDown, Plus, Loader2, Eye, CalendarIcon, Trash2, X, 
 import { cn } from "@/lib/utils";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { enUS, el } from 'date-fns/locale';
