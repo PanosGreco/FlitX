@@ -1,24 +1,22 @@
 
 import { useEffect } from 'react';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
-export const usePageTitle = (titleKey: keyof typeof import('@/contexts/LanguageContext').translations.en) => {
-  const { t, language } = useLanguage();
+export const usePageTitle = (titleKey: string) => {
+  const { t, i18n } = useTranslation('common');
   
   useEffect(() => {
-    // Set the document title when language or page changes
-    const title = t[titleKey] || titleKey;
+    const title = t(titleKey) || titleKey;
     document.title = `FlitX - ${title}`;
     
-    // Update the meta description for SEO
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
-      metaDescription.setAttribute('content', `FlitX - ${title} | ${language === 'el' ? 'Διαχείριση στόλου οχημάτων' : 'Fleet management software'}`);
+      const lang = i18n.language;
+      metaDescription.setAttribute('content', `FlitX - ${title} | ${lang === 'el' ? 'Διαχείριση στόλου οχημάτων' : 'Fleet management software'}`);
     }
     
     return () => {
-      // Reset title when unmounting (optional)
       document.title = 'FlitX';
     };
-  }, [t, titleKey, language]);
+  }, [t, titleKey, i18n.language]);
 };

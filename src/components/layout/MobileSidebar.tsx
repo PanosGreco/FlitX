@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 
 interface MobileSidebarProps {
   isOpen: boolean;
@@ -26,113 +26,47 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  {
-    titleKey: "finances",
-    href: "/finances",
-    icon: BarChart3,
-  },
-  {
-    titleKey: "home",
-    href: "/",
-    icon: Calendar,
-  },
-  {
-    titleKey: "aiAssistant",
-    href: "/ai-assistant",
-    icon: Sparkles,
-  },
-  {
-    titleKey: "dailyProgram",
-    href: "/daily-program",
-    icon: Calendar,
-  },
-  {
-    titleKey: "fleet",
-    href: "/fleet",
-    icon: Car,
-  },
-  {
-    titleKey: "tracking",
-    href: "/tracking",
-    icon: Map,
-  },
-  {
-    titleKey: "profile",
-    href: "/profile",
-    icon: User,
-  },
+  { titleKey: "finances", href: "/finances", icon: BarChart3 },
+  { titleKey: "home", href: "/", icon: Calendar },
+  { titleKey: "aiAssistant", href: "/ai-assistant", icon: Sparkles },
+  { titleKey: "dailyProgram", href: "/daily-program", icon: Calendar },
+  { titleKey: "fleet", href: "/fleet", icon: Car },
+  { titleKey: "tracking", href: "/tracking", icon: Map },
+  { titleKey: "profile", href: "/profile", icon: User },
 ];
 
 export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
   const isMobile = useIsMobile();
-  const { t } = useLanguage();
+  const { t } = useTranslation('common');
 
-  // Close sidebar when clicking outside on mobile
   useEffect(() => {
     if (!isOpen) return;
-    
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
       if (!target.closest('#mobile-sidebar') && !target.closest('button')) {
         onClose();
       }
     };
-    
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isOpen, onClose]);
   
-  // Prevent scrolling when sidebar is open on mobile
   useEffect(() => {
     if (!isMobile) return;
-    
     if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
-    
-    return () => {
-      document.body.style.overflow = '';
-    };
+    return () => { document.body.style.overflow = ''; };
   }, [isOpen, isMobile]);
-
-  // Helper function to safely get translation text
-  const getTranslation = (key: string): string => {
-    const value = t[key as keyof typeof t];
-    if (typeof value === 'string') {
-      // Capitalize "Home" properly
-      if (key === 'home') {
-        return 'Home';
-      }
-      return value;
-    }
-    // Add fallback for new keys
-    if (key === 'dailyProgram') {
-      return 'Daily Program';
-    }
-    if (key === 'home') {
-      return 'Home';
-    }
-    if (key === 'aiAssistant') {
-      return 'AI Assistant';
-    }
-    return key; // Fallback to the key if translation is not a string
-  };
 
   return (
     <>
-      {/* Backdrop */}
       {isOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-black/50 transition-opacity" 
-          aria-hidden="true"
-        />
+        <div className="fixed inset-0 z-40 bg-black/50 transition-opacity" aria-hidden="true" />
       )}
       
-      {/* Sidebar */}
       <div
         id="mobile-sidebar"
         className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar flex flex-col transition-transform duration-300 ease-in-out transform ${
@@ -141,13 +75,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
       >
         <div className="flex items-center justify-between h-14 px-4 border-b border-sidebar-border">
           <div className="text-flitx-blue font-bold text-xl">FlitX</div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={onClose} 
-            className="text-flitx-gray-500"
-            aria-label="Close menu"
-          >
+          <Button variant="ghost" size="icon" onClick={onClose} className="text-flitx-gray-500" aria-label="Close menu">
             <X className="h-5 w-5" />
           </Button>
         </div>
@@ -168,7 +96,7 @@ export function MobileSidebar({ isOpen, onClose }: MobileSidebarProps) {
                   }
                 >
                   <item.icon className="mr-3 h-5 w-5" />
-                  <span>{getTranslation(item.titleKey)}</span>
+                  <span>{t(item.titleKey)}</span>
                 </NavLink>
               </li>
             ))}
