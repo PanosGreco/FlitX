@@ -56,7 +56,7 @@ export default function Auth() {
   const { t } = useLanguage();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
+  const [activeTab, setActiveTab] = useState<"login" | "signup">("signup");
   const [signupStep, setSignupStep] = useState<1 | 2>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
