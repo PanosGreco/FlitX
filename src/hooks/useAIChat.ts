@@ -170,7 +170,8 @@ export function useAIChat(): UseAIChatReturn {
         body: JSON.stringify({
           messages: apiMessages,
           conversationId: activeConversation,
-          presetType
+          presetType,
+          language: i18n.language
         })
       });
 

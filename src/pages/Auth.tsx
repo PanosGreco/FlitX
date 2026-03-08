@@ -55,7 +55,7 @@ const signupSchema = z.object({
 export default function Auth() {
   const navigate = useNavigate();
   const { signIn, signUp, user, isLoading: authLoading } = useAuth();
-  const { t } = useLanguage();
+  const { setLanguage } = useLanguage();
   const { toast } = useToast();
   
   const [activeTab, setActiveTab] = useState<"login" | "signup">("signup");
