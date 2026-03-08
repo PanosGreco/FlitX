@@ -56,6 +56,50 @@ const COUNTRIES = [
   { value: "france", label: "France" },
 ];
 
+// Auto-sizing input that shrinks to fit content and expands as user types
+const AutoSizeInput = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
+  ({ className, value, placeholder, ...props }, ref) => {
+    const innerRef = useRef<HTMLInputElement>(null);
+    const measureRef = useRef<HTMLSpanElement>(null);
+
+    const updateWidth = useCallback(() => {
+      const input = innerRef.current;
+      const measure = measureRef.current;
+      if (!input || !measure) return;
+      const text = String(value || '') || placeholder || '';
+      measure.textContent = text;
+      const newWidth = Math.max(measure.offsetWidth + 24, 60); // 24px padding, 60px min
+      input.style.width = `${Math.min(newWidth, input.parentElement?.offsetWidth || 9999)}px`;
+    }, [value, placeholder]);
+
+    useEffect(() => {
+      updateWidth();
+    }, [updateWidth]);
+
+    return (
+      <div className="relative">
+        <span
+          ref={measureRef}
+          className="invisible absolute whitespace-pre text-base md:text-sm"
+          style={{ font: 'inherit' }}
+        />
+        <Input
+          ref={(node) => {
+            (innerRef as React.MutableRefObject<HTMLInputElement | null>).current = node;
+            if (typeof ref === 'function') ref(node);
+            else if (ref) (ref as React.MutableRefObject<HTMLInputElement | null>).current = node;
+          }}
+          className={cn("transition-[width] duration-150", className)}
+          value={value}
+          placeholder={placeholder}
+          {...props}
+        />
+      </div>
+    );
+  }
+);
+AutoSizeInput.displayName = "AutoSizeInput";
+
 export function UserProfile() {
   const navigate = useNavigate();
   const { profile, user, signOut, updateProfile, refreshProfile, isLoading: authLoading } = useAuth();
