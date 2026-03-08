@@ -21,10 +21,10 @@ const SignUpPage = () => {
   const [passwordScore, setPasswordScore] = useState(0);
   
   const signUpSchema = z.object({
-    businessName: z.string().min(2, { message: t.signup.businessNameRequired }),
-    email: z.string().email({ message: t.signup.invalidEmail }),
-    password: z.string().min(6, { message: t.signup.passwordLength }),
-    businessType: z.string().min(1, { message: t.signup.businessTypeRequired }),
+    businessName: z.string().min(2, { message: t('signup.businessNameRequired') }),
+    email: z.string().email({ message: t('signup.invalidEmail') }),
+    password: z.string().min(6, { message: t('signup.passwordLength') }),
+    businessType: z.string().min(1, { message: t('signup.businessTypeRequired') }),
   });
 
   const form = useForm<z.infer<typeof signUpSchema>>({
@@ -41,16 +41,9 @@ const SignUpPage = () => {
 
   const onSubmit = async (values: z.infer<typeof signUpSchema>) => {
     try {
-      // In a real app, you would send this data to your backend
       console.log("Form values:", values);
-      
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Show success message
-      toast.success(t.signup.accountCreated);
-      
-      // Redirect based on business type
+      toast.success(t('signup.accountCreated'));
       if (values.businessType === "cars") {
         navigate("/");
       } else if (values.businessType === "boats") {
@@ -58,7 +51,7 @@ const SignUpPage = () => {
       }
     } catch (error) {
       console.error("Sign up error:", error);
-      toast.error(t.signup.errorCreating);
+      toast.error(t('signup.errorCreating'));
     }
   };
 
@@ -70,8 +63,8 @@ const SignUpPage = () => {
       
       <div className="w-full max-w-md bg-white rounded-lg shadow-md p-6 md:p-8 space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">{t.signup.createAccount}</h1>
-          <p className="text-gray-600 mt-2">{t.signup.getStarted}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('signup.createAccount')}</h1>
+          <p className="text-gray-600 mt-2">{t('signup.getStarted')}</p>
         </div>
 
         <Form {...form}>
@@ -81,9 +74,9 @@ const SignUpPage = () => {
               name="businessName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t.signup.businessName}</FormLabel>
+                  <FormLabel>{t('signup.businessName')}</FormLabel>
                   <FormControl>
-                    <Input placeholder={t.signup.enterBusinessName} {...field} />
+                    <Input placeholder={t('signup.enterBusinessName')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -95,9 +88,9 @@ const SignUpPage = () => {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t.signup.email}</FormLabel>
+                  <FormLabel>{t('signup.email')}</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder={t.signup.enterEmail} {...field} />
+                    <Input type="email" placeholder={t('signup.enterEmail')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -109,16 +102,15 @@ const SignUpPage = () => {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t.signup.password}</FormLabel>
+                  <FormLabel>{t('signup.password')}</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Input 
                         type={showPassword ? "text" : "password"} 
-                        placeholder={t.signup.enterPassword} 
+                        placeholder={t('signup.enterPassword')} 
                         {...field}
                         onChange={(e) => {
                           field.onChange(e);
-                          // Calculate password strength somewhere
                           const value = e.target.value;
                           let score = 0;
                           if (value.length > 8) score += 1;
@@ -150,19 +142,16 @@ const SignUpPage = () => {
               name="businessType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t.signup.businessType}</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
+                  <FormLabel>{t('signup.businessType')}</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder={t.signup.selectBusinessType} />
+                        <SelectValue placeholder={t('signup.selectBusinessType')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="cars">{t.signup.carRental}</SelectItem>
-                      <SelectItem value="boats">{t.signup.boatRental}</SelectItem>
+                      <SelectItem value="cars">{t('signup.carRental')}</SelectItem>
+                      <SelectItem value="boats">{t('signup.boatRental')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -171,16 +160,16 @@ const SignUpPage = () => {
             />
             
             <Button type="submit" className="w-full mt-6">
-              {t.signup.signUp}
+              {t('signup.signUp')}
             </Button>
           </form>
         </Form>
         
         <div className="text-center text-sm">
           <p className="text-gray-600">
-            {t.signup.alreadyHaveAccount}{" "}
+            {t('signup.alreadyHaveAccount')}{" "}
             <a href="/login" className="text-primary hover:underline">
-              {t.signup.login}
+              {t('signup.login')}
             </a>
           </p>
         </div>
