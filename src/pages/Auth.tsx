@@ -214,6 +214,11 @@ export default function Auth() {
         variant: "destructive",
       });
     } else {
+      // Auto-set language based on country selection
+      const countryLang = COUNTRY_LANGUAGE_MAP[signupCountry] as SupportedLanguage | undefined;
+      if (countryLang) {
+        setLanguage(countryLang);
+      }
       toast({
         title: "Account created!",
         description: "You have successfully signed up and logged in.",
