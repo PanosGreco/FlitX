@@ -30,7 +30,7 @@ serve(async (req) => {
       });
     }
 
-    const { messages, conversationId, presetType } = await req.json();
+    const { messages, conversationId, presetType, language } = await req.json();
 
     // === SECURITY: Input Validation ===
     // Validate message length to prevent abuse
