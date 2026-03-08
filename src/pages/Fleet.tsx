@@ -217,6 +217,10 @@ const Fleet = () => {
     if (vehicleType === 'atv') {
       return 'atv';
     }
+    // For types with no predefined categories, customCategory is always used
+    if (VEHICLE_CATEGORIES[vehicleType]?.length === 0 && customCategory.trim()) {
+      return normalizeCategory(customCategory);
+    }
     if (isCustomCategory && customCategory.trim()) {
       return normalizeCategory(customCategory);
     }
