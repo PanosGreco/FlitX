@@ -60,16 +60,18 @@ export function AssetTrackingWidget() {
     initRef.current = true;
 
     const vehicleTypes = [...new Set(vehicles.map((v) => v.vehicle_type))];
-    const existingVehicleCats = categories.filter((c) => c.is_vehicle_category);
+    const existingNames = new Set(
+      categories.filter((c) => c.is_vehicle_category).map((c) => c.name)
+    );
 
     const missing = vehicleTypes.filter(
-      (vt) => !existingVehicleCats.some((c) => c.name === (VEHICLE_TYPE_LABELS[vt]?.en || vt))
+      (vt) => !existingNames.has(VEHICLE_TYPE_LABELS[vt]?.en || vt)
     );
 
     if (missing.length > 0) {
       Promise.all(missing.map((vt) => addCategory(VEHICLE_TYPE_LABELS[vt]?.en || vt, true)));
     }
-  }, [loading, vehicles]);
+  }, [loading, vehicles, categories]);
 
   const handleDebouncedUpsert = useCallback(
     (key: string, data: Parameters<typeof upsertAsset>[0]) => {
