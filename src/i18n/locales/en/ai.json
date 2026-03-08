@@ -1,0 +1,14 @@
+{
+  "greeting": "Hey{{name}}, ready to assist you",
+  "subtitle": "Ask me anything or try one of the suggestions below",
+  "presets": {
+    "marketingGrowth": {
+      "title": "Marketing and Growth Suggestions",
+      "description": "Get AI-powered marketing strategies and growth opportunities"
+    },
+    "expenseOptimization": {
+      "title": "Expense Optimization and Cost Reduction",
+      "description": "Analyze expenses and find cost-saving opportunities"
+    }
+  }
+}
