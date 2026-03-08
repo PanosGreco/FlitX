@@ -31,6 +31,7 @@ const signupStep1Schema = z.object({
 });
 
 const signupStep2Schema = z.object({
+  confirmPassword: z.string().min(1, "Please confirm your password"),
   name: z.string().min(2, "Name must be at least 2 characters"),
   companyName: z.string().min(2, "Company name must be at least 2 characters"),
   country: z.string().min(1, "Please select a country"),
