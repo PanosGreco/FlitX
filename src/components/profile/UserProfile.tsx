@@ -367,7 +367,7 @@ export function UserProfile() {
                         <Building2 className="h-4 w-4" />
                         {language === "el" ? "Επωνυμία Εταιρείας" : "Company Name"}
                       </Label>
-                      <Input
+                      <AutoSizeInput
                         id="company-name"
                         value={companyName}
                         onChange={(e) => setCompanyName(e.target.value)}
