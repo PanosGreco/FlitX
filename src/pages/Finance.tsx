@@ -489,11 +489,11 @@ const Finance = () => {
             <DialogHeader>
               <DialogTitle>{isVehicleSaleMode 
                 ? (language === 'el' ? 'Πώληση Οχήματος' : 'Vehicle Sale')
-                : t.addTransaction}</DialogTitle>
+                : t('addTransaction')}</DialogTitle>
               <DialogDescription>
                 {isVehicleSaleMode 
                   ? (language === 'el' ? 'Καταγράψτε πώληση οχήματος' : 'Record a vehicle sale')
-                  : t.enterTransactionDetails}
+                  : t('enterTransactionDetails')}
               </DialogDescription>
             </DialogHeader>
             
