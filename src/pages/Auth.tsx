@@ -366,6 +366,7 @@ export default function Auth() {
               </button>
             </div>
             {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+            <PasswordStrengthMeter password={signupPassword} />
           </div>
 
           <Button type="submit" className="w-full h-11 text-base">
