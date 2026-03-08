@@ -383,6 +383,40 @@ export default function Auth() {
       ) : (
         /* Signup Step 2 — Profile */
         <form onSubmit={handleSignup} className="space-y-4">
+          {/* Confirm Password */}
+          <div className="space-y-2">
+            <Label htmlFor="signup-confirm-password">Confirm Password</Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="signup-confirm-password"
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="Re-enter your password"
+                value={signupConfirmPassword}
+                onChange={(e) => {
+                  setSignupConfirmPassword(e.target.value);
+                  if (errors.confirmPassword) {
+                    setErrors((prev) => { const { confirmPassword, ...rest } = prev; return rest; });
+                  }
+                }}
+                className="pl-10 pr-10 h-11"
+                disabled={isSubmitting}
+                autoFocus
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            {signupConfirmPassword && signupConfirmPassword !== signupPassword && (
+              <p className="text-sm text-destructive">Passwords do not match.</p>
+            )}
+            {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="signup-name">Full Name</Label>
             <div className="relative">
