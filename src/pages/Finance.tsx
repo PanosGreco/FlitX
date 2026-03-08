@@ -591,7 +591,7 @@ const Finance = () => {
 
               {recordType === "expense" && (
                 <div className="space-y-2">
-                  <Label htmlFor="expenseType">{t.category}</Label>
+                  <Label htmlFor="expenseType">{t('category')}</Label>
                   <Select value={expenseCategory} onValueChange={(val) => {
                     // If selecting a user-created expense category
                     if (val.startsWith('__custom_exp__:')) {
