@@ -641,6 +641,8 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         vehicleProfitRanking={vehicleProfitRanking}
       />
 
+      {/* Assets + Transactions side-by-side */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
       {/* Asset Tracking Widget */}
       <AssetTrackingWidget />
         
@@ -689,6 +691,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           )}
         </CardContent>
       </Card>
+      </div>
 
       {/* View All Transactions Dialog */}
       <Dialog open={showAllTransactions} onOpenChange={setShowAllTransactions}>

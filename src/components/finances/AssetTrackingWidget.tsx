@@ -28,7 +28,7 @@ const VEHICLE_TYPE_LABELS: Record<string, { en: string; el: string }> = {
 };
 
 function formatCurrency(value: number): string {
-  return `€${value.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+  return `€${value.toLocaleString("de-DE", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
 export function AssetTrackingWidget() {
@@ -38,7 +38,7 @@ export function AssetTrackingWidget() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [showNewCategory, setShowNewCategory] = useState(false);
-  const [vehicleCategoriesReady, setVehicleCategoriesReady] = useState(false);
+  const initRef = useRef(false);
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   // Fetch vehicles
@@ -54,9 +54,11 @@ export function AssetTrackingWidget() {
       });
   }, [user]);
 
-  // Auto-create vehicle categories
+  // Auto-create vehicle categories (once)
   useEffect(() => {
-    if (loading || vehicleCategoriesReady || vehicles.length === 0) return;
+    if (loading || initRef.current || vehicles.length === 0) return;
+    initRef.current = true;
+
     const vehicleTypes = [...new Set(vehicles.map((v) => v.vehicle_type))];
     const existingVehicleCats = categories.filter((c) => c.is_vehicle_category);
 
@@ -64,15 +66,10 @@ export function AssetTrackingWidget() {
       (vt) => !existingVehicleCats.some((c) => c.name === (VEHICLE_TYPE_LABELS[vt]?.en || vt))
     );
 
-    if (missing.length === 0) {
-      setVehicleCategoriesReady(true);
-      return;
+    if (missing.length > 0) {
+      Promise.all(missing.map((vt) => addCategory(VEHICLE_TYPE_LABELS[vt]?.en || vt, true)));
     }
-
-    Promise.all(missing.map((vt) => addCategory(VEHICLE_TYPE_LABELS[vt]?.en || vt, true))).then(() => {
-      setVehicleCategoriesReady(true);
-    });
-  }, [loading, vehicles, categories, vehicleCategoriesReady, addCategory]);
+  }, [loading, vehicles]);
 
   const handleDebouncedUpsert = useCallback(
     (key: string, data: Parameters<typeof upsertAsset>[0]) => {
@@ -94,13 +91,6 @@ export function AssetTrackingWidget() {
 
   // Calculate totals
   let grandTotal = 0;
-
-  const getCategoryTotal = (catId: string, vehicleType?: string) => {
-    let total = 0;
-    // Assets from DB
-    assets.filter((a) => a.category_id === catId).forEach((a) => (total += Number(a.asset_value) || 0));
-    return total;
-  };
 
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) return;
@@ -126,7 +116,7 @@ export function AssetTrackingWidget() {
     return (
       <div key={cat.id} className="mb-6">
         <Separator className="mb-3" />
-        <div className="flex items-center justify-between bg-muted/50 rounded-md px-4 py-2 mb-2">
+        <div className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-2 mb-2">
           <span className="font-bold text-sm uppercase tracking-wide">{catLabel}</span>
         </div>
         <div className="space-y-1">
@@ -134,15 +124,15 @@ export function AssetTrackingWidget() {
             const existing = catAssets.find((a) => a.vehicle_id === v.id);
             const value = existing ? Number(existing.asset_value) : 0;
             return (
-              <div key={v.id} className="flex items-center gap-2 px-4 py-1.5">
-                <span className="flex-1 text-sm truncate">
+              <div key={v.id} className="flex items-center justify-between px-3 py-1.5">
+                <span className="text-sm truncate mr-2">
                   {v.make} {v.model} {v.year}
                 </span>
-                <div className="flex items-center gap-1 w-32">
+                <div className="flex items-center gap-1 shrink-0">
                   <span className="text-sm text-muted-foreground">€</span>
                   <Input
                     type="number"
-                    className="h-8 text-right text-sm"
+                    className="h-8 w-24 text-right text-sm"
                     defaultValue={value || ""}
                     placeholder="0"
                     onChange={(e) => {
@@ -161,7 +151,7 @@ export function AssetTrackingWidget() {
             );
           })}
         </div>
-        <div className="flex justify-end px-4 py-2 border-t border-border/50 mt-1">
+        <div className="flex justify-end px-3 py-2 border-t border-border/50 mt-1">
           <span className="text-sm font-bold">
             {lang === "el" ? `Σύνολο ${catLabel}` : `Total ${catLabel}`}: {formatCurrency(categoryTotal)}
           </span>
@@ -179,7 +169,7 @@ export function AssetTrackingWidget() {
     return (
       <div key={cat.id} className="mb-6">
         <Separator className="mb-3" />
-        <div className="flex items-center justify-between bg-muted/50 rounded-md px-4 py-2 mb-2">
+        <div className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-2 mb-2">
           <span className="font-bold text-sm uppercase tracking-wide">{cat.name}</span>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteCategory(cat.id)}>
             <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
@@ -187,10 +177,10 @@ export function AssetTrackingWidget() {
         </div>
         <div className="space-y-1">
           {catAssets.map((asset) => (
-            <div key={asset.id} className="flex items-center gap-2 px-4 py-1.5 group">
+            <div key={asset.id} className="flex items-center justify-between px-3 py-1.5 group">
               <Input
                 type="text"
-                className="flex-1 h-8 text-sm"
+                className="h-8 text-sm mr-2 min-w-0"
                 defaultValue={asset.asset_name}
                 onChange={(e) => {
                   handleDebouncedUpsert(`name-${asset.id}`, {
@@ -201,11 +191,11 @@ export function AssetTrackingWidget() {
                   });
                 }}
               />
-              <div className="flex items-center gap-1 w-32">
+              <div className="flex items-center gap-1 shrink-0">
                 <span className="text-sm text-muted-foreground">€</span>
                 <Input
                   type="number"
-                  className="h-8 text-right text-sm"
+                  className="h-8 w-24 text-right text-sm"
                   defaultValue={Number(asset.asset_value) || ""}
                   placeholder="0"
                   onChange={(e) => {
@@ -221,7 +211,7 @@ export function AssetTrackingWidget() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-1"
                 onClick={() => deleteAsset(asset.id)}
               >
                 <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
@@ -229,7 +219,7 @@ export function AssetTrackingWidget() {
             </div>
           ))}
         </div>
-        <div className="flex items-center justify-between px-4 py-2 border-t border-border/50 mt-1">
+        <div className="flex items-center justify-between px-3 py-2 border-t border-border/50 mt-1">
           <Button
             variant="ghost"
             size="sm"
@@ -276,7 +266,7 @@ export function AssetTrackingWidget() {
 
             {/* Grand Total */}
             <Separator className="my-4" />
-            <div className="flex justify-end px-4 py-3 bg-primary/5 rounded-lg">
+            <div className="flex justify-end px-3 py-3 bg-primary/5 rounded-lg">
               <span className="text-base font-bold">
                 {lang === "el" ? "Συνολικά Περιουσιακά Στοιχεία" : "Total Assets"}: {formatCurrency(grandTotal)}
               </span>
@@ -304,7 +294,7 @@ export function AssetTrackingWidget() {
               ) : (
                 <Button variant="outline" size="sm" onClick={() => setShowNewCategory(true)}>
                   <Plus className="h-4 w-4 mr-1" />
-                  {lang === "el" ? "Προσθήκη Κατηγορίας" : "Add Category"}
+                  {lang === "el" ? "Προσθήκη Κατηγορίας Στοιχείων" : "Add Asset Category"}
                 </Button>
               )}
             </div>
