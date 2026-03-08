@@ -691,6 +691,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           )}
         </CardContent>
       </Card>
+      </div>
 
       {/* View All Transactions Dialog */}
       <Dialog open={showAllTransactions} onOpenChange={setShowAllTransactions}>

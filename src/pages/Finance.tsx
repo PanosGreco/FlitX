@@ -475,7 +475,7 @@ const Finance = () => {
   
   return (
     <AppLayout>
-      <div className="container py-6">
+      <div className="w-full max-w-none px-4 lg:px-6 py-6">
         <FinanceDashboard 
           onAddRecord={handleOpenAddFinance}
           financialRecords={financialRecords}
