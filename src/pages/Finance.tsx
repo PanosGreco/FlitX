@@ -489,11 +489,11 @@ const Finance = () => {
             <DialogHeader>
               <DialogTitle>{isVehicleSaleMode 
                 ? (language === 'el' ? 'Πώληση Οχήματος' : 'Vehicle Sale')
-                : t.addTransaction}</DialogTitle>
+                : t('addTransaction')}</DialogTitle>
               <DialogDescription>
                 {isVehicleSaleMode 
                   ? (language === 'el' ? 'Καταγράψτε πώληση οχήματος' : 'Record a vehicle sale')
-                  : t.enterTransactionDetails}
+                  : t('enterTransactionDetails')}
               </DialogDescription>
             </DialogHeader>
             
@@ -552,7 +552,7 @@ const Finance = () => {
             ) : (
             <form onSubmit={handleSubmitFinanceRecord} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="recordType">{t.transactionType}</Label>
+                <Label htmlFor="recordType">{t('transactionType')}</Label>
                 <Select value={recordType} onValueChange={(val) => {
                   if (val === 'vehicle_sale') {
                     setIsVehicleSaleMode(true);
@@ -561,11 +561,11 @@ const Finance = () => {
                   }
                 }} disabled={isLanguageLoading}>
                   <SelectTrigger>
-                    <SelectValue placeholder={t.selectType} />
+                    <SelectValue placeholder={t('selectType')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="income">{t.income}</SelectItem>
-                    <SelectItem value="expense">{t.expense}</SelectItem>
+                    <SelectItem value="income">{t('income')}</SelectItem>
+                    <SelectItem value="expense">{t('expense')}</SelectItem>
                     <SelectSeparator />
                     <SelectItem value="vehicle_sale" className="font-medium">
                       {language === 'el' ? 'Πώληση Οχήματος' : 'Vehicle Sale'}
@@ -591,7 +591,7 @@ const Finance = () => {
 
               {recordType === "expense" && (
                 <div className="space-y-2">
-                  <Label htmlFor="expenseType">{t.category}</Label>
+                  <Label htmlFor="expenseType">{t('category')}</Label>
                   <Select value={expenseCategory} onValueChange={(val) => {
                     // If selecting a user-created expense category
                     if (val.startsWith('__custom_exp__:')) {
@@ -616,34 +616,34 @@ const Finance = () => {
                     }
                   }} disabled={isLanguageLoading}>
                     <SelectTrigger>
-                      <SelectValue placeholder={t.selectCategory} />
+                    <SelectValue placeholder={t('selectCategory')} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
                         {isBoats ? (
                           <>
-                            <SelectItem value="fuel">{t.fuel}</SelectItem>
-                            <SelectItem value="maintenance">{t.boatMaintenance}</SelectItem>
-                            <SelectItem value="cleaning">{t.cleaning}</SelectItem>
-                            <SelectItem value="docking">{t.dockingFees}</SelectItem>
-                            <SelectItem value="licensing">{t.licensing}</SelectItem>
-                            <SelectItem value="salary">{t.employeeSalaries}</SelectItem>
+                            <SelectItem value="fuel">{t('fuel')}</SelectItem>
+                            <SelectItem value="maintenance">{t('boatMaintenance')}</SelectItem>
+                            <SelectItem value="cleaning">{t('cleaning')}</SelectItem>
+                            <SelectItem value="docking">{t('dockingFees')}</SelectItem>
+                            <SelectItem value="licensing">{t('licensing')}</SelectItem>
+                            <SelectItem value="salary">{t('employeeSalaries')}</SelectItem>
                             <SelectItem value="other" className="bg-muted/50 rounded-sm">
-                              {t.other}
+                              {t('other')}
                             </SelectItem>
                           </>
                         ) : (
                           <>
-                            <SelectItem value="fuel">{t.fuel}</SelectItem>
-                            <SelectItem value="maintenance">{t.vehicleMaintenance}</SelectItem>
+                            <SelectItem value="fuel">{t('fuel')}</SelectItem>
+                            <SelectItem value="maintenance">{t('vehicleMaintenance')}</SelectItem>
                             <SelectItem value="vehicle_parts">{language === 'el' ? 'Ανταλλακτικά Οχήματος' : 'Vehicle Parts'}</SelectItem>
-                            <SelectItem value="carwash">{t.carWash}</SelectItem>
-                            <SelectItem value="insurance">{t.insurance}</SelectItem>
-                            <SelectItem value="tax">{t.taxesFees}</SelectItem>
-                            <SelectItem value="salary">{t.employeeSalaries}</SelectItem>
+                            <SelectItem value="carwash">{t('carWash')}</SelectItem>
+                            <SelectItem value="insurance">{t('insurance')}</SelectItem>
+                            <SelectItem value="tax">{t('taxesFees')}</SelectItem>
+                            <SelectItem value="salary">{t('employeeSalaries')}</SelectItem>
                             <SelectItem value="marketing">{language === 'el' ? 'Μάρκετινγκ' : 'Marketing'}</SelectItem>
                             <SelectItem value="other" className="bg-muted/50 rounded-sm">
-                              {t.other}
+                              {t('other')}
                             </SelectItem>
                           </>
                         )}

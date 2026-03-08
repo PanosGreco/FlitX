@@ -8,7 +8,7 @@ import {
   Calendar,
   Sparkles
 } from "lucide-react";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 
 interface NavItem {
   titleKey: string;
@@ -27,19 +27,7 @@ const navItems: NavItem[] = [
 ];
 
 export function DesktopSidebar() {
-  const { t } = useLanguage();
-
-  const getTranslation = (key: string): string => {
-    const value = t[key as keyof typeof t];
-    if (typeof value === 'string') {
-      if (key === 'home') return 'Home';
-      return value;
-    }
-    if (key === 'dailyProgram') return 'Daily Program';
-    if (key === 'home') return 'Home';
-    if (key === 'aiAssistant') return 'AI Assistant';
-    return key;
-  };
+  const { t } = useTranslation('common');
 
   return (
     <aside className="hidden lg:flex flex-col w-60 flex-shrink-0 h-screen sticky top-0 bg-sidebar border-r border-sidebar-border">
@@ -63,7 +51,7 @@ export function DesktopSidebar() {
                 }
               >
                 <item.icon className="mr-3 h-5 w-5" />
-                <span>{getTranslation(item.titleKey)}</span>
+                <span>{t(item.titleKey)}</span>
               </NavLink>
             </li>
           ))}

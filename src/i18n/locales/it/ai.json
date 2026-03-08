@@ -1,0 +1,14 @@
+{
+  "greeting": "Ciao{{name}}, sono pronto ad assisterti",
+  "subtitle": "Chiedimi qualsiasi cosa o prova uno dei suggerimenti qui sotto",
+  "presets": {
+    "marketingGrowth": {
+      "title": "Suggerimenti Marketing e Crescita",
+      "description": "Ottieni strategie di marketing e opportunità di crescita con l'AI"
+    },
+    "expenseOptimization": {
+      "title": "Ottimizzazione Spese e Riduzione Costi",
+      "description": "Analizza le spese e trova opportunità di risparmio"
+    }
+  }
+}

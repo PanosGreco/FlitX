@@ -123,14 +123,14 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold">{t.fleet}</h1>
+        <h1 className="text-2xl font-bold">{t('fleet')}</h1>
         
         <Button 
           onClick={onAddVehicle}
           disabled={isLanguageLoading}
         >
           <PlusCircle className="w-4 h-4 mr-2" />
-          {t.addVehicle}
+          {t('addVehicle')}
         </Button>
       </div>
       
@@ -138,7 +138,7 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
-            placeholder={t.searchVehicles}
+            placeholder={t('searchVehicles')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-9"
@@ -191,9 +191,9 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
           ) : (
             <div className="col-span-full py-8 text-center text-muted-foreground">
               {searchQuery || activeFilterCount > 0 ? (
-                <p>{t.noSearchResults}</p>
+                <p>{t('noSearchResults')}</p>
               ) : (
-                <p>{t.noVehicles}</p>
+                <p>{t('noVehicles')}</p>
               )}
             </div>
           )}
