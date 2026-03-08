@@ -185,6 +185,7 @@ export function AssetTrackingWidget() {
               <Input
                 type="text"
                 className="h-8 text-sm mr-2 min-w-0"
+                placeholder={lang === "el" ? "Όνομα στοιχείου" : "Asset name"}
                 defaultValue={asset.asset_name}
                 onChange={(e) => {
                   handleDebouncedUpsert(`name-${asset.id}`, {
@@ -231,7 +232,7 @@ export function AssetTrackingWidget() {
             onClick={() =>
               upsertAsset({
                 category_id: cat.id,
-                asset_name: lang === "el" ? "Νέο στοιχείο" : "New asset",
+                asset_name: "",
                 asset_value: 0,
               })
             }
