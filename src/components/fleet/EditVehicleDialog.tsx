@@ -103,7 +103,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     }
     
     const category = vehicle.type ?? '';
-    if (category && !isStandardCategory(category) && category !== 'atv') {
+    if (category && !isStandardCategory(category)) {
       setIsCustomCategory(true);
       setCustomCategory(category.toUpperCase());
       setVehicleCategory('');
