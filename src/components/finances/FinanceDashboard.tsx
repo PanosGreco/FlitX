@@ -179,17 +179,15 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   // Generate standardized title for transactions
   const getTransactionTitle = (record: FinancialRecord): string => {
     const isIncome = record.type === 'income';
-    const prefix = isIncome 
-      ? (language === 'el' ? 'Έσοδο' : 'Income Record')
-      : (language === 'el' ? 'Έξοδο' : 'Expense Record');
+    const prefix = isIncome ? t('incomeRecord') : t('expenseRecord');
     
     // Vehicle Sale records
     if (record.category === 'vehicle_sale') {
       const vehicleName = getVehicleName(record.vehicle_id);
       if (isIncome) {
-        return `${language === 'el' ? 'Κέρδος από Πώληση' : 'Profit from Vehicle Sale'}${vehicleName ? ` – ${vehicleName}` : ''}`;
+        return `${t('profitFromSale')}${vehicleName ? ` – ${vehicleName}` : ''}`;
       } else {
-        return `${language === 'el' ? 'Ζημία από Πώληση' : 'Loss from Vehicle Sale'}${vehicleName ? ` – ${vehicleName}` : ''}`;
+        return `${t('lossFromSale')}${vehicleName ? ` – ${vehicleName}` : ''}`;
       }
     }
 
@@ -202,9 +200,9 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       } else {
         const sourceType = record.income_source_type;
         const sourceLabels: Record<string, string> = {
-          walk_in: language === 'el' ? 'Απευθείας Κράτηση' : 'Direct Booking',
-          collaboration: language === 'el' ? 'Συνεργασία' : 'Collaboration',
-          other: language === 'el' ? 'Άλλο' : 'Other'
+          walk_in: t('directBooking'),
+          collaboration: t('collaboration'),
+          other: t('other')
         };
         const sourceLabel = sourceType ? sourceLabels[sourceType] || sourceType : '';
         const spec = record.income_source_specification;
@@ -219,18 +217,18 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     } else {
       // Expense titles
       const categoryLabels: Record<string, string> = {
-        fuel: language === 'el' ? 'Καύσιμα' : 'Fuel',
-        maintenance: language === 'el' ? 'Συντήρηση Οχήματος' : 'Vehicle Maintenance',
-        vehicle_parts: language === 'el' ? 'Ανταλλακτικά Οχήματος' : 'Vehicle Parts',
-        carwash: language === 'el' ? 'Πλύσιμο' : 'Car Wash',
-        insurance: language === 'el' ? 'Ασφάλεια' : 'Insurance',
-        tax: language === 'el' ? 'Φόροι/Τέλη' : 'Taxes/Fees',
-        salary: language === 'el' ? 'Μισθοί' : 'Salaries',
-        cleaning: language === 'el' ? 'Καθαρισμός' : 'Cleaning',
-        docking: language === 'el' ? 'Τέλη Ελλιμενισμού' : 'Docking Fees',
-        licensing: language === 'el' ? 'Άδειες' : 'Licensing',
-        marketing: language === 'el' ? 'Μάρκετινγκ' : 'Marketing',
-        other: language === 'el' ? 'Άλλο' : 'Other'
+        fuel: t('fuel'),
+        maintenance: t('vehicleMaintenance'),
+        vehicle_parts: t('vehicleParts'),
+        carwash: t('carWash'),
+        insurance: t('insurance'),
+        tax: t('taxesFees'),
+        salary: t('salaries'),
+        cleaning: t('cleaning'),
+        docking: t('dockingFees'),
+        licensing: t('licensing'),
+        marketing: t('marketing'),
+        other: t('other')
       };
       
       const categoryLabel = categoryLabels[record.category] || record.category;
