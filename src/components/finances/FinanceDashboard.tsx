@@ -653,7 +653,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
               onClick={() => setShowAllTransactions(true)}
             >
               <Eye className="h-4 w-4 mr-2" />
-              {language === 'el' ? 'Όλες' : 'View All'} ({allTransactions.length})
+              {t('viewAll')} ({allTransactions.length})
             </Button>
           )}
         </CardHeader>
