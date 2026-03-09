@@ -11,44 +11,35 @@ import { cn } from "@/lib/utils";
 import { useDailyTasks, DailyTask } from "@/hooks/useDailyTasks";
 import { formatDateShortEuropean } from "@/utils/dateFormatUtils";
 import { format } from "date-fns";
+import { useTranslation } from "react-i18next";
 export type { DailyTask } from "@/hooks/useDailyTasks";
+
 export default function DailyProgram() {
   document.title = "Daily Program - FlitX";
+  const { t } = useTranslation(['dailyProgram', 'common']);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const {
-    tasks,
-    loading,
-    vehicles,
-    addTask,
-    updateTask,
-    deleteTask
-  } = useDailyTasks(selectedDate);
+  const { tasks, loading, vehicles, addTask, updateTask, deleteTask } = useDailyTasks(selectedDate);
   const selectedDateString = format(selectedDate, 'yyyy-MM-dd');
 
-  // Filter tasks by type
   const returns = tasks.filter(task => task.type === 'return');
   const deliveries = tasks.filter(task => task.type === 'delivery');
   const otherTasks = tasks.filter(task => task.type === 'other');
+
   const handleAddTask = async (newTask: Omit<DailyTask, 'id' | 'date'>) => {
     const success = await addTask(newTask);
-    if (success) {
-      setIsAddDialogOpen(false);
-    }
+    if (success) setIsAddDialogOpen(false);
   };
-  const handleUpdateTask = async (updatedTask: DailyTask) => {
-    await updateTask(updatedTask);
-  };
-  const handleDeleteTask = async (taskId: string) => {
-    await deleteTask(taskId);
-  };
-  return <AppLayout>
+  const handleUpdateTask = async (updatedTask: DailyTask) => { await updateTask(updatedTask); };
+  const handleDeleteTask = async (taskId: string) => { await deleteTask(taskId); };
+
+  return (
+    <AppLayout>
       <div className="p-4 space-y-4">
-        {/* Header with Date Picker */}
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-center flex-1 text-primary text-xl font-extrabold">                                Daily Program</CardTitle>
+              <CardTitle className="text-center flex-1 text-primary text-xl font-extrabold">{t('dailyProgram:title')}</CardTitle>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className={cn("justify-start text-left font-normal text-muted-foreground text-lg rounded")}>
@@ -64,29 +55,22 @@ export default function DailyProgram() {
           </CardHeader>
         </Card>
 
-        {/* Add Task Button */}
         <Button onClick={() => setIsAddDialogOpen(true)} className="w-full">
-          <Plus className="h-4 w-4 mr-2" />
-          Add New Task
+          <Plus className="h-4 w-4 mr-2" />{t('dailyProgram:addNewTask')}
         </Button>
 
-        {/* Loading State */}
-        {loading ? <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </div> : (/* Three Column Layout */
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
-            {/* Drop-Offs Column */}
-            <DailyProgramSection title="Drop-Offs" tasks={returns} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} />
+        {loading ? (
+          <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+            <DailyProgramSection title={t('dailyProgram:dropOffs')} tasks={returns} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} />
+            <DailyProgramSection title={t('dailyProgram:pickUps')} tasks={deliveries} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} />
+            <DailyProgramSection title={t('dailyProgram:otherTasks')} tasks={otherTasks} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} />
+          </div>
+        )}
 
-            {/* Pick-Ups Column */}
-            <DailyProgramSection title="Pick-Ups" tasks={deliveries} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} />
-
-            {/* Other Tasks Column */}
-            <DailyProgramSection title="Other Tasks" tasks={otherTasks} onUpdateTask={handleUpdateTask} onDeleteTask={handleDeleteTask} />
-          </div>)}
-
-        {/* Add Task Dialog */}
         <AddTaskDialog isOpen={isAddDialogOpen} onClose={() => setIsAddDialogOpen(false)} onAddTask={handleAddTask} vehicles={vehicles} selectedDate={selectedDate} onDateChange={setSelectedDate} />
       </div>
-    </AppLayout>;
+    </AppLayout>
+  );
 }
