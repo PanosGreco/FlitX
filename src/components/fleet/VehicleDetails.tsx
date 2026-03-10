@@ -159,7 +159,7 @@ export function VehicleDetails({
       }
       toast({
         title: t('fleet:statusUpdated'),
-        description: needsRepair ? language === 'el' ? 'Το όχημα σημειώθηκε ως χρειάζεται επισκευή' : 'Vehicle marked as needs repair' : language === 'el' ? 'Το όχημα είναι διαθέσιμο' : 'Vehicle is available'
+        description: needsRepair ? t('fleet:vehicleMarkedRepair') : t('fleet:vehicleAvailable')
       });
       setRefreshVehicle(prev => prev + 1);
       refetchStatus();
