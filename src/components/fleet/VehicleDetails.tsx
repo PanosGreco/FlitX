@@ -283,7 +283,7 @@ export function VehicleDetails({
               <div className="flex-shrink-0 flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleEditVehicle}>
                   <Car className="h-4 w-4 mr-2" />
-                  {language === 'el' ? 'Επεξεργασία' : 'Edit Vehicle'}
+                  {t('fleet:editVehicle')}
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleEditStatus}>
                   <Settings className="h-4 w-4 mr-2" />
