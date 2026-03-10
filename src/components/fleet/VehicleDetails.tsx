@@ -210,9 +210,9 @@ export function VehicleDetails({
     setRefreshBookings(prev => prev + 1);
     refetchStatus();
     setSelectedDates([]);
-    toast({
-      title: language === 'el' ? "Κράτηση Προστέθηκε" : "Booking Added",
-      description: `${language === 'el' ? 'Νέα κράτηση δημιουργήθηκε για' : 'New rental booking created for'} ${booking.customer_name}`
+      toast({
+        title: t('fleet:bookingAdded'),
+        description: `${t('fleet:newBookingCreatedFor')} ${booking.customer_name}`
     });
   };
   const handleBookingDeleted = (bookingId: string) => {
