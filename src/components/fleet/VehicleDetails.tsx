@@ -328,7 +328,7 @@ export function VehicleDetails({
                     <CalendarView vehicleId={vehicleId || ""} onNewBooking={handleNewBookingFromCalendar} refreshTrigger={refreshBookings} />
                     
                     <div className="mt-6">
-                      <h3 className="text-lg font-semibold mb-4">{language === 'el' ? 'Ιστορικό Κρατήσεων' : 'Booking History'}</h3>
+                      <h3 className="text-lg font-semibold mb-4">{t('fleet:bookingHistory')}</h3>
                       <RentalBookingsList vehicleId={vehicleId || ""} onBookingDeleted={handleBookingDeleted} key={refreshBookings} />
                     </div>
                   </TabsContent>
