@@ -152,7 +152,7 @@ export function VehicleDetails({
         console.error('Error updating vehicle status:', error);
         toast({
           title: t('common:error'),
-          description: language === 'el' ? 'Αποτυχία ενημέρωσης κατάστασης' : "Failed to update vehicle status",
+          description: t('fleet:statusUpdateFailed'),
           variant: "destructive"
         });
         return;
