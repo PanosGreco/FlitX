@@ -295,7 +295,7 @@ export function VehicleDetails({
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="flex w-full max-w-5xl mb-6 overflow-x-auto scrollbar-hide">
               <TabsTrigger value="reminders" className="px-4 py-2 flex-grow">
-                {language === 'el' ? 'Υπενθυμίσεις' : 'Reminders'}
+                {t('fleet:reminders')}
               </TabsTrigger>
               <TabsTrigger value="maintenance" className="px-4 py-2 flex-grow">{t('common:maintenance')}</TabsTrigger>
               <TabsTrigger value="damage" className="px-4 py-2 flex-grow">{language === 'el' ? 'Ζημιές' : 'Damages'}</TabsTrigger>
