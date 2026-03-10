@@ -248,7 +248,7 @@ export function VehicleDetails({
                   {vehicle.year} {vehicle.make} {vehicle.model}
                   {vehicle.is_sold ? (
                     <Badge className="ml-3 bg-red-600 text-white border-red-700 font-bold" variant="outline">
-                      {language === 'el' ? 'ΠΩΛΗΘΗΚΕ' : 'SOLD'}
+                      {t('common:sold')}
                     </Badge>
                   ) : (
                     <Badge className={`ml-3 flex items-center ${statusColors[computedStatus]}`} variant="outline">
