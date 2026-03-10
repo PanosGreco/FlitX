@@ -306,7 +306,7 @@ export function VehicleDetails({
           
             <div className="container py-0">
               {loading ? <div className="flex justify-center py-12">
-                  <div className="text-flitx-gray-500">{language === 'el' ? 'Φόρτωση δεδομένων...' : 'Loading vehicle data...'}</div>
+                  <div className="text-flitx-gray-500">{t('fleet:loadingVehicleData')}</div>
                 </div> : <>
                   <TabsContent value="reminders" className="mt-6 space-y-6">
                     <VehicleReminders vehicleId={vehicleId || ""} />
