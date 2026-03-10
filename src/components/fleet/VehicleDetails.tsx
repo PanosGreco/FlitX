@@ -275,7 +275,7 @@ export function VehicleDetails({
                   </>}
                   {vehicle.passengerCapacity && <>
                       <span className="mx-2">•</span>
-                      <span>{vehicle.passengerCapacity >= 7 ? '7+' : vehicle.passengerCapacity} {language === 'el' ? 'άτομα' : 'people'}</span>
+                      <span>{vehicle.passengerCapacity >= 7 ? '7+' : vehicle.passengerCapacity} {t('common:people')}</span>
                     </>}
                 </div>
               </div>
