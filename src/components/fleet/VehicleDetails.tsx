@@ -367,7 +367,7 @@ export function VehicleDetails({
           
           <div className="space-y-4 py-4">
             <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm font-medium">{language === 'el' ? 'Κατάσταση:' : 'Status:'}</span>
+              <span className="text-sm font-medium">{t('fleet:status')}:</span>
               <Badge className={statusColors[computedStatus]} variant="outline">
                 {computedStatus === 'repair' && <AlertTriangle className="h-3.5 w-3.5 mr-1" />}
                 {computedStatus === 'maintenance' && <Wrench className="h-3.5 w-3.5 mr-1" />}
