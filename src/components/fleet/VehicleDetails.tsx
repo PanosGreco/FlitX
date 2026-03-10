@@ -401,7 +401,7 @@ export function VehicleDetails({
                   <div className="flex-1">
                     <span className="font-medium">{t('common:rented')}</span>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {language === 'el' ? 'Ελέγχεται από κρατήσεις' : 'Controlled by bookings'}
+                      {t('fleet:reservations')}
                     </p>
                   </div>
                 </div>}
