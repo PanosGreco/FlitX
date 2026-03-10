@@ -300,7 +300,7 @@ export function VehicleDetails({
               <TabsTrigger value="maintenance" className="px-4 py-2 flex-grow">{t('common:maintenance')}</TabsTrigger>
               <TabsTrigger value="damage" className="px-4 py-2 flex-grow">{t('fleet:damages')}</TabsTrigger>
               <TabsTrigger value="documents" className="px-4 py-2 flex-grow">{t('fleet:documents')}</TabsTrigger>
-              <TabsTrigger value="availability" className="px-4 py-2 flex-grow">{language === 'el' ? 'Κρατήσεις' : 'Reservations'}</TabsTrigger>
+              <TabsTrigger value="availability" className="px-4 py-2 flex-grow">{t('fleet:reservations')}</TabsTrigger>
               <TabsTrigger value="finance" className="px-4 py-2 flex-grow">{t('fleet:finance')}</TabsTrigger>
             </TabsList>
           
