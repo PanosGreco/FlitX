@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Plus, X, Loader2, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { validateFileSize, compressImage } from '@/utils/imageUtils';
+import { useTranslation } from 'react-i18next';
 
 interface DamageReportProps {
   vehicleId: string;
@@ -24,12 +25,14 @@ interface DamageEntry {
   description: string | null;
 }
 
+const DAMAGE_CATEGORY_KEYS = ['front', 'back', 'rightSide', 'leftSide', 'interior', 'tires'] as const;
 const DAMAGE_CATEGORIES = ['Front', 'Back', 'Right Side', 'Left Side', 'Interior', 'Tires'] as const;
 type DamageCategory = typeof DAMAGE_CATEGORIES[number];
 
 export function DamageReport({ vehicleId }: DamageReportProps) {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation(['fleet', 'common']);
   const [damages, setDamages] = useState<DamageEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -68,14 +71,14 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
     } catch (error) {
       console.error('Error fetching damages:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to load damage reports',
+        title: t('common:error'),
+        description: t('fleet:damageUploadFailed'),
         variant: 'destructive'
       });
     } finally {
       setLoading(false);
     }
-  }, [user, vehicleId, toast]);
+  }, [user, vehicleId, toast, t]);
 
   useEffect(() => {
     fetchDamages();
@@ -100,14 +103,13 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
 
     if (rejectedNames.length > 0) {
       toast({
-        title: 'File too large',
-        description: `Rejected: ${rejectedNames.join(', ')}. Max 10 MB per file.`,
+        title: t('common:fileTooLarge'),
+        description: t('fleet:fileRejected', { names: rejectedNames.join(', ') }),
         variant: 'destructive',
       });
     }
 
     if (accepted.length > 0) {
-      // Convert array to a DataTransfer-based FileList for state compatibility
       const dt = new DataTransfer();
       accepted.forEach(f => dt.items.add(f));
       setSelectedFiles(dt.files);
@@ -119,8 +121,8 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
   const handleSubmit = async () => {
     if (!user || !selectedCategory || !selectedFiles || selectedFiles.length === 0) {
       toast({
-        title: 'Missing information',
-        description: 'Please select a category and at least one image',
+        title: t('fleet:missingInfo'),
+        description: t('fleet:selectCategoryAndImage'),
         variant: 'destructive'
       });
       return;
@@ -151,8 +153,8 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
       });
       if (insertError) throw insertError;
       toast({
-        title: 'Success',
-        description: 'Damage report added successfully'
+        title: t('common:success'),
+        description: t('fleet:damageAdded')
       });
       setDialogOpen(false);
       setSelectedCategory('');
@@ -162,8 +164,8 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
     } catch (error) {
       console.error('Error uploading damage:', error);
       toast({
-        title: 'Error',
-        description: 'Failed to upload damage report',
+        title: t('common:error'),
+        description: t('fleet:damageUploadFailed'),
         variant: 'destructive'
       });
     } finally {
@@ -193,11 +195,11 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
         const { error: updateError } = await supabase.from('damage_reports').update({ images: updatedImages }).eq('id', damage.id);
         if (updateError) throw updateError;
       }
-      toast({ title: 'Deleted', description: 'Image removed successfully' });
+      toast({ title: t('common:deleted'), description: t('fleet:imageRemoved') });
       fetchDamages();
     } catch (error) {
       console.error('Error deleting image:', error);
-      toast({ title: 'Error', description: 'Failed to delete image', variant: 'destructive' });
+      toast({ title: t('common:error'), description: t('fleet:damageDeleteFailed'), variant: 'destructive' });
     }
   };
 
@@ -216,6 +218,11 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
     return true;
   };
 
+  const getCategoryLabel = (category: string, idx: number) => {
+    const key = DAMAGE_CATEGORY_KEYS[idx];
+    return t(`fleet:damageCategories.${key}`);
+  };
+
   if (loading) {
     return (
       <Card>
@@ -228,10 +235,9 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header with Add Button */}
       <div className="flex justify-between items-start">
         <p className="text-sm text-muted-foreground flex-1 mr-4">
-          Here you can keep a record of the vehicle's damages to easily track and review them over time.
+          {t('fleet:damageDescription')}
         </p>
         <Dialog open={dialogOpen} onOpenChange={(open) => {
           setDialogOpen(open);
@@ -244,24 +250,24 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
           <DialogTrigger asChild>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              Add New Damage
+              {t('fleet:addNewDamage')}
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Damage</DialogTitle>
+              <DialogTitle>{t('fleet:addNewDamage')}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-4">
               <div className="space-y-2">
-                <Label>Damage Category</Label>
+                <Label>{t('fleet:damageCategory')}</Label>
                 <Select value={selectedCategory} onValueChange={value => setSelectedCategory(value as DamageCategory)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder={t('fleet:selectCategoryDamage')} />
                   </SelectTrigger>
                   <SelectContent>
-                    {DAMAGE_CATEGORIES.map(category => (
+                    {DAMAGE_CATEGORIES.map((category, idx) => (
                       <SelectItem key={category} value={category}>
-                        {category}
+                        {getCategoryLabel(category, idx)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -269,9 +275,9 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
               </div>
 
               <div className="space-y-2">
-                <Label>Notes (Optional)</Label>
+                <Label>{t('fleet:notesOptional')}</Label>
                 <Textarea
-                  placeholder="Add any details about this damage..."
+                  placeholder={t('fleet:notesPlaceholder')}
                   value={damageNotes}
                   onChange={(e) => setDamageNotes(e.target.value)}
                   rows={3}
@@ -279,10 +285,10 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
               </div>
 
               <div className="space-y-2">
-                <Label>Upload Photo(s)</Label>
+                <Label>{t('common:uploadPhoto')}</Label>
                 <label className="flex items-center gap-2 cursor-pointer border border-input rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent/50 transition-colors">
                   <Upload className="h-4 w-4" />
-                  <span>Choose Files</span>
+                  <span>{t('fleet:chooseFiles')}</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -293,7 +299,7 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
                 </label>
                 {selectedFiles && selectedFiles.length > 0 && (
                   <p className="text-sm text-muted-foreground">
-                    {selectedFiles.length} file(s) selected
+                    {t('fleet:filesSelected', { count: selectedFiles.length })}
                   </p>
                 )}
               </div>
@@ -302,10 +308,10 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
                 {uploading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Uploading...
+                    {t('fleet:uploadingDamage')}
                   </>
                 ) : (
-                  'Save Damage'
+                  t('fleet:saveDamage')
                 )}
               </Button>
             </div>
@@ -313,14 +319,13 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
         </Dialog>
       </div>
 
-      {/* Category Sections */}
-      {DAMAGE_CATEGORIES.map(category => {
+      {DAMAGE_CATEGORIES.map((category, idx) => {
         const categoryDamages = getDamagesByCategory(category);
         return (
           <Card key={category} className="overflow-hidden">
             <CardHeader className="py-3 bg-[#739ee7]">
               <CardTitle className="font-medium text-lg">
-                {category}
+                {getCategoryLabel(category, idx)}
                 {categoryDamages.length > 0 && (
                   <span className="ml-2 text-sm font-normal text-muted-foreground">
                     ({categoryDamages.length})
@@ -330,7 +335,7 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
             </CardHeader>
             <CardContent className="p-4">
               {categoryDamages.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No damage reported</p>
+                <p className="text-sm text-muted-foreground">{t('fleet:noDamageReported')}</p>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {categoryDamages.map((damage, index) => (
@@ -352,11 +357,11 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
                         <X className="h-3 w-3" />
                       </button>
                       <p className="mt-1 text-muted-foreground text-sm">
-                        Uploaded: {formatDateTime(damage.created_at)}
+                        {t('dailyProgram:uploaded')}: {formatDateTime(damage.created_at)}
                       </p>
                       {shouldShowNotes(damage.description) && (
                         <p className="text-sm text-muted-foreground">
-                          Notes: {damage.description}
+                          {t('common:notes')}: {damage.description}
                         </p>
                       )}
                     </div>
@@ -368,7 +373,6 @@ export function DamageReport({ vehicleId }: DamageReportProps) {
         );
       })}
 
-      {/* Lightbox */}
       <Dialog open={!!lightboxImage} onOpenChange={() => setLightboxImage(null)}>
         <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 overflow-hidden bg-black/90 border-none flex items-center justify-center">
           {lightboxImage && (

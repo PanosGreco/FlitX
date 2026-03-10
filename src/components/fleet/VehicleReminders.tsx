@@ -32,6 +32,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "react-i18next";
 
 interface Reminder {
   id: string;
@@ -56,6 +57,7 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
   
   const { toast } = useToast();
   const { user } = useAuth();
+  const { t } = useTranslation(['fleet', 'common']);
 
   useEffect(() => {
     if (vehicleId && user) {
@@ -79,8 +81,8 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
     } catch (error) {
       console.error("Error fetching reminders:", error);
       toast({
-        title: "Error",
-        description: "Failed to load reminders.",
+        title: t('common:error'),
+        description: t('fleet:loadingReminders'),
         variant: "destructive",
       });
     } finally {
@@ -91,8 +93,8 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
   const handleAddReminder = async () => {
     if (!title || !user) {
       toast({
-        title: "Error",
-        description: "Title is required",
+        title: t('common:error'),
+        description: t('fleet:title') + " is required",
         variant: "destructive",
       });
       return;
@@ -112,8 +114,8 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Reminder added successfully",
+        title: t('common:success'),
+        description: t('fleet:reminderAdded'),
       });
       
       resetForm();
@@ -122,8 +124,8 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
     } catch (error) {
       console.error("Error adding reminder:", error);
       toast({
-        title: "Error",
-        description: "Failed to add reminder",
+        title: t('common:error'),
+        description: t('fleet:reminderError'),
         variant: "destructive",
       });
     }
@@ -139,16 +141,16 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
       if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Reminder deleted successfully",
+        title: t('common:success'),
+        description: t('fleet:reminderDeleted'),
       });
       
       fetchReminders();
     } catch (error) {
       console.error("Error deleting reminder:", error);
       toast({
-        title: "Error",
-        description: "Failed to delete reminder",
+        title: t('common:error'),
+        description: t('fleet:reminderDeleteError'),
         variant: "destructive",
       });
     }
@@ -164,7 +166,7 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
       if (error) throw error;
 
       toast({
-        title: "Success",
+        title: t('common:success'),
         description: `Reminder marked as ${!reminder.is_completed ? 'completed' : 'incomplete'}`,
       });
       
@@ -183,22 +185,22 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Upcoming Reminders</h2>
+        <h2 className="text-lg font-semibold">{t('fleet:upcomingReminders')}</h2>
         <Button onClick={() => setIsAddReminderOpen(true)} className="bg-primary hover:bg-primary/90">
           <PlusCircle className="mr-2 h-4 w-4" />
-          Add Reminder
+          {t('fleet:addReminder')}
         </Button>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-8">
-          <div className="text-muted-foreground">Loading reminders...</div>
+          <div className="text-muted-foreground">{t('fleet:loadingReminders')}</div>
         </div>
       ) : reminders.length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-muted-foreground">
             <p className="text-sm">
-              Add reminders for maintenance, renewals, documents, or any vehicle-related task.
+              {t('fleet:reminderAddDesc')}
             </p>
           </CardContent>
         </Card>
@@ -250,25 +252,25 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
       <Dialog open={isAddReminderOpen} onOpenChange={setIsAddReminderOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Reminder</DialogTitle>
+            <DialogTitle>{t('fleet:addReminder')}</DialogTitle>
             <DialogDescription>
-              Create a new reminder for this vehicle.
+              {t('fleet:createReminderDesc')}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Title</Label>
+              <Label htmlFor="title">{t('fleet:title')}</Label>
               <Input
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g., Insurance Renewal"
+                placeholder={t('fleet:titlePlaceholder')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Due Date</Label>
+              <Label>{t('fleet:dueDate')}</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-start">
@@ -289,12 +291,12 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Description (Optional)</Label>
+              <Label htmlFor="description">{t('fleet:descriptionOptional')}</Label>
               <Textarea
                 id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Add notes..."
+                placeholder={t('fleet:addNotesPlaceholder')}
                 rows={3}
               />
             </div>
@@ -302,9 +304,9 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddReminderOpen(false)}>
-              Cancel
+              {t('common:cancel')}
             </Button>
-            <Button onClick={handleAddReminder}>Add Reminder</Button>
+            <Button onClick={handleAddReminder}>{t('fleet:addReminder')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
