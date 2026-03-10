@@ -1,0 +1,37 @@
+{
+  "myProfile": "Mon Profil",
+  "profileSubtitle": "Gérez les paramètres et préférences de votre compte",
+  "tabs": {
+    "account": "Compte",
+    "security": "Sécurité",
+    "settings": "Paramètres"
+  },
+  "personalInfo": {
+    "title": "Informations du Profil",
+    "subtitle": "Mettez à jour vos informations personnelles",
+    "uploadPhoto": "Télécharger Photo",
+    "photoRestriction": "JPG, GIF ou PNG. Max 800K",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "email": "Email",
+    "phone": "Téléphone",
+    "company": "Nom de l'Entreprise",
+    "saveChanges": "Enregistrer",
+    "saving": "Enregistrement..."
+  },
+  "security": {
+    "title": "Mot de passe & Authentification",
+    "subtitle": "Mettez à jour votre mot de passe et vos paramètres de sécurité",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe",
+    "confirmPassword": "Confirmer le nouveau mot de passe",
+    "updatePassword": "Mettre à jour le mot de passe"
+  },
+  "language": {
+    "title": "Paramètres de Langue",
+    "subtitle": "Changez votre langue préférée",
+    "languageLabel": "Langue de l'Interface"
+  },
+  "profileUpdated": "Profil Mis à Jour",
+  "profileUpdateSuccess": "Les informations de votre profil ont été enregistrées"
+}
