@@ -389,9 +389,9 @@ export function VehicleDetails({
               <button type="button" onClick={handleScheduleMaintenance} className={`w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-colors ${computedStatus === 'maintenance' ? 'border-orange-500 bg-orange-50' : 'border-border hover:border-orange-300 hover:bg-orange-50/50'}`}>
                 <Wrench className="h-4 w-4 text-orange-500" />
                 <div className="flex-1 text-left">
-                <span className="font-medium">{language === 'el' ? 'Μη Διαθέσιμο – Σε Συντήρηση' : 'Unavailable – Under Maintenance'}</span>
+                <span className="font-medium">{t('fleet:unavailableUnderMaintenance')}</span>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {language === 'el' ? 'Προγραμματισμός ημερομηνιών μη διαθεσιμότητας' : 'Schedule unavailability dates'}
+                    {t('fleet:scheduleUnavailabilityDates')}
                   </p>
                 </div>
               </button>
