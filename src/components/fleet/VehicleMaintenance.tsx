@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSepa
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/contexts/AuthContext";
 import { MAINTENANCE_TYPES, getMaintenanceTypeLabel, getMaintenanceTypeOptions } from "@/constants/maintenanceTypes";
 import { useMaintenanceCategories } from "@/hooks/useMaintenanceCategories";
@@ -58,6 +59,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const { language, isLanguageLoading } = useLanguage();
+  const { t } = useTranslation(['fleet', 'common']);
   const { user } = useAuth();
   const { userMaintenanceCategories, refetchMaintenanceCategories } = useMaintenanceCategories();
   
@@ -81,7 +83,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
       if (error) {
         console.error("Error fetching maintenance records:", error);
         toast({
-          title: "Error",
+          title: t('common:error'),
           description: "Failed to load maintenance history",
           variant: "destructive"
         });
@@ -99,7 +101,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
     const finalServiceType = serviceType === 'other' ? customServiceType.trim() : serviceType;
     if (!finalServiceType || !serviceDate || !cost) {
       toast({
-        title: "Missing Information",
+        title: t('fleet:missingInfo'),
         description: "Please fill in all required fields",
         variant: "destructive"
       });
@@ -108,8 +110,8 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
 
     if (!user) {
       toast({
-        title: "Authentication Required",
-        description: "Please log in to add maintenance records",
+        title: t('common:error'),
+        description: t('fleet:mustBeLoggedIn'),
         variant: "destructive"
       });
       return;
@@ -118,7 +120,6 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
     try {
       const costValue = parseFloat(cost);
       
-      // Insert maintenance record
       const { data: maintenanceData, error } = await supabase
         .from("vehicle_maintenance")
         .insert([{
@@ -136,16 +137,14 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
       if (error) {
         console.error("Error adding maintenance record:", error);
         toast({
-          title: "Error",
+          title: t('common:error'),
           description: "Failed to add maintenance record",
           variant: "destructive"
         });
         return;
       }
       
-      // Auto-create expense in financial_records for maintenance cost
       if (costValue > 0) {
-        // Fetch vehicle fuel_type and year for expense enrichment
         const { data: vehicleData } = await supabase
           .from('vehicles')
           .select('fuel_type, year')
@@ -174,8 +173,8 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
       }
       
       toast({
-        title: language === 'el' ? "Επιτυχία" : "Success",
-        description: language === 'el' ? "Η εγγραφή συντήρησης προστέθηκε" : "Maintenance record added"
+        title: t('common:success'),
+        description: t('fleet:maintenanceRecordAdded')
       });
       
       setServiceType("oil_change");
@@ -192,7 +191,6 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
     }
   };
   
-  // Use shared maintenance type labels
   const getServiceTypeLabel = (type: string) => getMaintenanceTypeLabel(type, language);
   
   const formatDate = (dateString: string) => {
@@ -213,12 +211,12 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
             {getServiceTypeLabel(record.type)}
           </h3>
           <div className="text-sm text-muted-foreground mt-1">
-            {language === 'el' ? 'Εκτελέστηκε στις' : 'Performed on'} {formatDate(record.date)}
+            {t('fleet:performedOn')} {formatDate(record.date)}
           </div>
           {record.next_date && (
             <div className="flex items-center text-sm text-primary mt-1">
               <Calendar className="h-3.5 w-3.5 mr-1" />
-              {language === 'el' ? 'Επόμενο σέρβις:' : 'Next service:'} {formatDate(record.next_date)}
+              {t('fleet:nextService')} {formatDate(record.next_date)}
             </div>
           )}
           {record.description && (
@@ -242,7 +240,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-lg flex items-center">
             <Wrench className="h-5 w-5 mr-2 text-primary" />
-            {language === 'el' ? 'Ιστορικό Συντήρησης' : 'Maintenance History'}
+            {t('fleet:maintenanceHistory')}
           </CardTitle>
           <div className="flex gap-2">
             {records.length > DEFAULT_VISIBLE_ITEMS && (
@@ -252,7 +250,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
                 onClick={() => setShowAllRecords(true)}
               >
                 <Eye className="h-4 w-4 mr-2" />
-                {language === 'el' ? 'Όλα' : 'View All'} ({records.length})
+                {t('common:viewAll')} ({records.length})
               </Button>
             )}
             <Button
@@ -262,7 +260,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
               size="sm"
             >
               <Plus className="h-4 w-4 mr-2" />
-              {language === 'el' ? 'Προσθήκη' : 'Add'}
+              {t('common:add')}
             </Button>
           </div>
         </CardHeader>
@@ -271,28 +269,24 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
             <div className="py-8 text-center">
               <div className="animate-spin h-6 w-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2"></div>
               <p className="text-sm text-muted-foreground">
-                {language === 'el' ? 'Φόρτωση ιστορικού συντήρησης...' : 'Loading maintenance records...'}
+                {t('fleet:loadingMaintenance')}
               </p>
             </div>
           ) : records.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               <Settings2 className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
               <h3 className="text-lg font-medium mb-1">
-                {language === 'el' ? 'Κανένα αρχείο συντήρησης' : 'No maintenance records'}
+                {t('fleet:noMaintenanceRecords')}
               </h3>
               <p className="text-sm max-w-md mx-auto">
-                {language === 'el' 
-                  ? 'Καταγράψτε όλα τα σέρβις και τις επισκευές για αυτό το όχημα.'
-                  : 'Track all services and repairs for this vehicle.'}
+                {t('fleet:trackServicesDesc')}
               </p>
               <Button
                 onClick={() => setIsDialogOpen(true)}
                 className="mt-4 bg-primary hover:bg-primary/90"
                 disabled={isLanguageLoading}
               >
-                {language === 'el' 
-                  ? 'Προσθήκη Πρώτης Εγγραφής Σέρβις' 
-                  : 'Add First Service Record'}
+                {t('fleet:addFirstServiceRecord')}
               </Button>
             </div>
           ) : (
@@ -303,9 +297,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
               
               {records.length > DEFAULT_VISIBLE_ITEMS && (
                 <div className="text-center py-2 text-sm text-muted-foreground">
-                  {language === 'el' 
-                    ? `Εμφάνιση ${DEFAULT_VISIBLE_ITEMS} από ${records.length} εγγραφές`
-                    : `Showing ${DEFAULT_VISIBLE_ITEMS} of ${records.length} records`}
+                  {t('common:showing')} {DEFAULT_VISIBLE_ITEMS} {t('common:of')} {records.length} {t('common:records')}
                 </div>
               )}
             </div>
@@ -313,13 +305,12 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
         </CardContent>
       </Card>
 
-      {/* View All Dialog with Pagination */}
       <Dialog open={showAllRecords} onOpenChange={setShowAllRecords}>
         <DialogContent className="max-w-2xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Wrench className="h-5 w-5" />
-              {language === 'el' ? 'Όλες οι Εγγραφές Συντήρησης' : 'All Maintenance Records'}
+              {t('fleet:allMaintenanceRecords')}
             </DialogTitle>
           </DialogHeader>
           
@@ -329,11 +320,10 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
             ))}
           </div>
           
-          {/* Pagination Controls */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-4 border-t">
               <div className="text-sm text-muted-foreground">
-                {language === 'el' ? 'Σελίδα' : 'Page'} {currentPage} {language === 'el' ? 'από' : 'of'} {totalPages}
+                {t('common:page')} {currentPage} {t('common:of')} {totalPages}
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -343,7 +333,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
                   disabled={currentPage === 1}
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  {language === 'el' ? 'Προηγ.' : 'Previous'}
+                  {t('common:previous')}
                 </Button>
                 <Button
                   variant="outline"
@@ -351,7 +341,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
                   onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
                 >
-                  {language === 'el' ? 'Επόμ.' : 'Next'}
+                  {t('common:next')}
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -360,21 +350,18 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
         </DialogContent>
       </Dialog>
       
-      {/* Add Maintenance Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{language === 'el' ? 'Προσθήκη Εγγραφής Συντήρησης' : 'Add Maintenance Record'}</DialogTitle>
+            <DialogTitle>{t('fleet:addMaintenanceRecord')}</DialogTitle>
             <DialogDescription>
-              {language === 'el' 
-                ? 'Καταγράψτε ένα σέρβις ή μια επισκευή για αυτό το όχημα' 
-                : 'Record a service or repair for this vehicle'}
+              {t('fleet:maintenanceRecordDesc')}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label htmlFor="service-type">{language === 'el' ? 'Τύπος Σέρβις' : 'Service Type'}</Label>
+              <Label htmlFor="service-type">{t('fleet:serviceType')}</Label>
               <Select value={serviceType} onValueChange={(val) => {
                 if (val.startsWith('__custom_maint__:')) {
                   const custom = val.replace('__custom_maint__:', '');
@@ -386,7 +373,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
                 }
               }} disabled={isLanguageLoading}>
                 <SelectTrigger>
-                  <SelectValue placeholder={language === 'el' ? 'Επιλέξτε τύπο σέρβις' : 'Select service type'} />
+                  <SelectValue placeholder={t('fleet:selectServiceType')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
@@ -396,7 +383,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
                       </SelectItem>
                     ))}
                     <SelectItem value="other" className="bg-muted/50 rounded-sm">
-                      {language === 'el' ? '+ Προσθήκη Νέου' : '+ Add New'}
+                      {t('finance:addNewCustom')}
                     </SelectItem>
                   </SelectGroup>
                   {userMaintenanceCategories.length > 0 && (
@@ -404,7 +391,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
                       <SelectSeparator />
                       <SelectGroup>
                         <SelectLabel className="text-xs text-muted-foreground font-medium">
-                          {language === 'el' ? 'Προσαρμοσμένες Κατηγορίες' : 'Custom Categories'}
+                          {t('common:customCategories')}
                         </SelectLabel>
                         {userMaintenanceCategories.map(cat => (
                           <SelectItem key={cat} value={`__custom_maint__:${cat}`}>
@@ -421,10 +408,10 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
             {serviceType === 'other' && (
               <div className="space-y-2">
                 <Label>
-                  {language === 'el' ? 'Νέα Κατηγορία Συντήρησης' : 'New Maintenance Category'} *
+                  {t('fleet:newMaintenanceCategory')} *
                 </Label>
                 <Input
-                  placeholder={language === 'el' ? 'Εισάγετε νέα κατηγορία...' : 'Enter new category...'}
+                  placeholder={t('fleet:enterNewCategory')}
                   value={customServiceType}
                   onChange={(e) => setCustomServiceType(e.target.value)}
                   required
@@ -434,7 +421,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
             )}
             
             <div className="space-y-2">
-              <Label htmlFor="service-date">{language === 'el' ? 'Ημερομηνία Σέρβις' : 'Service Date'}</Label>
+              <Label htmlFor="service-date">{t('fleet:serviceDate')}</Label>
               <Input
                 id="service-date"
                 type="date"
@@ -445,7 +432,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="cost">{language === 'el' ? 'Κόστος (€)' : 'Cost (€)'}</Label>
+              <Label htmlFor="cost">{t('fleet:costEuro')}</Label>
               <Input
                 id="cost"
                 type="number"
@@ -457,14 +444,23 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
                 disabled={isLanguageLoading}
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="next-service-date">{t('fleet:nextServiceDate')}</Label>
+              <Input
+                id="next-service-date"
+                type="date"
+                value={nextServiceDate}
+                onChange={(e) => setNextServiceDate(e.target.value)}
+                disabled={isLanguageLoading}
+              />
+            </div>
             
             <div className="space-y-2">
-              <Label htmlFor="notes">{language === 'el' ? 'Σημειώσεις (Προαιρετικό)' : 'Notes (Optional)'}</Label>
+              <Label htmlFor="notes">{t('fleet:notesOptional')}</Label>
               <Textarea
                 id="notes"
-                placeholder={language === 'el' 
-                  ? 'Προσθέστε τυχόν πρόσθετες λεπτομέρειες σχετικά με αυτό το σέρβις' 
-                  : 'Add any additional details about this service'}
+                placeholder={t('fleet:notesPlaceholder')}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
@@ -479,14 +475,14 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
               onClick={() => setIsDialogOpen(false)}
               disabled={isLanguageLoading}
             >
-              {language === 'el' ? 'Ακύρωση' : 'Cancel'}
+              {t('common:cancel')}
             </Button>
             <Button 
               onClick={handleAddRecord}
               className="bg-primary hover:bg-primary/90"
               disabled={isLanguageLoading}
             >
-              {language === 'el' ? 'Προσθήκη Εγγραφής' : 'Add Record'}
+              {t('fleet:addRecord')}
             </Button>
           </DialogFooter>
         </DialogContent>

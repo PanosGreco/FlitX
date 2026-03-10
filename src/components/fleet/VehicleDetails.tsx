@@ -152,14 +152,14 @@ export function VehicleDetails({
         console.error('Error updating vehicle status:', error);
         toast({
           title: t('common:error'),
-          description: language === 'el' ? 'Αποτυχία ενημέρωσης κατάστασης' : "Failed to update vehicle status",
+          description: t('fleet:statusUpdateFailed'),
           variant: "destructive"
         });
         return;
       }
       toast({
         title: t('fleet:statusUpdated'),
-        description: needsRepair ? language === 'el' ? 'Το όχημα σημειώθηκε ως χρειάζεται επισκευή' : 'Vehicle marked as needs repair' : language === 'el' ? 'Το όχημα είναι διαθέσιμο' : 'Vehicle is available'
+        description: needsRepair ? t('fleet:vehicleMarkedRepair') : t('fleet:vehicleAvailable')
       });
       setRefreshVehicle(prev => prev + 1);
       refetchStatus();
@@ -210,9 +210,9 @@ export function VehicleDetails({
     setRefreshBookings(prev => prev + 1);
     refetchStatus();
     setSelectedDates([]);
-    toast({
-      title: language === 'el' ? "Κράτηση Προστέθηκε" : "Booking Added",
-      description: `${language === 'el' ? 'Νέα κράτηση δημιουργήθηκε για' : 'New rental booking created for'} ${booking.customer_name}`
+      toast({
+        title: t('fleet:bookingAdded'),
+        description: `${t('fleet:newBookingCreatedFor')} ${booking.customer_name}`
     });
   };
   const handleBookingDeleted = (bookingId: string) => {
@@ -248,7 +248,7 @@ export function VehicleDetails({
                   {vehicle.year} {vehicle.make} {vehicle.model}
                   {vehicle.is_sold ? (
                     <Badge className="ml-3 bg-red-600 text-white border-red-700 font-bold" variant="outline">
-                      {language === 'el' ? 'ΠΩΛΗΘΗΚΕ' : 'SOLD'}
+                      {t('common:sold')}
                     </Badge>
                   ) : (
                     <Badge className={`ml-3 flex items-center ${statusColors[computedStatus]}`} variant="outline">
@@ -275,7 +275,7 @@ export function VehicleDetails({
                   </>}
                   {vehicle.passengerCapacity && <>
                       <span className="mx-2">•</span>
-                      <span>{vehicle.passengerCapacity >= 7 ? '7+' : vehicle.passengerCapacity} {language === 'el' ? 'άτομα' : 'people'}</span>
+                      <span>{vehicle.passengerCapacity >= 7 ? '7+' : vehicle.passengerCapacity} {t('common:people')}</span>
                     </>}
                 </div>
               </div>
@@ -283,7 +283,7 @@ export function VehicleDetails({
               <div className="flex-shrink-0 flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleEditVehicle}>
                   <Car className="h-4 w-4 mr-2" />
-                  {language === 'el' ? 'Επεξεργασία' : 'Edit Vehicle'}
+                  {t('fleet:editVehicle')}
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleEditStatus}>
                   <Settings className="h-4 w-4 mr-2" />
@@ -295,18 +295,18 @@ export function VehicleDetails({
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="flex w-full max-w-5xl mb-6 overflow-x-auto scrollbar-hide">
               <TabsTrigger value="reminders" className="px-4 py-2 flex-grow">
-                {language === 'el' ? 'Υπενθυμίσεις' : 'Reminders'}
+                {t('fleet:reminders')}
               </TabsTrigger>
               <TabsTrigger value="maintenance" className="px-4 py-2 flex-grow">{t('common:maintenance')}</TabsTrigger>
-              <TabsTrigger value="damage" className="px-4 py-2 flex-grow">{language === 'el' ? 'Ζημιές' : 'Damages'}</TabsTrigger>
+              <TabsTrigger value="damage" className="px-4 py-2 flex-grow">{t('fleet:damages')}</TabsTrigger>
               <TabsTrigger value="documents" className="px-4 py-2 flex-grow">{t('fleet:documents')}</TabsTrigger>
-              <TabsTrigger value="availability" className="px-4 py-2 flex-grow">{language === 'el' ? 'Κρατήσεις' : 'Reservations'}</TabsTrigger>
+              <TabsTrigger value="availability" className="px-4 py-2 flex-grow">{t('fleet:reservations')}</TabsTrigger>
               <TabsTrigger value="finance" className="px-4 py-2 flex-grow">{t('fleet:finance')}</TabsTrigger>
             </TabsList>
           
             <div className="container py-0">
               {loading ? <div className="flex justify-center py-12">
-                  <div className="text-flitx-gray-500">{language === 'el' ? 'Φόρτωση δεδομένων...' : 'Loading vehicle data...'}</div>
+                  <div className="text-flitx-gray-500">{t('fleet:loadingVehicleData')}</div>
                 </div> : <>
                   <TabsContent value="reminders" className="mt-6 space-y-6">
                     <VehicleReminders vehicleId={vehicleId || ""} />
@@ -328,7 +328,7 @@ export function VehicleDetails({
                     <CalendarView vehicleId={vehicleId || ""} onNewBooking={handleNewBookingFromCalendar} refreshTrigger={refreshBookings} />
                     
                     <div className="mt-6">
-                      <h3 className="text-lg font-semibold mb-4">{language === 'el' ? 'Ιστορικό Κρατήσεων' : 'Booking History'}</h3>
+                      <h3 className="text-lg font-semibold mb-4">{t('fleet:bookingHistory')}</h3>
                       <RentalBookingsList vehicleId={vehicleId || ""} onBookingDeleted={handleBookingDeleted} key={refreshBookings} />
                     </div>
                   </TabsContent>
@@ -367,7 +367,7 @@ export function VehicleDetails({
           
           <div className="space-y-4 py-4">
             <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm font-medium">{language === 'el' ? 'Κατάσταση:' : 'Status:'}</span>
+              <span className="text-sm font-medium">{t('fleet:status')}:</span>
               <Badge className={statusColors[computedStatus]} variant="outline">
                 {computedStatus === 'repair' && <AlertTriangle className="h-3.5 w-3.5 mr-1" />}
                 {computedStatus === 'maintenance' && <Wrench className="h-3.5 w-3.5 mr-1" />}
@@ -389,9 +389,9 @@ export function VehicleDetails({
               <button type="button" onClick={handleScheduleMaintenance} className={`w-full flex items-center gap-3 p-4 rounded-lg border-2 transition-colors ${computedStatus === 'maintenance' ? 'border-orange-500 bg-orange-50' : 'border-border hover:border-orange-300 hover:bg-orange-50/50'}`}>
                 <Wrench className="h-4 w-4 text-orange-500" />
                 <div className="flex-1 text-left">
-                <span className="font-medium">{language === 'el' ? 'Μη Διαθέσιμο – Σε Συντήρηση' : 'Unavailable – Under Maintenance'}</span>
+                <span className="font-medium">{t('fleet:unavailableUnderMaintenance')}</span>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {language === 'el' ? 'Προγραμματισμός ημερομηνιών μη διαθεσιμότητας' : 'Schedule unavailability dates'}
+                    {t('fleet:scheduleUnavailabilityDates')}
                   </p>
                 </div>
               </button>
@@ -401,7 +401,7 @@ export function VehicleDetails({
                   <div className="flex-1">
                     <span className="font-medium">{t('common:rented')}</span>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {language === 'el' ? 'Ελέγχεται από κρατήσεις' : 'Controlled by bookings'}
+                      {t('fleet:reservations')}
                     </p>
                   </div>
                 </div>}
