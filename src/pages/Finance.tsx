@@ -38,8 +38,10 @@ import { useVehiclePartsCategories } from "@/hooks/useVehiclePartsCategories";
 import { useTaxesFeesCategories } from "@/hooks/useTaxesFeesCategories";
 import { useVatSettings } from "@/hooks/useVatSettings";
 import { VatControl } from "@/components/finances/VatControl";
+import { useTranslation } from "react-i18next";
 
 const Finance = () => {
+  const { t } = useTranslation(['finance', 'common']);
   const [isAddFinanceOpen, setIsAddFinanceOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recordType, setRecordType] = useState("income");
@@ -72,18 +74,15 @@ const Finance = () => {
   const { vehiclePartsSubcategories, refetchVehiclePartsCategories } = useVehiclePartsCategories();
   const { taxSubcategories, refetchTaxCategories } = useTaxesFeesCategories();
   const { toast } = useToast();
-  const { t, language, isLanguageLoading } = useLanguage();
+  const { language, isLanguageLoading } = useLanguage();
   const isBoats = isBoatBusiness();
   
-  // Use the page title hook
   usePageTitle("finances");
 
-  // Fetch financial records and vehicles when component mounts
   useEffect(() => {
     fetchFinancialRecords();
     fetchVehicles();
     
-    // Subscribe to real-time changes
     const channel = supabase
       .channel('financial_records_changes')
       .on('postgres_changes', 
@@ -138,10 +137,8 @@ const Finance = () => {
       if (error) {
         console.error("Error fetching financial records:", error);
         toast({
-          title: language === 'el' ? "Σφάλμα" : "Error",
-          description: language === 'el' 
-            ? "Αποτυχία φόρτωσης οικονομικών εγγραφών" 
-            : "Failed to fetch financial records",
+          title: t('finance:error'),
+          description: t('finance:failedLoadRecords'),
           variant: "destructive",
         });
       } else {
@@ -156,7 +153,6 @@ const Finance = () => {
 
   const handleOpenAddFinance = () => {
     setIsAddFinanceOpen(true);
-    // Reset form fields
     setRecordType("income");
     setIsVehicleSaleMode(false);
     setSaleVehicleId("");
@@ -179,11 +175,8 @@ const Finance = () => {
     setVatEnabled(false);
   };
 
-  // Get active (non-sold) vehicles for sale dropdown
   const activeVehicles = useMemo(() => vehicles.filter(v => {
-    // Check if the vehicle has is_sold info - we need to fetch full vehicle data
-    // For now, filter by checking the vehicles array
-    return true; // Will be refined after fetch includes is_sold
+    return true;
   }), [vehicles]);
 
   const handleSubmitVehicleSale = async (e: React.FormEvent) => {
@@ -198,7 +191,6 @@ const Finance = () => {
         return;
       }
 
-      // Fetch full vehicle data for depreciation calculation
       const { data: vehicleData } = await supabase
         .from('vehicles')
         .select('*')
@@ -206,19 +198,15 @@ const Finance = () => {
         .single();
 
       if (!vehicleData) {
-        toast({ title: "Error", description: "Vehicle not found", variant: "destructive" });
+        toast({ title: t('finance:error'), description: "Vehicle not found", variant: "destructive" });
         setIsSubmitting(false);
         return;
       }
 
-      // Import depreciation utils inline
       const { calculateUsageDepreciation } = await import("@/utils/depreciationUtils");
 
-      // Calculate remaining value for depreciation
       const purchasePrice = vehicleData.purchase_price ? Number(vehicleData.purchase_price) : 0;
-      const netIncome = 0; // We need vehicle-specific income to calculate remaining
       
-      // Fetch vehicle financial records to calculate net income
       const { data: vehicleRecords } = await supabase
         .from('financial_records')
         .select('type, amount')
@@ -228,14 +216,12 @@ const Finance = () => {
       const vehicleExpenses = (vehicleRecords || []).filter(r => r.type === 'expense').reduce((s, r) => s + Number(r.amount), 0);
       const vehicleNetIncome = vehicleIncome - vehicleExpenses;
       
-      // Remaining for depreciation = max(0, purchasePrice - netIncome)
       const remainingForDepreciation = purchasePrice > 0 ? Math.max(0, purchasePrice - vehicleNetIncome) : 0;
       
       const salePriceNum = parseFloat(salePrice);
       const profitOrLoss = salePriceNum - remainingForDepreciation;
       const isProfit = profitOrLoss >= 0;
 
-      // Create financial record for the sale
       const saleRecord: any = {
         user_id: session.session.user.id,
         type: isProfit ? 'income' : 'expense',
@@ -257,12 +243,11 @@ const Finance = () => {
 
       if (recordError) {
         console.error("Error creating sale record:", recordError);
-        toast({ title: "Error", description: "Failed to create sale record", variant: "destructive" });
+        toast({ title: t('finance:error'), description: "Failed to create sale record", variant: "destructive" });
         setIsSubmitting(false);
         return;
       }
 
-      // Mark vehicle as sold
       const { error: vehicleError } = await supabase
         .from('vehicles')
         .update({ 
@@ -274,16 +259,16 @@ const Finance = () => {
 
       if (vehicleError) {
         console.error("Error marking vehicle as sold:", vehicleError);
-        toast({ title: "Error", description: "Failed to update vehicle", variant: "destructive" });
+        toast({ title: t('finance:error'), description: "Failed to update vehicle", variant: "destructive" });
         setIsSubmitting(false);
         return;
       }
 
       toast({
-        title: language === 'el' ? 'Πώληση Καταγράφηκε' : 'Sale Recorded',
+        title: t('finance:saleRecorded'),
         description: isProfit
-          ? `${language === 'el' ? 'Κέρδος' : 'Profit'}: +€${Math.abs(profitOrLoss).toFixed(2)}`
-          : `${language === 'el' ? 'Ζημία' : 'Loss'}: -€${Math.abs(profitOrLoss).toFixed(2)}`,
+          ? `${t('finance:profit')}: +€${Math.abs(profitOrLoss).toFixed(2)}`
+          : `${t('finance:lossLabel')}: -€${Math.abs(profitOrLoss).toFixed(2)}`,
       });
 
       setIsAddFinanceOpen(false);
@@ -291,7 +276,7 @@ const Finance = () => {
       fetchVehicles();
     } catch (error) {
       console.error("Error in vehicle sale:", error);
-      toast({ title: "Error", description: "An error occurred", variant: "destructive" });
+      toast({ title: t('finance:error'), description: t('finance:unexpectedError'), variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -307,10 +292,8 @@ const Finance = () => {
       
       if (!session?.session?.user) {
         toast({
-          title: language === 'el' ? "Σφάλμα" : "Error",
-          description: language === 'el'
-            ? "Πρέπει να είστε συνδεδεμένοι για να προσθέσετε οικονομικές εγγραφές"
-            : "You must be logged in to add financial records",
+          title: t('finance:error'),
+          description: t('finance:mustBeLoggedInFinance'),
           variant: "destructive",
         });
         setIsSubmitting(false);
@@ -337,22 +320,17 @@ const Finance = () => {
         category: recordType === "income" ? "sales" : expenseCategory,
         amount: parseFloat(amount),
         date: date,
-        description: notes || `${recordType === "income" ? 
-          (language === 'el' ? "Έσοδο" : "Income") : 
-          (language === 'el' ? "Έξοδο" : "Expense")} record`,
+        description: notes || `${recordType === "income" ? t('finance:incomeDefault') : t('finance:expenseDefault')} record`,
         source_section: 'manual',
       };
       
-      // Add income source tracking
       if (recordType === "income") {
         if (incomeSourceType === 'additional_cost' && incomeSourceSpecification) {
-          // Save as 'additional' category with proper description for aggregation
           newRecord.category = 'additional';
           newRecord.description = `${incomeSourceSpecification} (Additional Cost) - Manual`;
           newRecord.income_source_type = 'other';
           newRecord.income_source_specification = incomeSourceSpecification;
         } else if (incomeSourceType === 'insurance' && incomeSourceSpecification) {
-          // Save as 'additional' category with insurance type description for aggregation
           newRecord.category = 'additional';
           newRecord.description = `Insurance - ${incomeSourceSpecification} (Additional Cost) - Manual`;
           newRecord.income_source_type = 'other';
@@ -365,17 +343,14 @@ const Finance = () => {
         }
       }
       
-      // Add expense subcategory
       if (recordType === "expense") {
         if (expenseCategory === 'maintenance' || expenseCategory === 'other' || expenseCategory === 'marketing' || expenseCategory === 'vehicle_parts' || expenseCategory === 'tax') {
           newRecord.expense_subcategory = expenseSubcategory || null;
         }
       }
       
-      // Link to vehicle if selected and auto-populate vehicle data
       if (selectedVehicleId) {
         newRecord.vehicle_id = selectedVehicleId;
-        // Auto-populate vehicle fuel type and year
         const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
         if (selectedVehicle) {
           newRecord.vehicle_fuel_type = selectedVehicle.fuel_type || 'petrol';
@@ -392,17 +367,12 @@ const Finance = () => {
       if (error) {
         console.error("Error adding financial record:", error);
         toast({
-          title: language === 'el' ? "Σφάλμα" : "Error",
-          description: language === 'el'
-            ? "Αποτυχία προσθήκης οικονομικής εγγραφής"
-            : "Failed to add financial record",
+          title: t('finance:error'),
+          description: t('finance:failedAddRecord'),
           variant: "destructive",
         });
       } else {
-        // BI-DIRECTIONAL SYNC: If this is a maintenance expense with a vehicle, 
-        // also create a vehicle_maintenance record
         if (recordType === "expense" && expenseCategory === 'maintenance' && selectedVehicleId && expenseSubcategory) {
-          // expenseSubcategory is now directly a maintenance type key (e.g., 'oil_change', 'brakes')
           const { error: maintenanceError } = await supabase
             .from('vehicle_maintenance')
             .insert({
@@ -416,11 +386,9 @@ const Finance = () => {
 
           if (maintenanceError) {
             console.error("Error creating vehicle maintenance record:", maintenanceError);
-            // Don't fail the whole operation, just log the error
           }
         }
 
-        // VAT auto-expense: create a separate tax expense when VAT is enabled on income
         if (recordType === "income" && vatEnabled && vatRate > 0) {
           const vatAmount = parseFloat(amount) * (vatRate / 100);
           if (vatAmount > 0) {
@@ -445,13 +413,10 @@ const Finance = () => {
         }
 
         toast({
-          title: language === 'el' ? "Επιτυχία" : "Record Added",
-          description: language === 'el'
-            ? `Προστέθηκε νέα εγγραφή ${recordType === "income" ? "εσόδων" : "εξόδων"}`
-            : `New ${recordType} record has been added`,
+          title: t('finance:recordAdded'),
+          description: recordType === "income" ? t('finance:newIncomeAdded') : t('finance:newExpenseAdded'),
         });
         
-        // Close the dialog and refresh categories
         setIsAddFinanceOpen(false);
         refetchIncomeCategories();
         refetchMaintenanceCategories();
@@ -462,10 +427,8 @@ const Finance = () => {
     } catch (error) {
       console.error("Exception adding financial record:", error);
       toast({
-        title: language === 'el' ? "Σφάλμα" : "Error",
-        description: language === 'el'
-          ? "Προέκυψε ένα απρόσμενο σφάλμα"
-          : "An unexpected error occurred",
+        title: t('finance:error'),
+        description: t('finance:unexpectedError'),
         variant: "destructive",
       });
     } finally {
@@ -483,27 +446,26 @@ const Finance = () => {
           onRecordDeleted={fetchFinancialRecords}
         />
         
-        {/* Add Finance Record Dialog */}
         <Dialog open={isAddFinanceOpen} onOpenChange={setIsAddFinanceOpen}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{isVehicleSaleMode 
-                ? (language === 'el' ? 'Πώληση Οχήματος' : 'Vehicle Sale')
-                : t('addTransaction')}</DialogTitle>
+                ? t('finance:vehicleSale')
+                : t('finance:addTransaction')}</DialogTitle>
               <DialogDescription>
                 {isVehicleSaleMode 
-                  ? (language === 'el' ? 'Καταγράψτε πώληση οχήματος' : 'Record a vehicle sale')
-                  : t('enterTransactionDetails')}
+                  ? t('finance:recordVehicleSale')
+                  : t('finance:enterTransactionDetails')}
               </DialogDescription>
             </DialogHeader>
             
             {isVehicleSaleMode ? (
               <form onSubmit={handleSubmitVehicleSale} className="space-y-4">
                 <div className="space-y-2">
-                  <Label>{language === 'el' ? 'Επιλέξτε Όχημα' : 'Select Vehicle'}</Label>
+                  <Label>{t('finance:selectVehicle')}</Label>
                   <Select value={saleVehicleId} onValueChange={setSaleVehicleId}>
                     <SelectTrigger>
-                      <SelectValue placeholder={language === 'el' ? 'Επιλέξτε όχημα...' : 'Select vehicle...'} />
+                      <SelectValue placeholder={t('finance:selectVehiclePlaceholder')} />
                     </SelectTrigger>
                     <SelectContent>
                       {vehicles.filter(v => !(v as any).is_sold).map((vehicle) => (
@@ -516,7 +478,7 @@ const Finance = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>{language === 'el' ? 'Τιμή Πώλησης (€)' : 'Sale Price (€)'}</Label>
+                  <Label>{t('finance:salePrice')}</Label>
                   <Input
                     type="number"
                     min={0}
@@ -529,7 +491,7 @@ const Finance = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>{language === 'el' ? 'Ημερομηνία Πώλησης' : 'Sale Date'}</Label>
+                  <Label>{t('finance:saleDate')}</Label>
                   <Input
                     type="date"
                     required
@@ -540,19 +502,17 @@ const Finance = () => {
 
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setIsVehicleSaleMode(false)}>
-                    {language === 'el' ? 'Πίσω' : 'Back'}
+                    {t('finance:back')}
                   </Button>
                   <Button type="submit" className="bg-flitx-blue hover:bg-flitx-blue-600" disabled={isSubmitting || !saleVehicleId || !salePrice}>
-                    {isSubmitting 
-                      ? (language === 'el' ? 'Καταγραφή...' : 'Recording...') 
-                      : (language === 'el' ? 'Καταγραφή Πώλησης' : 'Record Sale')}
+                    {isSubmitting ? t('finance:recording') : t('finance:recordSale')}
                   </Button>
                 </DialogFooter>
               </form>
             ) : (
             <form onSubmit={handleSubmitFinanceRecord} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="recordType">{t('transactionType')}</Label>
+                <Label htmlFor="recordType">{t('finance:transactionType')}</Label>
                 <Select value={recordType} onValueChange={(val) => {
                   if (val === 'vehicle_sale') {
                     setIsVehicleSaleMode(true);
@@ -561,14 +521,14 @@ const Finance = () => {
                   }
                 }} disabled={isLanguageLoading}>
                   <SelectTrigger>
-                    <SelectValue placeholder={t('selectType')} />
+                    <SelectValue placeholder={t('common:selectType')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="income">{t('income')}</SelectItem>
-                    <SelectItem value="expense">{t('expense')}</SelectItem>
+                    <SelectItem value="income">{t('finance:income')}</SelectItem>
+                    <SelectItem value="expense">{t('finance:expense')}</SelectItem>
                     <SelectSeparator />
                     <SelectItem value="vehicle_sale" className="font-medium">
-                      {language === 'el' ? 'Πώληση Οχήματος' : 'Vehicle Sale'}
+                      {t('finance:vehicleSale')}
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -584,16 +544,15 @@ const Finance = () => {
                       setIncomeSourceSpecification(spec);
                     }}
                     disabled={isLanguageLoading}
-                    labelText={language === 'el' ? 'Πηγή Εσόδου' : 'Income Source'}
+                    labelText={t('finance:incomeSource')}
                   />
                 </div>
               )}
 
               {recordType === "expense" && (
                 <div className="space-y-2">
-                  <Label htmlFor="expenseType">{t('category')}</Label>
+                  <Label htmlFor="expenseType">{t('finance:category')}</Label>
                   <Select value={expenseCategory} onValueChange={(val) => {
-                    // If selecting a user-created expense category
                     if (val.startsWith('__custom_exp__:')) {
                       const spec = val.replace('__custom_exp__:', '');
                       setExpenseCategory('other');
@@ -616,34 +575,34 @@ const Finance = () => {
                     }
                   }} disabled={isLanguageLoading}>
                     <SelectTrigger>
-                    <SelectValue placeholder={t('selectCategory')} />
+                    <SelectValue placeholder={t('finance:selectCategory')} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
                         {isBoats ? (
                           <>
-                            <SelectItem value="fuel">{t('fuel')}</SelectItem>
-                            <SelectItem value="maintenance">{t('boatMaintenance')}</SelectItem>
-                            <SelectItem value="cleaning">{t('cleaning')}</SelectItem>
-                            <SelectItem value="docking">{t('dockingFees')}</SelectItem>
-                            <SelectItem value="licensing">{t('licensing')}</SelectItem>
-                            <SelectItem value="salary">{t('employeeSalaries')}</SelectItem>
+                            <SelectItem value="fuel">{t('finance:fuel')}</SelectItem>
+                            <SelectItem value="maintenance">{t('finance:boatMaintenance')}</SelectItem>
+                            <SelectItem value="cleaning">{t('finance:cleaning')}</SelectItem>
+                            <SelectItem value="docking">{t('finance:dockingFees')}</SelectItem>
+                            <SelectItem value="licensing">{t('finance:licensing')}</SelectItem>
+                            <SelectItem value="salary">{t('finance:employeeSalaries')}</SelectItem>
                             <SelectItem value="other" className="bg-muted/50 rounded-sm">
-                              {t('other')}
+                              {t('finance:other')}
                             </SelectItem>
                           </>
                         ) : (
                           <>
-                            <SelectItem value="fuel">{t('fuel')}</SelectItem>
-                            <SelectItem value="maintenance">{t('vehicleMaintenance')}</SelectItem>
-                            <SelectItem value="vehicle_parts">{language === 'el' ? 'Ανταλλακτικά Οχήματος' : 'Vehicle Parts'}</SelectItem>
-                            <SelectItem value="carwash">{t('carWash')}</SelectItem>
-                            <SelectItem value="insurance">{t('insurance')}</SelectItem>
-                            <SelectItem value="tax">{t('taxesFees')}</SelectItem>
-                            <SelectItem value="salary">{t('employeeSalaries')}</SelectItem>
-                            <SelectItem value="marketing">{language === 'el' ? 'Μάρκετινγκ' : 'Marketing'}</SelectItem>
+                            <SelectItem value="fuel">{t('finance:fuel')}</SelectItem>
+                            <SelectItem value="maintenance">{t('finance:vehicleMaintenance')}</SelectItem>
+                            <SelectItem value="vehicle_parts">{t('finance:vehiclePartsLabel')}</SelectItem>
+                            <SelectItem value="carwash">{t('finance:carWash')}</SelectItem>
+                            <SelectItem value="insurance">{t('finance:insurance')}</SelectItem>
+                            <SelectItem value="tax">{t('finance:taxesFees')}</SelectItem>
+                            <SelectItem value="salary">{t('finance:employeeSalaries')}</SelectItem>
+                            <SelectItem value="marketing">{t('finance:marketing')}</SelectItem>
                             <SelectItem value="other" className="bg-muted/50 rounded-sm">
-                              {t('other')}
+                              {t('finance:other')}
                             </SelectItem>
                           </>
                         )}
@@ -653,7 +612,7 @@ const Finance = () => {
                           <SelectSeparator />
                           <SelectGroup>
                             <SelectLabel className="text-xs text-muted-foreground font-medium">
-                              {language === 'el' ? 'Προσαρμοσμένες Κατηγορίες' : 'Custom Categories'}
+                              {t('finance:customCategories')}
                             </SelectLabel>
                             {userExpenseCategories.map((cat) => (
                               <SelectItem key={cat} value={`__custom_exp__:${cat}`}>{cat}</SelectItem>
@@ -666,11 +625,10 @@ const Finance = () => {
                 </div>
               )}
 
-              {/* Expense Subcategory - dropdown for maintenance */}
               {recordType === "expense" && expenseCategory === 'maintenance' && (
                 <div className="space-y-2">
                   <Label htmlFor="maintenanceType">
-                    {language === 'el' ? 'Τύπος Συντήρησης' : 'Maintenance Type'} *
+                    {t('finance:maintenanceTypeLabel')} *
                   </Label>
                   <Select value={maintenanceIsCustom ? 'other' : expenseSubcategory} onValueChange={(val) => {
                     if (val.startsWith('__custom_maint__:')) {
@@ -689,7 +647,7 @@ const Finance = () => {
                     }
                   }} disabled={isLanguageLoading}>
                     <SelectTrigger>
-                      <SelectValue placeholder={language === 'el' ? 'Επιλέξτε τύπο...' : 'Select type...'} />
+                      <SelectValue placeholder={t('fleet:selectServiceType')} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
@@ -699,7 +657,7 @@ const Finance = () => {
                           </SelectItem>
                         ))}
                         <SelectItem value="other" className="bg-muted/50 rounded-sm">
-                          {language === 'el' ? '+ Προσθήκη Νέου' : '+ Add New'}
+                          {t('finance:addNewCustom')}
                         </SelectItem>
                       </SelectGroup>
                       {userMaintenanceCategories.length > 0 && (
@@ -707,7 +665,7 @@ const Finance = () => {
                           <SelectSeparator />
                           <SelectGroup>
                             <SelectLabel className="text-xs text-muted-foreground font-medium">
-                              {language === 'el' ? 'Προσαρμοσμένες Κατηγορίες' : 'Custom Categories'}
+                              {t('finance:customCategories')}
                             </SelectLabel>
                             {userMaintenanceCategories.map(cat => (
                               <SelectItem key={cat} value={`__custom_maint__:${cat}`}>
@@ -722,14 +680,13 @@ const Finance = () => {
                 </div>
               )}
 
-              {/* Free-text input when "Other" maintenance type is selected */}
               {recordType === "expense" && expenseCategory === 'maintenance' && maintenanceIsCustom && (
                 <div className="space-y-2">
                   <Label>
-                    {language === 'el' ? 'Νέα Κατηγορία Συντήρησης' : 'New Maintenance Category'} *
+                    {t('finance:newMaintenanceCategory')} *
                   </Label>
                   <Input
-                    placeholder={language === 'el' ? 'Εισάγετε νέα κατηγορία...' : 'Enter new category...'}
+                    placeholder={t('finance:enterNewCategory')}
                     value={customMaintenanceType}
                     onChange={(e) => {
                       setCustomMaintenanceType(e.target.value);
@@ -741,11 +698,10 @@ const Finance = () => {
                 </div>
               )}
 
-              {/* Vehicle Parts - optional subcategory */}
               {recordType === "expense" && expenseCategory === 'vehicle_parts' && (
                 <div className="space-y-2">
                   <Label>
-                    {language === 'el' ? 'Τύπος Ανταλλακτικού (προαιρετικό)' : 'Part Type (optional)'}
+                    {t('finance:partTypeOptional')}
                   </Label>
                   <Select 
                     value={vehiclePartsIsCustom ? '__new__' : (expenseSubcategory || '__none__')} 
@@ -771,15 +727,15 @@ const Finance = () => {
                     disabled={isLanguageLoading}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={language === 'el' ? 'Επιλέξτε τύπο...' : 'Select type...'} />
+                      <SelectValue placeholder={t('fleet:selectServiceType')} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
                         <SelectItem value="__none__">
-                          {language === 'el' ? 'Χωρίς προδιαγραφή' : 'No specification'}
+                          {t('finance:noSpecification')}
                         </SelectItem>
                         <SelectItem value="__new__" className="bg-muted/50 rounded-sm">
-                          {language === 'el' ? 'Προσθήκη νέου...' : 'Add new...'}
+                          {t('finance:addNewPart')}
                         </SelectItem>
                       </SelectGroup>
                       {vehiclePartsSubcategories.length > 0 && (
@@ -787,7 +743,7 @@ const Finance = () => {
                           <SelectSeparator />
                           <SelectGroup>
                             <SelectLabel className="text-xs text-muted-foreground font-medium">
-                              {language === 'el' ? 'Αποθηκευμένα Ανταλλακτικά' : 'Saved Parts'}
+                              {t('finance:savedParts')}
                             </SelectLabel>
                             {vehiclePartsSubcategories.map(part => (
                               <SelectItem key={part} value={`__vp__:${part}`}>
@@ -802,14 +758,13 @@ const Finance = () => {
                 </div>
               )}
 
-              {/* Free-text input for new vehicle part */}
               {recordType === "expense" && expenseCategory === 'vehicle_parts' && vehiclePartsIsCustom && (
                 <div className="space-y-2">
                   <Label>
-                    {language === 'el' ? 'Νέο Ανταλλακτικό' : 'New Part Type'}
+                    {t('finance:newPartType')}
                   </Label>
                   <Input
-                    placeholder={language === 'el' ? 'π.χ. Μπαταρία, Ελαστικά...' : 'e.g. Battery, Tires...'}
+                    placeholder={t('finance:enterNewCategory')}
                     value={customVehiclePart}
                     onChange={(e) => {
                       setCustomVehiclePart(e.target.value);
@@ -820,15 +775,14 @@ const Finance = () => {
                 </div>
               )}
 
-              {/* Free-text subcategory for 'other' expense category (required) */}
               {recordType === "expense" && expenseCategory === 'other' && (
                 <div className="space-y-2">
                   <Label htmlFor="expenseSubcat">
-                    {language === 'el' ? 'Όνομα Νέας Κατηγορίας' : 'New Category Name'} *
+                    {t('finance:otherSubcategory')} *
                   </Label>
                   <Input 
                     id="expenseSubcat"
-                    placeholder={language === 'el' ? 'Εισάγετε όνομα κατηγορίας...' : 'Enter category name...'}
+                    placeholder={t('finance:otherSubcategoryPlaceholder')}
                     value={expenseSubcategory}
                     onChange={(e) => setExpenseSubcategory(e.target.value)}
                     required
@@ -837,15 +791,14 @@ const Finance = () => {
                 </div>
               )}
 
-              {/* Optional specification for 'marketing' expense category */}
               {recordType === "expense" && expenseCategory === 'marketing' && (
                 <div className="space-y-2">
                   <Label htmlFor="expenseSubcat">
-                    {language === 'el' ? 'Προσδιορισμός (προαιρετικό)' : 'Specification (optional)'}
+                    {t('finance:marketingSpecification')}
                   </Label>
                   <Input 
                     id="expenseSubcat"
-                    placeholder={language === 'el' ? 'π.χ. Social Media, Google Ads...' : 'e.g. Social Media, Google Ads...'}
+                    placeholder={t('finance:specifySource')}
                     value={expenseSubcategory}
                     onChange={(e) => setExpenseSubcategory(e.target.value)}
                     disabled={isLanguageLoading}
@@ -853,11 +806,10 @@ const Finance = () => {
                 </div>
               )}
 
-              {/* Taxes & Fees subcategory selector */}
               {recordType === "expense" && expenseCategory === 'tax' && (
                 <div className="space-y-2">
                   <Label>
-                    {language === 'el' ? 'Τύπος Φόρου/Τέλους' : 'Tax/Fee Type'}
+                    {t('finance:taxFeeTypeOptional')}
                   </Label>
                   <Select 
                     value={taxIsCustom ? '__new_tax__' : (expenseSubcategory || '')} 
@@ -879,7 +831,7 @@ const Finance = () => {
                     disabled={isLanguageLoading}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={language === 'el' ? 'Επιλέξτε τύπο...' : 'Select type...'} />
+                      <SelectValue placeholder={t('fleet:selectServiceType')} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
@@ -890,7 +842,7 @@ const Finance = () => {
                         ))}
                         <SelectSeparator />
                         <SelectItem value="__new_tax__" className="bg-muted/50 rounded-sm">
-                          {language === 'el' ? '+ Προσθήκη Νέου' : '+ Add New'}
+                          {t('finance:addNewCustom')}
                         </SelectItem>
                       </SelectGroup>
                     </SelectContent>
@@ -898,14 +850,13 @@ const Finance = () => {
                 </div>
               )}
 
-              {/* Free-text input for new tax/fee type */}
               {recordType === "expense" && expenseCategory === 'tax' && taxIsCustom && (
                 <div className="space-y-2">
                   <Label>
-                    {language === 'el' ? 'Νέος Τύπος Φόρου/Τέλους' : 'New Tax/Fee Type'} *
+                    {t('finance:newTaxType')} *
                   </Label>
                   <Input
-                    placeholder={language === 'el' ? 'π.χ. Δημοτικός Φόρος, Τέλη Κυκλοφορίας...' : 'e.g. Municipal Tax, Road Tax...'}
+                    placeholder={t('finance:enterNewCategory')}
                     value={customTaxType}
                     onChange={(e) => {
                       setCustomTaxType(e.target.value);
@@ -917,19 +868,18 @@ const Finance = () => {
                 </div>
               )}
               
-              {/* Vehicle Selector - Optional link to vehicle */}
               <div className="space-y-2">
                 <Label htmlFor="vehicle">
-                  {language === 'el' ? 'Σύνδεση με Όχημα' : 'Link to Vehicle'} 
+                  {t('finance:linkToVehicle')} 
                   <span className="text-muted-foreground text-xs ml-1">(optional)</span>
                 </Label>
                 <Select value={selectedVehicleId || "none"} onValueChange={(val) => setSelectedVehicleId(val === "none" ? "" : val)} disabled={isLanguageLoading}>
                   <SelectTrigger>
-                    <SelectValue placeholder={language === 'el' ? 'Επιλέξτε όχημα...' : 'Select vehicle...'} />
+                    <SelectValue placeholder={t('finance:selectVehiclePlaceholder')} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">
-                      {language === 'el' ? 'Κανένα όχημα' : 'No vehicle (global)'}
+                      {t('finance:noneGeneral')}
                     </SelectItem>
                     {vehicles.filter(v => !(v as any).is_sold).map((vehicle) => (
                       <SelectItem key={vehicle.id} value={vehicle.id}>
@@ -939,14 +889,12 @@ const Finance = () => {
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  {language === 'el' 
-                    ? 'Αν επιλέξετε όχημα, αυτή η εγγραφή θα εμφανίζεται στα οικονομικά του οχήματος' 
-                    : 'If selected, this record will appear in the vehicle\'s finance section'}
+                  {t('finance:vehicleFinanceNote')}
                 </p>
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="amount">{t.amount} ({language === 'el' ? '€' : '$'})</Label>
+                <Label htmlFor="amount">{t('finance:amount')} (€)</Label>
                 <Input 
                   id="amount" 
                   type="number" 
@@ -961,7 +909,7 @@ const Finance = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="date">{t.date}</Label>
+                <Label htmlFor="date">{t('common:date')}</Label>
                 <Input 
                   id="date" 
                   type="date" 
@@ -973,12 +921,10 @@ const Finance = () => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="notes">{t.notes}</Label>
+                <Label htmlFor="notes">{t('common:notes')}</Label>
                 <Textarea 
                   id="notes" 
-                  placeholder={language === 'el' 
-                    ? 'Προσθέστε τυχόν πρόσθετες λεπτομέρειες σχετικά με αυτή τη συναλλαγή' 
-                    : 'Add any additional details about this transaction'}
+                  placeholder={t('finance:notes')}
                   rows={3}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -986,7 +932,6 @@ const Finance = () => {
                 />
               </div>
 
-              {/* VAT Control - only for income */}
               {recordType === "income" && (
                 <VatControl
                   vatEnabled={vatEnabled}
@@ -1003,14 +948,14 @@ const Finance = () => {
                   onClick={() => setIsAddFinanceOpen(false)}
                   disabled={isLanguageLoading}
                 >
-                  {t.cancel}
+                  {t('common:cancel')}
                 </Button>
                 <Button 
                   type="submit" 
                   className="bg-flitx-blue hover:bg-flitx-blue-600"
                   disabled={isSubmitting || isLanguageLoading}
                 >
-                  {isSubmitting ? t.adding : t.addRecord}
+                  {isSubmitting ? t('common:adding') : t('finance:addRecord')}
                 </Button>
               </DialogFooter>
             </form>

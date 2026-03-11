@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { getMaintenanceTypeOptions } from "@/constants/maintenanceTypes";
+import { useTranslation } from "react-i18next";
 
 interface Vehicle {
   id: string;
@@ -35,10 +36,10 @@ export function AddRecurringTransactionDialog({
   vehicles,
   onSuccess
 }: AddRecurringTransactionDialogProps) {
+  const { t } = useTranslation(['finance', 'common']);
   const [step, setStep] = useState<Step>('type');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Form data
   const [type, setType] = useState<'income' | 'expense'>('income');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState<string>('');
@@ -58,7 +59,6 @@ export function AddRecurringTransactionDialog({
   const { toast } = useToast();
   const isBoats = isBoatBusiness();
 
-  // Fetch isolated recurring categories
   useEffect(() => {
     if (open) {
       fetchRecurringCategories();
@@ -67,7 +67,6 @@ export function AddRecurringTransactionDialog({
 
   const fetchRecurringCategories = async () => {
     try {
-      // Recurring income: distinct specs where income_source_type = 'other'
       const { data: incomeData } = await supabase
         .from('recurring_transactions')
         .select('income_source_specification')
@@ -82,7 +81,6 @@ export function AddRecurringTransactionDialog({
         setRecurringIncomeCategories(unique);
       }
 
-      // Recurring expense: distinct subcategories where category = 'other'
       const { data: expenseData } = await supabase
         .from('recurring_transactions')
         .select('expense_subcategory')
@@ -130,7 +128,6 @@ export function AddRecurringTransactionDialog({
       case 'type': return true;
       case 'date': return !!startDate;
       case 'end_date': {
-        // End date is optional, but if provided must be >= start date
         if (endDate && startDate) {
           return endDate >= startDate;
         }
@@ -143,7 +140,6 @@ export function AddRecurringTransactionDialog({
           if (!category) return false;
           if (category === 'maintenance' && !expenseSubcategory) return false;
           if (category === 'other' && !expenseSubcategory) return false;
-          // Marketing specification is optional
         }
         return true;
       case 'vehicle': return true;
@@ -171,8 +167,8 @@ export function AddRecurringTransactionDialog({
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.user) {
         toast({
-          title: language === 'el' ? 'Σφάλμα' : 'Error',
-          description: language === 'el' ? 'Πρέπει να είστε συνδεδεμένοι' : 'You must be logged in',
+          title: t('finance:error'),
+          description: t('finance:mustBeLoggedIn'),
           variant: 'destructive'
         });
         return;
@@ -183,10 +179,8 @@ export function AddRecurringTransactionDialog({
       const startDateObj = new Date(startDate);
       startDateObj.setHours(0, 0, 0, 0);
       
-      // Check if start date is today or in the past
       const shouldGenerateImmediately = startDateObj <= today;
 
-      // Calculate initial next_generation_date
       let initialNextGenerationDate = startDate;
       
       if (shouldGenerateImmediately) {
@@ -205,7 +199,6 @@ export function AddRecurringTransactionDialog({
         initialNextGenerationDate = nextDate.toISOString().split('T')[0];
       }
 
-      // Determine if already completed at creation (end_date exists and next_generation_date > end_date)
       let isActiveAtCreation = true;
       if (endDate && shouldGenerateImmediately) {
         const endDateObj = new Date(endDate);
@@ -231,13 +224,8 @@ export function AddRecurringTransactionDialog({
         is_active: isActiveAtCreation,
       };
 
-      if (endDate) {
-        record.end_date = endDate;
-      }
-
-      if (vehicleId) {
-        record.vehicle_id = vehicleId;
-      }
+      if (endDate) record.end_date = endDate;
+      if (vehicleId) record.vehicle_id = vehicleId;
 
       if (type === 'income') {
         record.income_source_type = incomeSourceType;
@@ -250,13 +238,9 @@ export function AddRecurringTransactionDialog({
         record.expense_subcategory = expenseSubcategory;
       }
 
-      const { error } = await supabase
-        .from('recurring_transactions')
-        .insert(record);
-
+      const { error } = await supabase.from('recurring_transactions').insert(record);
       if (error) throw error;
 
-      // If start date is today or in the past, immediately generate the first transaction
       if (shouldGenerateImmediately) {
         const selectedVehicle = vehicles.find(v => v.id === vehicleId);
         
@@ -287,24 +271,17 @@ export function AddRecurringTransactionDialog({
           financialRecord.expense_subcategory = expenseSubcategory;
         }
 
-        const { error: recordError } = await supabase
-          .from('financial_records')
-          .insert(financialRecord);
-
+        const { error: recordError } = await supabase.from('financial_records').insert(financialRecord);
         if (recordError) {
           console.error('Error creating first financial record:', recordError);
         }
       }
 
       toast({
-        title: language === 'el' ? 'Επιτυχία' : 'Success',
+        title: t('finance:success'),
         description: shouldGenerateImmediately
-          ? (language === 'el' 
-              ? 'Η επαναλαμβανόμενη συναλλαγή δημιουργήθηκε και η πρώτη καταχώρηση προστέθηκε'
-              : 'Recurring transaction created and first record added')
-          : (language === 'el' 
-              ? 'Η επαναλαμβανόμενη συναλλαγή δημιουργήθηκε'
-              : 'Recurring transaction has been created'),
+          ? t('finance:recurringCreatedFirst')
+          : t('finance:recurringCreated'),
       });
 
       resetForm();
@@ -312,8 +289,8 @@ export function AddRecurringTransactionDialog({
     } catch (error) {
       console.error('Error creating recurring transaction:', error);
       toast({
-        title: language === 'el' ? 'Σφάλμα' : 'Error',
-        description: language === 'el' ? 'Αποτυχία δημιουργίας' : 'Failed to create recurring transaction',
+        title: t('finance:error'),
+        description: t('finance:failedToCreate'),
         variant: 'destructive'
       });
     } finally {
@@ -323,13 +300,13 @@ export function AddRecurringTransactionDialog({
 
   const getStepTitle = () => {
     switch (step) {
-      case 'type': return language === 'el' ? 'Τύπος Συναλλαγής' : 'Transaction Type';
-      case 'date': return language === 'el' ? 'Ημερομηνία Έναρξης' : 'Start Date';
-      case 'end_date': return language === 'el' ? 'Ημερομηνία Λήξης' : 'End Date';
-      case 'frequency': return language === 'el' ? 'Συχνότητα' : 'Frequency';
-      case 'amount': return language === 'el' ? 'Ποσό' : 'Amount';
-      case 'details': return language === 'el' ? 'Κατηγορία & Περιγραφή' : 'Category & Description';
-      case 'vehicle': return language === 'el' ? 'Σύνδεση με Όχημα' : 'Link to Vehicle';
+      case 'type': return t('finance:transactionTypeStep');
+      case 'date': return t('finance:startDate');
+      case 'end_date': return t('finance:endDate');
+      case 'frequency': return t('finance:frequency');
+      case 'amount': return t('finance:amount');
+      case 'details': return t('finance:categoryDescription');
+      case 'vehicle': return t('finance:linkToVehicle');
       default: return '';
     }
   };
@@ -339,21 +316,18 @@ export function AddRecurringTransactionDialog({
       <DialogContent className="sm:max-w-[450px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {language === 'el' ? 'Νέα Επαναλαμβανόμενη Συναλλαγή' : 'New Recurring Transaction'}
+            {t('finance:newRecurring')}
           </DialogTitle>
           <p className="text-sm text-muted-foreground">
-            {language === 'el' ? 'Βήμα' : 'Step'} {currentStepIndex + 1} / {steps.length}: {getStepTitle()}
+            {t('finance:step')} {currentStepIndex + 1} / {steps.length}: {getStepTitle()}
           </p>
         </DialogHeader>
 
         <div className="py-4 min-h-[200px]">
-          {/* Step 1: Type */}
           {step === 'type' && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                {language === 'el' 
-                  ? 'Επιλέξτε αν πρόκειται για έσοδο ή έξοδο:'
-                  : 'Select whether this is income or expense:'}
+                {t('finance:selectIncomeOrExpense')}
               </p>
               <div className="grid grid-cols-2 gap-4">
                 <Button
@@ -361,140 +335,91 @@ export function AddRecurringTransactionDialog({
                   className={type === 'income' ? 'bg-green-600 hover:bg-green-700' : ''}
                   onClick={() => setType('income')}
                 >
-                  {language === 'el' ? 'Έσοδο' : 'Income'}
+                  {t('finance:income')}
                 </Button>
                 <Button
                   variant={type === 'expense' ? 'default' : 'outline'}
                   className={type === 'expense' ? 'bg-red-600 hover:bg-red-700' : ''}
                   onClick={() => setType('expense')}
                 >
-                  {language === 'el' ? 'Έξοδο' : 'Expense'}
+                  {t('finance:expense')}
                 </Button>
               </div>
             </div>
           )}
 
-          {/* Step 2: Start Date */}
           {step === 'date' && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                {language === 'el' 
-                  ? 'Ορίστε πότε θα ξεκινήσει η επανάληψη:'
-                  : 'Set when the repetition will start:'}
+                {t('finance:setRepetitionStart')}
               </p>
               <div className="space-y-2">
-                <Label>{language === 'el' ? 'Ημερομηνία Έναρξης' : 'Start Date'}</Label>
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
+                <Label>{t('finance:startDate')}</Label>
+                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
               </div>
             </div>
           )}
 
-          {/* Step 3: End Date (Optional) */}
           {step === 'end_date' && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                {language === 'el' 
-                  ? 'Προαιρετικά, ορίστε πότε θα σταματήσει η επανάληψη:'
-                  : 'Optionally, set when the repetition will stop:'}
+                {t('finance:setRepetitionEnd')}
               </p>
               <div className="space-y-2">
-                <Label>{language === 'el' ? 'Ημερομηνία Λήξης (προαιρετικό)' : 'End Date (optional)'}</Label>
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  min={startDate}
-                />
+                <Label>{t('finance:endDateOptional')}</Label>
+                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} min={startDate} />
               </div>
               {endDate && endDate < startDate && (
-                <p className="text-xs text-destructive">
-                  {language === 'el' 
-                    ? 'Η ημερομηνία λήξης πρέπει να είναι μετά την ημερομηνία έναρξης'
-                    : 'End date must be after the start date'}
-                </p>
+                <p className="text-xs text-destructive">{t('finance:endDateAfterStart')}</p>
               )}
-              <p className="text-xs text-muted-foreground">
-                {language === 'el'
-                  ? 'Αν δεν ορίσετε ημερομηνία λήξης, η επανάληψη θα συνεχίζεται επ\' αόριστον.'
-                  : 'If no end date is set, the recurrence will continue indefinitely.'}
-              </p>
+              <p className="text-xs text-muted-foreground">{t('finance:noEndDateNote')}</p>
             </div>
           )}
 
-          {/* Step 4: Frequency */}
           {step === 'frequency' && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                {language === 'el' 
-                  ? 'Ορίστε πόσο συχνά θα δημιουργείται:'
-                  : 'Define how often it will be generated:'}
+                {t('finance:defineFrequency')}
               </p>
               <div className="flex items-center gap-3">
                 <div className="space-y-2 flex-1">
-                  <Label>{language === 'el' ? 'Κάθε' : 'Every'}</Label>
-                  <Input
-                    type="number"
-                    min="1"
-                    value={frequencyValue}
-                    onChange={(e) => setFrequencyValue(e.target.value)}
-                    placeholder="1"
-                  />
+                  <Label>{t('finance:every')}</Label>
+                  <Input type="number" min="1" value={frequencyValue} onChange={(e) => setFrequencyValue(e.target.value)} placeholder="1" />
                 </div>
                 <div className="space-y-2 flex-1">
-                  <Label>{language === 'el' ? 'Μονάδα' : 'Unit'}</Label>
+                  <Label>{t('finance:unit')}</Label>
                   <Select value={frequencyUnit} onValueChange={(v) => setFrequencyUnit(v as any)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="week">{language === 'el' ? 'Εβδομάδα(ες)' : 'Week(s)'}</SelectItem>
-                      <SelectItem value="month">{language === 'el' ? 'Μήνα(ες)' : 'Month(s)'}</SelectItem>
-                      <SelectItem value="year">{language === 'el' ? 'Έτος(η)' : 'Year(s)'}</SelectItem>
+                      <SelectItem value="week">{t('finance:weekUnit')}</SelectItem>
+                      <SelectItem value="month">{t('finance:monthUnit')}</SelectItem>
+                      <SelectItem value="year">{t('finance:yearUnit')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                {language === 'el' 
-                  ? `Παράδειγμα: Θα δημιουργείται συναλλαγή κάθε ${frequencyValue} ${frequencyUnit === 'week' ? 'εβδομάδα(ες)' : frequencyUnit === 'month' ? 'μήνα(ες)' : 'έτος(η)'}`
-                  : `Example: A transaction will be created every ${frequencyValue} ${frequencyUnit}(s)`}
+                {t('finance:frequencyExample', { value: frequencyValue, unit: frequencyUnit })}
               </p>
             </div>
           )}
 
-          {/* Step 5: Amount */}
           {step === 'amount' && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                {language === 'el' 
-                  ? 'Εισάγετε το ποσό για κάθε συναλλαγή:'
-                  : 'Enter the amount for each transaction:'}
-              </p>
+              <p className="text-sm text-muted-foreground">{t('finance:enterAmount')}</p>
               <div className="space-y-2">
-                <Label>{language === 'el' ? 'Ποσό (€)' : 'Amount (€)'}</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                />
+                <Label>{t('finance:amountEur')}</Label>
+                <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
               </div>
             </div>
           )}
 
-          {/* Step 6: Category & Description */}
           {step === 'details' && (
             <div className="space-y-4">
               {type === 'income' && (
                 <>
                   <div className="space-y-2">
-                    <Label>{language === 'el' ? 'Πηγή Εσόδου' : 'Income Source'}</Label>
+                    <Label>{t('finance:incomeSource')}</Label>
                     <Select value={incomeSourceType} onValueChange={(val) => {
                       if (val.startsWith('__rcustom__:')) {
                         const spec = val.replace('__rcustom__:', '');
@@ -502,32 +427,24 @@ export function AddRecurringTransactionDialog({
                         setIncomeSourceSpec(spec);
                       } else {
                         setIncomeSourceType(val);
-                        if (val !== 'collaboration' && val !== 'other') {
-                          setIncomeSourceSpec('');
-                        }
+                        if (val !== 'collaboration' && val !== 'other') setIncomeSourceSpec('');
                       }
                     }}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="walk_in">{language === 'el' ? 'Απευθείας Κράτηση' : 'Direct Booking'}</SelectItem>
-                        <SelectItem value="collaboration">{language === 'el' ? 'Συνεργασία' : 'Collaboration'}</SelectItem>
+                        <SelectItem value="walk_in">{t('finance:directBooking')}</SelectItem>
+                        <SelectItem value="collaboration">{t('finance:collaboration')}</SelectItem>
                         {recurringIncomeCategories.map((cat) => (
                           <SelectItem key={cat} value={`__rcustom__:${cat}`}>{cat}</SelectItem>
                         ))}
-                        <SelectItem value="other">{language === 'el' ? 'Άλλο' : 'Other'}</SelectItem>
+                        <SelectItem value="other">{t('finance:other')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   {(incomeSourceType === 'collaboration' || incomeSourceType === 'other') && (
                     <div className="space-y-2">
-                      <Label>{language === 'el' ? 'Προσδιορισμός' : 'Specification'}</Label>
-                      <Input
-                        value={incomeSourceSpec}
-                        onChange={(e) => setIncomeSourceSpec(e.target.value)}
-                        placeholder={language === 'el' ? 'π.χ. Hotel Blue Bay' : 'e.g. Hotel Blue Bay'}
-                      />
+                      <Label>{t('finance:specification')}</Label>
+                      <Input value={incomeSourceSpec} onChange={(e) => setIncomeSourceSpec(e.target.value)} placeholder={t('finance:specifySource')} />
                     </div>
                   )}
                 </>
@@ -536,7 +453,7 @@ export function AddRecurringTransactionDialog({
               {type === 'expense' && (
                 <>
                   <div className="space-y-2">
-                    <Label>{language === 'el' ? 'Κατηγορία' : 'Category'}</Label>
+                    <Label>{t('finance:category')}</Label>
                     <Select value={category} onValueChange={(val) => {
                       if (val.startsWith('__rcustom_exp__:')) {
                         const spec = val.replace('__rcustom_exp__:', '');
@@ -544,43 +461,39 @@ export function AddRecurringTransactionDialog({
                         setExpenseSubcategory(spec);
                       } else {
                         setCategory(val);
-                        if (val !== 'maintenance' && val !== 'other' && val !== 'marketing' && val !== 'tax') {
-                          setExpenseSubcategory('');
-                        }
+                        if (val !== 'maintenance' && val !== 'other' && val !== 'marketing' && val !== 'tax') setExpenseSubcategory('');
                       }
                     }} disabled={isLanguageLoading}>
-                      <SelectTrigger>
-                        <SelectValue placeholder={language === 'el' ? 'Επιλέξτε...' : 'Select...'} />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder={t('finance:selectCategory')} /></SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
                           {isBoats ? (
                             <>
-                              <SelectItem value="fuel">{language === 'el' ? 'Καύσιμα' : 'Fuel'}</SelectItem>
-                              <SelectItem value="maintenance">{language === 'el' ? 'Συντήρηση' : 'Maintenance'}</SelectItem>
-                              <SelectItem value="cleaning">{language === 'el' ? 'Καθαρισμός' : 'Cleaning'}</SelectItem>
-                              <SelectItem value="docking">{language === 'el' ? 'Ελλιμενισμός' : 'Docking'}</SelectItem>
-                              <SelectItem value="licensing">{language === 'el' ? 'Άδειες' : 'Licensing'}</SelectItem>
-                              <SelectItem value="salary">{language === 'el' ? 'Μισθοί' : 'Salaries'}</SelectItem>
+                              <SelectItem value="fuel">{t('finance:fuel')}</SelectItem>
+                              <SelectItem value="maintenance">{t('finance:maintenance')}</SelectItem>
+                              <SelectItem value="cleaning">{t('finance:cleaning')}</SelectItem>
+                              <SelectItem value="docking">{t('finance:docking')}</SelectItem>
+                              <SelectItem value="licensing">{t('finance:licensing')}</SelectItem>
+                              <SelectItem value="salary">{t('finance:salaries')}</SelectItem>
                               {recurringExpenseCategories.map((cat) => (
                                 <SelectItem key={cat} value={`__rcustom_exp__:${cat}`}>{cat}</SelectItem>
                               ))}
-                              <SelectItem value="other">{language === 'el' ? 'Άλλο' : 'Other'}</SelectItem>
+                              <SelectItem value="other">{t('finance:other')}</SelectItem>
                             </>
                           ) : (
                             <>
-                              <SelectItem value="fuel">{language === 'el' ? 'Καύσιμα' : 'Fuel'}</SelectItem>
-                              <SelectItem value="maintenance">{language === 'el' ? 'Συντήρηση' : 'Maintenance'}</SelectItem>
-                              <SelectItem value="vehicle_parts">{language === 'el' ? 'Ανταλλακτικά Οχήματος' : 'Vehicle Parts'}</SelectItem>
-                              <SelectItem value="carwash">{language === 'el' ? 'Πλύσιμο' : 'Car Wash'}</SelectItem>
-                              <SelectItem value="insurance">{language === 'el' ? 'Ασφάλεια' : 'Insurance'}</SelectItem>
-                              <SelectItem value="tax">{language === 'el' ? 'Φόροι/Τέλη' : 'Taxes/Fees'}</SelectItem>
-                              <SelectItem value="salary">{language === 'el' ? 'Μισθοί' : 'Salaries'}</SelectItem>
-                              <SelectItem value="marketing">{language === 'el' ? 'Μάρκετινγκ' : 'Marketing'}</SelectItem>
+                              <SelectItem value="fuel">{t('finance:fuel')}</SelectItem>
+                              <SelectItem value="maintenance">{t('finance:maintenance')}</SelectItem>
+                              <SelectItem value="vehicle_parts">{t('finance:vehiclePartsLabel')}</SelectItem>
+                              <SelectItem value="carwash">{t('finance:carWash')}</SelectItem>
+                              <SelectItem value="insurance">{t('finance:insurance')}</SelectItem>
+                              <SelectItem value="tax">{t('finance:taxesFees')}</SelectItem>
+                              <SelectItem value="salary">{t('finance:salaries')}</SelectItem>
+                              <SelectItem value="marketing">{t('finance:marketing')}</SelectItem>
                               {recurringExpenseCategories.map((cat) => (
                                 <SelectItem key={cat} value={`__rcustom_exp__:${cat}`}>{cat}</SelectItem>
                               ))}
-                              <SelectItem value="other">{language === 'el' ? 'Άλλο' : 'Other'}</SelectItem>
+                              <SelectItem value="other">{t('finance:other')}</SelectItem>
                             </>
                           )}
                         </SelectGroup>
@@ -590,16 +503,12 @@ export function AddRecurringTransactionDialog({
 
                   {category === 'maintenance' && (
                     <div className="space-y-2">
-                      <Label>{language === 'el' ? 'Τύπος Συντήρησης' : 'Maintenance Type'} *</Label>
+                      <Label>{t('finance:maintenanceType')} *</Label>
                       <Select value={expenseSubcategory} onValueChange={setExpenseSubcategory}>
-                        <SelectTrigger>
-                          <SelectValue placeholder={language === 'el' ? 'Επιλέξτε...' : 'Select...'} />
-                        </SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder={t('finance:selectCategory')} /></SelectTrigger>
                         <SelectContent>
                           {getMaintenanceTypeOptions(language).map(option => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
+                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -608,95 +517,60 @@ export function AddRecurringTransactionDialog({
 
                   {category === 'other' && (
                     <div className="space-y-2">
-                      <Label>{language === 'el' ? 'Προσδιορισμός' : 'Specification'} *</Label>
-                      <Input
-                        value={expenseSubcategory}
-                        onChange={(e) => setExpenseSubcategory(e.target.value)}
-                        placeholder={language === 'el' ? 'π.χ. Γραφική ύλη' : 'e.g. Office supplies'}
-                      />
+                      <Label>{t('finance:specificationRequired')} *</Label>
+                      <Input value={expenseSubcategory} onChange={(e) => setExpenseSubcategory(e.target.value)} placeholder={t('finance:specifySource')} />
                     </div>
                   )}
 
                   {category === 'marketing' && (
                     <div className="space-y-2">
-                      <Label>{language === 'el' ? 'Προσδιορισμός (προαιρετικό)' : 'Specification (optional)'}</Label>
-                      <Input
-                        value={expenseSubcategory}
-                        onChange={(e) => setExpenseSubcategory(e.target.value)}
-                        placeholder={language === 'el' ? 'π.χ. Social Media, Google Ads...' : 'e.g. Social Media, Google Ads...'}
-                      />
+                      <Label>{t('finance:specificationOptional')}</Label>
+                      <Input value={expenseSubcategory} onChange={(e) => setExpenseSubcategory(e.target.value)} placeholder={t('finance:specifySource')} />
                     </div>
                   )}
 
                   {category === 'tax' && (
                     <div className="space-y-2">
-                      <Label>{language === 'el' ? 'Τύπος Φόρου/Τέλους (προαιρετικό)' : 'Tax/Fee Type (optional)'}</Label>
-                      <Input
-                        value={expenseSubcategory}
-                        onChange={(e) => setExpenseSubcategory(e.target.value)}
-                        placeholder={language === 'el' ? 'π.χ. Φόρος Εισοδήματος, Τέλη Κυκλοφορίας...' : 'e.g. Income Tax, Road Tax...'}
-                      />
+                      <Label>{t('finance:taxFeeType')}</Label>
+                      <Input value={expenseSubcategory} onChange={(e) => setExpenseSubcategory(e.target.value)} placeholder={t('finance:specifySource')} />
                     </div>
                   )}
                 </>
               )}
 
               <div className="space-y-2">
-                <Label>{language === 'el' ? 'Περιγραφή (προαιρετικό)' : 'Description (optional)'}</Label>
-                <Textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={language === 'el' ? 'Σημειώσεις...' : 'Notes...'}
-                  rows={2}
-                />
+                <Label>{t('finance:descriptionOptional')}</Label>
+                <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t('finance:notes')} rows={2} />
               </div>
             </div>
           )}
 
-          {/* Step 7: Vehicle Link */}
           {step === 'vehicle' && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                {language === 'el' 
-                  ? 'Προαιρετικά, συνδέστε με όχημα για να επηρεάζει το κέρδος/ζημία του:'
-                  : 'Optionally, link to a vehicle to affect its profit/loss:'}
-              </p>
+              <p className="text-sm text-muted-foreground">{t('finance:linkVehicleDesc')}</p>
               <div className="space-y-2">
-                <Label>{language === 'el' ? 'Όχημα' : 'Vehicle'}</Label>
+                <Label>{t('finance:vehicle')}</Label>
                 <Select value={vehicleId || "__none__"} onValueChange={(v) => setVehicleId(v === "__none__" ? "" : v)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder={language === 'el' ? 'Κανένα (γενικό)' : 'None (general)'} />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('finance:noneGeneral')} /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="__none__">{language === 'el' ? 'Κανένα (γενικό)' : 'None (general)'}</SelectItem>
+                    <SelectItem value="__none__">{t('finance:noneGeneral')}</SelectItem>
                     {vehicles.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.make} {v.model} ({v.year})
-                      </SelectItem>
+                      <SelectItem key={v.id} value={v.id}>{v.make} {v.model} ({v.year})</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               {vehicleId && (
-                <p className="text-xs text-muted-foreground">
-                  {language === 'el' 
-                    ? 'Οι συναλλαγές θα επηρεάζουν τα οικονομικά αυτού του οχήματος.'
-                    : 'Transactions will affect this vehicle\'s finances.'}
-                </p>
+                <p className="text-xs text-muted-foreground">{t('finance:vehicleFinanceNote')}</p>
               )}
             </div>
           )}
         </div>
 
         <DialogFooter className="flex justify-between">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={goPrev}
-            disabled={currentStepIndex === 0 || isSubmitting}
-          >
+          <Button type="button" variant="outline" onClick={goPrev} disabled={currentStepIndex === 0 || isSubmitting}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            {language === 'el' ? 'Πίσω' : 'Back'}
+            {t('finance:back')}
           </Button>
 
           {step === 'vehicle' ? (
@@ -706,11 +580,11 @@ export function AddRecurringTransactionDialog({
               ) : (
                 <Check className="h-4 w-4 mr-2" />
               )}
-              {language === 'el' ? 'Δημιουργία' : 'Create'}
+              {t('finance:create')}
             </Button>
           ) : (
             <Button onClick={goNext} disabled={!canGoNext()}>
-              {language === 'el' ? 'Επόμενο' : 'Next'}
+              {t('finance:next')}
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           )}
