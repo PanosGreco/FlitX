@@ -349,7 +349,7 @@ const Fleet = () => {
                     className="flex items-center px-3 py-1 text-sm border border-input rounded-md bg-background hover:bg-accent cursor-pointer"
                   >
                     <Upload className="h-4 w-4 mr-2" />
-                    {t.uploadPhoto}
+                    {t('fleet:uploadPhoto')}
                     <input
                       id="vehicle-photo-upload"
                       type="file"
