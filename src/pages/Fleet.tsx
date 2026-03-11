@@ -580,7 +580,7 @@ const Fleet = () => {
                 </div>
                 
                 <div className="space-y-1">
-                  <Label htmlFor="dailyRate">{t.dailyRate}</Label>
+                  <Label htmlFor="dailyRate">{t('fleet:dailyRate')}</Label>
                   <Input 
                     id="dailyRate" 
                     type="number" 
