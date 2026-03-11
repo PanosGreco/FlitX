@@ -757,9 +757,9 @@ const Fleet = () => {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      {t.adding}
+                      {t('common:adding')}
                     </>
-                  ) : t.add}
+                  ) : t('common:add')}
                 </Button>
               </DialogFooter>
             </form>

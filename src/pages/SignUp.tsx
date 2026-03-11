@@ -131,7 +131,7 @@ const SignUpPage = () => {
                       </Button>
                     </div>
                   </FormControl>
-                  <PasswordStrengthMeter score={passwordScore} />
+                  <PasswordStrengthMeter password={form.watch('password')} />
                   <FormMessage />
                 </FormItem>
               )}

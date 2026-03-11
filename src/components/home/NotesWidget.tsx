@@ -20,7 +20,7 @@ export function NotesWidget() {
   const [isEditing, setIsEditing] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchNote = useCallback(async () => {
     if (!user) return;
