@@ -597,7 +597,7 @@ const Fleet = () => {
               
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label htmlFor="mileage">{t.mileage}</Label>
+                  <Label htmlFor="mileage">{t('fleet:mileage')}</Label>
                   <Input 
                     id="mileage" 
                     type="number" 
