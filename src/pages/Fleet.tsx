@@ -291,8 +291,8 @@ const Fleet = () => {
       resetForm();
       
       toast({
-        title: t.vehicleAdded,
-        description: t.vehicleAddedDesc,
+        title: t('fleet:vehicleAdded'),
+        description: t('fleet:vehicleAddedDesc'),
       });
     } catch (error) {
       console.error('Exception adding vehicle:', error);
@@ -322,9 +322,9 @@ const Fleet = () => {
         }}>
           <DialogContent className="max-h-[85vh] overflow-y-auto">
             <DialogHeader className="pb-2">
-              <DialogTitle>{t.addNewVehicle}</DialogTitle>
+              <DialogTitle>{t('fleet:addNewVehicle')}</DialogTitle>
               <DialogDescription>
-                {t.enterVehicleDetails}
+                {t('fleet:enterVehicleDetails')}
               </DialogDescription>
             </DialogHeader>
             
@@ -349,7 +349,7 @@ const Fleet = () => {
                     className="flex items-center px-3 py-1 text-sm border border-input rounded-md bg-background hover:bg-accent cursor-pointer"
                   >
                     <Upload className="h-4 w-4 mr-2" />
-                    {t.uploadPhoto}
+                    {t('fleet:uploadPhoto')}
                     <input
                       id="vehicle-photo-upload"
                       type="file"
@@ -457,7 +457,7 @@ const Fleet = () => {
               {/* Make & Model - Primary Identification Fields */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label htmlFor="make">{t.make}</Label>
+                  <Label htmlFor="make">{t('fleet:make')}</Label>
                   <Input 
                     id="make" 
                     placeholder="e.g. Toyota" 
@@ -468,7 +468,7 @@ const Fleet = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="model">{t.model}</Label>
+                  <Label htmlFor="model">{t('fleet:model')}</Label>
                   <Input 
                     id="model" 
                     placeholder="e.g. Corolla" 
@@ -482,7 +482,7 @@ const Fleet = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label htmlFor="year">{t.year}</Label>
+                  <Label htmlFor="year">{t('fleet:year')}</Label>
                   <Input 
                     id="year" 
                     type="number" 
@@ -568,7 +568,7 @@ const Fleet = () => {
               
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label htmlFor="licensePlate">{t.licensePlate}</Label>
+                  <Label htmlFor="licensePlate">{t('fleet:licensePlate')}</Label>
                   <Input 
                     id="licensePlate" 
                     placeholder="e.g. ABC-1234" 
@@ -580,7 +580,7 @@ const Fleet = () => {
                 </div>
                 
                 <div className="space-y-1">
-                  <Label htmlFor="dailyRate">{t.dailyRate}</Label>
+                  <Label htmlFor="dailyRate">{t('fleet:dailyRate')}</Label>
                   <Input 
                     id="dailyRate" 
                     type="number" 
@@ -597,7 +597,7 @@ const Fleet = () => {
               
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label htmlFor="mileage">{t.mileage}</Label>
+                  <Label htmlFor="mileage">{t('fleet:mileage')}</Label>
                   <Input 
                     id="mileage" 
                     type="number" 
@@ -748,7 +748,7 @@ const Fleet = () => {
                   }}
                   disabled={isLanguageLoading || isSubmitting}
                 >
-                  {t.cancel}
+                  {t('common:cancel')}
                 </Button>
                 <Button 
                   type="submit" 
@@ -757,9 +757,9 @@ const Fleet = () => {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      {t.adding}
+                      {t('common:adding')}
                     </>
-                  ) : t.add}
+                  ) : t('common:add')}
                 </Button>
               </DialogFooter>
             </form>
