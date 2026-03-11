@@ -457,7 +457,7 @@ const Fleet = () => {
               {/* Make & Model - Primary Identification Fields */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label htmlFor="make">{t.make}</Label>
+                  <Label htmlFor="make">{t('fleet:make')}</Label>
                   <Input 
                     id="make" 
                     placeholder="e.g. Toyota" 
