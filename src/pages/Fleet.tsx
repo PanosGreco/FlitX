@@ -482,7 +482,7 @@ const Fleet = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label htmlFor="year">{t.year}</Label>
+                  <Label htmlFor="year">{t('fleet:year')}</Label>
                   <Input 
                     id="year" 
                     type="number" 
