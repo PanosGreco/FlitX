@@ -568,7 +568,7 @@ const Fleet = () => {
               
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label htmlFor="licensePlate">{t.licensePlate}</Label>
+                  <Label htmlFor="licensePlate">{t('fleet:licensePlate')}</Label>
                   <Input 
                     id="licensePlate" 
                     placeholder="e.g. ABC-1234" 
