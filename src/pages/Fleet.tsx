@@ -468,7 +468,7 @@ const Fleet = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="model">{t.model}</Label>
+                  <Label htmlFor="model">{t('fleet:model')}</Label>
                   <Input 
                     id="model" 
                     placeholder="e.g. Corolla" 
