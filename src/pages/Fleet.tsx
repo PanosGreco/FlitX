@@ -291,8 +291,8 @@ const Fleet = () => {
       resetForm();
       
       toast({
-        title: t.vehicleAdded,
-        description: t.vehicleAddedDesc,
+        title: t('fleet:vehicleAdded'),
+        description: t('fleet:vehicleAddedDesc'),
       });
     } catch (error) {
       console.error('Exception adding vehicle:', error);
