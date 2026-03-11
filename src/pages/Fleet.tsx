@@ -322,9 +322,9 @@ const Fleet = () => {
         }}>
           <DialogContent className="max-h-[85vh] overflow-y-auto">
             <DialogHeader className="pb-2">
-              <DialogTitle>{t.addNewVehicle}</DialogTitle>
+              <DialogTitle>{t('fleet:addNewVehicle')}</DialogTitle>
               <DialogDescription>
-                {t.enterVehicleDetails}
+                {t('fleet:enterVehicleDetails')}
               </DialogDescription>
             </DialogHeader>
             
