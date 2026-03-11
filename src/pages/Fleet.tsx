@@ -748,7 +748,7 @@ const Fleet = () => {
                   }}
                   disabled={isLanguageLoading || isSubmitting}
                 >
-                  {t.cancel}
+                  {t('common:cancel')}
                 </Button>
                 <Button 
                   type="submit" 
