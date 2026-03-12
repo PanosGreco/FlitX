@@ -47,8 +47,10 @@ const Fleet = () => {
   const [vehicles, setVehicles] = useState<VehicleData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const { t, language, isLanguageLoading } = useLanguage();
+  const { language, isLanguageLoading } = useLanguage();
+  const { t } = useTranslation(['fleet', 'common']);
   const { user } = useAuth();
+  const langKey = language === 'el' ? 'el' : 'en';
   
   // Form state
   const [make, setMake] = useState("");
