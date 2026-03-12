@@ -25,6 +25,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Image, Loader2, Info } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,8 +48,10 @@ const Fleet = () => {
   const [vehicles, setVehicles] = useState<VehicleData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const { t, language, isLanguageLoading } = useLanguage();
+  const { language, isLanguageLoading } = useLanguage();
+  const { t } = useTranslation(['fleet', 'common']);
   const { user } = useAuth();
+  const langKey = language === 'el' ? 'el' : 'en';
   
   // Form state
   const [make, setMake] = useState("");
@@ -85,8 +88,8 @@ const Fleet = () => {
       if (error) {
         console.error('Error fetching vehicles:', error);
         toast({
-          title: language === 'el' ? 'Σφάλμα' : 'Error',
-          description: language === 'el' ? 'Αποτυχία φόρτωσης οχημάτων' : 'Failed to load vehicles',
+          title: t('common:error'),
+          description: t('fleet:failedLoadVehicles'),
           variant: 'destructive',
         });
         return;
@@ -154,7 +157,7 @@ const Fleet = () => {
 
       const sizeCheck = validateFileSize(file);
       if (!sizeCheck.valid) {
-        toast({ title: language === 'el' ? 'Αρχείο πολύ μεγάλο' : 'File too large', description: sizeCheck.message, variant: 'destructive' });
+        toast({ title: t('common:fileTooLarge'), description: sizeCheck.message, variant: 'destructive' });
         return;
       }
 
@@ -229,8 +232,8 @@ const Fleet = () => {
     
     if (!user) {
       toast({
-        title: language === 'el' ? 'Σφάλμα' : 'Error',
-        description: language === 'el' ? 'Πρέπει να συνδεθείτε' : 'You must be logged in',
+        title: t('common:error'),
+        description: t('fleet:mustBeLoggedIn'),
         variant: 'destructive',
       });
       return;
@@ -243,8 +246,8 @@ const Fleet = () => {
       
       if (!finalCategory) {
         toast({
-          title: language === 'el' ? 'Σφάλμα' : 'Error',
-          description: language === 'el' ? 'Παρακαλώ επιλέξτε κατηγορία' : 'Please select a category',
+          title: t('common:error'),
+          description: t('fleet:selectCategoryError'),
           variant: 'destructive',
         });
         setIsSubmitting(false);
@@ -277,8 +280,8 @@ const Fleet = () => {
       if (error) {
         console.error('Error adding vehicle:', error);
         toast({
-          title: language === 'el' ? 'Σφάλμα' : 'Error',
-          description: language === 'el' ? 'Αποτυχία προσθήκης οχήματος' : 'Failed to add vehicle',
+          title: t('common:error'),
+          description: t('fleet:failedAddVehicle'),
           variant: 'destructive',
         });
         return;
@@ -297,8 +300,8 @@ const Fleet = () => {
     } catch (error) {
       console.error('Exception adding vehicle:', error);
       toast({
-        title: language === 'el' ? 'Σφάλμα' : 'Error',
-        description: language === 'el' ? 'Κάτι πήγε στραβά' : 'Something went wrong',
+        title: t('common:error'),
+        description: t('fleet:somethingWentWrong'),
         variant: 'destructive',
       });
     } finally {
@@ -365,7 +368,7 @@ const Fleet = () => {
               {/* Vehicle Type - FIRST and PROMINENT */}
               <div className="space-y-1">
                 <Label htmlFor="vehicleType" className="font-semibold text-foreground">
-                  {language === 'el' ? 'Τύπος Οχήματος' : 'Vehicle Type'}
+                  {t('fleet:vehicleType')}
                 </Label>
                 <Select 
                   disabled={isLanguageLoading || isSubmitting}
@@ -373,7 +376,7 @@ const Fleet = () => {
                   onValueChange={(v) => handleVehicleTypeChange(v as VehicleType)}
                 >
                   <SelectTrigger className="font-medium">
-                    <SelectValue placeholder={language === 'el' ? 'Επιλέξτε τύπο...' : 'Select type...'} />
+                    <SelectValue placeholder={t('fleet:selectTypePrompt')} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
@@ -391,7 +394,7 @@ const Fleet = () => {
               {(
                 <div className="space-y-1">
                   <Label htmlFor="vehicleCategory">
-                    {language === 'el' ? 'Κατηγορία' : 'Category'}
+                    {t('fleet:category')}
                   </Label>
                   {!isCustomCategory ? (
                     VEHICLE_CATEGORIES[vehicleType]?.length > 0 ? (
@@ -401,7 +404,7 @@ const Fleet = () => {
                         onValueChange={handleCategoryChange}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder={language === 'el' ? 'Επιλέξτε κατηγορία...' : 'Select category...'} />
+                          <SelectValue placeholder={t('fleet:selectCategoryPrompt')} />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectGroup>
@@ -411,7 +414,7 @@ const Fleet = () => {
                               </SelectItem>
                             ))}
                             <SelectItem value="custom" className="text-muted-foreground italic">
-                              {language === 'el' ? 'Προσαρμοσμένη κατηγορία...' : 'Custom Category...'}
+                              {t('fleet:customCategory')}
                             </SelectItem>
                           </SelectGroup>
                         </SelectContent>
@@ -420,7 +423,7 @@ const Fleet = () => {
                       // No predefined categories - show custom input directly with option to use it
                       <div className="flex gap-2">
                         <Input 
-                          placeholder={language === 'el' ? 'π.χ. BKJH' : 'e.g. BKJH'}
+                          placeholder={t('fleet:customCategoryPlaceholder')}
                           value={customCategory}
                           onChange={(e) => setCustomCategory(e.target.value)}
                           disabled={isLanguageLoading || isSubmitting}
@@ -431,7 +434,7 @@ const Fleet = () => {
                   ) : (
                     <div className="flex gap-2">
                       <Input 
-                        placeholder={language === 'el' ? 'π.χ. BKJH' : 'e.g. BKJH'}
+                        placeholder={t('fleet:customCategoryPlaceholder')}
                         value={customCategory}
                         onChange={(e) => setCustomCategory(e.target.value)}
                         disabled={isLanguageLoading || isSubmitting}
@@ -447,7 +450,7 @@ const Fleet = () => {
                         }}
                         disabled={isSubmitting}
                       >
-                        {language === 'el' ? 'Ακύρωση' : 'Cancel'}
+                        {t('common:cancel')}
                       </Button>
                     </div>
                   )}
@@ -497,21 +500,21 @@ const Fleet = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <Label htmlFor="fuelType">{language === 'el' ? 'Τύπος Καυσίμου' : 'Fuel Type'}</Label>
+                  <Label htmlFor="fuelType">{t('fleet:fuelType')}</Label>
                   <Select 
                     disabled={isLanguageLoading || isSubmitting}
                     value={fuelType}
                     onValueChange={setFuelType}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={language === 'el' ? 'Επιλέξτε...' : 'Select...'} />
+                      <SelectValue placeholder={t('fleet:selectPrompt')} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        <SelectItem value="petrol">{language === 'el' ? 'Βενζίνη' : 'Petrol'}</SelectItem>
-                        <SelectItem value="diesel">{language === 'el' ? 'Diesel' : 'Diesel'}</SelectItem>
-                        <SelectItem value="electric">{language === 'el' ? 'Ηλεκτρικό' : 'Electric'}</SelectItem>
-                        <SelectItem value="hybrid">{language === 'el' ? 'Υβριδικό' : 'Hybrid'}</SelectItem>
+                        <SelectItem value="petrol">{t('fleet:petrol')}</SelectItem>
+                        <SelectItem value="diesel">{t('fleet:diesel')}</SelectItem>
+                        <SelectItem value="electric">{t('fleet:electric')}</SelectItem>
+                        <SelectItem value="hybrid">{t('fleet:hybrid')}</SelectItem>
                       </SelectGroup>
                     </SelectContent>
                   </Select>
@@ -520,14 +523,14 @@ const Fleet = () => {
 
               {/* Transmission Type */}
               <div className="space-y-1">
-                <Label htmlFor="transmissionType">{language === 'el' ? 'Κιβώτιο Ταχυτήτων' : 'Transmission Type'}</Label>
+                <Label htmlFor="transmissionType">{t('fleet:transmissionType')}</Label>
                 <Select 
                   disabled={isLanguageLoading || isSubmitting}
                   value={transmissionType}
                   onValueChange={(v) => setTransmissionType(v as TransmissionType)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={language === 'el' ? 'Επιλέξτε...' : 'Select...'} />
+                    <SelectValue placeholder={t('fleet:selectPrompt')} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
@@ -543,14 +546,14 @@ const Fleet = () => {
 
               {/* Passengers */}
               <div className="space-y-1">
-                <Label htmlFor="passengerCapacity">{language === 'el' ? 'Αριθμός Επιβατών' : 'Number of People'}</Label>
+                <Label htmlFor="passengerCapacity">{t('fleet:numberOfPeople')}</Label>
                 <Select 
                   disabled={isLanguageLoading || isSubmitting}
                   value={passengerCapacity}
                   onValueChange={setPassengerCapacity}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={language === 'el' ? 'Επιλέξτε...' : 'Select...'} />
+                    <SelectValue placeholder={t('fleet:selectPrompt')} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
@@ -612,7 +615,7 @@ const Fleet = () => {
 
                 <div className="space-y-1">
                   <div className="flex items-center gap-1">
-                    <Label htmlFor="purchasePrice">{language === 'el' ? 'Τιμή Αγοράς' : 'Purchase Price'}</Label>
+                    <Label htmlFor="purchasePrice">{t('fleet:purchasePrice')}</Label>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -632,7 +635,7 @@ const Fleet = () => {
                     id="purchasePrice" 
                     type="text"
                     inputMode="decimal"
-                    placeholder={language === 'el' ? 'Προαιρετικό' : 'Optional'}
+                    placeholder={t('fleet:optional')}
                     disabled={isLanguageLoading || isSubmitting}
                     value={purchasePrice}
                     onChange={(e) => {
@@ -649,7 +652,7 @@ const Fleet = () => {
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <div className="h-px flex-1 bg-border" />
                   <span className="text-xs font-medium uppercase tracking-wide">
-                    {language === 'el' ? 'Δεδομένα Απόσβεσης (Προαιρετικό)' : 'Depreciation Data (Optional)'}
+                    {t('fleet:depreciationData')}
                   </span>
                   <div className="h-px flex-1 bg-border" />
                 </div>
@@ -664,7 +667,7 @@ const Fleet = () => {
                 {/* Market Value at Purchase */}
                 <div className="space-y-1">
                   <div className="flex items-center gap-1">
-                    <Label htmlFor="marketValue">{language === 'el' ? 'Αξία Αγοράς' : 'Market Value'}</Label>
+                    <Label htmlFor="marketValue">{t('fleet:marketValueAtPurchase')}</Label>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -697,7 +700,7 @@ const Fleet = () => {
 
                 {/* Purchase Date */}
                 <div className="space-y-1">
-                  <Label htmlFor="purchaseDate">{language === 'el' ? 'Ημερομηνία Αγοράς' : 'Purchase Date'}</Label>
+                  <Label htmlFor="purchaseDate">{t('fleet:purchaseDate')}</Label>
                   <Input 
                     id="purchaseDate" 
                     type="date"
@@ -711,7 +714,7 @@ const Fleet = () => {
               {/* Initial Mileage */}
               <div className="space-y-1">
                 <div className="flex items-center gap-1">
-                  <Label htmlFor="initialMileage">{language === 'el' ? 'Χιλιόμετρα κατά την Αγορά' : 'Mileage at Purchase'}</Label>
+                  <Label htmlFor="initialMileage">{t('fleet:mileageAtPurchase')}</Label>
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
