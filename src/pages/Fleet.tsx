@@ -622,9 +622,7 @@ const Fleet = () => {
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           <p className="text-xs">
-                            {language === 'el' 
-                              ? 'Η τιμή αγοράς βοηθά στη δημιουργία πιο ακριβούς οικονομικής ανάλυσης, insights και μετρήσεων μακροπρόθεσμης απόδοσης του στόλου.'
-                              : 'The purchase price helps generate more accurate financial analysis, insights, and long-term fleet performance metrics.'}
+                            {t('fleet:purchasePriceTooltip')}
                           </p>
                         </TooltipContent>
                       </Tooltip>
