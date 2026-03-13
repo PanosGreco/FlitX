@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { 
-  VEHICLE_TYPES, VEHICLE_CATEGORIES, VEHICLE_TYPE_LABELS,
+  VEHICLE_TYPES, VEHICLE_CATEGORIES,
   VehicleType, normalizeCategory, isStandardCategory
 } from "@/constants/vehicleTypes";
 import { TRANSMISSION_TYPES, TRANSMISSION_TYPE_LABELS, TransmissionType } from "@/constants/transmissionTypes";
