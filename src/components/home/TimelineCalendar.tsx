@@ -5,7 +5,7 @@ import { formatTime24h } from "@/utils/dateFormatUtils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import { ContractPreview } from "@/components/home/ContractPreview";
 import type { CalendarTask } from "@/pages/Home";
 interface TimelineCalendarProps {
