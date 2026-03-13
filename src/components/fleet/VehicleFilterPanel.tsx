@@ -144,7 +144,7 @@ export function VehicleFilterPanel({ filters, onFiltersChange, isOpen, onOpenCha
             <div className="flex gap-2">
               {TRANSMISSION_TYPES.map(tt => (
                 <Button key={tt} variant={filters.transmissionTypes.includes(tt) ? 'default' : 'outline'} size="sm" onClick={() => handleTransmissionTypeToggle(tt)} className="flex-1 text-xs h-8">
-                  {TRANSMISSION_TYPE_LABELS[tt][langKey]}
+                  {t(`fleet:transmission_${tt}`)}
                 </Button>
               ))}
             </div>
