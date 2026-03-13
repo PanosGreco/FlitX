@@ -263,7 +263,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
               <SelectTrigger><SelectValue placeholder={t('fleet:selectTransmission')} /></SelectTrigger>
               <SelectContent>
                 {TRANSMISSION_TYPES.map((tt) => (
-                  <SelectItem key={tt} value={tt}>{TRANSMISSION_TYPE_LABELS[tt][langKey]}</SelectItem>
+                  <SelectItem key={tt} value={tt}>{t(`fleet:transmission_${tt}`)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
