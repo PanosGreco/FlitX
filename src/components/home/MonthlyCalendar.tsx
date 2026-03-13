@@ -3,7 +3,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameM
 import { ChevronLeft, ChevronRight, Loader2, Fuel, CreditCard } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import type { CalendarTask } from "@/pages/Home";
 interface MonthlyCalendarProps {
   tasks: CalendarTask[];
@@ -22,9 +22,7 @@ export function MonthlyCalendar({
   onDateSelect,
   loading
 }: MonthlyCalendarProps) {
-  const {
-    language
-  } = useLanguage();
+  const { t } = useTranslation(['home', 'common']);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const calendarDays = useMemo(() => {
@@ -89,13 +87,11 @@ export function MonthlyCalendar({
         const isSelected = isSameDay(day, selectedDate);
         const isCurrentMonth = isSameMonth(day, currentMonth);
         const dayContent = <button key={idx} onClick={() => onDateSelect(day)} className={cn("relative flex items-center justify-center w-full aspect-square text-sm transition-all", !isCurrentMonth && "text-slate-300", isCurrentMonth && "text-slate-700", isToday && !isSelected && "bg-teal-50 text-teal-600 rounded-full font-medium",
-        // Changed: Selected date now uses soft gray instead of solid green
         isSelected && !isToday && "bg-slate-200/60 rounded-full font-medium", isSelected && isToday && "bg-teal-100 text-teal-600 rounded-full font-medium", !isSelected && !isToday && "hover:bg-slate-50 rounded-full")}>
               <span>{format(day, 'd')}</span>
               {dayTasks.length > 0 && renderDayDots(dayTasks)}
             </button>;
 
-        // Add popover for days with tasks
         if (dayTasks.length > 0) {
           return <Popover key={idx}>
                 <PopoverTrigger asChild>
@@ -110,22 +106,19 @@ export function MonthlyCalendar({
                       {dayTasks.map(task => <div key={task.id} className="flex items-start gap-2 text-sm p-2 bg-slate-50 rounded-lg">
                           <div className={cn("w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0", TASK_COLORS[task.type])} />
                           <div className="flex-1 min-w-0 space-y-1">
-                            {/* Task type and vehicle */}
                             <div>
                               <p className="font-medium text-slate-700 text-sm">
-                                {task.type === 'delivery' ? 'Pick-Up' : task.type === 'return' ? 'Drop-Off' : task.title}
+                                {task.type === 'delivery' ? t('home:pickUp') : task.type === 'return' ? t('home:dropOff') : task.title}
                               </p>
                               {task.vehicleName && <p className="text-slate-600 text-sm">
                                   {task.vehicleName}
                                 </p>}
                             </div>
                             
-                            {/* Notes if available */}
                             {task.notes && <p className="text-[11px] text-slate-500 line-clamp-2">
                                 {task.notes}
                               </p>}
                             
-                            {/* Time and location grouped */}
                             <div className="flex flex-wrap gap-x-2 gap-y-0.5">
                               {task.time && <p className="text-slate-500 text-sm">
                                   🕐 {task.time}
@@ -135,18 +128,16 @@ export function MonthlyCalendar({
                                 </p>}
                             </div>
                             
-                            {/* Fuel & Payment - only for delivery/return with data */}
                             {(task.type === 'delivery' || task.type === 'return') && (task.fuelLevel || task.paymentStatus) && (
                               <div className="flex flex-wrap gap-x-2 gap-y-0.5 pt-0.5">
                                 {task.fuelLevel && <p className="text-[11px] text-slate-500 flex items-center gap-0.5"><Fuel className="h-2.5 w-2.5" /> {task.fuelLevel}</p>}
                                 {task.paymentStatus && (
                                   <p className="text-[11px] text-slate-500 flex items-center gap-0.5">
-                                    <CreditCard className="h-2.5 w-2.5" /> {task.paymentStatus === 'paid_in_full' ? 'Paid' : `Due${task.balanceDueAmount ? ` €${task.balanceDueAmount}` : ''}`}
+                                    <CreditCard className="h-2.5 w-2.5" /> {task.paymentStatus === 'paid_in_full' ? t('home:paid') : `${t('home:due')}${task.balanceDueAmount ? ` €${task.balanceDueAmount}` : ''}`}
                                   </p>
                                 )}
                               </div>
                             )}
-                            {/* Additional Information */}
                             {(task.type === 'delivery' || task.type === 'return') && task.additionalInfo && task.additionalInfo.length > 0 && (
                               <div className="pt-0.5">
                                 {task.additionalInfo.map((info, idx) => (
