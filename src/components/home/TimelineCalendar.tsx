@@ -305,10 +305,10 @@ export function TimelineCalendar({
               )}>
 
                 {selectedTask?.type === 'delivery' ?
-              'Pick-Up' :
+              t('home:pickUp') :
               selectedTask?.type === 'return' ?
-              'Drop-Off' :
-              'Other Task'}
+              t('home:dropOff') :
+              t('home:otherTask')}
               </span>
             </DialogTitle>
           </DialogHeader>
