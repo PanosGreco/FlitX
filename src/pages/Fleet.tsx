@@ -670,9 +670,7 @@ const Fleet = () => {
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           <p className="text-xs">
-                            {language === 'el' 
-                              ? 'Η ρεαλιστική αξία αγοράς του οχήματος όταν αποκτήθηκε. Χρησιμοποιείται ως βάση για υπολογισμούς απόσβεσης.'
-                              : 'The realistic market value of the vehicle when acquired. Used as baseline for depreciation calculations.'}
+                            {t('fleet:marketValueTooltip')}
                           </p>
                         </TooltipContent>
                       </Tooltip>
