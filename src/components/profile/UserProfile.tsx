@@ -153,14 +153,14 @@ export function UserProfile() {
     if (error) {
       const isRateLimited = error.message?.includes("security") || error.message?.includes("rate") || error.message?.includes("wait");
       toast({
-        title: isRateLimited ? (language === "el" ? "Παρακαλώ περιμένετε" : "Please Wait") : "Error",
+        title: isRateLimited ? t('profile:pleaseWait') : t('common:error'),
         description: isRateLimited 
-          ? (language === "el" ? "Για λόγους ασφαλείας, περιμένετε 60 δευτερόλεπτα πριν δοκιμάσετε ξανά." : "For security, please wait 60 seconds before trying again.")
-          : (error.message || "Failed to update profile. Please try again."),
+          ? t('profile:rateLimitDesc')
+          : (error.message || t('profile:profileUpdateFailed')),
         variant: "destructive",
       });
     } else {
-      toast({ title: t('profileUpdated'), description: isEmailChanging ? (language === "el" ? "Το email σας ενημερώθηκε επιτυχώς." : "Your email has been updated successfully.") : t('profileUpdateSuccess') });
+      toast({ title: t('profileUpdated'), description: isEmailChanging ? t('profile:emailUpdated') : t('profileUpdateSuccess') });
     }
   };
 
