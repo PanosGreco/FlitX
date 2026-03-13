@@ -244,7 +244,7 @@ export function TimelineCalendar({
                     }}>
                               {/* Task Type Header */}
                               <div className={cn("font-bold text-[13px] leading-tight", colors.text)}>
-                                {task.type === 'delivery' ? 'Pick-Up' : task.type === 'return' ? 'Drop-Off' : 'Other Task'}
+                                {task.type === 'delivery' ? t('home:pickUp') : task.type === 'return' ? t('home:dropOff') : t('home:otherTask')}
                               </div>
                               {/* Title for other tasks */}
                               {task.type === 'other' && task.title &&
