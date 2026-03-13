@@ -51,7 +51,6 @@
   "toIncomeFor": "στα έσοδα για",
   "documentUploaded": "Έγγραφο Μεταφορτώθηκε",
   "documentSaved": "Το έγγραφο αποθηκεύτηκε επιτυχώς",
-
   "documentsDescription": "Εδώ μπορείτε να ανεβάσετε και να αποθηκεύσετε όλα τα έγγραφα που σχετίζονται με αυτό το όχημα (ασφάλεια, εγγραφή, συμβόλαια κ.λπ.).",
   "searchDocuments": "Αναζήτηση εγγράφων...",
   "addDocument": "Προσθήκη Εγγράφου",
@@ -64,7 +63,6 @@
   "documentDeleted": "Το έγγραφο διαγράφηκε",
   "documentDownloadFailed": "Αποτυχία λήψης αρχείου",
   "selectFileAndName": "Παρακαλώ επιλέξτε αρχείο και όνομα",
-
   "vehicleType": "Τύπος Οχήματος",
   "category": "Κατηγορία",
   "fuelType": "Τύπος Καυσίμου",
@@ -80,7 +78,6 @@
   "more": "Περισσότερες...",
   "customCategoryPlaceholder": "π.χ. BKJH",
   "customCategory": "Προσαρμοσμένη κατηγορία...",
-
   "editVehicle": "Επεξεργασία Οχήματος",
   "editVehicleDesc": "Ενημέρωση στοιχείων και πληροφοριών οχήματος",
   "vehiclePhoto": "Φωτογραφία Οχήματος",
@@ -108,7 +105,6 @@
   "unexpectedError": "Προέκυψε απρόσμενο σφάλμα",
   "selectCategoryError": "Παρακαλώ επιλέξτε κατηγορία",
   "saveChanges": "Αποθήκευση",
-
   "maintenanceHistory": "Ιστορικό Συντήρησης",
   "addMaintenanceRecord": "Προσθήκη Εγγραφής Συντήρησης",
   "maintenanceRecordDesc": "Καταγράψτε ένα σέρβις ή μια επισκευή για αυτό το όχημα",
@@ -129,7 +125,6 @@
   "addRecord": "Προσθήκη Εγγραφής",
   "notesOptional": "Σημειώσεις (Προαιρετικό)",
   "notesPlaceholder": "Προσθέστε τυχόν πρόσθετες λεπτομέρειες σχετικά με αυτό το σέρβις",
-
   "purchaseValue": "Αξία Αγοράς",
   "depreciated": "αποσβεσμένο",
   "fullyDepreciated": "Πλήρως αποσβεσμένο",
@@ -154,7 +149,6 @@
   "netIncomeFromRentals": "Καθαρό Εισόδημα Ενοικιάσεων",
   "profitFromSale": "ΚΕΡΔΟΣ ΑΠΟ ΠΩΛΗΣΗ",
   "lossFromSale": "ΖΗΜΙΑ ΑΠΟ ΠΩΛΗΣΗ",
-
   "scheduleUnavailability": "Προγραμματισμός Μη Διαθεσιμότητας",
   "selectUnavailableDates": "Επιλέξτε τις ημερομηνίες που το {{name}} δεν είναι διαθέσιμο",
   "startDate": "Ημερομηνία Έναρξης",
@@ -167,7 +161,6 @@
   "maintenanceScheduleAdded": "Το πρόγραμμα συντήρησης προστέθηκε",
   "failedAddMaintenance": "Αποτυχία προσθήκης συντήρησης",
   "addMaintenance": "Προσθήκη Συντήρησης",
-
   "upcomingReminders": "Υπενθυμίσεις",
   "addReminder": "Προσθήκη Υπενθύμισης",
   "loadingReminders": "Φόρτωση υπενθυμίσεων...",
@@ -182,7 +175,6 @@
   "reminderDeleted": "Η υπενθύμιση διαγράφηκε",
   "reminderError": "Αποτυχία προσθήκης υπενθύμισης",
   "reminderDeleteError": "Αποτυχία διαγραφής υπενθύμισης",
-
   "damageReport": "Αναφορά Ζημιάς",
   "damageDescription": "Εδώ μπορείτε να κρατάτε αρχείο με τις ζημιές του οχήματος.",
   "addNewDamage": "Προσθήκη Ζημιάς",
@@ -200,7 +192,6 @@
     "interior": "Εσωτερικό",
     "tires": "Ελαστικά"
   },
-
   "reminders": "Υπενθυμίσεις",
   "damages": "Ζημιές",
   "reservations": "Κρατήσεις",
@@ -214,7 +205,6 @@
   "vehicleAvailable": "Το όχημα είναι διαθέσιμο",
   "bookingAdded": "Κράτηση Προστέθηκε",
   "newBookingCreatedFor": "Νέα κράτηση δημιουργήθηκε για",
-
   "noRentalBookings": "Δεν βρέθηκαν κρατήσεις",
   "createFirstBooking": "Δημιουργήστε την πρώτη σας κράτηση",
   "searchCustomerName": "Αναζήτηση πελάτη...",
@@ -224,7 +214,6 @@
   "bookingDeleted": "Κράτηση Διαγράφηκε",
   "bookingDeletedDesc": "Η κράτηση, τα συμβόλαια, οι εργασίες και τα οικονομικά στοιχεία αφαιρέθηκαν μόνιμα",
   "contractLoadFailed": "Αποτυχία φόρτωσης συμβολαίου",
-
   "newRentalBooking": "Νέα Κράτηση Ενοικίασης",
   "customerName": "Όνομα Πελάτη",
   "enterCustomerName": "Εισάγετε όνομα πελάτη",
@@ -235,16 +224,13 @@
   "bookingCreatedDesc": "Κράτηση. Εργασίες προστέθηκαν στο Ημερήσιο Πρόγραμμα.",
   "bookingCreateFailed": "Αποτυχία δημιουργίας κράτησης",
   "conflictMessage": "Αυτό το όχημα είναι ήδη κρατημένο από {{start}} έως {{end}} για {{customer}}.",
-
   "failedLoadVehicles": "Αποτυχία φόρτωσης οχημάτων",
   "mustBeLoggedIn": "Πρέπει να συνδεθείτε",
   "failedAddVehicle": "Αποτυχία προσθήκης οχήματος",
   "somethingWentWrong": "Κάτι πήγε στραβά",
-
   "errorUpdatingReminder": "Σφάλμα ενημέρωσης υπενθύμισης",
   "loadingFinanceData": "Φόρτωση οικονομικών δεδομένων...",
   "nextServiceDate": "Ημερομηνία Επόμενου Σέρβις (Προαιρετικό)",
-
   "chooseFiles": "Επιλογή Αρχείων",
   "filesSelected": "{{count}} αρχείο(α) επιλέχθηκαν",
   "fileRejected": "Απορρίφθηκαν: {{names}}. Μέγιστο 10 MB ανά αρχείο.",
@@ -252,5 +238,32 @@
   "damageAdded": "Η αναφορά ζημιάς προστέθηκε",
   "damageUploadFailed": "Αποτυχία ανεβάσματος αναφοράς ζημιάς",
   "damageDeleteFailed": "Αποτυχία διαγραφής εικόνας",
-  "imageRemoved": "Η εικόνα αφαιρέθηκε"
+  "imageRemoved": "Η εικόνα αφαιρέθηκε",
+  "vehicleType_car": "Αυτοκίνητο",
+  "vehicleType_van": "Βαν",
+  "vehicleType_truck": "Φορτηγό",
+  "vehicleType_motorbike": "Μοτοσυκλέτα",
+  "vehicleType_atv": "ATV",
+  "vehicleType_snowmobile": "Snowmobile",
+  "vehicleType_camper": "Τροχόσπιτο",
+  "vehicleType_bicycle": "Ποδήλατο",
+  "vehicleType_jet_ski": "Jet Ski",
+  "transmission_manual": "Χειροκίνητο",
+  "transmission_automatic": "Αυτόματο",
+  "category_sedan": "Σεντάν",
+  "category_suv": "SUV",
+  "category_economy": "Οικονομικό",
+  "category_luxury": "Πολυτελές",
+  "category_hatchback": "Χάτσμπακ",
+  "category_coupe": "Κουπέ",
+  "category_convertible": "Κάμπριο",
+  "category_50cc": "50cc",
+  "category_125cc": "125cc",
+  "category_scooter": "Σκούτερ",
+  "category_touring_sport": "Touring / Sport",
+  "category_touring": "Touring",
+  "category_mountain": "Ορεινό",
+  "category_utility": "Utility",
+  "category_recreational": "Ψυχαγωγικό",
+  "category_performance": "Αγωνιστικό"
 }

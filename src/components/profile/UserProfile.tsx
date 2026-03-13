@@ -153,14 +153,14 @@ export function UserProfile() {
     if (error) {
       const isRateLimited = error.message?.includes("security") || error.message?.includes("rate") || error.message?.includes("wait");
       toast({
-        title: isRateLimited ? (language === "el" ? "Παρακαλώ περιμένετε" : "Please Wait") : "Error",
+        title: isRateLimited ? t('profile:pleaseWait') : t('common:error'),
         description: isRateLimited 
-          ? (language === "el" ? "Για λόγους ασφαλείας, περιμένετε 60 δευτερόλεπτα πριν δοκιμάσετε ξανά." : "For security, please wait 60 seconds before trying again.")
-          : (error.message || "Failed to update profile. Please try again."),
+          ? t('profile:rateLimitDesc')
+          : (error.message || t('profile:profileUpdateFailed')),
         variant: "destructive",
       });
     } else {
-      toast({ title: t('profileUpdated'), description: isEmailChanging ? (language === "el" ? "Το email σας ενημερώθηκε επιτυχώς." : "Your email has been updated successfully.") : t('profileUpdateSuccess') });
+      toast({ title: t('profileUpdated'), description: isEmailChanging ? t('profile:emailUpdated') : t('profileUpdateSuccess') });
     }
   };
 
@@ -273,17 +273,17 @@ export function UserProfile() {
                     </div>
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="country" className="flex items-center gap-2"><MapPin className="h-4 w-4" />{language === "el" ? "Χώρα" : "Country"}</Label>
+                        <Label htmlFor="country" className="flex items-center gap-2"><MapPin className="h-4 w-4" />{t('profile:personalInfo.country')}</Label>
                         <Select value={country} onValueChange={setCountry}>
-                          <SelectTrigger id="country"><SelectValue placeholder={language === "el" ? "Επιλέξτε χώρα" : "Select country"} /></SelectTrigger>
+                          <SelectTrigger id="country"><SelectValue placeholder={t('profile:personalInfo.selectCountry')} /></SelectTrigger>
                           <SelectContent>
                             {COUNTRIES.map((c) => (<SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="city">{language === "el" ? "Πόλη" : "City"}</Label>
-                        <AutoSizeInput id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder={language === "el" ? "Εισάγετε πόλη" : "Enter your city"} />
+                        <Label htmlFor="city">{t('profile:personalInfo.city')}</Label>
+                        <AutoSizeInput id="city" value={city} onChange={(e) => setCity(e.target.value)} placeholder={t('profile:personalInfo.enterCity')} />
                       </div>
                     </div>
                   </div>

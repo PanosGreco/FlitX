@@ -33,12 +33,11 @@ import { VehicleData } from "@/components/fleet/VehicleCard";
 import { 
   VEHICLE_TYPES, 
   VEHICLE_CATEGORIES, 
-  VEHICLE_TYPE_LABELS,
   VehicleType,
   normalizeCategory,
   formatCustomCategory
 } from "@/constants/vehicleTypes";
-import { TRANSMISSION_TYPES, TRANSMISSION_TYPE_LABELS, TransmissionType } from "@/constants/transmissionTypes";
+import { TRANSMISSION_TYPES, TransmissionType } from "@/constants/transmissionTypes";
 import { validateFileSize, compressImage } from "@/utils/imageUtils";
 
 const Fleet = () => {
@@ -51,7 +50,7 @@ const Fleet = () => {
   const { language, isLanguageLoading } = useLanguage();
   const { t } = useTranslation(['fleet', 'common']);
   const { user } = useAuth();
-  const langKey = language === 'el' ? 'el' : 'en';
+  
   
   // Form state
   const [make, setMake] = useState("");
@@ -382,7 +381,7 @@ const Fleet = () => {
                     <SelectGroup>
                       {VEHICLE_TYPES.map((vt) => (
                         <SelectItem key={vt} value={vt} className="font-semibold">
-                          {VEHICLE_TYPE_LABELS[vt][language === 'el' ? 'el' : 'en']}
+                          {t(`fleet:vehicleType_${vt}`)}
                         </SelectItem>
                       ))}
                     </SelectGroup>
@@ -410,7 +409,7 @@ const Fleet = () => {
                           <SelectGroup>
                             {VEHICLE_CATEGORIES[vehicleType].map((cat) => (
                               <SelectItem key={cat.value} value={cat.value}>
-                                {cat.label[language === 'el' ? 'el' : 'en']}
+                                {t(`fleet:category_${cat.value}`, cat.label.en)}
                               </SelectItem>
                             ))}
                             <SelectItem value="custom" className="text-muted-foreground italic">
@@ -536,7 +535,7 @@ const Fleet = () => {
                     <SelectGroup>
                       {TRANSMISSION_TYPES.map((tt) => (
                         <SelectItem key={tt} value={tt}>
-                          {TRANSMISSION_TYPE_LABELS[tt][language === 'el' ? 'el' : 'en']}
+                          {t(`fleet:transmission_${tt}`)}
                         </SelectItem>
                       ))}
                     </SelectGroup>
@@ -623,9 +622,7 @@ const Fleet = () => {
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           <p className="text-xs">
-                            {language === 'el' 
-                              ? 'Η τιμή αγοράς βοηθά στη δημιουργία πιο ακριβούς οικονομικής ανάλυσης, insights και μετρήσεων μακροπρόθεσμης απόδοσης του στόλου.'
-                              : 'The purchase price helps generate more accurate financial analysis, insights, and long-term fleet performance metrics.'}
+                            {t('fleet:purchasePriceTooltip')}
                           </p>
                         </TooltipContent>
                       </Tooltip>
@@ -657,9 +654,7 @@ const Fleet = () => {
                   <div className="h-px flex-1 bg-border" />
                 </div>
                 <p className="text-xs text-muted-foreground text-center mt-1">
-                  {language === 'el' 
-                    ? 'Χρησιμοποιείται για εκτίμηση μείωσης αξίας βάσει χρόνου και χιλιομέτρων.'
-                    : 'Used to estimate vehicle value loss over time and mileage.'}
+                  {t('fleet:depreciationDataDesc')}
                 </p>
               </div>
 
@@ -675,9 +670,7 @@ const Fleet = () => {
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
                           <p className="text-xs">
-                            {language === 'el' 
-                              ? 'Η ρεαλιστική αξία αγοράς του οχήματος όταν αποκτήθηκε. Χρησιμοποιείται ως βάση για υπολογισμούς απόσβεσης.'
-                              : 'The realistic market value of the vehicle when acquired. Used as baseline for depreciation calculations.'}
+                            {t('fleet:marketValueTooltip')}
                           </p>
                         </TooltipContent>
                       </Tooltip>
@@ -687,7 +680,7 @@ const Fleet = () => {
                     id="marketValue" 
                     type="text"
                     inputMode="decimal"
-                    placeholder={language === 'el' ? 'π.χ. 20000' : 'e.g. 20000'}
+                    placeholder="e.g. 20000"
                     disabled={isLanguageLoading || isSubmitting}
                     value={marketValueAtPurchase}
                     onChange={(e) => {
@@ -722,9 +715,7 @@ const Fleet = () => {
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         <p className="text-xs">
-                          {language === 'el' 
-                            ? 'Τα χιλιόμετρα όταν αγοράστηκε το όχημα. Χρησιμοποιείται για τον υπολογισμό απόσβεσης βάσει χιλιομέτρων.'
-                            : 'The mileage when the vehicle was purchased. Used for calculating mileage-based depreciation.'}
+                          {t('fleet:mileageAtPurchaseTooltip')}
                         </p>
                       </TooltipContent>
                     </Tooltip>

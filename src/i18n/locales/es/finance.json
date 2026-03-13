@@ -73,5 +73,10 @@
   "saleDate": "Fecha de Venta",
   "recordSale": "Registrar Venta",
   "bookingSource": "Fuente de Reserva",
-  "selectSource": "Seleccionar fuente"
+  "selectSource": "Seleccionar fuente",
+  "timeframeWeek": "Esta Semana",
+  "timeframeMonth": "Este Mes",
+  "timeframeYear": "Este Año",
+  "timeframeAll": "Todo",
+  "timeframeCustom": "Personalizado"
 }

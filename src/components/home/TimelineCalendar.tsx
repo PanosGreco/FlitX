@@ -5,7 +5,7 @@ import { formatTime24h } from "@/utils/dateFormatUtils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import { ContractPreview } from "@/components/home/ContractPreview";
 import type { CalendarTask } from "@/pages/Home";
 interface TimelineCalendarProps {
@@ -51,9 +51,7 @@ export function TimelineCalendar({
   loading,
   onCreateClick
 }: TimelineCalendarProps) {
-  const {
-    language
-  } = useLanguage();
+  const { t } = useTranslation(['home', 'common']);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), {
     weekStartsOn: 1
   }));
@@ -185,14 +183,14 @@ export function TimelineCalendar({
 
           {/* Week Badge */}
           <span className="px-3 py-1 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-full shadow-sm">
-            Week {weekNumber}
+            {t('home:week')} {weekNumber}
           </span>
         </div>
 
         {/* Create Button */}
         <Button onClick={onCreateClick} className="text-white rounded-full px-5 py-2 h-auto shadow-sm bg-primary">
           <Plus className="h-4 w-4 mr-1.5" />
-          Create
+          {t('home:create')}
         </Button>
       </div>
 
@@ -246,7 +244,7 @@ export function TimelineCalendar({
                     }}>
                               {/* Task Type Header */}
                               <div className={cn("font-bold text-[13px] leading-tight", colors.text)}>
-                                {task.type === 'delivery' ? 'Pick-Up' : task.type === 'return' ? 'Drop-Off' : 'Other Task'}
+                                {task.type === 'delivery' ? t('home:pickUp') : task.type === 'return' ? t('home:dropOff') : t('home:otherTask')}
                               </div>
                               {/* Title for other tasks */}
                               {task.type === 'other' && task.title &&
@@ -307,10 +305,10 @@ export function TimelineCalendar({
               )}>
 
                 {selectedTask?.type === 'delivery' ?
-              'Pick-Up' :
+              t('home:pickUp') :
               selectedTask?.type === 'return' ?
-              'Drop-Off' :
-              'Other Task'}
+              t('home:dropOff') :
+              t('home:otherTask')}
               </span>
             </DialogTitle>
           </DialogHeader>
@@ -324,7 +322,7 @@ export function TimelineCalendar({
             <div className="flex items-start gap-3">
                     <Tag className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
-                      <div className="text-xs text-slate-500 mb-0.5">Title</div>
+                      <div className="text-xs text-slate-500 mb-0.5">{t('home:taskTitle')}</div>
                       <div className="text-sm font-medium text-slate-800">{selectedTask.title}</div>
                     </div>
                   </div>
@@ -335,7 +333,7 @@ export function TimelineCalendar({
             <div className="flex items-start gap-3">
                     <Car className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
-                      <div className="text-xs text-slate-500 mb-0.5">Vehicle</div>
+                      <div className="text-xs text-slate-500 mb-0.5">{t('home:vehicle')}</div>
                       <div className="text-sm font-medium text-slate-800">{selectedTask.vehicleName}</div>
                     </div>
                   </div>
@@ -346,7 +344,7 @@ export function TimelineCalendar({
             <div className="flex items-start gap-3">
                     <User className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
-                      <div className="text-xs text-slate-500 mb-0.5">Customer</div>
+                      <div className="text-xs text-slate-500 mb-0.5">{t('home:customer')}</div>
                       <div className="text-sm font-medium text-slate-800">{selectedTask.customerName}</div>
                     </div>
                   </div>
@@ -357,7 +355,7 @@ export function TimelineCalendar({
             <div className="flex items-start gap-3">
                     <Clock className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
-                      <div className="text-xs text-slate-500 mb-0.5">Time</div>
+                      <div className="text-xs text-slate-500 mb-0.5">{t('home:time')}</div>
                       <div className="text-sm font-medium text-slate-800">{formatTime24h(selectedTask.time) || selectedTask.time}</div>
                     </div>
                   </div>
@@ -368,7 +366,7 @@ export function TimelineCalendar({
             <div className="flex items-start gap-3">
                     <MapPin className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
-                      <div className="text-xs text-slate-500 mb-0.5">Location</div>
+                      <div className="text-xs text-slate-500 mb-0.5">{t('home:location')}</div>
                       <div className="text-sm font-medium text-slate-800">{selectedTask.location}</div>
                     </div>
                   </div>
@@ -379,7 +377,7 @@ export function TimelineCalendar({
             <div className="flex items-start gap-3">
                     <FileText className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
-                      <div className="text-xs text-slate-500 mb-0.5">Notes</div>
+                      <div className="text-xs text-slate-500 mb-0.5">{t('home:notes')}</div>
                       <div className="text-sm text-slate-700">{selectedTask.notes}</div>
                     </div>
                   </div>
@@ -390,7 +388,7 @@ export function TimelineCalendar({
             <div className="flex items-start gap-3">
                     <Fuel className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
-                      <div className="text-xs text-slate-500 mb-0.5">Fuel Level</div>
+                      <div className="text-xs text-slate-500 mb-0.5">{t('home:fuelLevel')}</div>
                       <div className="text-sm font-medium text-slate-800">{selectedTask.fuelLevel}</div>
                     </div>
                   </div>
@@ -401,10 +399,10 @@ export function TimelineCalendar({
             <div className="flex items-start gap-3">
                     <CreditCard className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
-                      <div className="text-xs text-slate-500 mb-0.5">Payment</div>
+                      <div className="text-xs text-slate-500 mb-0.5">{t('home:payment')}</div>
                       <div className="text-sm font-medium text-slate-800">
-                        {selectedTask.paymentStatus === 'paid_in_full' ? 'Paid in Full' :
-                  `Balance Due${selectedTask.balanceDueAmount ? ` (€${selectedTask.balanceDueAmount})` : ''}`}
+                        {selectedTask.paymentStatus === 'paid_in_full' ? t('home:paidInFull') :
+                  `${t('home:balanceDue')}${selectedTask.balanceDueAmount ? ` (€${selectedTask.balanceDueAmount})` : ''}`}
                       </div>
                     </div>
                   </div>

@@ -510,11 +510,11 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
               <SelectValue placeholder={t('selectTimeframe')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="week">{TIMEFRAME_LABELS.week[language === 'el' ? 'el' : 'en']}</SelectItem>
-              <SelectItem value="month">{TIMEFRAME_LABELS.month[language === 'el' ? 'el' : 'en']}</SelectItem>
-              <SelectItem value="year">{TIMEFRAME_LABELS.year[language === 'el' ? 'el' : 'en']}</SelectItem>
-              <SelectItem value="all">{TIMEFRAME_LABELS.all[language === 'el' ? 'el' : 'en']}</SelectItem>
-              <SelectItem value="custom">{TIMEFRAME_LABELS.custom[language === 'el' ? 'el' : 'en']}</SelectItem>
+              <SelectItem value="week">{t('finance:timeframeWeek')}</SelectItem>
+              <SelectItem value="month">{t('finance:timeframeMonth')}</SelectItem>
+              <SelectItem value="year">{t('finance:timeframeYear')}</SelectItem>
+              <SelectItem value="all">{t('finance:timeframeAll')}</SelectItem>
+              <SelectItem value="custom">{t('finance:timeframeCustom')}</SelectItem>
             </SelectContent>
           </Select>
 

@@ -15,10 +15,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { 
-  VEHICLE_TYPES, VEHICLE_CATEGORIES, VEHICLE_TYPE_LABELS,
+  VEHICLE_TYPES, VEHICLE_CATEGORIES,
   VehicleType, normalizeCategory, isStandardCategory
 } from "@/constants/vehicleTypes";
-import { TRANSMISSION_TYPES, TRANSMISSION_TYPE_LABELS, TransmissionType } from "@/constants/transmissionTypes";
+import { TRANSMISSION_TYPES, TransmissionType } from "@/constants/transmissionTypes";
 import { validateFileSize, compressImage } from "@/utils/imageUtils";
 
 interface EditVehicleDialogProps {
@@ -168,7 +168,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     }
   };
 
-  const langKey = language === 'el' ? 'el' : 'en';
+  
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -205,7 +205,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
                 <SelectGroup>
                   {VEHICLE_TYPES.map((vt) => (
                     <SelectItem key={vt} value={vt} className="font-semibold">
-                      {VEHICLE_TYPE_LABELS[vt][langKey]}
+                      {t(`fleet:vehicleType_${vt}`)}
                     </SelectItem>
                   ))}
                 </SelectGroup>
@@ -223,7 +223,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
                   <SelectContent>
                     <SelectGroup>
                       {VEHICLE_CATEGORIES[vehicleType].map((cat) => (
-                        <SelectItem key={cat.value} value={cat.value}>{cat.label[langKey]}</SelectItem>
+                        <SelectItem key={cat.value} value={cat.value}>{t(`fleet:category_${cat.value}`, cat.label.en)}</SelectItem>
                       ))}
                       <SelectItem value="custom" className="text-muted-foreground italic">{t('fleet:customCategory')}</SelectItem>
                     </SelectGroup>
@@ -263,7 +263,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
               <SelectTrigger><SelectValue placeholder={t('fleet:selectTransmission')} /></SelectTrigger>
               <SelectContent>
                 {TRANSMISSION_TYPES.map((tt) => (
-                  <SelectItem key={tt} value={tt}>{TRANSMISSION_TYPE_LABELS[tt][langKey]}</SelectItem>
+                  <SelectItem key={tt} value={tt}>{t(`fleet:transmission_${tt}`)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

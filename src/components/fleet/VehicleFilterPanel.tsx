@@ -8,10 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { 
-  VEHICLE_TYPES, VEHICLE_CATEGORIES, VEHICLE_TYPE_LABELS,
-  getVehicleTypeLabel, getVehicleCategoryLabel, VehicleType 
+  VEHICLE_TYPES, VEHICLE_CATEGORIES,
+  getVehicleCategoryLabel, VehicleType 
 } from "@/constants/vehicleTypes";
-import { TRANSMISSION_TYPES, TRANSMISSION_TYPE_LABELS } from "@/constants/transmissionTypes";
+import { TRANSMISSION_TYPES } from "@/constants/transmissionTypes";
 
 const getVehicleIcon = (type: VehicleType) => {
   switch (type) {
@@ -52,7 +52,7 @@ const PASSENGER_COUNTS = [1, 2, 3, 4, 5, 6, 7];
 export function VehicleFilterPanel({ filters, onFiltersChange, isOpen, onOpenChange, trigger, availableCategories = [] }: VehicleFilterPanelProps) {
   const { language } = useLanguage();
   const { t } = useTranslation(['fleet', 'common']);
-  const langKey = language === 'el' ? 'el' : 'en';
+  
 
   const customCategories = useMemo(() => {
     const standardCats = new Set(VEHICLE_TYPES.flatMap(type => VEHICLE_CATEGORIES[type].map(c => c.value)));
@@ -63,12 +63,12 @@ export function VehicleFilterPanel({ filters, onFiltersChange, isOpen, onOpenCha
     const cats: { value: string; label: string; isCustom: boolean }[] = [];
     customCategories.forEach(cat => { cats.push({ value: cat, label: getVehicleCategoryLabel(cat, language), isCustom: true }); });
     if (filters.vehicleTypes.length === 0) {
-      VEHICLE_TYPES.forEach(type => { VEHICLE_CATEGORIES[type].forEach(cat => { cats.push({ value: cat.value, label: cat.label[langKey], isCustom: false }); }); });
+      VEHICLE_TYPES.forEach(type => { VEHICLE_CATEGORIES[type].forEach(cat => { cats.push({ value: cat.value, label: t(`fleet:category_${cat.value}`, cat.label.en), isCustom: false }); }); });
     } else {
-      filters.vehicleTypes.forEach(type => { const typeCats = VEHICLE_CATEGORIES[type as VehicleType] || []; typeCats.forEach(cat => { cats.push({ value: cat.value, label: cat.label[langKey], isCustom: false }); }); });
+      filters.vehicleTypes.forEach(type => { const typeCats = VEHICLE_CATEGORIES[type as VehicleType] || []; typeCats.forEach(cat => { cats.push({ value: cat.value, label: t(`fleet:category_${cat.value}`, cat.label.en), isCustom: false }); }); });
     }
     return cats;
-  }, [filters.vehicleTypes, customCategories, language, langKey]);
+  }, [filters.vehicleTypes, customCategories, language, t]);
 
   const handleYearSortChange = (sort: 'asc' | 'desc' | null) => { onFiltersChange({ ...filters, yearSort: filters.yearSort === sort ? null : sort }); };
   const handleFuelTypeToggle = (fuelType: string) => { const newFuelTypes = filters.fuelTypes.includes(fuelType) ? filters.fuelTypes.filter(f => f !== fuelType) : [...filters.fuelTypes, fuelType]; onFiltersChange({ ...filters, fuelTypes: newFuelTypes }); };
@@ -96,7 +96,7 @@ export function VehicleFilterPanel({ filters, onFiltersChange, isOpen, onOpenCha
                 const IconComponent = getVehicleIcon(type);
                 return <Button key={type} variant={filters.vehicleTypes.includes(type) ? 'default' : 'outline'} size="sm" onClick={() => handleVehicleTypeToggle(type)} className="text-xs h-8 px-2">
                   <IconComponent className="h-3 w-3 mr-1" />
-                  {getVehicleTypeLabel(type, language)}
+                  {t(`fleet:vehicleType_${type}`)}
                 </Button>;
               })}
             </div>
@@ -144,7 +144,7 @@ export function VehicleFilterPanel({ filters, onFiltersChange, isOpen, onOpenCha
             <div className="flex gap-2">
               {TRANSMISSION_TYPES.map(tt => (
                 <Button key={tt} variant={filters.transmissionTypes.includes(tt) ? 'default' : 'outline'} size="sm" onClick={() => handleTransmissionTypeToggle(tt)} className="flex-1 text-xs h-8">
-                  {TRANSMISSION_TYPE_LABELS[tt][langKey]}
+                  {t(`fleet:transmission_${tt}`)}
                 </Button>
               ))}
             </div>
