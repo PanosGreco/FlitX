@@ -715,9 +715,7 @@ const Fleet = () => {
                       </TooltipTrigger>
                       <TooltipContent className="max-w-xs">
                         <p className="text-xs">
-                          {language === 'el' 
-                            ? 'Τα χιλιόμετρα όταν αγοράστηκε το όχημα. Χρησιμοποιείται για τον υπολογισμό απόσβεσης βάσει χιλιομέτρων.'
-                            : 'The mileage when the vehicle was purchased. Used for calculating mileage-based depreciation.'}
+                          {t('fleet:mileageAtPurchaseTooltip')}
                         </p>
                       </TooltipContent>
                     </Tooltip>
