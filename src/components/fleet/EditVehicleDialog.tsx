@@ -223,7 +223,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
                   <SelectContent>
                     <SelectGroup>
                       {VEHICLE_CATEGORIES[vehicleType].map((cat) => (
-                        <SelectItem key={cat.value} value={cat.value}>{cat.label[langKey]}</SelectItem>
+                        <SelectItem key={cat.value} value={cat.value}>{t(`fleet:category_${cat.value}`, cat.label.en)}</SelectItem>
                       ))}
                       <SelectItem value="custom" className="text-muted-foreground italic">{t('fleet:customCategory')}</SelectItem>
                     </SelectGroup>
