@@ -205,7 +205,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
                 <SelectGroup>
                   {VEHICLE_TYPES.map((vt) => (
                     <SelectItem key={vt} value={vt} className="font-semibold">
-                      {VEHICLE_TYPE_LABELS[vt][langKey]}
+                      {t(`fleet:vehicleType_${vt}`)}
                     </SelectItem>
                   ))}
                 </SelectGroup>
