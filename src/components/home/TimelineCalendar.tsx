@@ -344,7 +344,7 @@ export function TimelineCalendar({
             <div className="flex items-start gap-3">
                     <User className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
-                      <div className="text-xs text-slate-500 mb-0.5">Customer</div>
+                      <div className="text-xs text-slate-500 mb-0.5">{t('home:customer')}</div>
                       <div className="text-sm font-medium text-slate-800">{selectedTask.customerName}</div>
                     </div>
                   </div>
