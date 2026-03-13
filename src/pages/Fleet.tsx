@@ -381,7 +381,7 @@ const Fleet = () => {
                     <SelectGroup>
                       {VEHICLE_TYPES.map((vt) => (
                         <SelectItem key={vt} value={vt} className="font-semibold">
-                          {VEHICLE_TYPE_LABELS[vt][language === 'el' ? 'el' : 'en']}
+                          {t(`fleet:vehicleType_${vt}`)}
                         </SelectItem>
                       ))}
                     </SelectGroup>
