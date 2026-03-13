@@ -65,7 +65,7 @@ export function VehicleFilterPanel({ filters, onFiltersChange, isOpen, onOpenCha
     if (filters.vehicleTypes.length === 0) {
       VEHICLE_TYPES.forEach(type => { VEHICLE_CATEGORIES[type].forEach(cat => { cats.push({ value: cat.value, label: t(`fleet:category_${cat.value}`, cat.label.en), isCustom: false }); }); });
     } else {
-      filters.vehicleTypes.forEach(type => { const typeCats = VEHICLE_CATEGORIES[type as VehicleType] || []; typeCats.forEach(cat => { cats.push({ value: cat.value, label: cat.label[langKey], isCustom: false }); }); });
+      filters.vehicleTypes.forEach(type => { const typeCats = VEHICLE_CATEGORIES[type as VehicleType] || []; typeCats.forEach(cat => { cats.push({ value: cat.value, label: t(`fleet:category_${cat.value}`, cat.label.en), isCustom: false }); }); });
     }
     return cats;
   }, [filters.vehicleTypes, customCategories, language, langKey]);
