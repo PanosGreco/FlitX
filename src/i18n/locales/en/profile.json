@@ -17,7 +17,11 @@
     "phone": "Phone",
     "company": "Company Name",
     "saveChanges": "Save Changes",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "country": "Country",
+    "selectCountry": "Select country",
+    "city": "City",
+    "enterCity": "Enter your city"
   },
   "security": {
     "title": "Password & Authentication",
@@ -61,5 +65,9 @@
   "profileUpdated": "Profile Updated",
   "profileUpdateSuccess": "Your profile information has been saved",
   "photoUpdated": "Profile Photo Updated",
-  "photoUpdateSuccess": "Your profile photo has been updated successfully"
+  "photoUpdateSuccess": "Your profile photo has been updated successfully",
+  "pleaseWait": "Please Wait",
+  "rateLimitDesc": "For security, please wait 60 seconds before trying again.",
+  "emailUpdated": "Your email has been updated successfully.",
+  "profileUpdateFailed": "Failed to update profile. Please try again."
 }

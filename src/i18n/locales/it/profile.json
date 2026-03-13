@@ -17,7 +17,11 @@
     "phone": "Telefono",
     "company": "Nome Azienda",
     "saveChanges": "Salva Modifiche",
-    "saving": "Salvataggio..."
+    "saving": "Salvataggio...",
+    "country": "Paese",
+    "selectCountry": "Seleziona paese",
+    "city": "Città",
+    "enterCity": "Inserisci la tua città"
   },
   "security": {
     "title": "Password e Autenticazione",
@@ -33,5 +37,9 @@
     "languageLabel": "Lingua Interfaccia"
   },
   "profileUpdated": "Profilo Aggiornato",
-  "profileUpdateSuccess": "Le informazioni del profilo sono state salvate"
+  "profileUpdateSuccess": "Le informazioni del profilo sono state salvate",
+  "pleaseWait": "Attendere",
+  "rateLimitDesc": "Per sicurezza, attendere 60 secondi prima di riprovare.",
+  "emailUpdated": "La tua email è stata aggiornata con successo.",
+  "profileUpdateFailed": "Aggiornamento profilo fallito. Riprova."
 }

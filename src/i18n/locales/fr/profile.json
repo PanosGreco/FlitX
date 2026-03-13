@@ -17,7 +17,11 @@
     "phone": "Téléphone",
     "company": "Nom de l'Entreprise",
     "saveChanges": "Enregistrer",
-    "saving": "Enregistrement..."
+    "saving": "Enregistrement...",
+    "country": "Pays",
+    "selectCountry": "Sélectionner le pays",
+    "city": "Ville",
+    "enterCity": "Entrez votre ville"
   },
   "security": {
     "title": "Mot de passe & Authentification",
@@ -33,5 +37,9 @@
     "languageLabel": "Langue de l'Interface"
   },
   "profileUpdated": "Profil Mis à Jour",
-  "profileUpdateSuccess": "Les informations de votre profil ont été enregistrées"
+  "profileUpdateSuccess": "Les informations de votre profil ont été enregistrées",
+  "pleaseWait": "Veuillez patienter",
+  "rateLimitDesc": "Pour des raisons de sécurité, veuillez attendre 60 secondes.",
+  "emailUpdated": "Votre email a été mis à jour avec succès.",
+  "profileUpdateFailed": "Échec de la mise à jour du profil. Veuillez réessayer."
 }

@@ -17,7 +17,11 @@
     "phone": "Teléfono",
     "company": "Nombre de la Empresa",
     "saveChanges": "Guardar Cambios",
-    "saving": "Guardando..."
+    "saving": "Guardando...",
+    "country": "País",
+    "selectCountry": "Seleccionar país",
+    "city": "Ciudad",
+    "enterCity": "Ingresa tu ciudad"
   },
   "security": {
     "title": "Contraseña y Autenticación",
@@ -33,5 +37,9 @@
     "languageLabel": "Idioma de la Interfaz"
   },
   "profileUpdated": "Perfil Actualizado",
-  "profileUpdateSuccess": "La información de tu perfil ha sido guardada"
+  "profileUpdateSuccess": "La información de tu perfil ha sido guardada",
+  "pleaseWait": "Por favor espere",
+  "rateLimitDesc": "Por seguridad, espere 60 segundos antes de intentar de nuevo.",
+  "emailUpdated": "Tu email ha sido actualizado correctamente.",
+  "profileUpdateFailed": "Error al actualizar el perfil. Inténtalo de nuevo."
 }

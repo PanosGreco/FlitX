@@ -51,7 +51,6 @@
   "toIncomeFor": "to income for",
   "documentUploaded": "Document Uploaded",
   "documentSaved": "Document has been saved successfully",
-
   "documentsDescription": "Here you can upload and store all documents related to this vehicle (insurance, registration, contracts, etc.).",
   "searchDocuments": "Search documents...",
   "addDocument": "Add New Document",
@@ -64,7 +63,6 @@
   "documentDeleted": "Document deleted",
   "documentDownloadFailed": "Failed to download file",
   "selectFileAndName": "Please select a file and enter a name",
-
   "vehicleType": "Vehicle Type",
   "category": "Category",
   "fuelType": "Fuel Type",
@@ -80,7 +78,6 @@
   "more": "More...",
   "customCategoryPlaceholder": "e.g. BKJH",
   "customCategory": "Custom Category...",
-
   "editVehicle": "Edit Vehicle",
   "editVehicleDesc": "Update vehicle details and information",
   "vehiclePhoto": "Vehicle Photo",
@@ -108,7 +105,6 @@
   "unexpectedError": "An unexpected error occurred",
   "selectCategoryError": "Please select a category",
   "saveChanges": "Save Changes",
-
   "maintenanceHistory": "Maintenance History",
   "addMaintenanceRecord": "Add Maintenance Record",
   "maintenanceRecordDesc": "Record a service or repair for this vehicle",
@@ -129,7 +125,6 @@
   "addRecord": "Add Record",
   "notesOptional": "Notes (Optional)",
   "notesPlaceholder": "Add any additional details about this service",
-
   "purchaseValue": "Purchase Value",
   "depreciated": "depreciated",
   "fullyDepreciated": "Fully depreciated",
@@ -154,7 +149,6 @@
   "netIncomeFromRentals": "Net Income from Rentals",
   "profitFromSale": "PROFIT FROM SALE",
   "lossFromSale": "LOSS FROM SALE",
-
   "scheduleUnavailability": "Schedule Unavailability",
   "selectUnavailableDates": "Select dates that {{name}} is unavailable",
   "startDate": "Start Date",
@@ -167,7 +161,6 @@
   "maintenanceScheduleAdded": "Maintenance schedule added",
   "failedAddMaintenance": "Failed to add maintenance",
   "addMaintenance": "Add Maintenance",
-
   "upcomingReminders": "Upcoming Reminders",
   "addReminder": "Add Reminder",
   "loadingReminders": "Loading reminders...",
@@ -182,7 +175,6 @@
   "reminderDeleted": "Reminder deleted successfully",
   "reminderError": "Failed to add reminder",
   "reminderDeleteError": "Failed to delete reminder",
-
   "damageReport": "Damage Report",
   "damageDescription": "Here you can keep a record of the vehicle's damages to easily track and review them over time.",
   "addNewDamage": "Add New Damage",
@@ -200,7 +192,6 @@
     "interior": "Interior",
     "tires": "Tires"
   },
-
   "reminders": "Reminders",
   "damages": "Damages",
   "reservations": "Reservations",
@@ -214,7 +205,6 @@
   "vehicleAvailable": "Vehicle is available",
   "bookingAdded": "Booking Added",
   "newBookingCreatedFor": "New rental booking created for",
-
   "noRentalBookings": "No rental bookings found",
   "createFirstBooking": "Create your first booking to get started",
   "searchCustomerName": "Search by customer name...",
@@ -224,7 +214,6 @@
   "bookingDeleted": "Booking Deleted",
   "bookingDeletedDesc": "Booking, contracts, tasks, and financial records have been permanently removed",
   "contractLoadFailed": "Failed to load contract photo",
-
   "newRentalBooking": "New Rental Booking",
   "customerName": "Customer Name",
   "enterCustomerName": "Enter customer name",
@@ -235,16 +224,13 @@
   "bookingCreatedDesc": "Rental booked. Tasks added to Daily Program.",
   "bookingCreateFailed": "Failed to create booking",
   "conflictMessage": "This vehicle is already booked from {{start}} to {{end}} for {{customer}}.",
-
   "failedLoadVehicles": "Failed to load vehicles",
   "mustBeLoggedIn": "You must be logged in",
   "failedAddVehicle": "Failed to add vehicle",
   "somethingWentWrong": "Something went wrong",
-
   "errorUpdatingReminder": "Error updating reminder",
   "loadingFinanceData": "Loading finance data...",
   "nextServiceDate": "Next Service Date (Optional)",
-
   "chooseFiles": "Choose Files",
   "filesSelected": "{{count}} file(s) selected",
   "fileRejected": "Rejected: {{names}}. Max 10 MB per file.",
@@ -252,5 +238,32 @@
   "damageAdded": "Damage report added successfully",
   "damageUploadFailed": "Failed to upload damage report",
   "damageDeleteFailed": "Failed to delete image",
-  "imageRemoved": "Image removed successfully"
+  "imageRemoved": "Image removed successfully",
+  "vehicleType_car": "Car",
+  "vehicleType_van": "Van",
+  "vehicleType_truck": "Truck",
+  "vehicleType_motorbike": "Motorbike",
+  "vehicleType_atv": "ATV",
+  "vehicleType_snowmobile": "Snowmobile",
+  "vehicleType_camper": "Camper",
+  "vehicleType_bicycle": "Bicycle",
+  "vehicleType_jet_ski": "Jet Ski",
+  "transmission_manual": "Manual",
+  "transmission_automatic": "Automatic",
+  "category_sedan": "Sedan",
+  "category_suv": "SUV",
+  "category_economy": "Economy",
+  "category_luxury": "Luxury",
+  "category_hatchback": "Hatchback",
+  "category_coupe": "Coupe",
+  "category_convertible": "Convertible",
+  "category_50cc": "50cc",
+  "category_125cc": "125cc",
+  "category_scooter": "Scooter",
+  "category_touring_sport": "Touring / Sport",
+  "category_touring": "Touring",
+  "category_mountain": "Mountain",
+  "category_utility": "Utility",
+  "category_recreational": "Recreational",
+  "category_performance": "Performance"
 }
