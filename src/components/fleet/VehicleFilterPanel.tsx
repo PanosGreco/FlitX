@@ -68,7 +68,7 @@ export function VehicleFilterPanel({ filters, onFiltersChange, isOpen, onOpenCha
       filters.vehicleTypes.forEach(type => { const typeCats = VEHICLE_CATEGORIES[type as VehicleType] || []; typeCats.forEach(cat => { cats.push({ value: cat.value, label: t(`fleet:category_${cat.value}`, cat.label.en), isCustom: false }); }); });
     }
     return cats;
-  }, [filters.vehicleTypes, customCategories, language, langKey]);
+  }, [filters.vehicleTypes, customCategories, language, t]);
 
   const handleYearSortChange = (sort: 'asc' | 'desc' | null) => { onFiltersChange({ ...filters, yearSort: filters.yearSort === sort ? null : sort }); };
   const handleFuelTypeToggle = (fuelType: string) => { const newFuelTypes = filters.fuelTypes.includes(fuelType) ? filters.fuelTypes.filter(f => f !== fuelType) : [...filters.fuelTypes, fuelType]; onFiltersChange({ ...filters, fuelTypes: newFuelTypes }); };
