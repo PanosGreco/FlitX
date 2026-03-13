@@ -52,7 +52,7 @@ const PASSENGER_COUNTS = [1, 2, 3, 4, 5, 6, 7];
 export function VehicleFilterPanel({ filters, onFiltersChange, isOpen, onOpenChange, trigger, availableCategories = [] }: VehicleFilterPanelProps) {
   const { language } = useLanguage();
   const { t } = useTranslation(['fleet', 'common']);
-  const langKey = language === 'el' ? 'el' : 'en';
+  
 
   const customCategories = useMemo(() => {
     const standardCats = new Set(VEHICLE_TYPES.flatMap(type => VEHICLE_CATEGORIES[type].map(c => c.value)));
