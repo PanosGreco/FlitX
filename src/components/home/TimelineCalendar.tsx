@@ -333,7 +333,7 @@ export function TimelineCalendar({
             <div className="flex items-start gap-3">
                     <Car className="h-4 w-4 text-slate-400 mt-0.5" />
                     <div>
-                      <div className="text-xs text-slate-500 mb-0.5">Vehicle</div>
+                      <div className="text-xs text-slate-500 mb-0.5">{t('home:vehicle')}</div>
                       <div className="text-sm font-medium text-slate-800">{selectedTask.vehicleName}</div>
                     </div>
                   </div>
