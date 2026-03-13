@@ -18,7 +18,7 @@ import {
   VEHICLE_TYPES, VEHICLE_CATEGORIES,
   VehicleType, normalizeCategory, isStandardCategory
 } from "@/constants/vehicleTypes";
-import { TRANSMISSION_TYPES, TRANSMISSION_TYPE_LABELS, TransmissionType } from "@/constants/transmissionTypes";
+import { TRANSMISSION_TYPES, TransmissionType } from "@/constants/transmissionTypes";
 import { validateFileSize, compressImage } from "@/utils/imageUtils";
 
 interface EditVehicleDialogProps {
