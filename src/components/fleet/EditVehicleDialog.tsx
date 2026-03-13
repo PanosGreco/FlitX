@@ -168,7 +168,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     }
   };
 
-  const langKey = language === 'el' ? 'el' : 'en';
+  
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
