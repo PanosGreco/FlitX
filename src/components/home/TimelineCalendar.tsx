@@ -190,7 +190,7 @@ export function TimelineCalendar({
         {/* Create Button */}
         <Button onClick={onCreateClick} className="text-white rounded-full px-5 py-2 h-auto shadow-sm bg-primary">
           <Plus className="h-4 w-4 mr-1.5" />
-          Create
+          {t('home:create')}
         </Button>
       </div>
 
