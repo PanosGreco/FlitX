@@ -51,9 +51,7 @@ export function TimelineCalendar({
   loading,
   onCreateClick
 }: TimelineCalendarProps) {
-  const {
-    language
-  } = useLanguage();
+  const { t } = useTranslation(['home', 'common']);
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), {
     weekStartsOn: 1
   }));
