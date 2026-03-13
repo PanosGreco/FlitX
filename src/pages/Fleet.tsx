@@ -50,7 +50,7 @@ const Fleet = () => {
   const { language, isLanguageLoading } = useLanguage();
   const { t } = useTranslation(['fleet', 'common']);
   const { user } = useAuth();
-  const langKey = language === 'el' ? 'el' : 'en';
+  
   
   // Form state
   const [make, setMake] = useState("");
