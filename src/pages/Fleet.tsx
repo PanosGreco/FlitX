@@ -680,7 +680,7 @@ const Fleet = () => {
                     id="marketValue" 
                     type="text"
                     inputMode="decimal"
-                    placeholder={language === 'el' ? 'π.χ. 20000' : 'e.g. 20000'}
+                    placeholder="e.g. 20000"
                     disabled={isLanguageLoading || isSubmitting}
                     value={marketValueAtPurchase}
                     onChange={(e) => {
