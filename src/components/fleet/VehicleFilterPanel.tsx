@@ -96,7 +96,7 @@ export function VehicleFilterPanel({ filters, onFiltersChange, isOpen, onOpenCha
                 const IconComponent = getVehicleIcon(type);
                 return <Button key={type} variant={filters.vehicleTypes.includes(type) ? 'default' : 'outline'} size="sm" onClick={() => handleVehicleTypeToggle(type)} className="text-xs h-8 px-2">
                   <IconComponent className="h-3 w-3 mr-1" />
-                  {getVehicleTypeLabel(type, language)}
+                  {t(`fleet:vehicleType_${type}`)}
                 </Button>;
               })}
             </div>
