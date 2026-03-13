@@ -409,7 +409,7 @@ const Fleet = () => {
                           <SelectGroup>
                             {VEHICLE_CATEGORIES[vehicleType].map((cat) => (
                               <SelectItem key={cat.value} value={cat.value}>
-                                {cat.label[language === 'el' ? 'el' : 'en']}
+                                {t(`fleet:category_${cat.value}`, cat.label.en)}
                               </SelectItem>
                             ))}
                             <SelectItem value="custom" className="text-muted-foreground italic">
