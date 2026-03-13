@@ -535,7 +535,7 @@ const Fleet = () => {
                     <SelectGroup>
                       {TRANSMISSION_TYPES.map((tt) => (
                         <SelectItem key={tt} value={tt}>
-                          {TRANSMISSION_TYPE_LABELS[tt][language === 'el' ? 'el' : 'en']}
+                          {t(`fleet:transmission_${tt}`)}
                         </SelectItem>
                       ))}
                     </SelectGroup>
