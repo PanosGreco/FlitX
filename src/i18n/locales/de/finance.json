@@ -73,5 +73,10 @@
   "saleDate": "Verkaufsdatum",
   "recordSale": "Verkauf erfassen",
   "bookingSource": "Buchungsquelle",
-  "selectSource": "Quelle auswählen"
+  "selectSource": "Quelle auswählen",
+  "timeframeWeek": "Diese Woche",
+  "timeframeMonth": "Dieser Monat",
+  "timeframeYear": "Dieses Jahr",
+  "timeframeAll": "Gesamt",
+  "timeframeCustom": "Benutzerdefiniert"
 }

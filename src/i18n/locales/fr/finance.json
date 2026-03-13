@@ -73,5 +73,10 @@
   "saleDate": "Date de Vente",
   "recordSale": "Enregistrer la Vente",
   "bookingSource": "Source de Réservation",
-  "selectSource": "Sélectionner la source"
+  "selectSource": "Sélectionner la source",
+  "timeframeWeek": "Cette Semaine",
+  "timeframeMonth": "Ce Mois",
+  "timeframeYear": "Cette Année",
+  "timeframeAll": "Tout",
+  "timeframeCustom": "Personnalisé"
 }
