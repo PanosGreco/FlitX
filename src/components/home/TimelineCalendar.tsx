@@ -183,7 +183,7 @@ export function TimelineCalendar({
 
           {/* Week Badge */}
           <span className="px-3 py-1 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-full shadow-sm">
-            Week {weekNumber}
+            {t('home:week')} {weekNumber}
           </span>
         </div>
 
