@@ -33,7 +33,6 @@ import { VehicleData } from "@/components/fleet/VehicleCard";
 import { 
   VEHICLE_TYPES, 
   VEHICLE_CATEGORIES, 
-  VEHICLE_TYPE_LABELS,
   VehicleType,
   normalizeCategory,
   formatCustomCategory
