@@ -8,10 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTranslation } from "react-i18next";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { 
-  VEHICLE_TYPES, VEHICLE_CATEGORIES, VEHICLE_TYPE_LABELS,
-  getVehicleTypeLabel, getVehicleCategoryLabel, VehicleType 
+  VEHICLE_TYPES, VEHICLE_CATEGORIES,
+  getVehicleCategoryLabel, VehicleType 
 } from "@/constants/vehicleTypes";
-import { TRANSMISSION_TYPES, TRANSMISSION_TYPE_LABELS } from "@/constants/transmissionTypes";
+import { TRANSMISSION_TYPES } from "@/constants/transmissionTypes";
 
 const getVehicleIcon = (type: VehicleType) => {
   switch (type) {
