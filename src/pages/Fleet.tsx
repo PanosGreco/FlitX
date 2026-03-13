@@ -654,9 +654,7 @@ const Fleet = () => {
                   <div className="h-px flex-1 bg-border" />
                 </div>
                 <p className="text-xs text-muted-foreground text-center mt-1">
-                  {language === 'el' 
-                    ? 'Χρησιμοποιείται για εκτίμηση μείωσης αξίας βάσει χρόνου και χιλιομέτρων.'
-                    : 'Used to estimate vehicle value loss over time and mileage.'}
+                  {t('fleet:depreciationDataDesc')}
                 </p>
               </div>
 
