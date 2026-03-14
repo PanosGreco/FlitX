@@ -116,6 +116,12 @@ i18n
       lookupLocalStorage: 'i18nextLng',
       caches: ['localStorage'],
     },
+    saveMissing: true,
+    missingKeyHandler: (lngs, ns, key, fallbackValue) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[i18n] Missing key: "${key}" in namespace "${ns}" for languages: ${lngs.join(', ')}`);
+      }
+    },
   });
 
 export default i18n;
