@@ -117,8 +117,8 @@ i18n
       caches: ['localStorage'],
     },
     saveMissing: true,
-    missingKeyHandler: (lngs, ns, key, fallbackValue) => {
-      if (process.env.NODE_ENV === 'development') {
+    missingKeyHandler: (lngs, ns, key) => {
+      if (import.meta.env.DEV) {
         console.warn(`[i18n] Missing key: "${key}" in namespace "${ns}" for languages: ${lngs.join(', ')}`);
       }
     },
