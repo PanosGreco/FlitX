@@ -18,7 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "react-i18next";
 import { IncomeSourceSelector } from "@/components/finances/IncomeSourceSelector";
 import { useAdditionalCosts, BookingAdditionalCost } from "@/hooks/useAdditionalCosts";
 import { useInsuranceTypes } from "@/hooks/useInsuranceTypes";
@@ -86,7 +86,7 @@ export function UnifiedBookingDialog({
   embedded = false
 }: UnifiedBookingDialogProps) {
   const { user } = useAuth();
-  const { language } = useLanguage();
+  const { t } = useTranslation(['fleet', 'common']);
   const { savedCategories, saveBookingCosts, fetchCategories } = useAdditionalCosts();
   const { insuranceTypes, fetchInsuranceTypes, findOrCreateInsuranceType } = useInsuranceTypes();
   const [addingNewInsuranceType, setAddingNewInsuranceType] = useState(false);
@@ -187,7 +187,6 @@ export function UnifiedBookingDialog({
   // Auto-sync dynamic costs to Additional Information
   useEffect(() => {
     setAdditionalInfoRows(prev => {
-      // Keep Insurance row and any manually-added non-dynamic rows
       const insuranceRow = prev.find(r => r.categoryName === 'Insurance' && r.isDefault);
       const manualRows = prev.filter(r => !r.isDefault && !dynamicCosts.some(dc => dc.name === r.categoryName));
       
@@ -226,7 +225,7 @@ export function UnifiedBookingDialog({
   const getVehicleAvailability = (vehicleId: string): VehicleAvailability => {
     const vehicle = vehicles.find(v => v.id === vehicleId);
     if (vehicle?.status === 'repair') {
-      return { available: false, reason: 'repair', conflictInfo: language === 'el' ? 'Μη διαθέσιμο – Χρειάζεται Επισκευή' : 'Unavailable – Needs Repair' };
+      return { available: false, reason: 'repair', conflictInfo: t('fleet:booking_unavailableRepair') };
     }
     if (!startDate || !endDate) return { available: true };
     const vehicleBookings = allBookings.filter(b => b.vehicle_id === vehicleId);
@@ -234,7 +233,7 @@ export function UnifiedBookingDialog({
       const bookingStart = parseISO(booking.start_date);
       const bookingEnd = parseISO(booking.end_date);
       if (!(isAfter(startDate, bookingEnd) || isBefore(endDate, bookingStart))) {
-        return { available: false, reason: 'booked', conflictInfo: language === 'el' ? `Κρατημένο: ${format(bookingStart, 'dd/MM')} - ${format(bookingEnd, 'dd/MM')} (${booking.customer_name})` : `Booked: ${format(bookingStart, 'dd/MM')} - ${format(bookingEnd, 'dd/MM')} (${booking.customer_name})` };
+        return { available: false, reason: 'booked', conflictInfo: `${t('fleet:booking_booked')}: ${format(bookingStart, 'dd/MM')} - ${format(bookingEnd, 'dd/MM')} (${booking.customer_name})` };
       }
     }
     const vehicleMaintenance = allMaintenanceBlocks.filter(m => m.vehicle_id === vehicleId);
@@ -242,7 +241,7 @@ export function UnifiedBookingDialog({
       const maintenanceStart = parseISO(block.start_date);
       const maintenanceEnd = parseISO(block.end_date);
       if (!(isAfter(startDate, maintenanceEnd) || isBefore(endDate, maintenanceStart))) {
-        return { available: false, reason: 'maintenance', conflictInfo: language === 'el' ? `Συντήρηση: ${format(maintenanceStart, 'dd/MM')} - ${format(maintenanceEnd, 'dd/MM')}` : `Maintenance: ${format(maintenanceStart, 'dd/MM')} - ${format(maintenanceEnd, 'dd/MM')}` };
+        return { available: false, reason: 'maintenance', conflictInfo: `${t('fleet:booking_maintenanceConflict')}: ${format(maintenanceStart, 'dd/MM')} - ${format(maintenanceEnd, 'dd/MM')}` };
       }
     }
     return { available: true };
@@ -256,7 +255,7 @@ export function UnifiedBookingDialog({
     }
     if (fuelTypeFilter.length > 0) filtered = filtered.filter(v => v.fuel_type && fuelTypeFilter.includes(v.fuel_type));
     if (vehicleTypeFilter.length > 0) filtered = filtered.filter(v => vehicleTypeFilter.includes(v.vehicle_type));
-    if (transmissionTypeFilter.length > 0) filtered = filtered.filter(v => { const t = v.transmission_type || 'manual'; return transmissionTypeFilter.includes(t); });
+    if (transmissionTypeFilter.length > 0) filtered = filtered.filter(v => { const tt = v.transmission_type || 'manual'; return transmissionTypeFilter.includes(tt); });
     return filtered.sort((a, b) => {
       const aa = getVehicleAvailability(a.id);
       const ab = getVehicleAvailability(b.id);
@@ -271,7 +270,7 @@ export function UnifiedBookingDialog({
   useEffect(() => {
     if (selectedVehicleId && startDate && endDate) {
       const availability = getVehicleAvailability(selectedVehicleId);
-      setConflictError(!availability.available ? (availability.conflictInfo || (language === 'el' ? 'Όχημα μη διαθέσιμο' : 'Vehicle unavailable')) : null);
+      setConflictError(!availability.available ? (availability.conflictInfo || t('fleet:booking_vehicleUnavailable')) : null);
     } else {
       setConflictError(null);
     }
@@ -300,11 +299,8 @@ export function UnifiedBookingDialog({
   const effectiveRate = pricingMode === 'fixed' ? vehicleDailyRate : adjustedRate;
   const baseAmount = rentalDays * effectiveRate;
   
-  // Insurance cost (only if both type and amount are set)
   const effectiveInsuranceCost = (insuranceType && insuranceAmount > 0) ? insuranceAmount : 0;
-  // Dynamic costs total
   const dynamicCostsTotal = dynamicCosts.reduce((sum, c) => sum + (c.amount || 0), 0);
-  // All additional costs total
   const allAdditionalCostsTotal = effectiveInsuranceCost + dynamicCostsTotal;
   const totalAmount = pricingMode === 'custom' ? (customTotalPrice + allAdditionalCostsTotal) : (baseAmount + allAdditionalCostsTotal);
 
@@ -352,15 +348,15 @@ export function UnifiedBookingDialog({
 
   const handleSaveBooking = async () => {
     if (!user || !startDate || !endDate || !selectedVehicleId || !customerName.trim()) {
-      toast.error(language === 'el' ? 'Συμπληρώστε όλα τα απαραίτητα πεδία' : 'Please fill all required fields');
+      toast.error(t('fleet:booking_fillAllFields'));
       return;
     }
     if (conflictError) {
-      toast.error(language === 'el' ? 'Το όχημα δεν είναι διαθέσιμο για αυτές τις ημερομηνίες' : 'Vehicle is not available for these dates');
+      toast.error(t('fleet:booking_vehicleNotAvailable'));
       return;
     }
     if (effectiveRate <= 0 && pricingMode !== 'custom') {
-      toast.error(language === 'el' ? 'Παρακαλώ ορίστε έγκυρη ημερήσια τιμή' : 'Please set a valid daily rate');
+      toast.error(t('fleet:booking_setValidRate'));
       return;
     }
 
@@ -387,7 +383,6 @@ export function UnifiedBookingDialog({
 
       await createDailyTasks(user.id, booking.id, contractPhotoPath);
 
-      // Create base rental income record
       const baseAmountToRecord = pricingMode === 'custom' ? customTotalPrice : baseAmount;
       const recordDescription = pricingMode === 'custom' 
           ? `Rental: ${vehicleName} - ${customerName} (Custom price)`
@@ -402,8 +397,6 @@ export function UnifiedBookingDialog({
         source_section: 'booking'
       });
 
-      // Create SEPARATE income records for each additional cost (always, including custom total)
-      // Save insurance type to DB for reuse
       if (insuranceType) {
         await findOrCreateInsuranceType(insuranceType);
       }
@@ -435,7 +428,6 @@ export function UnifiedBookingDialog({
         }
       }
 
-      // Save additional costs to booking_additional_costs table
       const allCostsToSave: BookingAdditionalCost[] = [];
       if (effectiveInsuranceCost > 0) {
         allCostsToSave.push({ id: 'insurance', name: 'Insurance', amount: effectiveInsuranceCost, insurance_type: insuranceType });
@@ -449,7 +441,6 @@ export function UnifiedBookingDialog({
         await saveBookingCosts(booking.id, allCostsToSave);
       }
 
-      // Save additional information
       const rowsToSave = additionalInfoRows.filter(row => row.subcategoryValue.trim() !== '');
       if (rowsToSave.length > 0) {
         for (const row of rowsToSave) {
@@ -467,7 +458,6 @@ export function UnifiedBookingDialog({
         }
       }
 
-      // VAT auto-expense: applies to total booking amount (base + additional costs)
       if (vatEnabled && vatRate > 0) {
         const vatAmount = totalAmount * (vatRate / 100);
         if (vatAmount > 0) {
@@ -486,13 +476,13 @@ export function UnifiedBookingDialog({
         }
       }
 
-      toast.success(language === 'el' ? `Κράτηση δημιουργήθηκε: €${totalAmount.toFixed(2)}` : `Booking created: €${totalAmount.toFixed(2)}`);
+      toast.success(t('fleet:booking_createdSuccess', { amount: totalAmount.toFixed(2) }));
       resetForm();
       onSuccess();
       onClose();
     } catch (error) {
       console.error('Error creating booking:', error);
-      toast.error(language === 'el' ? 'Σφάλμα δημιουργίας κράτησης' : 'Error creating booking');
+      toast.error(t('fleet:booking_createError'));
     } finally {
       setIsLoading(false);
     }
@@ -529,21 +519,21 @@ export function UnifiedBookingDialog({
 
           {/* Customer Name */}
           <div>
-            <Label>{language === 'el' ? 'Όνομα Πελάτη' : 'Customer Name'} *</Label>
-            <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder={language === 'el' ? 'Πλήρες όνομα' : 'Full name'} />
+            <Label>{t('fleet:booking_customerName')} *</Label>
+            <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder={t('fleet:booking_fullName')} />
           </div>
 
           {/* Pickup Section */}
           <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
-            <Label className="text-base font-semibold">{language === 'el' ? 'Παραλαβή' : 'Pick-Up'}</Label>
+            <Label className="text-base font-semibold">{t('fleet:booking_pickUp')}</Label>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-muted-foreground">{language === 'el' ? 'Ημερομηνία' : 'Date'}</Label>
+                <Label className="text-xs text-muted-foreground">{t('fleet:booking_date')}</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate ? format(startDate, "dd MMM") : (language === 'el' ? 'Επιλέξτε' : 'Pick date')}
+                      {startDate ? format(startDate, "dd MMM") : t('fleet:booking_pickDate')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -552,30 +542,30 @@ export function UnifiedBookingDialog({
                 </Popover>
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{language === 'el' ? 'Ώρα' : 'Time'}</Label>
+                <Label className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{t('fleet:booking_time')}</Label>
                 <Select value={pickupTime} onValueChange={setPickupTime}>
-                  <SelectTrigger><SelectValue placeholder={language === 'el' ? 'Ώρα' : 'Time'} /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('fleet:booking_time')} /></SelectTrigger>
                   <SelectContent>{timeOptions.map(time => <SelectItem key={time} value={time}>{time}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" />{language === 'el' ? 'Τοποθεσία' : 'Location'}</Label>
-              <Input value={pickupLocation} onChange={(e) => setPickupLocation(e.target.value)} placeholder={language === 'el' ? 'Διεύθυνση παραλαβής' : 'Pickup location'} />
+              <Label className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" />{t('fleet:booking_location')}</Label>
+              <Input value={pickupLocation} onChange={(e) => setPickupLocation(e.target.value)} placeholder={t('fleet:booking_pickupLocation')} />
             </div>
           </div>
 
           {/* Return Section */}
           <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
-            <Label className="text-base font-semibold">{language === 'el' ? 'Επιστροφή' : 'Drop-Off'}</Label>
+            <Label className="text-base font-semibold">{t('fleet:booking_dropOff')}</Label>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-muted-foreground">{language === 'el' ? 'Ημερομηνία' : 'Date'}</Label>
+                <Label className="text-xs text-muted-foreground">{t('fleet:booking_date')}</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {endDate ? format(endDate, "dd MMM") : (language === 'el' ? 'Επιλέξτε' : 'Pick date')}
+                      {endDate ? format(endDate, "dd MMM") : t('fleet:booking_pickDate')}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
@@ -584,64 +574,64 @@ export function UnifiedBookingDialog({
                 </Popover>
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{language === 'el' ? 'Ώρα' : 'Time'}</Label>
+                <Label className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{t('fleet:booking_time')}</Label>
                 <Select value={returnTime} onValueChange={setReturnTime}>
-                  <SelectTrigger><SelectValue placeholder={language === 'el' ? 'Ώρα' : 'Time'} /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t('fleet:booking_time')} /></SelectTrigger>
                   <SelectContent>{timeOptions.map(time => <SelectItem key={time} value={time}>{time}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" />{language === 'el' ? 'Τοποθεσία' : 'Location'}</Label>
-              <Input value={dropoffLocation} onChange={(e) => setDropoffLocation(e.target.value)} placeholder={language === 'el' ? 'Διεύθυνση επιστροφής' : 'Drop-off location'} />
+              <Label className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" />{t('fleet:booking_location')}</Label>
+              <Input value={dropoffLocation} onChange={(e) => setDropoffLocation(e.target.value)} placeholder={t('fleet:booking_dropoffLocation')} />
             </div>
           </div>
 
           {/* Vehicle Selection with Search and Filter */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label className="text-base font-semibold">{language === 'el' ? 'Όχημα' : 'Vehicle'} *</Label>
+              <Label className="text-base font-semibold">{t('fleet:booking_vehicle')} *</Label>
               <Popover open={vehicleFilterOpen} onOpenChange={setVehicleFilterOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-7 px-2">
                     <Filter className="h-3.5 w-3.5 mr-1" />
-                    {language === 'el' ? 'Φίλτρα' : 'Filters'}
+                    {t('fleet:booking_filters')}
                     {hasActiveFilters && <Badge variant="secondary" className="ml-1 h-4 px-1 text-[10px]">{fuelTypeFilter.length + vehicleTypeFilter.length}</Badge>}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-64 p-3" align="end">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium text-sm">{language === 'el' ? 'Φίλτρα' : 'Filters'}</span>
-                      {hasActiveFilters && <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => { setFuelTypeFilter([]); setVehicleTypeFilter([]); setTransmissionTypeFilter([]); }}>{language === 'el' ? 'Καθαρισμός' : 'Clear'}</Button>}
+                      <span className="font-medium text-sm">{t('fleet:booking_filters')}</span>
+                      {hasActiveFilters && <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => { setFuelTypeFilter([]); setVehicleTypeFilter([]); setTransmissionTypeFilter([]); }}>{t('fleet:booking_clear')}</Button>}
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">{language === 'el' ? 'Τύπος' : 'Type'}</Label>
+                      <Label className="text-xs text-muted-foreground">{t('fleet:booking_type')}</Label>
                       <div className="flex gap-2">
                         {['car', 'motorbike'].map(type => (
-                          <Button key={type} variant={vehicleTypeFilter.includes(type) ? 'default' : 'outline'} size="sm" onClick={() => setVehicleTypeFilter(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type])} className="flex-1 text-xs h-7">
-                            {type === 'car' ? (language === 'el' ? 'Αυτοκίνητο' : 'Car') : (language === 'el' ? 'Μηχανή' : 'Motorbike')}
+                          <Button key={type} variant={vehicleTypeFilter.includes(type) ? 'default' : 'outline'} size="sm" onClick={() => setVehicleTypeFilter(prev => prev.includes(type) ? prev.filter(ft => ft !== type) : [...prev, type])} className="flex-1 text-xs h-7">
+                            {t(`fleet:booking_${type}`)}
                           </Button>
                         ))}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">{language === 'el' ? 'Καύσιμο' : 'Fuel'}</Label>
+                      <Label className="text-xs text-muted-foreground">{t('fleet:booking_fuel')}</Label>
                       <div className="grid grid-cols-2 gap-1">
                         {['petrol', 'diesel', 'electric', 'hybrid'].map(fuel => (
                           <label key={fuel} className="flex items-center gap-1.5 text-xs cursor-pointer">
                             <Checkbox checked={fuelTypeFilter.includes(fuel)} onCheckedChange={() => setFuelTypeFilter(prev => prev.includes(fuel) ? prev.filter(f => f !== fuel) : [...prev, fuel])} className="h-3.5 w-3.5" />
-                            <span className="capitalize">{fuel === 'petrol' ? (language === 'el' ? 'Βενζίνη' : 'Petrol') : fuel}</span>
+                            <span>{t(`fleet:${fuel}`)}</span>
                           </label>
                         ))}
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">{language === 'el' ? 'Κιβώτιο' : 'Transmission'}</Label>
+                      <Label className="text-xs text-muted-foreground">{t('fleet:booking_transmissionLabel')}</Label>
                       <div className="flex gap-2">
                         {['manual', 'automatic'].map(transmission => (
-                          <Button key={transmission} variant={transmissionTypeFilter.includes(transmission) ? 'default' : 'outline'} size="sm" onClick={() => setTransmissionTypeFilter(prev => prev.includes(transmission) ? prev.filter(t => t !== transmission) : [...prev, transmission])} className="flex-1 text-xs h-7">
-                            {transmission === 'manual' ? (language === 'el' ? 'Χειροκίνητο' : 'Manual') : (language === 'el' ? 'Αυτόματο' : 'Automatic')}
+                          <Button key={transmission} variant={transmissionTypeFilter.includes(transmission) ? 'default' : 'outline'} size="sm" onClick={() => setTransmissionTypeFilter(prev => prev.includes(transmission) ? prev.filter(ft => ft !== transmission) : [...prev, transmission])} className="flex-1 text-xs h-7">
+                            {t(`fleet:transmission_${transmission}`)}
                           </Button>
                         ))}
                       </div>
@@ -653,12 +643,12 @@ export function UnifiedBookingDialog({
 
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input value={vehicleSearch} onChange={(e) => setVehicleSearch(e.target.value)} className="pl-9" placeholder={language === 'el' ? 'Αναζήτηση οχήματος...' : 'Search vehicle...'} />
+              <Input value={vehicleSearch} onChange={(e) => setVehicleSearch(e.target.value)} className="pl-9" placeholder={t('fleet:booking_searchVehicle')} />
             </div>
 
             <Select value={selectedVehicleId} onValueChange={(value) => { const a = getVehicleAvailability(value); if (a.available) setSelectedVehicleId(value); }}>
               <SelectTrigger className={cn(conflictError && "border-destructive")}>
-                <SelectValue placeholder={language === 'el' ? 'Επιλέξτε όχημα' : 'Select vehicle'} />
+                <SelectValue placeholder={t('fleet:booking_selectVehicle')} />
               </SelectTrigger>
               <SelectContent>
                 <TooltipProvider>
@@ -672,41 +662,48 @@ export function UnifiedBookingDialog({
                             <div className="flex items-center gap-2">
                               {isUnavailable && <AlertTriangle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />}
                               <span className={cn(isUnavailable && "line-through")}>{vehicle.make} {vehicle.model} {vehicle.year}{vehicle.license_plate && ` (${vehicle.license_plate})`}</span>
-                              {isUnavailable && <Badge variant={availability.reason === 'booked' ? 'destructive' : 'secondary'} className={cn("text-[11px] h-5 px-1.5 ml-auto", availability.reason === 'repair' && "bg-orange-100 text-orange-800 border-orange-200")}>{availability.reason === 'booked' ? (language === 'el' ? 'Κρατημένο' : 'Booked') : availability.reason === 'repair' ? (language === 'el' ? 'Επισκευή' : 'Needs Repair') : (language === 'el' ? 'Συντήρηση' : 'Maintenance')}</Badge>}
-                              {!isUnavailable && vehicle.daily_rate > 0 && <span className="text-muted-foreground text-xs ml-auto">€{vehicle.daily_rate}/day</span>}
+                              {isUnavailable && availability.reason === 'booked' && <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4 font-semibold">{t('fleet:booking_booked')}</Badge>}
+                              {isUnavailable && availability.reason === 'maintenance' && <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-yellow-500 text-yellow-600 font-semibold">{t('common:maintenance')}</Badge>}
+                              {isUnavailable && availability.reason === 'repair' && <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-orange-500 text-orange-600 font-semibold text-center leading-none" style={{ fontSize: '11px', padding: '2px 8px', height: 'auto' }}>{t('fleet:booking_needsRepair')}</Badge>}
+                              {!isUnavailable && <span className="text-muted-foreground text-xs">€{vehicle.daily_rate}/{t('fleet:booking_day')}</span>}
                             </div>
                           </SelectItem>
                         </TooltipTrigger>
-                        {isUnavailable && <TooltipContent side="left"><p>{availability.conflictInfo}</p></TooltipContent>}
+                        {isUnavailable && availability.conflictInfo && (
+                          <TooltipContent side="left" className="max-w-[200px]">
+                            <p className="text-xs">{availability.conflictInfo}</p>
+                          </TooltipContent>
+                        )}
                       </Tooltip>
                     );
                   })}
                 </TooltipProvider>
-                {filteredAndSortedVehicles.length === 0 && <div className="py-6 text-center text-sm text-muted-foreground">{language === 'el' ? 'Δεν βρέθηκαν οχήματα' : 'No vehicles found'}</div>}
               </SelectContent>
             </Select>
+
+            {conflictError && (
+              <Alert variant="destructive" className="py-2">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="text-xs">{conflictError}</AlertDescription>
+              </Alert>
+            )}
           </div>
 
-          {/* Conflict Error */}
-          {conflictError && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>{conflictError}</AlertDescription></Alert>}
-
-          {/* Pricing Section */}
-          {selectedVehicleId && rentalDays > 0 && (
-            <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-              <Label className="text-base font-semibold">{language === 'el' ? 'Τιμολόγηση' : 'Pricing'}</Label>
-              
+          {/* Pricing */}
+          {selectedVehicleId && startDate && endDate && (
+            <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
               <RadioGroup value={pricingMode} onValueChange={(v) => setPricingMode(v as 'fixed' | 'adjusted' | 'custom')} className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="fixed" id="fixed" />
-                  <Label htmlFor="fixed" className="font-normal cursor-pointer">{language === 'el' ? 'Τιμή οχήματος' : 'Vehicle rate'} (€{vehicleDailyRate}/{language === 'el' ? 'ημέρα' : 'day'})</Label>
+                  <Label htmlFor="fixed" className="font-normal cursor-pointer">{t('fleet:booking_vehicleRate')} (€{vehicleDailyRate}/{t('fleet:booking_day')})</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="adjusted" id="adjusted" />
-                  <Label htmlFor="adjusted" className="font-normal cursor-pointer">{language === 'el' ? 'Προσαρμοσμένη τιμή' : 'Custom rate'}</Label>
+                  <Label htmlFor="adjusted" className="font-normal cursor-pointer">{t('fleet:booking_customRate')}</Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="custom" id="custom" />
-                  <Label htmlFor="custom" className="font-normal cursor-pointer">{language === 'el' ? 'Συνολική τιμή' : 'Custom total'}</Label>
+                  <Label htmlFor="custom" className="font-normal cursor-pointer">{t('fleet:booking_customTotal')}</Label>
                 </div>
               </RadioGroup>
 
@@ -714,33 +711,33 @@ export function UnifiedBookingDialog({
                 <div className="pl-6 flex items-center gap-2">
                   <span className="text-muted-foreground">€</span>
                   <Input type="number" value={adjustedRate} onChange={(e) => setAdjustedRate(Number(e.target.value))} min={0} step="0.01" className="w-24" />
-                  <span className="text-muted-foreground">/{language === 'el' ? 'ημέρα' : 'day'}</span>
+                  <span className="text-muted-foreground">/{t('fleet:booking_day')}</span>
                 </div>
               )}
 
               {pricingMode === 'custom' && (
                 <div className="pl-6 flex items-center gap-2">
                   <span className="text-muted-foreground">€</span>
-                  <Input type="number" value={customTotalPrice} onChange={(e) => setCustomTotalPrice(Number(e.target.value))} min={0} step="0.01" className="w-32" placeholder={language === 'el' ? 'Σύνολο' : 'Total'} />
+                  <Input type="number" value={customTotalPrice} onChange={(e) => setCustomTotalPrice(Number(e.target.value))} min={0} step="0.01" className="w-32" placeholder={t('fleet:booking_total')} />
                 </div>
               )}
 
-              {/* Additional Costs Section - always visible */}
+              {/* Additional Costs Section */}
               {(
                 <div className="pt-3 border-t space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label className="text-sm font-medium">{language === 'el' ? 'Επιπλέον Χρεώσεις' : 'Additional Costs'}</Label>
+                    <Label className="text-sm font-medium">{t('fleet:booking_additionalCosts')}</Label>
                     <Button type="button" variant="ghost" size="sm" onClick={() => addDynamicCost()} className="h-7 px-2">
                       <Plus className="h-3.5 w-3.5 mr-1" />
-                      {language === 'el' ? 'Προσθήκη' : 'Add'}
+                      {t('fleet:booking_add')}
                     </Button>
                   </div>
 
-                  {/* Insurance (always visible) */}
+                  {/* Insurance */}
                   <div className="space-y-2 p-2.5 bg-background/60 rounded-md border border-border/50">
                     <div className="flex items-center gap-1.5">
                       <Shield className="h-3.5 w-3.5 text-blue-500" />
-                      <span className="text-sm font-medium">{language === 'el' ? 'Ασφάλεια' : 'Insurance'}</span>
+                      <span className="text-sm font-medium">{t('fleet:booking_insurance')}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       {addingNewInsuranceType ? (
@@ -748,7 +745,7 @@ export function UnifiedBookingDialog({
                           <Input
                             value={newInsuranceTypeName}
                             onChange={(e) => setNewInsuranceTypeName(e.target.value)}
-                            placeholder={language === 'el' ? 'Νέος τύπος...' : 'New type...'}
+                            placeholder={t('fleet:booking_newType')}
                             className="h-8 flex-1"
                             autoFocus
                             onKeyDown={async (e) => {
@@ -786,14 +783,14 @@ export function UnifiedBookingDialog({
                           }
                         }}>
                           <SelectTrigger className="h-8 flex-1">
-                            <SelectValue placeholder={language === 'el' ? 'Τύπος ασφάλειας' : 'Insurance type'} />
+                            <SelectValue placeholder={t('fleet:booking_insuranceType')} />
                           </SelectTrigger>
                           <SelectContent>
                             {insuranceTypes.map(type => (
                               <SelectItem key={type.id} value={type.name_original}>{type.name_original}</SelectItem>
                             ))}
                             <SelectItem value="__add_new__" className="text-primary font-medium">
-                              <span className="flex items-center gap-1"><Plus className="h-3 w-3" />{language === 'el' ? 'Προσθήκη Νέου' : 'Add New'}</span>
+                              <span className="flex items-center gap-1"><Plus className="h-3 w-3" />{t('fleet:booking_addNew')}</span>
                             </SelectItem>
                           </SelectContent>
                         </Select>
@@ -804,7 +801,7 @@ export function UnifiedBookingDialog({
                       </div>
                     </div>
                     {(!insuranceType || insuranceAmount <= 0) && (insuranceType || insuranceAmount > 0) && (
-                      <p className="text-[11px] text-muted-foreground">{language === 'el' ? 'Συμπληρώστε τύπο και ποσό για να συμπεριληφθεί' : 'Fill both type and amount to include'}</p>
+                      <p className="text-[11px] text-muted-foreground">{t('fleet:booking_fillBothTypeAmount')}</p>
                     )}
                   </div>
 
@@ -818,7 +815,7 @@ export function UnifiedBookingDialog({
                           updated[index] = { ...updated[index], name: e.target.value };
                           setDynamicCosts(updated);
                         }}
-                        placeholder={language === 'el' ? 'Όνομα χρέωσης' : 'Cost name'}
+                        placeholder={t('fleet:booking_costName')}
                         className="h-8 flex-1"
                       />
                       <div className="flex items-center gap-1 flex-shrink-0">
@@ -845,7 +842,7 @@ export function UnifiedBookingDialog({
                     <>
                       <Separator />
                       <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">{language === 'el' ? 'Αποθηκευμένες Χρεώσεις' : 'Saved Additional Costs'}</Label>
+                        <Label className="text-xs text-muted-foreground">{t('fleet:booking_savedCosts')}</Label>
                         <div className="flex flex-wrap gap-1.5">
                           {savedCategories.map(cat => (
                             <Button
@@ -865,7 +862,6 @@ export function UnifiedBookingDialog({
                     </>
                   )}
 
-                  {/* Show saved categories when there are existing dynamic costs too */}
                   {savedCategories.length > 0 && dynamicCosts.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 pt-1">
                       {savedCategories
@@ -900,18 +896,18 @@ export function UnifiedBookingDialog({
               <div className="pt-3 border-t space-y-1">
                 {pricingMode === 'custom' ? (
                   <div className="flex justify-between text-sm">
-                    <span>{language === 'el' ? 'Συνολική τιμή' : 'Custom total'}</span>
+                    <span>{t('fleet:booking_customTotal')}</span>
                     <span>€{customTotalPrice.toFixed(2)}</span>
                   </div>
                 ) : (
                   <div className="flex justify-between text-sm">
-                    <span>{rentalDays} {rentalDays > 1 ? (language === 'el' ? 'ημέρες' : 'days') : (language === 'el' ? 'ημέρα' : 'day')} × €{effectiveRate}/{language === 'el' ? 'ημέρα' : 'day'}</span>
+                    <span>{rentalDays} {rentalDays > 1 ? t('fleet:booking_days') : t('fleet:booking_day')} × €{effectiveRate}/{t('fleet:booking_day')}</span>
                     <span>€{baseAmount.toFixed(2)}</span>
                   </div>
                 )}
                 {effectiveInsuranceCost > 0 && (
                   <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>{language === 'el' ? 'Ασφάλεια' : 'Insurance'} ({insuranceType})</span>
+                    <span>{t('fleet:booking_insurance')} ({insuranceType})</span>
                     <span>+€{effectiveInsuranceCost.toFixed(2)}</span>
                   </div>
                 )}
@@ -922,7 +918,7 @@ export function UnifiedBookingDialog({
                   </div>
                 ))}
                 <div className="flex justify-between text-sm font-semibold pt-1">
-                  <span>{language === 'el' ? 'Σύνολο' : 'Total'}</span>
+                  <span>{t('fleet:booking_total')}</span>
                   <span className="text-green-600">€{totalAmount.toFixed(2)}</span>
                 </div>
               </div>
@@ -931,45 +927,45 @@ export function UnifiedBookingDialog({
 
           {/* Payment Status */}
           <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
-            <Label className="text-base font-semibold">{language === 'el' ? 'Κατάσταση Πληρωμής' : 'Payment Status'}</Label>
+            <Label className="text-base font-semibold">{t('fleet:booking_paymentStatus')}</Label>
             <RadioGroup value={paymentStatus} onValueChange={(v) => setPaymentStatus(v as 'paid_in_full' | 'balance_due')} className="space-y-2">
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="paid_in_full" id="paid_in_full" />
-                <Label htmlFor="paid_in_full" className="font-normal cursor-pointer">{language === 'el' ? 'Εξοφλημένο' : 'Paid in Full'}</Label>
+                <Label htmlFor="paid_in_full" className="font-normal cursor-pointer">{t('fleet:booking_paidInFull')}</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="balance_due" id="balance_due" />
-                <Label htmlFor="balance_due" className="font-normal cursor-pointer">{language === 'el' ? 'Υπόλοιπο' : 'Balance Due'}</Label>
+                <Label htmlFor="balance_due" className="font-normal cursor-pointer">{t('fleet:booking_balanceDue')}</Label>
               </div>
             </RadioGroup>
             {paymentStatus === 'balance_due' && (
               <div className="pl-6 flex items-center gap-2">
                 <span className="text-muted-foreground">€</span>
-                <Input type="number" value={balanceDueAmount || ''} onChange={(e) => setBalanceDueAmount(Number(e.target.value))} min={0} step="0.01" className="w-32" placeholder={language === 'el' ? 'Ποσό' : 'Amount'} />
+                <Input type="number" value={balanceDueAmount || ''} onChange={(e) => setBalanceDueAmount(Number(e.target.value))} min={0} step="0.01" className="w-32" placeholder={t('fleet:booking_amount')} />
               </div>
             )}
           </div>
 
           {/* Fuel Level */}
           <div>
-            <Label className="text-base font-semibold flex items-center gap-1"><Fuel className="h-4 w-4" /> {language === 'el' ? 'Επίπεδο Καυσίμου' : 'Fuel Level'}</Label>
-            <Input value={fuelLevel} onChange={(e) => setFuelLevel(e.target.value)} placeholder={language === 'el' ? 'π.χ. Full, 75%, 3/4' : 'e.g. Full, 75%, 3/4'} className="placeholder:text-muted-foreground/50" />
+            <Label className="text-base font-semibold flex items-center gap-1"><Fuel className="h-4 w-4" /> {t('fleet:booking_fuelLevel')}</Label>
+            <Input value={fuelLevel} onChange={(e) => setFuelLevel(e.target.value)} placeholder={t('fleet:booking_fuelPlaceholder')} className="placeholder:text-muted-foreground/50" />
           </div>
 
           {/* Additional Information */}
           <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
-            <Label className="text-base font-semibold">{language === 'el' ? 'Πρόσθετες Πληροφορίες' : 'Additional Information'}</Label>
+            <Label className="text-base font-semibold">{t('fleet:booking_additionalInfo')}</Label>
             {additionalInfoRows.map((row, index) => (
               <div key={index} className="flex items-center gap-2">
                 {row.isDefault ? (
                   <div className="w-[100px] flex-shrink-0"><span className="text-sm font-semibold text-foreground">{row.categoryName}</span></div>
                 ) : (
-                  <Input value={row.categoryName} onChange={(e) => { const u = [...additionalInfoRows]; u[index].categoryName = e.target.value; setAdditionalInfoRows(u); }} placeholder={language === 'el' ? 'Κατηγορία' : 'Category'} className="w-[100px] flex-shrink-0" />
+                  <Input value={row.categoryName} onChange={(e) => { const u = [...additionalInfoRows]; u[index].categoryName = e.target.value; setAdditionalInfoRows(u); }} placeholder={t('fleet:booking_category')} className="w-[100px] flex-shrink-0" />
                 )}
                 <Input
                   value={row.subcategoryValue}
                   onChange={(e) => { const u = [...additionalInfoRows]; u[index].subcategoryValue = e.target.value; setAdditionalInfoRows(u); }}
-                  placeholder={row.isDefault ? (language === 'el' ? 'π.χ. Premium' : 'e.g. Premium') : (language === 'el' ? 'Τιμή' : 'Value')}
+                  placeholder={row.isDefault ? t('fleet:booking_egPremium') : t('fleet:booking_value')}
                   className="flex-1 placeholder:text-muted-foreground/50"
                   disabled={row.isDefault && !!insuranceType}
                 />
@@ -981,26 +977,26 @@ export function UnifiedBookingDialog({
               </div>
             ))}
             <Button type="button" variant="outline" size="sm" onClick={() => setAdditionalInfoRows([...additionalInfoRows, { categoryName: '', subcategoryValue: '', isDefault: false }])} className="w-full">
-              <Plus className="h-4 w-4 mr-1" />{language === 'el' ? 'Προσθήκη Κατηγορίας' : 'Add Category'}
+              <Plus className="h-4 w-4 mr-1" />{t('fleet:booking_addCategory')}
             </Button>
           </div>
 
           {/* Notes */}
           <div>
-            <Label>{language === 'el' ? 'Σημειώσεις' : 'Notes'}</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={language === 'el' ? 'Σκοπός ενοικίασης, ειδικές οδηγίες...' : 'Rental purpose, special instructions...'} className="resize-none" rows={2} />
+            <Label>{t('fleet:booking_notes')}</Label>
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('fleet:booking_notesPlaceholder')} className="resize-none" rows={2} />
           </div>
 
           {/* Contract Photo */}
           <div>
-            <Label>{language === 'el' ? 'Φωτογραφία Συμβολαίου' : 'Contract Photo'}</Label>
+            <Label>{t('fleet:booking_contractPhoto')}</Label>
             <div className="space-y-2">
               <div className="flex gap-2">
                 <Button type="button" variant="outline" size="sm" onClick={() => cameraInputRef.current?.click()} className="flex-1">
-                  <Camera className="h-4 w-4 mr-2" />{language === 'el' ? 'Λήψη' : 'Take Photo'}
+                  <Camera className="h-4 w-4 mr-2" />{t('fleet:booking_takePhoto')}
                 </Button>
                 <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="flex-1">
-                  <Upload className="h-4 w-4 mr-2" />{language === 'el' ? 'Ανέβασμα' : 'Upload'}
+                  <Upload className="h-4 w-4 mr-2" />{t('fleet:booking_upload')}
                 </Button>
               </div>
               {contractPhotoPreview && (
@@ -1020,9 +1016,9 @@ export function UnifiedBookingDialog({
 
         <div className="pt-4">
           <DialogFooter>
-            <Button variant="outline" onClick={() => { resetForm(); onClose(); }} disabled={isLoading}>{language === 'el' ? 'Ακύρωση' : 'Cancel'}</Button>
+            <Button variant="outline" onClick={() => { resetForm(); onClose(); }} disabled={isLoading}>{t('fleet:booking_cancel')}</Button>
             <Button onClick={handleSaveBooking} disabled={isLoading || !!conflictError}>
-              {isLoading ? (language === 'el' ? 'Δημιουργία...' : 'Creating...') : `${language === 'el' ? 'Δημιουργία' : 'Create'} (€${totalAmount.toFixed(2)})`}
+              {isLoading ? t('fleet:booking_creating') : `${t('fleet:booking_create')} (€${totalAmount.toFixed(2)})`}
             </Button>
           </DialogFooter>
         </div>
@@ -1036,7 +1032,7 @@ export function UnifiedBookingDialog({
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) { resetForm(); onClose(); } }}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{language === 'el' ? 'Νέα Κράτηση' : 'New Booking'}</DialogTitle>
+          <DialogTitle>{t('fleet:booking_newBooking')}</DialogTitle>
         </DialogHeader>
         {formContent}
       </DialogContent>
