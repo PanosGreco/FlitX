@@ -174,7 +174,7 @@ export function ExpenseBreakdown({
       }
     });
     return Object.entries(categoryData).map(([key, data]) => {
-      const sortedMonths = Object.entries(data.months).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([month]) => MONTH_NAMES[month]?.[lang === 'el' ? 'el' : 'en'] || month);
+      const sortedMonths = Object.entries(data.months).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([month]) => getMonthName(month, lang));
 
       // Calculate total for percentage calculation
       const totalExpenses = Object.values(categoryData).reduce((sum, d) => sum + d.total, 0);
