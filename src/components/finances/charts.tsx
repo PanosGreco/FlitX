@@ -514,7 +514,7 @@ export function CategoryBreakdown({ data, lang = 'en' }: { data: Array<{ name: s
   return (
     <div className="space-y-2 mt-4 pt-4 border-t">
       <h4 className="text-sm font-medium text-muted-foreground mb-3">
-        {lang === 'el' ? 'Κατανομή ανά κατηγορία' : 'Category Breakdown'}
+        Category Breakdown
       </h4>
       <div className="space-y-2">
         {data.map((item, index) => (
