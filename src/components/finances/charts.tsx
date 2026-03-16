@@ -442,7 +442,7 @@ export function PieChart({ financialRecords = [], lang = 'en', timeframe = 'mont
     return data;
   }, [financialRecords, lang, onCategoryData]);
 
-  const currencySymbol = lang === 'el' ? '€' : '$';
+  const currencySymbol = '€';
 
   if (chartData.length === 0) {
     return (
