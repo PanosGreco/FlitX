@@ -15,7 +15,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, startOfWeek, startOfMonth, startOfYear, endOfWeek, endOfMonth, subMonths, endOfDay, min, max, differenceInDays } from "date-fns";
-import { el, enUS } from "date-fns/locale";
+import { getDateFnsLocale, getBcp47Locale } from "@/utils/localeMap";
 
 interface FinancialRecord {
   id: string;
