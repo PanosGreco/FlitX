@@ -131,7 +131,7 @@ export function IncomeBreakdown({
         const normalizedSpec = normalizeSpecification(record.income_source_specification);
         const displaySpec = getDisplaySpecification(record.income_source_specification);
         categoryKey = `${sourceType}_${normalizedSpec}`;
-        const baseLabel = INCOME_SOURCE_LABELS[sourceType]?.[lang === 'el' ? 'el' : 'en'] || sourceType;
+        const baseLabel = getSourceLabel(sourceType);
         displayLabel = `${baseLabel} (${displaySpec})`;
       } else if (sourceType === 'other' && record.income_source_specification) {
         const normalizedSpec = normalizeSpecification(record.income_source_specification);
