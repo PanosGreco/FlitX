@@ -283,7 +283,7 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
     return data;
   }, [financialRecords, timeframe, lang]);
 
-  const currencySymbol = lang === 'el' ? '€' : '$';
+  const currencySymbol = '€';
 
   return (
     <div className="h-80">
