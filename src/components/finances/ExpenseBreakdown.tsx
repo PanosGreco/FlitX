@@ -389,8 +389,7 @@ export function ExpenseBreakdown({
                 <TableRow className="bg-red-600 hover:bg-red-600">
                   <TableHead className="text-white font-semibold w-[70%] px-2 py-1.5 text-xs">
                     <div className="flex flex-col leading-tight">
-                      <span>{lang === 'el' ? 'Κατηγορία' : 'Vehicle'}</span>
-                      <span>{lang === 'el' ? 'Οχήματος' : 'Category'}</span>
+                      <span>{t('finance:vehicleCategory')}</span>
                     </div>
                   </TableHead>
                   <TableHead className="text-right text-white font-semibold w-[30%] px-1 py-1.5 text-xs">
