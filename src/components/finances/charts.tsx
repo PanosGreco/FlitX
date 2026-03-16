@@ -334,7 +334,7 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
     const data = aggregateCumulative(financialRecords, timeframe, lang);
     
     if (data.length === 0 || data.every(d => d.income === 0 && d.expenses === 0)) {
-      return [{ name: lang === 'el' ? 'Δεν υπάρχουν δεδομένα' : 'No data', income: 0, expenses: 0, netIncome: 0 }];
+      return [{ name: '-', income: 0, expenses: 0, netIncome: 0 }];
     }
     
     return data;
