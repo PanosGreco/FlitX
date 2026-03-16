@@ -314,7 +314,7 @@ export function ExpenseBreakdown({
         <div className="flex items-center gap-2 mb-4">
           <TrendingDown className="h-5 w-5 text-red-600" />
           <h2 className="text-lg font-semibold">
-            {lang === 'el' ? 'Ανάλυση Εξόδων' : 'Expense Breakdown'}
+            {t('finance:expenseBreakdown')}
           </h2>
         </div>
         <p className="text-center text-muted-foreground py-6">
