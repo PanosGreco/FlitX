@@ -86,111 +86,26 @@ const getCategoryColor = (key: string, index: number): string => {
 
 // Additional colors for vehicle category breakdown
 const CATEGORY_COLORS = ["#ef4444", "#f97316", "#8b5cf6", "#06b6d4", "#ec4899", "#14b8a6", "#6366f1", "#84cc16"];
-const EXPENSE_CATEGORY_LABELS: Record<string, {
-  en: string;
-  el: string;
-}> = {
-  maintenance: {
-    en: "Vehicle Maintenance",
-    el: "Συντήρηση Οχήματος"
-  },
-  fuel: {
-    en: "Fuel",
-    el: "Καύσιμα"
-  },
-  insurance: {
-    en: "Insurance",
-    el: "Ασφάλεια"
-  },
-  salary: {
-    en: "Salaries",
-    el: "Μισθοί"
-  },
-  tax: {
-    en: "Taxes",
-    el: "Φόροι"
-  },
-  carwash: {
-    en: "Car Wash",
-    el: "Πλύσιμο"
-  },
-  cleaning: {
-    en: "Cleaning",
-    el: "Καθαρισμός"
-  },
-  docking: {
-    en: "Docking Fees",
-    el: "Τέλη Ελλιμενισμού"
-  },
-  licensing: {
-    en: "Licensing",
-    el: "Αδειοδότηση"
-  },
-  marketing: {
-    en: "Marketing",
-    el: "Μάρκετινγκ"
-  },
-  vehicle_parts: {
-    en: "Vehicle Parts",
-    el: "Ανταλλακτικά Οχήματος"
-  },
-  other: {
-    en: "Other",
-    el: "Άλλο"
-  }
+// Maps expense category keys to finance translation keys
+const EXPENSE_CATEGORY_KEYS: Record<string, string> = {
+  maintenance: "vehicleMaintenance",
+  fuel: "fuel",
+  insurance: "insurance",
+  salary: "salaries",
+  tax: "taxesFees",
+  carwash: "carWash",
+  cleaning: "cleaning",
+  docking: "dockingFees",
+  licensing: "licensing",
+  marketing: "marketing",
+  vehicle_parts: "vehicleParts",
+  other: "other"
 };
-const MONTH_NAMES: Record<string, {
-  en: string;
-  el: string;
-}> = {
-  "0": {
-    en: "Jan",
-    el: "Ιαν"
-  },
-  "1": {
-    en: "Feb",
-    el: "Φεβ"
-  },
-  "2": {
-    en: "Mar",
-    el: "Μαρ"
-  },
-  "3": {
-    en: "Apr",
-    el: "Απρ"
-  },
-  "4": {
-    en: "May",
-    el: "Μάι"
-  },
-  "5": {
-    en: "Jun",
-    el: "Ιουν"
-  },
-  "6": {
-    en: "Jul",
-    el: "Ιουλ"
-  },
-  "7": {
-    en: "Aug",
-    el: "Αυγ"
-  },
-  "8": {
-    en: "Sep",
-    el: "Σεπ"
-  },
-  "9": {
-    en: "Oct",
-    el: "Οκτ"
-  },
-  "10": {
-    en: "Nov",
-    el: "Νοε"
-  },
-  "11": {
-    en: "Dec",
-    el: "Δεκ"
-  }
+
+// Helper to get abbreviated month name using date-fns locale
+const getMonthName = (monthIndex: string, lang: string): string => {
+  const date = new Date(2024, parseInt(monthIndex), 1);
+  return format(date, 'MMM', { locale: getDateFnsLocale(lang) });
 };
 export function ExpenseBreakdown({
   financialRecords,
