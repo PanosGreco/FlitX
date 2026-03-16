@@ -3,9 +3,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { TrendingUp, Car, Ship } from "lucide-react";
-import { getMonth } from "date-fns";
+import { getMonth, format } from "date-fns";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { getVehicleCategoryLabel } from "@/constants/vehicleTypes";
+import { useTranslation } from "react-i18next";
+import { getDateFnsLocale, getBcp47Locale } from "@/utils/localeMap";
 interface FinancialRecord {
   id: string;
   type: string;
