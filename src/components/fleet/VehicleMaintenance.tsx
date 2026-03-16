@@ -230,7 +230,7 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
         </div>
         <div className="text-right">
           <div className="text-lg font-semibold">
-            ${Number(record.cost).toFixed(2)}
+            €{Number(record.cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </div>
         </div>
       </div>
