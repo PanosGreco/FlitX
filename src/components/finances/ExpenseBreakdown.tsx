@@ -115,8 +115,14 @@ export function ExpenseBreakdown({
   vehicleProfitRanking = []
 }: ExpenseBreakdownProps) {
   const isBoats = isBoatBusiness();
-  // Always use EUR (€)
+  const { t } = useTranslation(['finance', 'fleet']);
   const currencySymbol = '€';
+
+  // Helper to get expense category label via translation
+  const getCatLabel = (cat: string): string => {
+    const key = EXPENSE_CATEGORY_KEYS[cat];
+    return key ? t(`finance:${key}`) : cat;
+  };
 
   // Records are already filtered by the parent component using calendar-based timeframes
   const filteredRecords = useMemo(() => {
