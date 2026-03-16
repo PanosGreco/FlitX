@@ -465,7 +465,7 @@ export function ExpenseBreakdown({
           {leastProfitableVehicles.length > 0 && <div className="border rounded-lg p-3 bg-card shadow-sm mx-[70px] mt-2">
               <div className="mb-2">
                 <div className="flex items-center gap-1.5 text-xs font-semibold">
-                  <span>{lang === 'el' ? 'Λιγότερο Κερδοφόρα' : 'Least Profitable'}</span>
+                  <span>{t('finance:leastProfitable')}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
                   {lang === 'el' ? 'Βάσει Μ.Ο. Κέρδους/Ημέρα' : 'Based on Avg Profit/Day'}
