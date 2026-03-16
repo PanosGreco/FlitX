@@ -393,7 +393,7 @@ export function ExpenseBreakdown({
                     </div>
                   </TableHead>
                   <TableHead className="text-right text-white font-semibold w-[30%] px-1 py-1.5 text-xs">
-                    {lang === 'el' ? 'Ποσό' : 'Amount'}
+                    {t('finance:amount')}
                   </TableHead>
                 </TableRow>
               </TableHeader>
