@@ -205,7 +205,7 @@ export function ExpenseBreakdown({
         const categoryLabel = getCatLabel('tax');
         label = `${categoryLabel} (${subcategory})`;
       } else {
-        label = EXPENSE_CATEGORY_LABELS[key]?.[lang === 'el' ? 'el' : 'en'] || key;
+        label = getCatLabel(key);
       }
 
       // Format top months with percentages
