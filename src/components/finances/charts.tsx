@@ -505,7 +505,7 @@ export function PieChart({ financialRecords = [], lang = 'en', timeframe = 'mont
 
 // Category breakdown component to display below pie chart
 export function CategoryBreakdown({ data, lang = 'en' }: { data: Array<{ name: string; value: number; amount: number }>; lang?: string }) {
-  const currencySymbol = lang === 'el' ? '€' : '$';
+  const currencySymbol = '€';
   
   if (data.length === 0) {
     return null;
