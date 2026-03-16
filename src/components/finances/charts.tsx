@@ -487,7 +487,7 @@ export function PieChart({ financialRecords = [], lang = 'en', timeframe = 'mont
           />
           <Tooltip 
             formatter={(value: number, name: string, props: any) => [
-              `${value}% (${currencySymbol}${props.payload.amount.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`,
+              `${value}% (€${props.payload.amount.toLocaleString(getBcp47Locale(lang), { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`,
               name
             ]}
             contentStyle={{
