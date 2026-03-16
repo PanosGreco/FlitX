@@ -202,23 +202,11 @@ const aggregateByCategory = (records: FinancialRecord[], lang: string) => {
   const total = Object.values(categoryData).reduce((sum, val) => sum + val, 0);
   
   // Category label translations
-  const categoryLabels: Record<string, { en: string; el: string }> = {
-    fuel: { en: 'Fuel', el: 'Καύσιμα' },
-    maintenance: { en: 'Maintenance', el: 'Συντήρηση' },
-    carwash: { en: 'Car Wash', el: 'Πλύσιμο' },
-    insurance: { en: 'Insurance', el: 'Ασφάλεια' },
-    tax: { en: 'Taxes', el: 'Φόροι' },
-    salary: { en: 'Salaries', el: 'Μισθοί' },
-    cleaning: { en: 'Cleaning', el: 'Καθαρισμός' },
-    docking: { en: 'Docking', el: 'Ελλιμενισμός' },
-    licensing: { en: 'Licensing', el: 'Αδειοδότηση' },
-    other: { en: 'Other', el: 'Άλλο' },
-    sales: { en: 'Sales', el: 'Πωλήσεις' }
-  };
-  
+  // Category labels are now handled via translation - use raw category name
+  // The parent component should pass translated labels
   return Object.entries(categoryData)
     .map(([name, value]) => ({
-      name: categoryLabels[name]?.[lang === 'el' ? 'el' : 'en'] || name.charAt(0).toUpperCase() + name.slice(1),
+      name: name.charAt(0).toUpperCase() + name.slice(1),
       value: Math.round((value / total) * 100),
       amount: value,
       rawName: name
