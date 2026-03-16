@@ -468,7 +468,7 @@ export function ExpenseBreakdown({
                   <span>{t('finance:leastProfitable')}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {lang === 'el' ? 'Βάσει Μ.Ο. Κέρδους/Ημέρα' : 'Based on Avg Profit/Day'}
+                  {t('finance:basedOnAvgProfit')}
                 </p>
               </div>
               <div className="space-y-1">
