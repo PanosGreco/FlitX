@@ -337,5 +337,9 @@
   "depYears": "{{count}} yrs",
   "depYearsMonths": "{{years}} yrs, {{months}} mo",
   "depNew": "New",
-  "depYearsOld": "{{count}} yrs old"
+  "depYearsOld": "{{count}} yrs old",
+  "fuel_petrol": "Petrol",
+  "fuel_diesel": "Diesel",
+  "fuel_electric": "Electric",
+  "fuel_hybrid": "Hybrid"
 }
