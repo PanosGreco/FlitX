@@ -126,7 +126,7 @@ export function IncomeBreakdown({
         }
         const normalizedKey = costName.toLowerCase().replace(/\s+/g, '_');
         categoryKey = `additional_${normalizedKey}`;
-        displayLabel = `${costName} (${lang === 'el' ? 'Επιπλέον' : 'Additional Cost'})`;
+        displayLabel = `${costName} (${t('additionalCost')})`;
       } else if (sourceType === 'collaboration' && record.income_source_specification) {
         const normalizedSpec = normalizeSpecification(record.income_source_specification);
         const displaySpec = getDisplaySpecification(record.income_source_specification);
