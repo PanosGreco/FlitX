@@ -332,5 +332,15 @@
   "booking_needsRepair": "En Réparation",
   "booking_car": "Voiture",
   "booking_motorbike": "Moto",
-  "booking_petrol": "Essence"
+  "booking_petrol": "Essence",
+  "depLessThanMonth": "< 1 mois",
+  "depMonths": "{{count}} mois",
+  "depYears": "{{count}} ans",
+  "depYearsMonths": "{{years}} ans, {{months}} mois",
+  "depNew": "Neuf",
+  "depYearsOld": "{{count}} ans",
+  "fuel_petrol": "Essence",
+  "fuel_diesel": "Diesel",
+  "fuel_electric": "Électrique",
+  "fuel_hybrid": "Hybride"
 }

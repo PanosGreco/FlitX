@@ -153,7 +153,6 @@ export function calculateUsageDepreciation(inputs: DepreciationInputs): Deprecia
   }
 
   // Calculate vehicle age from MODEL YEAR (not purchase date)
-  // This is the key fix: depreciation follows market age, not ownership duration
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
@@ -220,25 +219,38 @@ export function calculateUsageDepreciation(inputs: DepreciationInputs): Deprecia
 }
 
 /**
- * Format years as a human-readable string
+ * Format years as a human-readable string.
+ * Accepts a t() function for i18n support.
  */
-export function formatYearsOwned(years: number, language: string = 'en'): string {
-  if (years < 1 / 12) {
-    return language === 'el' ? '< 1 μήνας' : '< 1 month';
+export function formatYearsOwned(
+  years: number,
+  language: string = 'en',
+  t?: (key: string, options?: Record<string, unknown>) => string
+): string {
+  if (t) {
+    if (years < 1 / 12) return t('fleet:depLessThanMonth');
+    if (years < 1) {
+      const months = Math.round(years * 12);
+      return t('fleet:depMonths', { count: months });
+    }
+    const wholeYears = Math.floor(years);
+    const remainingMonths = Math.round((years - wholeYears) * 12);
+    if (remainingMonths === 0) {
+      return t('fleet:depYears', { count: wholeYears });
+    }
+    return t('fleet:depYearsMonths', { years: wholeYears, months: remainingMonths });
   }
+
+  // Fallback without t()
+  if (years < 1 / 12) return '< 1 month';
   if (years < 1) {
     const months = Math.round(years * 12);
-    return language === 'el' ? `${months} μήνες` : `${months} month${months !== 1 ? 's' : ''}`;
+    return `${months} month${months !== 1 ? 's' : ''}`;
   }
   const wholeYears = Math.floor(years);
   const remainingMonths = Math.round((years - wholeYears) * 12);
-  
   if (remainingMonths === 0) {
-    return language === 'el' ? `${wholeYears} έτη` : `${wholeYears} yr${wholeYears !== 1 ? 's' : ''}`;
-  }
-  
-  if (language === 'el') {
-    return `${wholeYears} έτη, ${remainingMonths} μήνες`;
+    return `${wholeYears} yr${wholeYears !== 1 ? 's' : ''}`;
   }
   return `${wholeYears} yr${wholeYears !== 1 ? 's' : ''}, ${remainingMonths} mo`;
 }
@@ -246,10 +258,17 @@ export function formatYearsOwned(years: number, language: string = 'en'): string
 /**
  * Format vehicle age as a human-readable string
  */
-export function formatVehicleAge(years: number, language: string = 'en'): string {
+export function formatVehicleAge(
+  years: number,
+  language: string = 'en',
+  t?: (key: string, options?: Record<string, unknown>) => string
+): string {
   const wholeYears = Math.floor(years);
-  if (wholeYears === 0) {
-    return language === 'el' ? 'Νέο' : 'New';
+  if (t) {
+    if (wholeYears === 0) return t('fleet:depNew');
+    return t('fleet:depYearsOld', { count: wholeYears });
   }
-  return language === 'el' ? `${wholeYears} ετών` : `${wholeYears} yr${wholeYears !== 1 ? 's' : ''} old`;
+  // Fallback
+  if (wholeYears === 0) return 'New';
+  return `${wholeYears} yr${wholeYears !== 1 ? 's' : ''} old`;
 }

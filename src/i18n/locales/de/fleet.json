@@ -332,5 +332,15 @@
   "booking_needsRepair": "Reparatur nötig",
   "booking_car": "Auto",
   "booking_motorbike": "Motorrad",
-  "booking_petrol": "Benzin"
+  "booking_petrol": "Benzin",
+  "depLessThanMonth": "< 1 Monat",
+  "depMonths": "{{count}} Monate",
+  "depYears": "{{count}} Jahre",
+  "depYearsMonths": "{{years}} Jahre, {{months}} Monate",
+  "depNew": "Neu",
+  "depYearsOld": "{{count}} Jahre alt",
+  "fuel_petrol": "Benzin",
+  "fuel_diesel": "Diesel",
+  "fuel_electric": "Elektrisch",
+  "fuel_hybrid": "Hybrid"
 }

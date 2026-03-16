@@ -3,9 +3,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { TrendingUp, Car, Ship } from "lucide-react";
-import { getMonth } from "date-fns";
+import { getMonth, format } from "date-fns";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { getVehicleCategoryLabel } from "@/constants/vehicleTypes";
+import { useTranslation } from "react-i18next";
+import { getDateFnsLocale, getBcp47Locale } from "@/utils/localeMap";
 interface FinancialRecord {
   id: string;
   type: string;
@@ -42,83 +44,18 @@ interface IncomeBreakdownProps {
 const COLORS = ["#3b82f6", "#22c55e", "#f97316", "#8b5cf6", "#ef4444"];
 // Additional colors for category breakdown
 const CATEGORY_COLORS = ["#10b981", "#06b6d4", "#8b5cf6", "#f59e0b", "#ec4899", "#14b8a6", "#6366f1", "#84cc16"];
-const INCOME_SOURCE_LABELS: Record<string, {
-  en: string;
-  el: string;
-}> = {
-  walk_in: {
-    en: "Direct Booking",
-    el: "Απευθείας Κράτηση"
-  },
-  collaboration: {
-    en: "Collaboration",
-    el: "Συνεργασία"
-  },
-  other: {
-    en: "Other",
-    el: "Άλλο"
-  },
-  booking: {
-    en: "Booking",
-    el: "Κράτηση"
-  },
-  sales: {
-    en: "Sales",
-    el: "Πωλήσεις"
-  }
+const INCOME_SOURCE_KEYS: Record<string, string> = {
+  walk_in: "directBooking",
+  collaboration: "collaboration",
+  other: "other",
+  booking: "rental",
+  sales: "sales"
 };
-const MONTH_NAMES: Record<string, {
-  en: string;
-  el: string;
-}> = {
-  "0": {
-    en: "Jan",
-    el: "Ιαν"
-  },
-  "1": {
-    en: "Feb",
-    el: "Φεβ"
-  },
-  "2": {
-    en: "Mar",
-    el: "Μαρ"
-  },
-  "3": {
-    en: "Apr",
-    el: "Απρ"
-  },
-  "4": {
-    en: "May",
-    el: "Μάι"
-  },
-  "5": {
-    en: "Jun",
-    el: "Ιουν"
-  },
-  "6": {
-    en: "Jul",
-    el: "Ιουλ"
-  },
-  "7": {
-    en: "Aug",
-    el: "Αυγ"
-  },
-  "8": {
-    en: "Sep",
-    el: "Σεπ"
-  },
-  "9": {
-    en: "Oct",
-    el: "Οκτ"
-  },
-  "10": {
-    en: "Nov",
-    el: "Νοε"
-  },
-  "11": {
-    en: "Dec",
-    el: "Δεκ"
-  }
+
+// Helper to get abbreviated month name using date-fns locale
+const getMonthName = (monthIndex: string, lang: string): string => {
+  const date = new Date(2024, parseInt(monthIndex), 1);
+  return format(date, 'MMM', { locale: getDateFnsLocale(lang) });
 };
 export function IncomeBreakdown({
   financialRecords,
@@ -128,8 +65,14 @@ export function IncomeBreakdown({
   vehicleProfitRanking = []
 }: IncomeBreakdownProps) {
   const isBoats = isBoatBusiness();
-  // Always use EUR (€)
+  const { t } = useTranslation('finance');
   const currencySymbol = '€';
+
+  // Helper to get source label via translation
+  const getSourceLabel = (sourceType: string): string => {
+    const key = INCOME_SOURCE_KEYS[sourceType];
+    return key ? t(key) : sourceType;
+  };
 
   // Records are already filtered by the parent component using calendar-based timeframes
   const filteredRecords = useMemo(() => {
@@ -183,12 +126,12 @@ export function IncomeBreakdown({
         }
         const normalizedKey = costName.toLowerCase().replace(/\s+/g, '_');
         categoryKey = `additional_${normalizedKey}`;
-        displayLabel = `${costName} (${lang === 'el' ? 'Επιπλέον' : 'Additional Cost'})`;
+        displayLabel = `${costName} (${t('additionalCost')})`;
       } else if (sourceType === 'collaboration' && record.income_source_specification) {
         const normalizedSpec = normalizeSpecification(record.income_source_specification);
         const displaySpec = getDisplaySpecification(record.income_source_specification);
         categoryKey = `${sourceType}_${normalizedSpec}`;
-        const baseLabel = INCOME_SOURCE_LABELS[sourceType]?.[lang === 'el' ? 'el' : 'en'] || sourceType;
+        const baseLabel = getSourceLabel(sourceType);
         displayLabel = `${baseLabel} (${displaySpec})`;
       } else if (sourceType === 'other' && record.income_source_specification) {
         const normalizedSpec = normalizeSpecification(record.income_source_specification);
@@ -197,7 +140,7 @@ export function IncomeBreakdown({
         displayLabel = displaySpec;
       } else {
         categoryKey = sourceType;
-        displayLabel = INCOME_SOURCE_LABELS[sourceType]?.[lang === 'el' ? 'el' : 'en'] || sourceType;
+        displayLabel = getSourceLabel(sourceType);
       }
       if (!sourceData[categoryKey]) {
         sourceData[categoryKey] = {
@@ -213,12 +156,12 @@ export function IncomeBreakdown({
     // Calculate total for percentage calculation
     const totalIncome = Object.values(sourceData).reduce((sum, d) => sum + d.total, 0);
     return Object.entries(sourceData).map(([key, data]) => {
-      const sortedMonths = Object.entries(data.months).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([month]) => MONTH_NAMES[month]?.[lang === 'el' ? 'el' : 'en'] || month);
+      const sortedMonths = Object.entries(data.months).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([month]) => getMonthName(month, lang));
 
       // Format top months with percentages
       const sortedMonthsWithPercentages = Object.entries(data.months).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([month, amount]) => {
         const percentage = totalIncome > 0 ? Math.round(amount / totalIncome * 100) : 0;
-        const monthName = MONTH_NAMES[month]?.[lang === 'el' ? 'el' : 'en'] || month;
+        const monthName = getMonthName(month, lang);
         return {
           monthName,
           percentage
@@ -259,7 +202,7 @@ export function IncomeBreakdown({
     return [
       ...majorSlices,
       {
-        name: lang === 'el' ? 'Άλλο (<5%)' : 'Other (<5%)',
+        name: t('otherLessThan5'),
         value: otherValue,
         amount: otherAmount,
         color: dominantMinor.color,
@@ -320,11 +263,11 @@ export function IncomeBreakdown({
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="h-5 w-5 text-green-600" />
           <h2 className="text-lg font-semibold">
-            {lang === 'el' ? 'Ανάλυση Εσόδων' : 'Income Breakdown'}
+            {t('incomeBreakdown')}
           </h2>
         </div>
         <p className="text-center text-muted-foreground py-6">
-          {lang === 'el' ? 'Δεν υπάρχουν έσοδα για αυτή την περίοδο' : 'No income records for this period'}
+          {t('noIncome')}
         </p>
       </Card>;
   }
@@ -333,7 +276,7 @@ export function IncomeBreakdown({
       <div className="flex items-center gap-2 mb-4">
         <TrendingUp className="h-5 w-5 text-green-600" />
         <h2 className="text-lg font-semibold">
-          {lang === 'el' ? 'Ανάλυση Εσόδων' : 'Income Breakdown'}
+          {t('incomeBreakdown')}
         </h2>
       </div>
 
@@ -346,13 +289,13 @@ export function IncomeBreakdown({
               <TableHeader>
                 <TableRow className="bg-primary hover:bg-primary">
                   <TableHead className="text-primary-foreground font-semibold w-[45%] px-2 py-1.5 text-xs">
-                    {lang === 'el' ? 'Πηγή' : 'Source'}
+                    {t('source')}
                   </TableHead>
                   <TableHead className="text-right text-primary-foreground font-semibold w-[25%] px-1 py-1.5 text-xs">
-                    {lang === 'el' ? 'Σύνολο' : 'Total'}
+                    {t('total')}
                   </TableHead>
                   <TableHead className="text-right text-primary-foreground font-semibold hidden sm:table-cell w-[30%] px-1 py-1.5 text-xs">
-                    {lang === 'el' ? 'Top Μήνες' : 'Top Mo.'}
+                    {t('topMonths')}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -395,12 +338,11 @@ export function IncomeBreakdown({
                 <TableRow className="bg-emerald-600 hover:bg-emerald-600">
                   <TableHead className="text-white font-semibold w-[70%] px-2 py-1.5 text-xs">
                     <div className="flex flex-col leading-tight">
-                      <span>{lang === 'el' ? 'Κατηγορία' : 'Vehicle'}</span>
-                      <span>{lang === 'el' ? 'Οχήματος' : 'Category'}</span>
+                      <span>{t('vehicleCategory')}</span>
                     </div>
                   </TableHead>
                   <TableHead className="text-right text-white font-semibold w-[30%] px-1 py-1.5 text-xs">
-                    {lang === 'el' ? 'Ποσό' : 'Amount'}
+                    {t('amount')}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -418,7 +360,7 @@ export function IncomeBreakdown({
                       </TableCell>
                     </TableRow>) : <TableRow>
                     <TableCell colSpan={2} className="text-center text-muted-foreground text-xs py-3">
-                      {lang === 'el' ? 'Δεν υπάρχουν δεδομένα' : 'No data'}
+                      {t('noData')}
                     </TableCell>
                   </TableRow>}
               </TableBody>
@@ -472,10 +414,10 @@ export function IncomeBreakdown({
           {topVehicles.length > 0 && <div className="border rounded-lg p-3 bg-card shadow-sm mx-[70px] mt-2">
               <div className="mb-2">
                 <div className="flex items-center gap-1.5 text-xs font-semibold">
-                  <span>{lang === 'el' ? 'Κερδοφόρα Οχήματα' : 'Most Profitable'}</span>
+                  <span>{t('mostProfitable')}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {lang === 'el' ? 'Βάσει Μ.Ο. Κέρδους/Ημέρα' : 'Based on Avg Profit/Day'}
+                  {t('basedOnAvgProfit')}
                 </p>
               </div>
               <div className="space-y-1">

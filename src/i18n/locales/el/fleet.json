@@ -331,5 +331,15 @@
   "booking_needsRepair": "Χρειάζεται Επισκευή",
   "booking_car": "Αυτοκίνητο",
   "booking_motorbike": "Μηχανή",
-  "booking_petrol": "Βενζίνη"
+  "booking_petrol": "Βενζίνη",
+  "depLessThanMonth": "< 1 μήνας",
+  "depMonths": "{{count}} μήνες",
+  "depYears": "{{count}} έτη",
+  "depYearsMonths": "{{years}} έτη, {{months}} μήνες",
+  "depNew": "Νέο",
+  "depYearsOld": "{{count}} ετών",
+  "fuel_petrol": "Βενζίνη",
+  "fuel_diesel": "Diesel",
+  "fuel_electric": "Ηλεκτρικό",
+  "fuel_hybrid": "Υβριδικό"
 }

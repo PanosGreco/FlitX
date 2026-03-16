@@ -8,15 +8,10 @@ import { ComputedStatus } from "@/hooks/useVehicleStatus";
 import { getVehicleCategoryLabel } from "@/constants/vehicleTypes";
 import { getTransmissionTypeLabel } from "@/constants/transmissionTypes";
 
-const FUEL_TYPE_LABELS: Record<string, { en: string; el: string }> = {
-  petrol: { en: "Petrol", el: "Βενζίνη" },
-  diesel: { en: "Diesel", el: "Diesel" },
-  electric: { en: "Electric", el: "Ηλεκτρικό" },
-  hybrid: { en: "Hybrid", el: "Υβριδικό" },
-};
-
-const getFuelTypeLabel = (fuelType: string, lang: string) => {
-  return FUEL_TYPE_LABELS[fuelType]?.[lang === 'el' ? 'el' : 'en'] || fuelType;
+const getFuelTypeLabel = (fuelType: string, t: (key: string) => string) => {
+  const key = `fleet:fuel_${fuelType}`;
+  const label = t(key);
+  return label !== key ? label : fuelType;
 };
 
 export interface VehicleData {
@@ -46,7 +41,7 @@ interface VehicleCardProps {
 }
 
 export function VehicleCard({ vehicle, computedStatus }: VehicleCardProps) {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation(['common', 'fleet']);
   const { language } = useLanguage();
 
   const displayStatus = computedStatus || vehicle.status;
@@ -97,7 +92,7 @@ export function VehicleCard({ vehicle, computedStatus }: VehicleCardProps) {
         
         <div className="mt-1 text-sm text-flitx-gray-500">
           {getVehicleCategoryLabel(vehicle.type, language)} • {vehicle.licensePlate}
-          {vehicle.fuelType ? ` • ${getFuelTypeLabel(vehicle.fuelType, language)}` : ''}
+          {vehicle.fuelType ? ` • ${getFuelTypeLabel(vehicle.fuelType, t)}` : ''}
           {vehicle.transmissionType ? ` • ${getTransmissionTypeLabel(vehicle.transmissionType, language)}` : ''}
           {vehicle.passengerCapacity ? ` • ${vehicle.passengerCapacity >= 7 ? '7+' : vehicle.passengerCapacity} ${t('people')}` : ''}
         </div>

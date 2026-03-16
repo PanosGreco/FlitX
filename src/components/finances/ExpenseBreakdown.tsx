@@ -3,10 +3,12 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { TrendingDown, Car, Ship } from "lucide-react";
-import { getMonth } from "date-fns";
+import { getMonth, format } from "date-fns";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { getMaintenanceTypeLabel } from "@/constants/maintenanceTypes";
 import { getVehicleCategoryLabel } from "@/constants/vehicleTypes";
+import { useTranslation } from "react-i18next";
+import { getDateFnsLocale, getBcp47Locale } from "@/utils/localeMap";
 interface FinancialRecord {
   id: string;
   type: string;
@@ -28,30 +30,11 @@ interface Vehicle {
   type?: string; // vehicle category (suv, sedan, etc.)
   vehicle_type?: string; // top-level type (car, motorbike, atv)
 }
-const FUEL_TYPE_LABELS: Record<string, {
-  en: string;
-  el: string;
-}> = {
-  petrol: {
-    en: "Petrol",
-    el: "Βενζίνη"
-  },
-  diesel: {
-    en: "Diesel",
-    el: "Diesel"
-  },
-  electric: {
-    en: "Electric",
-    el: "Ηλεκτρικό"
-  },
-  hybrid: {
-    en: "Hybrid",
-    el: "Υβριδικό"
-  }
-};
-const getFuelTypeLabel = (fuelType: string | null | undefined, lang: string) => {
+const getFuelTypeLabel = (fuelType: string | null | undefined, t: (key: string) => string) => {
   if (!fuelType) return '–';
-  return FUEL_TYPE_LABELS[fuelType]?.[lang === 'el' ? 'el' : 'en'] || fuelType;
+  const key = `fleet:fuel_${fuelType}`;
+  const label = t(key);
+  return label !== key ? label : fuelType;
 };
 interface VehicleProfitRank {
   id: string;
@@ -103,111 +86,26 @@ const getCategoryColor = (key: string, index: number): string => {
 
 // Additional colors for vehicle category breakdown
 const CATEGORY_COLORS = ["#ef4444", "#f97316", "#8b5cf6", "#06b6d4", "#ec4899", "#14b8a6", "#6366f1", "#84cc16"];
-const EXPENSE_CATEGORY_LABELS: Record<string, {
-  en: string;
-  el: string;
-}> = {
-  maintenance: {
-    en: "Vehicle Maintenance",
-    el: "Συντήρηση Οχήματος"
-  },
-  fuel: {
-    en: "Fuel",
-    el: "Καύσιμα"
-  },
-  insurance: {
-    en: "Insurance",
-    el: "Ασφάλεια"
-  },
-  salary: {
-    en: "Salaries",
-    el: "Μισθοί"
-  },
-  tax: {
-    en: "Taxes",
-    el: "Φόροι"
-  },
-  carwash: {
-    en: "Car Wash",
-    el: "Πλύσιμο"
-  },
-  cleaning: {
-    en: "Cleaning",
-    el: "Καθαρισμός"
-  },
-  docking: {
-    en: "Docking Fees",
-    el: "Τέλη Ελλιμενισμού"
-  },
-  licensing: {
-    en: "Licensing",
-    el: "Αδειοδότηση"
-  },
-  marketing: {
-    en: "Marketing",
-    el: "Μάρκετινγκ"
-  },
-  vehicle_parts: {
-    en: "Vehicle Parts",
-    el: "Ανταλλακτικά Οχήματος"
-  },
-  other: {
-    en: "Other",
-    el: "Άλλο"
-  }
+// Maps expense category keys to finance translation keys
+const EXPENSE_CATEGORY_KEYS: Record<string, string> = {
+  maintenance: "vehicleMaintenance",
+  fuel: "fuel",
+  insurance: "insurance",
+  salary: "salaries",
+  tax: "taxesFees",
+  carwash: "carWash",
+  cleaning: "cleaning",
+  docking: "dockingFees",
+  licensing: "licensing",
+  marketing: "marketing",
+  vehicle_parts: "vehicleParts",
+  other: "other"
 };
-const MONTH_NAMES: Record<string, {
-  en: string;
-  el: string;
-}> = {
-  "0": {
-    en: "Jan",
-    el: "Ιαν"
-  },
-  "1": {
-    en: "Feb",
-    el: "Φεβ"
-  },
-  "2": {
-    en: "Mar",
-    el: "Μαρ"
-  },
-  "3": {
-    en: "Apr",
-    el: "Απρ"
-  },
-  "4": {
-    en: "May",
-    el: "Μάι"
-  },
-  "5": {
-    en: "Jun",
-    el: "Ιουν"
-  },
-  "6": {
-    en: "Jul",
-    el: "Ιουλ"
-  },
-  "7": {
-    en: "Aug",
-    el: "Αυγ"
-  },
-  "8": {
-    en: "Sep",
-    el: "Σεπ"
-  },
-  "9": {
-    en: "Oct",
-    el: "Οκτ"
-  },
-  "10": {
-    en: "Nov",
-    el: "Νοε"
-  },
-  "11": {
-    en: "Dec",
-    el: "Δεκ"
-  }
+
+// Helper to get abbreviated month name using date-fns locale
+const getMonthName = (monthIndex: string, lang: string): string => {
+  const date = new Date(2024, parseInt(monthIndex), 1);
+  return format(date, 'MMM', { locale: getDateFnsLocale(lang) });
 };
 export function ExpenseBreakdown({
   financialRecords,
@@ -217,8 +115,14 @@ export function ExpenseBreakdown({
   vehicleProfitRanking = []
 }: ExpenseBreakdownProps) {
   const isBoats = isBoatBusiness();
-  // Always use EUR (€)
+  const { t } = useTranslation(['finance', 'fleet']);
   const currencySymbol = '€';
+
+  // Helper to get expense category label via translation
+  const getCatLabel = (cat: string): string => {
+    const key = EXPENSE_CATEGORY_KEYS[cat];
+    return key ? t(`finance:${key}`) : cat;
+  };
 
   // Records are already filtered by the parent component using calendar-based timeframes
   const filteredRecords = useMemo(() => {
@@ -270,7 +174,7 @@ export function ExpenseBreakdown({
       }
     });
     return Object.entries(categoryData).map(([key, data]) => {
-      const sortedMonths = Object.entries(data.months).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([month]) => MONTH_NAMES[month]?.[lang === 'el' ? 'el' : 'en'] || month);
+      const sortedMonths = Object.entries(data.months).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([month]) => getMonthName(month, lang));
 
       // Calculate total for percentage calculation
       const totalExpenses = Object.values(categoryData).reduce((sum, d) => sum + d.total, 0);
@@ -280,7 +184,7 @@ export function ExpenseBreakdown({
       if (key.startsWith('maintenance_')) {
         const subcategory = key.replace('maintenance_', '');
         const maintenanceLabel = getMaintenanceTypeLabel(subcategory, lang);
-        const categoryLabel = EXPENSE_CATEGORY_LABELS['maintenance']?.[lang === 'el' ? 'el' : 'en'] || 'Vehicle Maintenance';
+        const categoryLabel = getCatLabel('maintenance');
         // If label equals the key, it's a custom type - show the raw name
         const displaySubcat = maintenanceLabel === subcategory ? subcategory : maintenanceLabel;
         label = `${categoryLabel} (${displaySubcat})`;
@@ -290,24 +194,24 @@ export function ExpenseBreakdown({
         label = subcategory.charAt(0).toUpperCase() + subcategory.slice(1);
       } else if (key.startsWith('marketing_')) {
         const subcategory = key.replace('marketing_', '');
-        const categoryLabel = EXPENSE_CATEGORY_LABELS['marketing']?.[lang === 'el' ? 'el' : 'en'] || 'Marketing';
+        const categoryLabel = getCatLabel('marketing');
         label = `${categoryLabel} (${subcategory})`;
       } else if (key.startsWith('vehicle_parts_')) {
         const subcategory = key.replace('vehicle_parts_', '');
-        const categoryLabel = EXPENSE_CATEGORY_LABELS['vehicle_parts']?.[lang === 'el' ? 'el' : 'en'] || 'Vehicle Parts';
+        const categoryLabel = getCatLabel('vehicle_parts');
         label = `${categoryLabel} (${subcategory})`;
       } else if (key.startsWith('tax_')) {
         const subcategory = key.replace('tax_', '');
-        const categoryLabel = EXPENSE_CATEGORY_LABELS['tax']?.[lang === 'el' ? 'el' : 'en'] || 'Taxes';
+        const categoryLabel = getCatLabel('tax');
         label = `${categoryLabel} (${subcategory})`;
       } else {
-        label = EXPENSE_CATEGORY_LABELS[key]?.[lang === 'el' ? 'el' : 'en'] || key;
+        label = getCatLabel(key);
       }
 
       // Format top months with percentages
       const sortedMonthsWithPercentages = Object.entries(data.months).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([month, amount]) => {
         const percentage = totalExpenses > 0 ? Math.round(amount / totalExpenses * 100) : 0;
-        const monthName = MONTH_NAMES[month]?.[lang === 'el' ? 'el' : 'en'] || month;
+        const monthName = getMonthName(month, lang);
         return {
           monthName,
           percentage
@@ -348,7 +252,7 @@ export function ExpenseBreakdown({
     return [
       ...majorSlices,
       {
-        name: lang === 'el' ? 'Άλλο (<5%)' : 'Other (<5%)',
+        name: t('finance:otherLessThan5'),
         value: otherValue,
         amount: otherAmount,
         key: 'other_grouped',
@@ -410,11 +314,11 @@ export function ExpenseBreakdown({
         <div className="flex items-center gap-2 mb-4">
           <TrendingDown className="h-5 w-5 text-red-600" />
           <h2 className="text-lg font-semibold">
-            {lang === 'el' ? 'Ανάλυση Εξόδων' : 'Expense Breakdown'}
+            {t('finance:expenseBreakdown')}
           </h2>
         </div>
         <p className="text-center text-muted-foreground py-6">
-          {lang === 'el' ? 'Δεν υπάρχουν έξοδα για αυτή την περίοδο' : 'No expense records for this period'}
+          {t('finance:noExpenses')}
         </p>
       </Card>;
   }
@@ -423,7 +327,7 @@ export function ExpenseBreakdown({
       <div className="flex items-center gap-2 mb-4">
         <TrendingDown className="h-5 w-5 text-red-600" />
         <h2 className="text-lg font-semibold">
-          {lang === 'el' ? 'Ανάλυση Εξόδων' : 'Expense Breakdown'}
+          {t('finance:expenseBreakdown')}
         </h2>
       </div>
 
@@ -436,13 +340,13 @@ export function ExpenseBreakdown({
               <TableHeader>
                 <TableRow className="bg-primary hover:bg-primary">
                   <TableHead className="text-primary-foreground font-semibold w-[45%] px-2 py-1.5 text-xs">
-                    {lang === 'el' ? 'Κατηγορία' : 'Category'}
+                    {t('finance:category')}
                   </TableHead>
                   <TableHead className="text-right text-primary-foreground font-semibold w-[25%] px-1 py-1.5 text-xs">
-                    {lang === 'el' ? 'Σύνολο' : 'Total'}
+                    {t('finance:total')}
                   </TableHead>
                   <TableHead className="text-right text-primary-foreground font-semibold hidden sm:table-cell w-[30%] px-1 py-1.5 text-xs">
-                    {lang === 'el' ? 'Top Μήνες' : 'Top Mo.'}
+                    {t('finance:topMonths')}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -485,12 +389,11 @@ export function ExpenseBreakdown({
                 <TableRow className="bg-red-600 hover:bg-red-600">
                   <TableHead className="text-white font-semibold w-[70%] px-2 py-1.5 text-xs">
                     <div className="flex flex-col leading-tight">
-                      <span>{lang === 'el' ? 'Κατηγορία' : 'Vehicle'}</span>
-                      <span>{lang === 'el' ? 'Οχήματος' : 'Category'}</span>
+                      <span>{t('finance:vehicleCategory')}</span>
                     </div>
                   </TableHead>
                   <TableHead className="text-right text-white font-semibold w-[30%] px-1 py-1.5 text-xs">
-                    {lang === 'el' ? 'Ποσό' : 'Amount'}
+                    {t('finance:amount')}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -508,7 +411,7 @@ export function ExpenseBreakdown({
                       </TableCell>
                     </TableRow>) : <TableRow>
                     <TableCell colSpan={2} className="text-center text-muted-foreground text-xs py-3">
-                      {lang === 'el' ? 'Δεν υπάρχουν δεδομένα' : 'No data'}
+                      {t('finance:noData')}
                     </TableCell>
                   </TableRow>}
               </TableBody>
@@ -562,10 +465,10 @@ export function ExpenseBreakdown({
           {leastProfitableVehicles.length > 0 && <div className="border rounded-lg p-3 bg-card shadow-sm mx-[70px] mt-2">
               <div className="mb-2">
                 <div className="flex items-center gap-1.5 text-xs font-semibold">
-                  <span>{lang === 'el' ? 'Λιγότερο Κερδοφόρα' : 'Least Profitable'}</span>
+                  <span>{t('finance:leastProfitable')}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {lang === 'el' ? 'Βάσει Μ.Ο. Κέρδους/Ημέρα' : 'Based on Avg Profit/Day'}
+                  {t('finance:basedOnAvgProfit')}
                 </p>
               </div>
               <div className="space-y-1">

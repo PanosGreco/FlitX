@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { enUS, el } from "date-fns/locale";
+import { getDateFnsLocale } from "./localeMap";
 
 /**
  * Format a date to European format (DD/MM/YYYY)
@@ -22,7 +22,7 @@ export function formatDateTimeEuropean(date: Date | string): string {
  */
 export function formatDateShortEuropean(date: Date | string, language: string = "en"): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  return format(d, "dd MMM yyyy", { locale: language === "el" ? el : enUS });
+  return format(d, "dd MMM yyyy", { locale: getDateFnsLocale(language) });
 }
 
 /**
@@ -30,7 +30,7 @@ export function formatDateShortEuropean(date: Date | string, language: string = 
  */
 export function formatDateLongEuropean(date: Date | string, language: string = "en"): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  return format(d, "d MMMM yyyy", { locale: language === "el" ? el : enUS });
+  return format(d, "d MMMM yyyy", { locale: getDateFnsLocale(language) });
 }
 
 /**
@@ -38,7 +38,7 @@ export function formatDateLongEuropean(date: Date | string, language: string = "
  */
 export function formatMonthYear(date: Date | string, language: string = "en"): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  return format(d, "MMMM yyyy", { locale: language === "el" ? el : enUS });
+  return format(d, "MMMM yyyy", { locale: getDateFnsLocale(language) });
 }
 
 /**

@@ -15,7 +15,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { format, eachDayOfInterval, eachWeekOfInterval, eachMonthOfInterval, startOfWeek, startOfMonth, startOfYear, endOfWeek, endOfMonth, subMonths, endOfDay, min, max, differenceInDays } from "date-fns";
-import { el, enUS } from "date-fns/locale";
+import { getDateFnsLocale, getBcp47Locale } from "@/utils/localeMap";
 
 interface FinancialRecord {
   id: string;
@@ -37,7 +37,7 @@ const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82ca9d"
 // Generate time buckets based on timeframe - now using calendar-based logic
 const getTimeBuckets = (timeframe: string, lang: string, records: FinancialRecord[]) => {
   const now = new Date();
-  const locale = lang === 'el' ? el : enUS;
+  const locale = getDateFnsLocale(lang);
   
   let startDate: Date;
   let endDate = endOfDay(now);
@@ -202,23 +202,11 @@ const aggregateByCategory = (records: FinancialRecord[], lang: string) => {
   const total = Object.values(categoryData).reduce((sum, val) => sum + val, 0);
   
   // Category label translations
-  const categoryLabels: Record<string, { en: string; el: string }> = {
-    fuel: { en: 'Fuel', el: 'Καύσιμα' },
-    maintenance: { en: 'Maintenance', el: 'Συντήρηση' },
-    carwash: { en: 'Car Wash', el: 'Πλύσιμο' },
-    insurance: { en: 'Insurance', el: 'Ασφάλεια' },
-    tax: { en: 'Taxes', el: 'Φόροι' },
-    salary: { en: 'Salaries', el: 'Μισθοί' },
-    cleaning: { en: 'Cleaning', el: 'Καθαρισμός' },
-    docking: { en: 'Docking', el: 'Ελλιμενισμός' },
-    licensing: { en: 'Licensing', el: 'Αδειοδότηση' },
-    other: { en: 'Other', el: 'Άλλο' },
-    sales: { en: 'Sales', el: 'Πωλήσεις' }
-  };
-  
+  // Category labels are now handled via translation - use raw category name
+  // The parent component should pass translated labels
   return Object.entries(categoryData)
     .map(([name, value]) => ({
-      name: categoryLabels[name]?.[lang === 'el' ? 'el' : 'en'] || name.charAt(0).toUpperCase() + name.slice(1),
+      name: name.charAt(0).toUpperCase() + name.slice(1),
       value: Math.round((value / total) * 100),
       amount: value,
       rawName: name
@@ -278,7 +266,7 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
     const data = aggregateByTimeBuckets(financialRecords, timeframe, lang);
     
     if (data.length === 0 || data.every(d => d.income === 0 && d.expenses === 0)) {
-      return [{ name: lang === 'el' ? 'Δεν υπάρχουν δεδομένα' : 'No data', income: 0, expenses: 0 }];
+      return [{ name: '-', income: 0, expenses: 0 }];
     }
     
     // For month view, sample every 3rd day to avoid crowding
@@ -295,7 +283,7 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
     return data;
   }, [financialRecords, timeframe, lang]);
 
-  const currencySymbol = lang === 'el' ? '€' : '$';
+  const currencySymbol = '€';
 
   return (
     <div className="h-80">
@@ -322,7 +310,7 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
             axisLine={false}
           />
           <Tooltip 
-            formatter={(value: number) => [`${currencySymbol}${value.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, undefined]}
+            formatter={(value: number) => [`€${value.toLocaleString(getBcp47Locale(lang), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, undefined]}
             labelStyle={{ color: "#333" }}
             contentStyle={{
               borderRadius: 8,
@@ -331,7 +319,7 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
             }}
           />
           <Legend 
-            formatter={(value) => value === 'income' ? (lang === 'el' ? 'Έσοδα' : 'Income') : (lang === 'el' ? 'Έξοδα' : 'Expenses')}
+            formatter={(value) => value === 'income' ? 'Income' : 'Expenses'}
           />
           <Bar dataKey="income" name="income" fill="#22c55e" radius={[4, 4, 0, 0]} barSize={timeframe === 'week' ? 30 : 15} />
           <Bar dataKey="expenses" name="expenses" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={timeframe === 'week' ? 30 : 15} />
@@ -346,16 +334,16 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
     const data = aggregateCumulative(financialRecords, timeframe, lang);
     
     if (data.length === 0 || data.every(d => d.income === 0 && d.expenses === 0)) {
-      return [{ name: lang === 'el' ? 'Δεν υπάρχουν δεδομένα' : 'No data', income: 0, expenses: 0, netIncome: 0 }];
+      return [{ name: '-', income: 0, expenses: 0, netIncome: 0 }];
     }
     
     return data;
   }, [financialRecords, timeframe, lang]);
 
   const getLineName = (name: string) => {
-    if (name === 'income') return lang === 'el' ? 'Έσοδα' : 'Income';
-    if (name === 'expenses') return lang === 'el' ? 'Έξοδα' : 'Expenses';
-    if (name === 'netIncome') return lang === 'el' ? 'Καθαρό Εισόδημα' : 'Net Income';
+    if (name === 'income') return 'Income';
+    if (name === 'expenses') return 'Expenses';
+    if (name === 'netIncome') return 'Net Income';
     return name;
   };
 
@@ -454,12 +442,12 @@ export function PieChart({ financialRecords = [], lang = 'en', timeframe = 'mont
     return data;
   }, [financialRecords, lang, onCategoryData]);
 
-  const currencySymbol = lang === 'el' ? '€' : '$';
+  const currencySymbol = '€';
 
   if (chartData.length === 0) {
     return (
       <div className="h-64 flex items-center justify-center text-muted-foreground">
-        {lang === 'el' ? 'Δεν υπάρχουν έξοδα' : 'No expenses'}
+        -
       </div>
     );
   }
@@ -499,7 +487,7 @@ export function PieChart({ financialRecords = [], lang = 'en', timeframe = 'mont
           />
           <Tooltip 
             formatter={(value: number, name: string, props: any) => [
-              `${value}% (${currencySymbol}${props.payload.amount.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`,
+              `${value}% (€${props.payload.amount.toLocaleString(getBcp47Locale(lang), { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`,
               name
             ]}
             contentStyle={{
@@ -517,7 +505,7 @@ export function PieChart({ financialRecords = [], lang = 'en', timeframe = 'mont
 
 // Category breakdown component to display below pie chart
 export function CategoryBreakdown({ data, lang = 'en' }: { data: Array<{ name: string; value: number; amount: number }>; lang?: string }) {
-  const currencySymbol = lang === 'el' ? '€' : '$';
+  const currencySymbol = '€';
   
   if (data.length === 0) {
     return null;
@@ -526,7 +514,7 @@ export function CategoryBreakdown({ data, lang = 'en' }: { data: Array<{ name: s
   return (
     <div className="space-y-2 mt-4 pt-4 border-t">
       <h4 className="text-sm font-medium text-muted-foreground mb-3">
-        {lang === 'el' ? 'Κατανομή ανά κατηγορία' : 'Category Breakdown'}
+        Category Breakdown
       </h4>
       <div className="space-y-2">
         {data.map((item, index) => (
@@ -539,7 +527,7 @@ export function CategoryBreakdown({ data, lang = 'en' }: { data: Array<{ name: s
               <span className="truncate">{item.name}</span>
             </div>
             <span className="font-medium">
-              {currencySymbol}{item.amount.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              €{item.amount.toLocaleString(getBcp47Locale(lang), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
         ))}
