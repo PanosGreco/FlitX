@@ -360,7 +360,7 @@ export function IncomeBreakdown({
                       </TableCell>
                     </TableRow>) : <TableRow>
                     <TableCell colSpan={2} className="text-center text-muted-foreground text-xs py-3">
-                      {lang === 'el' ? 'Δεν υπάρχουν δεδομένα' : 'No data'}
+                      {t('noData')}
                     </TableCell>
                   </TableRow>}
               </TableBody>
