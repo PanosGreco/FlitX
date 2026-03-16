@@ -37,7 +37,7 @@ const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82ca9d"
 // Generate time buckets based on timeframe - now using calendar-based logic
 const getTimeBuckets = (timeframe: string, lang: string, records: FinancialRecord[]) => {
   const now = new Date();
-  const locale = lang === 'el' ? el : enUS;
+  const locale = getDateFnsLocale(lang);
   
   let startDate: Date;
   let endDate = endOfDay(now);
