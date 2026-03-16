@@ -340,7 +340,7 @@ export function ExpenseBreakdown({
               <TableHeader>
                 <TableRow className="bg-primary hover:bg-primary">
                   <TableHead className="text-primary-foreground font-semibold w-[45%] px-2 py-1.5 text-xs">
-                    {lang === 'el' ? 'Κατηγορία' : 'Category'}
+                    {t('finance:category')}
                   </TableHead>
                   <TableHead className="text-right text-primary-foreground font-semibold w-[25%] px-1 py-1.5 text-xs">
                     {lang === 'el' ? 'Σύνολο' : 'Total'}
