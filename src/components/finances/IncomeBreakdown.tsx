@@ -65,8 +65,14 @@ export function IncomeBreakdown({
   vehicleProfitRanking = []
 }: IncomeBreakdownProps) {
   const isBoats = isBoatBusiness();
-  // Always use EUR (€)
+  const { t } = useTranslation('finance');
   const currencySymbol = '€';
+
+  // Helper to get source label via translation
+  const getSourceLabel = (sourceType: string): string => {
+    const key = INCOME_SOURCE_KEYS[sourceType];
+    return key ? t(key) : sourceType;
+  };
 
   // Records are already filtered by the parent component using calendar-based timeframes
   const filteredRecords = useMemo(() => {
