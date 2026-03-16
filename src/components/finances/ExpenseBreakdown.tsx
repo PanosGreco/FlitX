@@ -252,7 +252,7 @@ export function ExpenseBreakdown({
     return [
       ...majorSlices,
       {
-        name: lang === 'el' ? 'Άλλο (<5%)' : 'Other (<5%)',
+        name: t('finance:otherLessThan5'),
         value: otherValue,
         amount: otherAmount,
         key: 'other_grouped',
