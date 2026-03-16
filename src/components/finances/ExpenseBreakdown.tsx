@@ -194,7 +194,7 @@ export function ExpenseBreakdown({
         label = subcategory.charAt(0).toUpperCase() + subcategory.slice(1);
       } else if (key.startsWith('marketing_')) {
         const subcategory = key.replace('marketing_', '');
-        const categoryLabel = EXPENSE_CATEGORY_LABELS['marketing']?.[lang === 'el' ? 'el' : 'en'] || 'Marketing';
+        const categoryLabel = getCatLabel('marketing');
         label = `${categoryLabel} (${subcategory})`;
       } else if (key.startsWith('vehicle_parts_')) {
         const subcategory = key.replace('vehicle_parts_', '');
