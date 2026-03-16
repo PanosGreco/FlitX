@@ -194,7 +194,10 @@ export function VehicleMaintenance({ vehicleId }: VehicleMaintenanceProps) {
   const getServiceTypeLabel = (type: string) => getMaintenanceTypeLabel(type, language);
   
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(language === 'el' ? 'el-GR' : 'en-US');
+    const localeMap: Record<string, string> = {
+      en: 'en-GB', el: 'el-GR', it: 'it-IT', es: 'es-ES', de: 'de-DE', fr: 'fr-FR'
+    };
+    return new Date(dateString).toLocaleDateString(localeMap[language] || 'en-GB');
   };
 
   const totalPages = Math.ceil(records.length / ITEMS_PER_PAGE);
