@@ -295,7 +295,7 @@ export function IncomeBreakdown({
                     {t('total')}
                   </TableHead>
                   <TableHead className="text-right text-primary-foreground font-semibold hidden sm:table-cell w-[30%] px-1 py-1.5 text-xs">
-                    {lang === 'el' ? 'Top Μήνες' : 'Top Mo.'}
+                    {t('topMonths')}
                   </TableHead>
                 </TableRow>
               </TableHeader>
