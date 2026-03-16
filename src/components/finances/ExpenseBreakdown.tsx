@@ -318,7 +318,7 @@ export function ExpenseBreakdown({
           </h2>
         </div>
         <p className="text-center text-muted-foreground py-6">
-          {lang === 'el' ? 'Δεν υπάρχουν έξοδα για αυτή την περίοδο' : 'No expense records for this period'}
+          {t('finance:noExpenses')}
         </p>
       </Card>;
   }
