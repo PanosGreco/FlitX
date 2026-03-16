@@ -417,7 +417,7 @@ export function IncomeBreakdown({
                   <span>{t('mostProfitable')}</span>
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  {lang === 'el' ? 'Βάσει Μ.Ο. Κέρδους/Ημέρα' : 'Based on Avg Profit/Day'}
+                  {t('basedOnAvgProfit')}
                 </p>
               </div>
               <div className="space-y-1">
