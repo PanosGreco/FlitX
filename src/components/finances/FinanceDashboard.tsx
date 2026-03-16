@@ -775,7 +775,7 @@ function SummaryCard({ title, value, change, trend, prefix = "", trendReversed =
           <div>
             <p className="text-sm text-muted-foreground">{title}</p>
             <h3 className="text-2xl font-semibold mt-1">
-              {prefix}{value.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {prefix}{value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </h3>
           </div>
           
