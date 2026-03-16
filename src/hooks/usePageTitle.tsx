@@ -12,7 +12,7 @@ export const usePageTitle = (titleKey: string) => {
     const metaDescription = document.querySelector('meta[name="description"]');
     if (metaDescription) {
       const lang = i18n.language;
-      metaDescription.setAttribute('content', `FlitX - ${title} | ${lang === 'el' ? 'Διαχείριση στόλου οχημάτων' : 'Fleet management software'}`);
+      metaDescription.setAttribute('content', `FlitX - ${title} | ${t('metaFleetManagement')}`);;
     }
     
     return () => {

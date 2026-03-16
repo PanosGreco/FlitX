@@ -92,7 +92,7 @@ export function VehicleCard({ vehicle, computedStatus }: VehicleCardProps) {
         
         <div className="mt-1 text-sm text-flitx-gray-500">
           {getVehicleCategoryLabel(vehicle.type, language)} • {vehicle.licensePlate}
-          {vehicle.fuelType ? ` • ${getFuelTypeLabel(vehicle.fuelType, language)}` : ''}
+          {vehicle.fuelType ? ` • ${getFuelTypeLabel(vehicle.fuelType, t)}` : ''}
           {vehicle.transmissionType ? ` • ${getTransmissionTypeLabel(vehicle.transmissionType, language)}` : ''}
           {vehicle.passengerCapacity ? ` • ${vehicle.passengerCapacity >= 7 ? '7+' : vehicle.passengerCapacity} ${t('people')}` : ''}
         </div>
