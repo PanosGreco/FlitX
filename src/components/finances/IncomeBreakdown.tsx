@@ -140,7 +140,7 @@ export function IncomeBreakdown({
         displayLabel = displaySpec;
       } else {
         categoryKey = sourceType;
-        displayLabel = INCOME_SOURCE_LABELS[sourceType]?.[lang === 'el' ? 'el' : 'en'] || sourceType;
+        displayLabel = getSourceLabel(sourceType);
       }
       if (!sourceData[categoryKey]) {
         sourceData[categoryKey] = {
