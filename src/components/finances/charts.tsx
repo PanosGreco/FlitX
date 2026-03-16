@@ -310,7 +310,7 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
             axisLine={false}
           />
           <Tooltip 
-            formatter={(value: number) => [`${currencySymbol}${value.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, undefined]}
+            formatter={(value: number) => [`€${value.toLocaleString(getBcp47Locale(lang), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, undefined]}
             labelStyle={{ color: "#333" }}
             contentStyle={{
               borderRadius: 8,
