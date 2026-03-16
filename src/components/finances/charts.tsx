@@ -447,7 +447,7 @@ export function PieChart({ financialRecords = [], lang = 'en', timeframe = 'mont
   if (chartData.length === 0) {
     return (
       <div className="h-64 flex items-center justify-center text-muted-foreground">
-        {lang === 'el' ? 'Δεν υπάρχουν έξοδα' : 'No expenses'}
+        -
       </div>
     );
   }
