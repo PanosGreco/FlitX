@@ -202,7 +202,7 @@ export function ExpenseBreakdown({
         label = `${categoryLabel} (${subcategory})`;
       } else if (key.startsWith('tax_')) {
         const subcategory = key.replace('tax_', '');
-        const categoryLabel = EXPENSE_CATEGORY_LABELS['tax']?.[lang === 'el' ? 'el' : 'en'] || 'Taxes';
+        const categoryLabel = getCatLabel('tax');
         label = `${categoryLabel} (${subcategory})`;
       } else {
         label = EXPENSE_CATEGORY_LABELS[key]?.[lang === 'el' ? 'el' : 'en'] || key;
