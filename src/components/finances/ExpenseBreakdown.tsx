@@ -211,7 +211,7 @@ export function ExpenseBreakdown({
       // Format top months with percentages
       const sortedMonthsWithPercentages = Object.entries(data.months).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([month, amount]) => {
         const percentage = totalExpenses > 0 ? Math.round(amount / totalExpenses * 100) : 0;
-        const monthName = MONTH_NAMES[month]?.[lang === 'el' ? 'el' : 'en'] || month;
+        const monthName = getMonthName(month, lang);
         return {
           monthName,
           percentage
