@@ -202,7 +202,7 @@ export function IncomeBreakdown({
     return [
       ...majorSlices,
       {
-        name: lang === 'el' ? 'Άλλο (<5%)' : 'Other (<5%)',
+        name: t('otherLessThan5'),
         value: otherValue,
         amount: otherAmount,
         color: dominantMinor.color,
