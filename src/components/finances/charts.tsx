@@ -527,7 +527,7 @@ export function CategoryBreakdown({ data, lang = 'en' }: { data: Array<{ name: s
               <span className="truncate">{item.name}</span>
             </div>
             <span className="font-medium">
-              {currencySymbol}{item.amount.toLocaleString(lang === 'el' ? 'el-GR' : undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              €{item.amount.toLocaleString(getBcp47Locale(lang), { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
         ))}
