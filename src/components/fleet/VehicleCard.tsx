@@ -8,15 +8,10 @@ import { ComputedStatus } from "@/hooks/useVehicleStatus";
 import { getVehicleCategoryLabel } from "@/constants/vehicleTypes";
 import { getTransmissionTypeLabel } from "@/constants/transmissionTypes";
 
-const FUEL_TYPE_LABELS: Record<string, { en: string; el: string }> = {
-  petrol: { en: "Petrol", el: "Βενζίνη" },
-  diesel: { en: "Diesel", el: "Diesel" },
-  electric: { en: "Electric", el: "Ηλεκτρικό" },
-  hybrid: { en: "Hybrid", el: "Υβριδικό" },
-};
-
-const getFuelTypeLabel = (fuelType: string, lang: string) => {
-  return FUEL_TYPE_LABELS[fuelType]?.[lang === 'el' ? 'el' : 'en'] || fuelType;
+const getFuelTypeLabel = (fuelType: string, t: (key: string) => string) => {
+  const key = `fleet:fuel_${fuelType}`;
+  const label = t(key);
+  return label !== key ? label : fuelType;
 };
 
 export interface VehicleData {
