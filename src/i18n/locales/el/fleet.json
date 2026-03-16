@@ -337,5 +337,9 @@
   "depYears": "{{count}} έτη",
   "depYearsMonths": "{{years}} έτη, {{months}} μήνες",
   "depNew": "Νέο",
-  "depYearsOld": "{{count}} ετών"
+  "depYearsOld": "{{count}} ετών",
+  "fuel_petrol": "Βενζίνη",
+  "fuel_diesel": "Diesel",
+  "fuel_electric": "Ηλεκτρικό",
+  "fuel_hybrid": "Υβριδικό"
 }

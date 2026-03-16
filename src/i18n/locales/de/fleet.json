@@ -338,5 +338,9 @@
   "depYears": "{{count}} Jahre",
   "depYearsMonths": "{{years}} Jahre, {{months}} Monate",
   "depNew": "Neu",
-  "depYearsOld": "{{count}} Jahre alt"
+  "depYearsOld": "{{count}} Jahre alt",
+  "fuel_petrol": "Benzin",
+  "fuel_diesel": "Diesel",
+  "fuel_electric": "Elektrisch",
+  "fuel_hybrid": "Hybrid"
 }

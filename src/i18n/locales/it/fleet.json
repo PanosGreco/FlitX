@@ -338,5 +338,9 @@
   "depYears": "{{count}} anni",
   "depYearsMonths": "{{years}} anni, {{months}} mesi",
   "depNew": "Nuovo",
-  "depYearsOld": "{{count}} anni"
+  "depYearsOld": "{{count}} anni",
+  "fuel_petrol": "Benzina",
+  "fuel_diesel": "Diesel",
+  "fuel_electric": "Elettrico",
+  "fuel_hybrid": "Ibrido"
 }
