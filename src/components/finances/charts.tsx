@@ -341,9 +341,9 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
   }, [financialRecords, timeframe, lang]);
 
   const getLineName = (name: string) => {
-    if (name === 'income') return lang === 'el' ? 'Έσοδα' : 'Income';
-    if (name === 'expenses') return lang === 'el' ? 'Έξοδα' : 'Expenses';
-    if (name === 'netIncome') return lang === 'el' ? 'Καθαρό Εισόδημα' : 'Net Income';
+    if (name === 'income') return 'Income';
+    if (name === 'expenses') return 'Expenses';
+    if (name === 'netIncome') return 'Net Income';
     return name;
   };
 
