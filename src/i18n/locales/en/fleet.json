@@ -331,5 +331,11 @@
   "booking_needsRepair": "Needs Repair",
   "booking_car": "Car",
   "booking_motorbike": "Motorbike",
-  "booking_petrol": "Petrol"
+  "booking_petrol": "Petrol",
+  "depLessThanMonth": "< 1 month",
+  "depMonths": "{{count}} months",
+  "depYears": "{{count}} yrs",
+  "depYearsMonths": "{{years}} yrs, {{months}} mo",
+  "depNew": "New",
+  "depYearsOld": "{{count}} yrs old"
 }
