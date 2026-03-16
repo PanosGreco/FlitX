@@ -41,7 +41,7 @@ interface VehicleCardProps {
 }
 
 export function VehicleCard({ vehicle, computedStatus }: VehicleCardProps) {
-  const { t } = useTranslation('common');
+  const { t } = useTranslation(['common', 'fleet']);
   const { language } = useLanguage();
 
   const displayStatus = computedStatus || vehicle.status;
