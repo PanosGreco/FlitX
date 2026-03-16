@@ -263,7 +263,7 @@ export function IncomeBreakdown({
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="h-5 w-5 text-green-600" />
           <h2 className="text-lg font-semibold">
-            {lang === 'el' ? 'Ανάλυση Εσόδων' : 'Income Breakdown'}
+            {t('incomeBreakdown')}
           </h2>
         </div>
         <p className="text-center text-muted-foreground py-6">
