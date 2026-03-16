@@ -267,7 +267,7 @@ export function IncomeBreakdown({
           </h2>
         </div>
         <p className="text-center text-muted-foreground py-6">
-          {lang === 'el' ? 'Δεν υπάρχουν έσοδα για αυτή την περίοδο' : 'No income records for this period'}
+          {t('noIncome')}
         </p>
       </Card>;
   }
