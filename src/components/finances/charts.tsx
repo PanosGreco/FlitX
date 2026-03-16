@@ -319,7 +319,7 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
             }}
           />
           <Legend 
-            formatter={(value) => value === 'income' ? (lang === 'el' ? 'Έσοδα' : 'Income') : (lang === 'el' ? 'Έξοδα' : 'Expenses')}
+            formatter={(value) => value === 'income' ? 'Income' : 'Expenses'}
           />
           <Bar dataKey="income" name="income" fill="#22c55e" radius={[4, 4, 0, 0]} barSize={timeframe === 'week' ? 30 : 15} />
           <Bar dataKey="expenses" name="expenses" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={timeframe === 'week' ? 30 : 15} />
