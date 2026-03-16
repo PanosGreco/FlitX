@@ -156,7 +156,7 @@ export function IncomeBreakdown({
     // Calculate total for percentage calculation
     const totalIncome = Object.values(sourceData).reduce((sum, d) => sum + d.total, 0);
     return Object.entries(sourceData).map(([key, data]) => {
-      const sortedMonths = Object.entries(data.months).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([month]) => MONTH_NAMES[month]?.[lang === 'el' ? 'el' : 'en'] || month);
+      const sortedMonths = Object.entries(data.months).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([month]) => getMonthName(month, lang));
 
       // Format top months with percentages
       const sortedMonthsWithPercentages = Object.entries(data.months).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([month, amount]) => {
