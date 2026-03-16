@@ -30,30 +30,11 @@ interface Vehicle {
   type?: string; // vehicle category (suv, sedan, etc.)
   vehicle_type?: string; // top-level type (car, motorbike, atv)
 }
-const FUEL_TYPE_LABELS: Record<string, {
-  en: string;
-  el: string;
-}> = {
-  petrol: {
-    en: "Petrol",
-    el: "Βενζίνη"
-  },
-  diesel: {
-    en: "Diesel",
-    el: "Diesel"
-  },
-  electric: {
-    en: "Electric",
-    el: "Ηλεκτρικό"
-  },
-  hybrid: {
-    en: "Hybrid",
-    el: "Υβριδικό"
-  }
-};
-const getFuelTypeLabel = (fuelType: string | null | undefined, lang: string) => {
+const getFuelTypeLabel = (fuelType: string | null | undefined, t: (key: string) => string) => {
   if (!fuelType) return '–';
-  return FUEL_TYPE_LABELS[fuelType]?.[lang === 'el' ? 'el' : 'en'] || fuelType;
+  const key = `fleet:fuel_${fuelType}`;
+  const label = t(key);
+  return label !== key ? label : fuelType;
 };
 interface VehicleProfitRank {
   id: string;
