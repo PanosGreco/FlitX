@@ -198,7 +198,7 @@ export function ExpenseBreakdown({
         label = `${categoryLabel} (${subcategory})`;
       } else if (key.startsWith('vehicle_parts_')) {
         const subcategory = key.replace('vehicle_parts_', '');
-        const categoryLabel = EXPENSE_CATEGORY_LABELS['vehicle_parts']?.[lang === 'el' ? 'el' : 'en'] || 'Vehicle Parts';
+        const categoryLabel = getCatLabel('vehicle_parts');
         label = `${categoryLabel} (${subcategory})`;
       } else if (key.startsWith('tax_')) {
         const subcategory = key.replace('tax_', '');
