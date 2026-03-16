@@ -338,8 +338,7 @@ export function IncomeBreakdown({
                 <TableRow className="bg-emerald-600 hover:bg-emerald-600">
                   <TableHead className="text-white font-semibold w-[70%] px-2 py-1.5 text-xs">
                     <div className="flex flex-col leading-tight">
-                      <span>{lang === 'el' ? 'Κατηγορία' : 'Vehicle'}</span>
-                      <span>{lang === 'el' ? 'Οχήματος' : 'Category'}</span>
+                      <span>{t('vehicleCategory')}</span>
                     </div>
                   </TableHead>
                   <TableHead className="text-right text-white font-semibold w-[30%] px-1 py-1.5 text-xs">
