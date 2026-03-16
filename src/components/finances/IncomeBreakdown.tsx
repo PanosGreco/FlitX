@@ -44,83 +44,18 @@ interface IncomeBreakdownProps {
 const COLORS = ["#3b82f6", "#22c55e", "#f97316", "#8b5cf6", "#ef4444"];
 // Additional colors for category breakdown
 const CATEGORY_COLORS = ["#10b981", "#06b6d4", "#8b5cf6", "#f59e0b", "#ec4899", "#14b8a6", "#6366f1", "#84cc16"];
-const INCOME_SOURCE_LABELS: Record<string, {
-  en: string;
-  el: string;
-}> = {
-  walk_in: {
-    en: "Direct Booking",
-    el: "Απευθείας Κράτηση"
-  },
-  collaboration: {
-    en: "Collaboration",
-    el: "Συνεργασία"
-  },
-  other: {
-    en: "Other",
-    el: "Άλλο"
-  },
-  booking: {
-    en: "Booking",
-    el: "Κράτηση"
-  },
-  sales: {
-    en: "Sales",
-    el: "Πωλήσεις"
-  }
+const INCOME_SOURCE_KEYS: Record<string, string> = {
+  walk_in: "directBooking",
+  collaboration: "collaboration",
+  other: "other",
+  booking: "rental",
+  sales: "sales"
 };
-const MONTH_NAMES: Record<string, {
-  en: string;
-  el: string;
-}> = {
-  "0": {
-    en: "Jan",
-    el: "Ιαν"
-  },
-  "1": {
-    en: "Feb",
-    el: "Φεβ"
-  },
-  "2": {
-    en: "Mar",
-    el: "Μαρ"
-  },
-  "3": {
-    en: "Apr",
-    el: "Απρ"
-  },
-  "4": {
-    en: "May",
-    el: "Μάι"
-  },
-  "5": {
-    en: "Jun",
-    el: "Ιουν"
-  },
-  "6": {
-    en: "Jul",
-    el: "Ιουλ"
-  },
-  "7": {
-    en: "Aug",
-    el: "Αυγ"
-  },
-  "8": {
-    en: "Sep",
-    el: "Σεπ"
-  },
-  "9": {
-    en: "Oct",
-    el: "Οκτ"
-  },
-  "10": {
-    en: "Nov",
-    el: "Νοε"
-  },
-  "11": {
-    en: "Dec",
-    el: "Δεκ"
-  }
+
+// Helper to get abbreviated month name using date-fns locale
+const getMonthName = (monthIndex: string, lang: string): string => {
+  const date = new Date(2024, parseInt(monthIndex), 1);
+  return format(date, 'MMM', { locale: getDateFnsLocale(lang) });
 };
 export function IncomeBreakdown({
   financialRecords,
