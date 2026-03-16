@@ -266,7 +266,7 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
     const data = aggregateByTimeBuckets(financialRecords, timeframe, lang);
     
     if (data.length === 0 || data.every(d => d.income === 0 && d.expenses === 0)) {
-      return [{ name: lang === 'el' ? 'Δεν υπάρχουν δεδομένα' : 'No data', income: 0, expenses: 0 }];
+      return [{ name: '-', income: 0, expenses: 0 }];
     }
     
     // For month view, sample every 3rd day to avoid crowding
