@@ -53,8 +53,8 @@ export function AddRecurringTransactionDialog({
   const [incomeSourceType, setIncomeSourceType] = useState('walk_in');
   const [incomeSourceSpec, setIncomeSourceSpec] = useState('');
   const [expenseSubcategory, setExpenseSubcategory] = useState('');
+  const [isFixedCost, setIsFixedCost] = useState(false);
   const [recurringIncomeCategories, setRecurringIncomeCategories] = useState<string[]>([]);
-  const [recurringExpenseCategories, setRecurringExpenseCategories] = useState<string[]>([]);
   
   const { language, isLanguageLoading } = useLanguage();
   const { toast } = useToast();
