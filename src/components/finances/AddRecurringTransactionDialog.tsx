@@ -114,6 +114,7 @@ export function AddRecurringTransactionDialog({
     setIncomeSourceType('walk_in');
     setIncomeSourceSpec('');
     setExpenseSubcategory('');
+    setIsFixedCost(false);
   };
 
   const handleClose = () => {
