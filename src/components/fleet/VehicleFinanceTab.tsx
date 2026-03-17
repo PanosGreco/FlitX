@@ -116,6 +116,7 @@ interface VehicleFinanceTabProps {
   isSold?: boolean;
   salePrice?: number | null;
   saleDate?: string | null;
+  dailyRate?: number;
 }
 const ITEMS_PER_PAGE = 10;
 const DEFAULT_VISIBLE_ITEMS = 4;
