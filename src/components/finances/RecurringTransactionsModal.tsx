@@ -286,6 +286,9 @@ export function RecurringTransactionsModal({
   const incomeTransactions = sortedByActive(recurringTransactions.filter(t => t.type === 'income'));
   const expenseTransactions = sortedByActive(recurringTransactions.filter(t => t.type === 'expense'));
   const hasActiveTransactions = recurringTransactions.some(t => t.is_active);
+  const totalFixedCosts = expenseTransactions
+    .filter(tx => tx.is_fixed_cost && tx.is_active)
+    .reduce((sum, tx) => sum + tx.amount, 0);
 
   const getVehicleName = (vehicleId: string | null) => {
     if (!vehicleId) return null;
