@@ -135,7 +135,7 @@ export function VehicleFinanceTab({
   salePrice,
   saleDate
 }: VehicleFinanceTabProps) {
-  const { t } = useTranslation(['fleet', 'common']);
+  const { t } = useTranslation(['fleet', 'common', 'finance']);
   const [records, setRecords] = useState<FinanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalRevenue, setTotalRevenue] = useState(0);
