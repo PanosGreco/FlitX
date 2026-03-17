@@ -348,6 +348,7 @@ export function VehicleDetails({
                       isSold={vehicle.is_sold ?? false}
                       salePrice={vehicle.sale_price ?? null}
                       saleDate={vehicle.sale_date ?? null}
+                      dailyRate={vehicle.daily_rate ?? 0}
                     />
                   </TabsContent>
                 </>}

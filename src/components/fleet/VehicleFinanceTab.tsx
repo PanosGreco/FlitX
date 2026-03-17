@@ -455,34 +455,33 @@ export function VehicleFinanceTab({
           .reduce((sum, r) => sum + Number(r.amount), 0);
         const bookingsCount = vehicleBookings.length;
         const variableCost = bookingsCount > 0 ? maintenanceCost / bookingsCount : 0;
-        const pricePerBooking = bookingsCount > 0 ? totalRevenue / bookingsCount : 0;
-        const netProfitPerBooking = pricePerBooking - variableCost;
+        const netProfitPerBooking = dailyRate - variableCost;
 
         return (
           <Card className="border-border bg-card">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-1.5 text-muted-foreground mb-3">
+            <CardContent className="px-3 py-2.5">
+              <div className="flex items-center gap-1.5 text-muted-foreground mb-2">
                 <BarChart3 className="h-3.5 w-3.5" />
                 <span className="text-[10px] font-medium uppercase tracking-wide">{t('finance:variableCostPerBooking')}</span>
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-2">
                 <div className="flex flex-col items-center text-center">
-                  <span className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">{t('finance:pricePerBooking')}</span>
+                  <span className="text-[11px] text-muted-foreground uppercase tracking-wide mb-0.5">{t('finance:pricePerBooking')}</span>
                   <span className="text-lg font-bold text-foreground">
-                    {bookingsCount > 0 ? `€${pricePerBooking.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                    {dailyRate > 0 ? `€${dailyRate.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                   </span>
                 </div>
-                <div className="flex flex-col items-center text-center border-x border-border px-4">
-                  <span className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">{t('finance:variableCostPerBooking')}</span>
+                <div className="flex flex-col items-center text-center border-x border-border px-2">
+                  <span className="text-[11px] text-muted-foreground uppercase tracking-wide mb-0.5">{t('finance:variableCostPerBooking')}</span>
                   <span className="text-lg font-bold text-red-600">
                     {bookingsCount > 0 ? `€${variableCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                   </span>
-                  <span className="text-[10px] text-muted-foreground mt-0.5">{t('finance:variableCostFormula')}</span>
+                  <span className="text-[10px] text-muted-foreground">{t('finance:variableCostFormula')}</span>
                 </div>
                 <div className="flex flex-col items-center text-center">
-                  <span className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">{t('finance:netProfitPerBooking')}</span>
+                  <span className="text-[11px] text-muted-foreground uppercase tracking-wide mb-0.5">{t('finance:netProfitPerBooking')}</span>
                   <span className={`text-lg font-bold ${netProfitPerBooking >= 0 ? 'text-green-600' : 'text-orange-600'}`}>
-                    {bookingsCount > 0 ? `€${netProfitPerBooking.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                    {dailyRate > 0 && bookingsCount > 0 ? `€${netProfitPerBooking.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                   </span>
                 </div>
               </div>
