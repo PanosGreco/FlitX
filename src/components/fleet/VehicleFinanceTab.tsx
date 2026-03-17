@@ -135,7 +135,7 @@ export function VehicleFinanceTab({
   salePrice,
   saleDate
 }: VehicleFinanceTabProps) {
-  const { t } = useTranslation(['fleet', 'common']);
+  const { t } = useTranslation(['fleet', 'common', 'finance']);
   const [records, setRecords] = useState<FinanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalRevenue, setTotalRevenue] = useState(0);
@@ -445,6 +445,49 @@ export function VehicleFinanceTab({
           </Card>
           )}
         </div>}
+
+      {/* Variable Cost per Booking Widget */}
+      {(() => {
+        const maintenanceCost = records
+          .filter(r => r.type === 'expense' && (r.category === 'maintenance' || r.category === 'vehicle_maintenance' || r.category === 'boat_maintenance'))
+          .reduce((sum, r) => sum + Number(r.amount), 0);
+        const bookingsCount = vehicleBookings.length;
+        const variableCost = bookingsCount > 0 ? maintenanceCost / bookingsCount : 0;
+        const pricePerBooking = bookingsCount > 0 ? totalRevenue / bookingsCount : 0;
+        const netProfitPerBooking = pricePerBooking - variableCost;
+
+        return (
+          <Card className="border-border bg-card">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-1.5 text-muted-foreground mb-3">
+                <BarChart3 className="h-3.5 w-3.5" />
+                <span className="text-[10px] font-medium uppercase tracking-wide">{t('finance:variableCostPerBooking')}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="flex flex-col items-center text-center">
+                  <span className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">{t('finance:pricePerBooking')}</span>
+                  <span className="text-lg font-bold text-foreground">
+                    {bookingsCount > 0 ? `€${pricePerBooking.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                  </span>
+                </div>
+                <div className="flex flex-col items-center text-center border-x border-border px-4">
+                  <span className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">{t('finance:variableCostPerBooking')}</span>
+                  <span className="text-lg font-bold text-red-600">
+                    {bookingsCount > 0 ? `€${variableCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground mt-0.5">{t('finance:variableCostFormula')}</span>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <span className="text-[11px] text-muted-foreground uppercase tracking-wide mb-1">{t('finance:netProfitPerBooking')}</span>
+                  <span className={`text-lg font-bold ${netProfitPerBooking >= 0 ? 'text-green-600' : 'text-orange-600'}`}>
+                    {bookingsCount > 0 ? `€${netProfitPerBooking.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Transaction History */}
       <Card>

@@ -241,5 +241,9 @@
   "timeframeCustom": "Προσαρμοσμένο",
   "markAsFixedCost": "Σήμανση ως Σταθερό Κόστος",
   "fixedCost": "Σταθερό Κόστος",
-  "totalFixedCosts": "Σύνολο Σταθερών Κόστων"
+  "totalFixedCosts": "Σύνολο Σταθερών Κόστων",
+  "pricePerBooking": "Τιμή ανά Κράτηση",
+  "variableCostPerBooking": "Μεταβλητό Κόστος",
+  "netProfitPerBooking": "Καθαρό Κέρδος ανά Κράτηση",
+  "variableCostFormula": "Συντήρηση / Κρατήσεις"
 }

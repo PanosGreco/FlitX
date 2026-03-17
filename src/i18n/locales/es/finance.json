@@ -81,5 +81,9 @@
   "timeframeCustom": "Personalizado",
   "markAsFixedCost": "Marcar como Coste Fijo",
   "fixedCost": "Coste Fijo",
-  "totalFixedCosts": "Total Costes Fijos"
+  "totalFixedCosts": "Total Costes Fijos",
+  "pricePerBooking": "Precio por Reserva",
+  "variableCostPerBooking": "Coste Variable",
+  "netProfitPerBooking": "Beneficio Neto por Reserva",
+  "variableCostFormula": "Mantenimiento / Reservas"
 }
