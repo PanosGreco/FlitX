@@ -1,0 +1,1 @@
+ALTER TABLE public.recurring_transactions ADD COLUMN is_fixed_cost boolean NOT NULL DEFAULT false;

@@ -610,6 +610,7 @@ export type Database = {
           income_source_specification: string | null
           income_source_type: string | null
           is_active: boolean
+          is_fixed_cost: boolean
           last_generated_date: string | null
           next_generation_date: string
           start_date: string
@@ -631,6 +632,7 @@ export type Database = {
           income_source_specification?: string | null
           income_source_type?: string | null
           is_active?: boolean
+          is_fixed_cost?: boolean
           last_generated_date?: string | null
           next_generation_date: string
           start_date: string
@@ -652,6 +654,7 @@ export type Database = {
           income_source_specification?: string | null
           income_source_type?: string | null
           is_active?: boolean
+          is_fixed_cost?: boolean
           last_generated_date?: string | null
           next_generation_date?: string
           start_date?: string

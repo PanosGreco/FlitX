@@ -238,5 +238,8 @@
   "timeframeMonth": "Αυτός ο Μήνας",
   "timeframeYear": "Αυτό το Έτος",
   "timeframeAll": "Συνολικά",
-  "timeframeCustom": "Προσαρμοσμένο"
+  "timeframeCustom": "Προσαρμοσμένο",
+  "markAsFixedCost": "Σήμανση ως Σταθερό Κόστος",
+  "fixedCost": "Σταθερό Κόστος",
+  "totalFixedCosts": "Σύνολο Σταθερών Κόστων"
 }

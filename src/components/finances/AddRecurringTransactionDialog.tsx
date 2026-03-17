@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -52,6 +53,7 @@ export function AddRecurringTransactionDialog({
   const [incomeSourceType, setIncomeSourceType] = useState('walk_in');
   const [incomeSourceSpec, setIncomeSourceSpec] = useState('');
   const [expenseSubcategory, setExpenseSubcategory] = useState('');
+  const [isFixedCost, setIsFixedCost] = useState(false);
   const [recurringIncomeCategories, setRecurringIncomeCategories] = useState<string[]>([]);
   const [recurringExpenseCategories, setRecurringExpenseCategories] = useState<string[]>([]);
   
@@ -113,6 +115,7 @@ export function AddRecurringTransactionDialog({
     setIncomeSourceType('walk_in');
     setIncomeSourceSpec('');
     setExpenseSubcategory('');
+    setIsFixedCost(false);
   };
 
   const handleClose = () => {
@@ -222,6 +225,7 @@ export function AddRecurringTransactionDialog({
         next_generation_date: initialNextGenerationDate,
         last_generated_date: shouldGenerateImmediately ? startDate : null,
         is_active: isActiveAtCreation,
+        is_fixed_cost: type === 'expense' ? isFixedCost : false,
       };
 
       if (endDate) record.end_date = endDate;
@@ -411,6 +415,18 @@ export function AddRecurringTransactionDialog({
                 <Label>{t('finance:amountEur')}</Label>
                 <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
               </div>
+              {type === 'expense' && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="fixedCost"
+                    checked={isFixedCost}
+                    onCheckedChange={(checked) => setIsFixedCost(checked === true)}
+                  />
+                  <Label htmlFor="fixedCost" className="text-sm font-normal cursor-pointer">
+                    {t('finance:markAsFixedCost')}
+                  </Label>
+                </div>
+              )}
             </div>
           )}
 
