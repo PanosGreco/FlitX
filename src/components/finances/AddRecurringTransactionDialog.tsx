@@ -55,6 +55,7 @@ export function AddRecurringTransactionDialog({
   const [expenseSubcategory, setExpenseSubcategory] = useState('');
   const [isFixedCost, setIsFixedCost] = useState(false);
   const [recurringIncomeCategories, setRecurringIncomeCategories] = useState<string[]>([]);
+  const [recurringExpenseCategories, setRecurringExpenseCategories] = useState<string[]>([]);
   
   const { language, isLanguageLoading } = useLanguage();
   const { toast } = useToast();
