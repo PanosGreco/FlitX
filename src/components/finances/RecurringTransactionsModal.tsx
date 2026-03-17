@@ -417,6 +417,19 @@ export function RecurringTransactionsModal({
                       {t('finance:noRecurringExpenses')}
                     </p> : <div className="space-y-2">
                       {expenseTransactions.map(tx => renderCard(tx, 'red'))}
+                      {totalFixedCosts > 0 && (
+                        <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-amber-800 flex items-center gap-1.5">
+                              <Pin className="h-3.5 w-3.5" />
+                              {t('finance:totalFixedCosts')}
+                            </span>
+                            <span className="text-sm font-bold text-amber-900">
+                              €{totalFixedCosts.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>}
                 </div>
               </div>
