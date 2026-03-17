@@ -414,6 +414,18 @@ export function AddRecurringTransactionDialog({
                 <Label>{t('finance:amountEur')}</Label>
                 <Input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" />
               </div>
+              {type === 'expense' && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="fixedCost"
+                    checked={isFixedCost}
+                    onCheckedChange={(checked) => setIsFixedCost(checked === true)}
+                  />
+                  <Label htmlFor="fixedCost" className="text-sm font-normal cursor-pointer">
+                    {t('finance:markAsFixedCost')}
+                  </Label>
+                </div>
+              )}
             </div>
           )}
 
