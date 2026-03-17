@@ -317,7 +317,13 @@ export function RecurringTransactionsModal({
     const isCompleted = !tx.is_active;
     const bgClass = colorScheme === 'green' ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100';
     const amountClass = colorScheme === 'green' ? 'text-green-700' : 'text-red-700';
-    return <div key={tx.id} className={`border rounded-lg p-3 flex items-start justify-between gap-2 ${bgClass} ${isCompleted ? 'opacity-60' : ''}`}>
+    return <div key={tx.id} className={`border rounded-lg p-3 relative flex items-start justify-between gap-2 ${bgClass} ${isCompleted ? 'opacity-60' : ''}`}>
+        {tx.is_fixed_cost && tx.type === 'expense' && (
+          <Badge variant="secondary" className="absolute top-2 right-10 text-[10px] px-1.5 py-0 h-5 bg-amber-100 text-amber-800 border-amber-200">
+            <Pin className="h-3 w-3 mr-0.5" />
+            {t('finance:fixedCost')}
+          </Badge>
+        )}
         <div className="flex-1 min-w-0">
           <p className="text-sm truncate font-semibold">
             {getCategoryLabel(tx.category, tx.type, t, tx.income_source_type, tx.expense_subcategory, tx.income_source_specification)}
