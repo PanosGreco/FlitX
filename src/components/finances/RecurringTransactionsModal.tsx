@@ -27,6 +27,7 @@ interface RecurringTransaction {
   income_source_type?: string | null;
   income_source_specification?: string | null;
   expense_subcategory?: string | null;
+  is_fixed_cost?: boolean;
 }
 interface Vehicle {
   id: string;
