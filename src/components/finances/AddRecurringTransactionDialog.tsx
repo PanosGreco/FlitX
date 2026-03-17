@@ -225,7 +225,7 @@ export function AddRecurringTransactionDialog({
         next_generation_date: initialNextGenerationDate,
         last_generated_date: shouldGenerateImmediately ? startDate : null,
         is_active: isActiveAtCreation,
-      };
+        is_fixed_cost: type === 'expense' ? isFixedCost : false,
 
       if (endDate) record.end_date = endDate;
       if (vehicleId) record.vehicle_id = vehicleId;
