@@ -238,5 +238,8 @@
   "timeframeMonth": "This Month",
   "timeframeYear": "This Year",
   "timeframeAll": "All Time",
-  "timeframeCustom": "Custom"
+  "timeframeCustom": "Custom",
+  "markAsFixedCost": "Mark as Fixed Cost",
+  "fixedCost": "Fixed Cost",
+  "totalFixedCosts": "Total Fixed Costs"
 }

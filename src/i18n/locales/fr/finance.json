@@ -78,5 +78,8 @@
   "timeframeMonth": "Ce Mois",
   "timeframeYear": "Cette Année",
   "timeframeAll": "Tout",
-  "timeframeCustom": "Personnalisé"
+  "timeframeCustom": "Personnalisé",
+  "markAsFixedCost": "Marquer comme Coût Fixe",
+  "fixedCost": "Coût Fixe",
+  "totalFixedCosts": "Total des Coûts Fixes"
 }
