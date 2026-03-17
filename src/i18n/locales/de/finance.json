@@ -81,5 +81,9 @@
   "timeframeCustom": "Benutzerdefiniert",
   "markAsFixedCost": "Als Fixkosten markieren",
   "fixedCost": "Fixkosten",
-  "totalFixedCosts": "Gesamte Fixkosten"
+  "totalFixedCosts": "Gesamte Fixkosten",
+  "pricePerBooking": "Preis pro Buchung",
+  "variableCostPerBooking": "Variable Kosten",
+  "netProfitPerBooking": "Nettogewinn pro Buchung",
+  "variableCostFormula": "Wartung / Buchungen"
 }

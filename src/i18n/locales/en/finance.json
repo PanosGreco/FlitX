@@ -241,5 +241,9 @@
   "timeframeCustom": "Custom",
   "markAsFixedCost": "Mark as Fixed Cost",
   "fixedCost": "Fixed Cost",
-  "totalFixedCosts": "Total Fixed Costs"
+  "totalFixedCosts": "Total Fixed Costs",
+  "pricePerBooking": "Price per Booking",
+  "variableCostPerBooking": "Variable Cost",
+  "netProfitPerBooking": "Net Profit per Booking",
+  "variableCostFormula": "Maintenance / Bookings"
 }
