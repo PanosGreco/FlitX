@@ -1,101 +1,100 @@
 
 
-## Updated Plan: Analytics Line Graph — Cumulative Data & UI Corrections
+# Plan: Financial Analysis & Pricing Optimizer AI Actions
 
-### Target File
-`src/components/finances/charts.tsx` — only the `LineChart` component and supporting functions. `BarChart`, `PieChart`, and `CategoryBreakdown` remain untouched.
+## Scope
 
-### Confirmed: No Other Charts Affected
-- `BarChart` (line 205) uses `aggregateByTimeBuckets` — will continue to use it unchanged.
-- `PieChart` (line 388) uses `aggregateByCategory` — completely separate.
-- `CategoryBreakdown` (line 463) — unrelated display component.
-- The new `aggregateCumulative` function will only be called by `LineChart`.
+Add two new AI preset actions to the existing chat system. No new edge functions, no database migrations, no changes to existing presets or financial logic.
 
----
+## Changes
 
-### Change 1 — Update `getTimeBuckets` with Adaptive Custom Range Scaling
+### 1. Edge Function — `supabase/functions/ai-chat/index.ts`
 
-Current behavior (lines 71–102): `all` and `custom` only distinguish daily (≤31 days) vs monthly (>31 days).
+**a) Update `RecurringTransaction` interface** (line ~199): Add `is_fixed_cost?: boolean` and `is_active?: boolean`.
 
-New behavior — replace the branching logic for `all` and `custom`:
+**b) Add two new presets** to `presetPrompts` (after line 1606):
 
-| Range Length | Bucket Type | Label Format |
-|---|---|---|
-| 1–31 days | Daily | `d MMM` |
-| 32–120 days | Weekly | `d MMM` (week start) |
-| 121 days – 12 months | Monthly | `MMM yy` |
-| `all` timeframe | Always monthly | `MMM yy` |
+**`financial_analysis`** prompt with:
+- **Data sufficiency gate**: ≥3 vehicles, ≥10 bookings, ≥2 cost entries. If not met → return "not enough data" message in user's language. No partial analysis.
+- **Division-by-zero protection**: If `total_bookings = 0` → skip all division-based metrics, return "not enough booking data." If `vehicle_bookings = 0` → set `variable_cost = 0`, mark vehicle as "insufficient data."
+- **Strict formulas** (mandatory, deterministic):
+  - `Average Rental Price = total_revenue / total_bookings` (weighted)
+  - `Variable Cost per Booking (vehicle) = vehicle_maintenance_cost / vehicle_bookings`
+  - `Global Variable Cost = total_maintenance / total_bookings`
+  - `Total Costs = total_fixed_costs + total_variable_maintenance`
+  - `Break-even Bookings = ceil(total_costs / average_rental_price)`
+  - `Required Bookings for Target = ceil((total_costs + desired_income) / average_rental_price)`
+- **Fixed cost handling**: Fixed costs are GLOBAL only. Per-vehicle profitability = `daily_rate - variable_cost_per_booking`. Do NOT subtract fixed costs per vehicle.
+- **Output structure** (strict order, all sections required even if empty):
+  1. Executive Summary (max 3 lines + confidence: High/Medium/Low)
+  2. Key Metrics (avg price, total costs, break-even, global variable cost)
+  3. Per-Vehicle Analysis (name, daily_rate, bookings, variable_cost, net_profit, flag if insufficient data)
+  4. Top Performers (top 1 profitable, top 1 underperforming)
+  5. Recommendations (revenue upsells: insurance/add-ons/premium; cost reduction)
+  6. Monthly Insights (strongest/weakest month, pricing suggestions)
+  7. Next Step: `CALC_DESIRED: <amount>` prompt
+- **CALC_DESIRED handler**: If message starts with `CALC_DESIRED:`, return: desired income, required bookings, one-sentence insight.
+- **Variable cost priority**: Use stored per-vehicle variable cost if available; else compute from maintenance.
 
-Implementation: compute `daysDiff`, then call `eachDayOfInterval`, `eachWeekOfInterval`, or `eachMonthOfInterval` accordingly. For `all`, always use monthly.
+**`pricing_optimizer`** prompt with:
+- **Same data sufficiency gate and division-by-zero rules**
+- **Hard pricing rules**:
+  - `suggested_price >= variable_cost_per_booking`
+  - Loss vehicles (`price <= variable_cost`): aggressive increase above cost + margin
+  - Minimum margin: 15-30% above variable cost
+  - High demand → +5-20%, low demand → -5-15%
+  - Cap: no >50% jumps unless vehicle is at a loss
+- **Per-vehicle**: classify loss/low_margin/healthy, demand vs fleet average, recommend price + % change + reason
+- **Seasonality**: group by month, recommend peak/off-peak pricing
+- **Revenue opportunities**: insurance, add-ons, premium tiers
+- **Confidence indicator** in summary
+- **Top performers highlight**
+- **Same strict output order and formatting rules**
 
----
+### 2. Preset Buttons — `src/components/ai-assistant/PresetActionButtons.tsx`
 
-### Change 2 — New `aggregateCumulative` Function
+- Import `BarChart3`, `BadgeDollarSign` from lucide-react
+- Extend `presetType` union: `'financial_analysis' | 'pricing_optimizer'`
+- Add two entries to `PRESET_BUTTONS` array (grid stays `sm:grid-cols-2`, becomes 2x2)
 
-Create a new function that replaces `aggregateByTimeBuckets` for the LineChart only.
+### 3. Conversation Title — `src/hooks/useAIChat.ts`
 
-Algorithm:
-```text
-buckets = getTimeBuckets(timeframe, lang, records)
+Update title mapping (line ~264) to include:
+- `financial_analysis` → `'Financial Analysis'`
+- `pricing_optimizer` → `'Pricing Optimizer'`
 
-For each bucket at index i:
-  bucket_end = end of bucket's date (endOfDay for daily, end of week for weekly, end of month for monthly)
-  
-  income_total = SUM(all income records where record.date <= bucket_end)
-  expense_total = SUM(all expense records where record.date <= bucket_end)
-  netIncome = income_total - expense_total
+### 4. Localization — `ai.json` (all 6 languages)
 
-  return { name: bucket.label, income: income_total, expenses: expense_total, netIncome }
+Add to each language:
+
+```json
+"presets": {
+  "financialAnalysis": {
+    "title": "Financial Analysis",
+    "description": "Analyze fleet economics, break-even points and profitability"
+  },
+  "pricingOptimizer": {
+    "title": "Pricing Optimizer",
+    "description": "Get dynamic pricing recommendations per vehicle"
+  }
+},
+"notEnoughData": "Not Enough Data",
+"addMoreDataForAnalysis": "Add more vehicles, bookings, and expenses to enable accurate financial insights."
 ```
 
-Key guarantees:
-- Uses `date <= bucket_end`, not "records inside bucket" — ensures correct cumulative totals regardless of bucket grouping.
-- If no new records exist for a bucket, cumulative totals equal the previous bucket's totals — lines stay flat/horizontal automatically since the SUM result is identical.
+Translations for EL, IT, ES, DE, FR included.
 
----
+## Files Modified
 
-### Change 3 — Remove All Sampling Logic from LineChart
+1. `supabase/functions/ai-chat/index.ts` — interface update + 2 preset prompts
+2. `src/components/ai-assistant/PresetActionButtons.tsx` — 2 new buttons
+3. `src/hooks/useAIChat.ts` — title mappings
+4. `src/i18n/locales/{en,el,it,es,de,fr}/ai.json` — new keys
 
-Remove lines 283–292 (the `filter` calls that sample every 3rd day or every Nth point). Bucket grouping (daily/weekly/monthly) already controls point density — no sampling needed.
+## What Does NOT Change
 
----
-
-### Change 4 — Rename "Revenue" → "Net Income"
-
-- Data key: `revenue` → `netIncome`
-- `getLineName`: `'revenue'` case → `'netIncome'`, label: `'Net Income'` / `'Καθαρό Εισόδημα'`
-- Empty state object: `revenue: 0` → `netIncome: 0`
-
----
-
-### Change 5 — Fix Line Colors
-
-| Line | Current | New |
-|---|---|---|
-| Income | `#f59e0b` (amber) | `#22c55e` (green) |
-| Expenses | `#ef4444` (red) | `#ef4444` (unchanged) |
-| Net Income | `#3b82f6` (blue) | `#3b82f6` (unchanged) |
-
----
-
-### Change 6 — Fix Currency to Always Use €
-
-- `formatYAxis` (line 197): always use `€` regardless of `lang`.
-- `LineChart` tooltip (line 332): always use `€`.
-- Format: `{value}€` (euro at end) for consistency with SOLD block.
-
----
-
-### Change 7 — Tooltip Reads Cumulative Data
-
-The tooltip formatter reads directly from the cumulative dataset produced by `aggregateCumulative`. Each data point already contains cumulative `income`, `expenses`, and `netIncome` — the tooltip simply displays these values with the `€` symbol. No additional calculation needed.
-
----
-
-### What Does NOT Change
-- `BarChart` — keeps using `aggregateByTimeBuckets` with its own sampling
-- `PieChart` — keeps using `aggregateByCategory`
-- `CategoryBreakdown` — unchanged
-- Database schema, financial records, summary cards, transaction history
-- All other analytics components
+- Existing presets (marketing_growth, expense_optimization)
+- Financial logic, booking logic, recurring expenses
+- Streaming/SSE infrastructure
+- No new edge functions or database migrations
 
