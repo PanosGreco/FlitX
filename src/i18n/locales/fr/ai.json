@@ -9,6 +9,16 @@
     "expenseOptimization": {
       "title": "Optimisation des Dépenses et Réduction des Coûts",
       "description": "Analysez les dépenses et trouvez des opportunités d'économies"
+    },
+    "financialAnalysis": {
+      "title": "Analyse Financière",
+      "description": "Analysez l'économie de la flotte, les seuils de rentabilité et la profitabilité"
+    },
+    "pricingOptimizer": {
+      "title": "Optimiseur de Prix",
+      "description": "Obtenez des recommandations de prix dynamiques par véhicule"
     }
-  }
+  },
+  "notEnoughData": "Données Insuffisantes",
+  "addMoreDataForAnalysis": "Ajoutez plus de véhicules, réservations et dépenses pour des analyses financières précises."
 }

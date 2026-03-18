@@ -9,6 +9,16 @@
     "expenseOptimization": {
       "title": "Expense Optimization and Cost Reduction",
       "description": "Analyze expenses and find cost-saving opportunities"
+    },
+    "financialAnalysis": {
+      "title": "Financial Analysis",
+      "description": "Analyze fleet economics, break-even points and profitability"
+    },
+    "pricingOptimizer": {
+      "title": "Pricing Optimizer",
+      "description": "Get dynamic pricing recommendations per vehicle"
     }
-  }
+  },
+  "notEnoughData": "Not Enough Data",
+  "addMoreDataForAnalysis": "Add more vehicles, bookings, and expenses to enable accurate financial insights."
 }

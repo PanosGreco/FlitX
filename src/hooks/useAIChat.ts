@@ -265,6 +265,10 @@ export function useAIChat(): UseAIChatReturn {
             ? 'Marketing & Growth Suggestions' 
             : presetType === 'expense_optimization'
             ? 'Expense Optimization'
+            : presetType === 'financial_analysis'
+            ? 'Financial Analysis'
+            : presetType === 'pricing_optimizer'
+            ? 'Pricing Optimizer'
             : undefined
         })
       }).then(async res => {

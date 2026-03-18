@@ -1,4 +1,4 @@
-import { TrendingUp, PiggyBank } from 'lucide-react';
+import { TrendingUp, PiggyBank, BarChart3, BadgeDollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 
@@ -7,7 +7,7 @@ interface PresetButton {
   titleKey: string;
   descriptionKey: string;
   icon: typeof TrendingUp;
-  presetType: 'marketing_growth' | 'expense_optimization';
+  presetType: 'marketing_growth' | 'expense_optimization' | 'financial_analysis' | 'pricing_optimizer';
 }
 
 const PRESET_BUTTONS: PresetButton[] = [
@@ -24,6 +24,20 @@ const PRESET_BUTTONS: PresetButton[] = [
     descriptionKey: 'presets.expenseOptimization.description',
     icon: PiggyBank,
     presetType: 'expense_optimization'
+  },
+  {
+    id: 'financial_analysis',
+    titleKey: 'presets.financialAnalysis.title',
+    descriptionKey: 'presets.financialAnalysis.description',
+    icon: BarChart3,
+    presetType: 'financial_analysis'
+  },
+  {
+    id: 'pricing_optimizer',
+    titleKey: 'presets.pricingOptimizer.title',
+    descriptionKey: 'presets.pricingOptimizer.description',
+    icon: BadgeDollarSign,
+    presetType: 'pricing_optimizer'
   }
 ];
 
