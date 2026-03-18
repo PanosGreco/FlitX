@@ -203,6 +203,8 @@ interface RecurringTransaction {
   frequency_unit: string;
   frequency_value: number;
   expense_subcategory?: string;
+  is_fixed_cost?: boolean;
+  is_active?: boolean;
 }
 
 interface MaintenanceRecord {
