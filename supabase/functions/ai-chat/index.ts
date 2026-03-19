@@ -1044,7 +1044,19 @@ function buildBusinessContext(
 
 // ============= ENHANCED SYSTEM PROMPT WITH DATA DICTIONARY =============
 
-function buildSystemPrompt(context: ReturnType<typeof buildBusinessContext>, presetType?: string, language?: string) {
+function buildSystemPrompt(context: ReturnType<typeof buildBusinessContext>, presetType?: string, language?: string, financialContext?: string) {
+  
+  // === LANGUAGE INSTRUCTION (FIRST — before all data) ===
+  const LANGUAGE_NAMES: Record<string, string> = { en: 'English', el: 'Greek', it: 'Italian', es: 'Spanish', de: 'German', fr: 'French' };
+  const userLang = language || 'en';
+  const langName = LANGUAGE_NAMES[userLang] || 'English';
+  const languageInstruction = `CRITICAL: You MUST respond ENTIRELY in ${langName} (${userLang}), regardless of the user's location or data content. All text, explanations, labels, and data descriptions must be in ${langName}.`;
+
+  // === FINANCIAL PRESET: USE SLIM PROMPT ===
+  const isFinancialPreset = presetType === 'financial_analysis' || presetType === 'pricing_optimizer';
+  if (isFinancialPreset && financialContext) {
+    return buildFinancialSystemPrompt(context, presetType!, languageInstruction, financialContext);
+  }
   
   // === DATA DICTIONARY FOR SEMANTIC MAPPING ===
   const dataDictionary = `
