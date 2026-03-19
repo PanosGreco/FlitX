@@ -2332,4 +2332,3 @@ If user message starts with "CALC_DESIRED:" followed by a number:
 
 FORMATTING: Use tables, bullet points, status emojis consistently, bold key numbers. Markdown tables MUST have a blank line before them. Include ALL sections. Be concise and actionable. Execute immediately.`;
 }
-}
