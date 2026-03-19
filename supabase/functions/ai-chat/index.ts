@@ -97,8 +97,20 @@ serve(async (req) => {
       damageReports.data || []
     );
 
+    // Pre-compute financial context for financial presets
+    const isFinancialPreset = presetType === 'financial_analysis' || presetType === 'pricing_optimizer';
+    let financialContext: string | undefined;
+    if (isFinancialPreset) {
+      financialContext = computeFinancialContext(
+        vehicles.data || [],
+        bookings.data || [],
+        maintenanceRecords.data || [],
+        recurringTransactions.data || []
+      );
+    }
+
     // Build system prompt with business context and data dictionary
-    const systemPrompt = buildSystemPrompt(businessContext, presetType, language);
+    const systemPrompt = buildSystemPrompt(businessContext, presetType, language, financialContext);
 
     // Call Lovable AI Gateway
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
