@@ -1,101 +1,68 @@
 
 
-## Updated Plan: Analytics Line Graph — Cumulative Data & UI Corrections
+# Plan: Fix Financial Analysis — Pre-computation, Edge Cases, and Prompt Optimization
 
-### Target File
-`src/components/finances/charts.tsx` — only the `LineChart` component and supporting functions. `BarChart`, `PieChart`, and `CategoryBreakdown` remain untouched.
+## Overview
 
-### Confirmed: No Other Charts Affected
-- `BarChart` (line 205) uses `aggregateByTimeBuckets` — will continue to use it unchanged.
-- `PieChart` (line 388) uses `aggregateByCategory` — completely separate.
-- `CategoryBreakdown` (line 463) — unrelated display component.
-- The new `aggregateCumulative` function will only be called by `LineChart`.
+The current financial analysis fails because: (1) revenue uses `totalIncome` from `financial_records` instead of `rental_bookings.total_amount`, (2) the system prompt is ~15K tokens causing truncation, and (3) the AI calculates instead of receiving pre-computed values. This fix moves all math to the backend, slims the prompt, and adds robust edge-case handling.
 
----
+## Changes
 
-### Change 1 — Update `getTimeBuckets` with Adaptive Custom Range Scaling
+### 1. `supabase/functions/ai-chat/index.ts`
 
-Current behavior (lines 71–102): `all` and `custom` only distinguish daily (≤31 days) vs monthly (>31 days).
+**a) Add `computeFinancialContext()` function** (new function, ~120 lines)
 
-New behavior — replace the branching logic for `all` and `custom`:
+Pre-computes all financial metrics deterministically. Called only when `presetType` is `financial_analysis` or `pricing_optimizer`.
 
-| Range Length | Bucket Type | Label Format |
-|---|---|---|
-| 1–31 days | Daily | `d MMM` |
-| 32–120 days | Weekly | `d MMM` (week start) |
-| 121 days – 12 months | Monthly | `MMM yy` |
-| `all` timeframe | Always monthly | `MMM yy` |
+- **12-month filter**: Compute `twelveMonthsAgo` date, filter `bookings`, `maintenanceRecords`, and `recurringTransactions` to this window
+- **Revenue from bookings**: `totalBookingRevenue = sum(rental_bookings.total_amount)` — NOT `financial_records` income
+- **Division-by-zero guards**:
+  - `totalBookings === 0` → all division-based metrics = 0, flag `insufficientBookings = true`
+  - `vehicleBookings === 0` → `variableCostPerBooking = 0`, `netProfitPerBooking = dailyRate`, flag vehicle as `insufficient_data`
+- **Fixed cost normalization** based on `frequency_unit` and `frequency_value`:
+  - `month` → `amount * (12 / frequency_value)`
+  - `week` → `amount * (52 / frequency_value)`
+  - `year` → `amount * (1 / frequency_value)` (already annual)
+  - `day` → `amount * (365 / frequency_value)`
+  - fallback (unknown) → treat as monthly
+  - Only active expenses where `is_fixed_cost = true`
+- **Pre-computed metrics**: `weightedAvgRentalPrice`, `totalFixedCosts`, `totalMaintenanceCost`, `totalCosts`, `globalVariableCostPerBooking`, `breakEvenBookings`
+- **Per-vehicle breakdown**: For each vehicle: `bookingCount`, `bookingRevenue`, `maintenanceCost`, `variableCostPerBooking`, `netProfitPerBooking`, `status` (insufficient_data / loss / low_margin / healthy)
+- **Monthly breakdown**: bookings + revenue grouped by month (last 12)
+- **Debug snapshot**: `console.log` a compact JSON of all computed values for debugging
+- Returns a formatted string block ready to inject into the system prompt
 
-Implementation: compute `daysDiff`, then call `eachDayOfInterval`, `eachWeekOfInterval`, or `eachMonthOfInterval` accordingly. For `all`, always use monthly.
+**b) Modify `buildSystemPrompt()`** to accept optional `financialContext` parameter
 
----
+When `presetType` is `financial_analysis` or `pricing_optimizer`:
+- Use a **slim base prompt** (~3-4K tokens) containing:
+  - Language instruction (FIRST, before all data)
+  - Business overview (company, location, fleet size)
+  - The pre-computed financial context block (from step a)
+  - The preset-specific instructions
+- **Exclude** for financial presets: fleet by type/category/fuel/transmission, collaboration partners, monthly subcategory breakdown, damage reports, full data availability section, full behavioral rules (replaced with short financial-specific rules)
 
-### Change 2 — New `aggregateCumulative` Function
+**c) Update the main handler** (around line 90-101):
+- After `buildBusinessContext()`, check if `presetType` is financial
+- If yes, call `computeFinancialContext()` with the raw data arrays
+- Pass result to `buildSystemPrompt()`
 
-Create a new function that replaces `aggregateByTimeBuckets` for the LineChart only.
+**d) Simplify both preset prompt texts**:
+- Remove formula definitions (formulas are pre-computed)
+- Add: "The values below are pre-computed and verified. Use them EXACTLY as given. Do NOT recalculate."
+- Keep output structure and formatting rules
+- Keep CALC_DESIRED handler but reference pre-computed `totalCosts` and `weightedAvgRentalPrice`
+- Keep data sufficiency gate (now backed by pre-computed `insufficientData` flag)
 
-Algorithm:
-```text
-buckets = getTimeBuckets(timeframe, lang, records)
+### 2. No other file changes needed
 
-For each bucket at index i:
-  bucket_end = end of bucket's date (endOfDay for daily, end of week for weekly, end of month for monthly)
-  
-  income_total = SUM(all income records where record.date <= bucket_end)
-  expense_total = SUM(all expense records where record.date <= bucket_end)
-  netIncome = income_total - expense_total
+The UI files (`PresetActionButtons.tsx`, `useAIChat.ts`, `ai.json`) were already updated in the previous implementation. This change is entirely within the edge function.
 
-  return { name: bucket.label, income: income_total, expenses: expense_total, netIncome }
-```
+## Key Technical Decisions
 
-Key guarantees:
-- Uses `date <= bucket_end`, not "records inside bucket" — ensures correct cumulative totals regardless of bucket grouping.
-- If no new records exist for a bucket, cumulative totals equal the previous bucket's totals — lines stay flat/horizontal automatically since the SUM result is identical.
-
----
-
-### Change 3 — Remove All Sampling Logic from LineChart
-
-Remove lines 283–292 (the `filter` calls that sample every 3rd day or every Nth point). Bucket grouping (daily/weekly/monthly) already controls point density — no sampling needed.
-
----
-
-### Change 4 — Rename "Revenue" → "Net Income"
-
-- Data key: `revenue` → `netIncome`
-- `getLineName`: `'revenue'` case → `'netIncome'`, label: `'Net Income'` / `'Καθαρό Εισόδημα'`
-- Empty state object: `revenue: 0` → `netIncome: 0`
-
----
-
-### Change 5 — Fix Line Colors
-
-| Line | Current | New |
-|---|---|---|
-| Income | `#f59e0b` (amber) | `#22c55e` (green) |
-| Expenses | `#ef4444` (red) | `#ef4444` (unchanged) |
-| Net Income | `#3b82f6` (blue) | `#3b82f6` (unchanged) |
-
----
-
-### Change 6 — Fix Currency to Always Use €
-
-- `formatYAxis` (line 197): always use `€` regardless of `lang`.
-- `LineChart` tooltip (line 332): always use `€`.
-- Format: `{value}€` (euro at end) for consistency with SOLD block.
-
----
-
-### Change 7 — Tooltip Reads Cumulative Data
-
-The tooltip formatter reads directly from the cumulative dataset produced by `aggregateCumulative`. Each data point already contains cumulative `income`, `expenses`, and `netIncome` — the tooltip simply displays these values with the `€` symbol. No additional calculation needed.
-
----
-
-### What Does NOT Change
-- `BarChart` — keeps using `aggregateByTimeBuckets` with its own sampling
-- `PieChart` — keeps using `aggregateByCategory`
-- `CategoryBreakdown` — unchanged
-- Database schema, financial records, summary cards, transaction history
-- All other analytics components
+- **Revenue source**: `rental_bookings.total_amount` (correct) instead of `financial_records` income (wrong — includes all income sources)
+- **Fixed cost normalization**: Annual total calculated per `frequency_unit` and `frequency_value`, not blindly `×12`
+- **Zero-safe**: Every division is guarded — returns 0 or safe default, never NaN/Infinity
+- **Debug logging**: `console.log('[FINANCIAL_DEBUG]', JSON.stringify(snapshot))` — visible in edge function logs, not exposed to users
+- **Prompt reduction**: From ~15K to ~3-4K tokens by excluding irrelevant sections for financial presets
 
