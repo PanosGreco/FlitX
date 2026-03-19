@@ -97,8 +97,20 @@ serve(async (req) => {
       damageReports.data || []
     );
 
+    // Pre-compute financial context for financial presets
+    const isFinancialPreset = presetType === 'financial_analysis' || presetType === 'pricing_optimizer';
+    let financialContext: string | undefined;
+    if (isFinancialPreset) {
+      financialContext = computeFinancialContext(
+        vehicles.data || [],
+        bookings.data || [],
+        maintenanceRecords.data || [],
+        recurringTransactions.data || []
+      );
+    }
+
     // Build system prompt with business context and data dictionary
-    const systemPrompt = buildSystemPrompt(businessContext, presetType, language);
+    const systemPrompt = buildSystemPrompt(businessContext, presetType, language, financialContext);
 
     // Call Lovable AI Gateway
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -342,6 +354,154 @@ interface DamageSummary {
   totalReports: number;
   bySeverity: Record<string, number>;
   totalRepairCost: number;
+}
+
+// ============= PRE-COMPUTED FINANCIAL CONTEXT (for financial_analysis & pricing_optimizer) =============
+
+function computeFinancialContext(
+  vehicles: Vehicle[],
+  bookings: Booking[],
+  maintenanceRecords: MaintenanceRecord[],
+  recurringTransactions: RecurringTransaction[]
+): string {
+  // 12-month window
+  const now = new Date();
+  const twelveMonthsAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+  const cutoffDate = twelveMonthsAgo.toISOString().split('T')[0];
+
+  // Filter to last 12 months
+  const recentBookings = bookings.filter(b => b.start_date >= cutoffDate);
+  const recentMaintenance = maintenanceRecords.filter(m => m.date >= cutoffDate);
+
+  // === CORE METRICS ===
+  const totalBookings = recentBookings.length;
+  const totalBookingRevenue = recentBookings.reduce((sum, b) => sum + Number(b.total_amount || 0), 0);
+  const totalMaintenanceCost = recentMaintenance.reduce((sum, m) => sum + Number(m.cost || 0), 0);
+
+  // Fixed cost normalization (active expense recurring transactions with is_fixed_cost)
+  let totalFixedCostsAnnual = 0;
+  recurringTransactions
+    .filter(r => r.type === 'expense' && r.is_fixed_cost && r.is_active !== false)
+    .forEach(r => {
+      const amount = Number(r.amount);
+      const freqValue = r.frequency_value || 1;
+      const unit = (r.frequency_unit || 'month').toLowerCase();
+      
+      let annualAmount: number;
+      switch (unit) {
+        case 'day':   annualAmount = amount * (365 / freqValue); break;
+        case 'week':  annualAmount = amount * (52 / freqValue); break;
+        case 'month': annualAmount = amount * (12 / freqValue); break;
+        case 'year':  annualAmount = amount * (1 / freqValue); break;
+        default:      annualAmount = amount * (12 / freqValue); break; // fallback: monthly
+      }
+      totalFixedCostsAnnual += annualAmount;
+    });
+
+  const totalCosts = totalFixedCostsAnnual + totalMaintenanceCost;
+
+  // Division-by-zero guards
+  const weightedAvgRentalPrice = totalBookings > 0 ? totalBookingRevenue / totalBookings : 0;
+  const globalVariableCostPerBooking = totalBookings > 0 ? totalMaintenanceCost / totalBookings : 0;
+  const breakEvenBookings = weightedAvgRentalPrice > 0 ? Math.ceil(totalCosts / weightedAvgRentalPrice) : 0;
+
+  // === DATA SUFFICIENCY CHECK ===
+  const costEntries = recentMaintenance.length + recurringTransactions.filter(r => r.type === 'expense' && r.is_fixed_cost && r.is_active !== false).length;
+  const insufficientData = vehicles.length < 3 || totalBookings < 10 || costEntries < 2;
+
+  // === PER-VEHICLE BREAKDOWN ===
+  const vehicleBreakdown = vehicles.map(v => {
+    const vBookings = recentBookings.filter(b => b.vehicle_id === v.id);
+    const vBookingCount = vBookings.length;
+    const vBookingRevenue = vBookings.reduce((sum, b) => sum + Number(b.total_amount || 0), 0);
+    const vMaintenanceCost = recentMaintenance.filter(m => m.vehicle_id === v.id).reduce((sum, m) => sum + Number(m.cost || 0), 0);
+    const dailyRate = Number(v.daily_rate) || 0;
+
+    // Division-by-zero guard per vehicle
+    const variableCostPerBooking = vBookingCount > 0 ? vMaintenanceCost / vBookingCount : 0;
+    const netProfitPerBooking = vBookingCount > 0 ? (vBookingRevenue / vBookingCount) - variableCostPerBooking : dailyRate;
+
+    // Status classification
+    let status: string;
+    if (vBookingCount === 0) {
+      status = 'insufficient_data';
+    } else if (netProfitPerBooking <= 0) {
+      status = 'loss';
+    } else if (netProfitPerBooking < dailyRate * 0.15) {
+      status = 'low_margin';
+    } else {
+      status = 'healthy';
+    }
+
+    return {
+      name: `${v.make} ${v.model}`,
+      plate: v.license_plate || 'N/A',
+      dailyRate,
+      bookingCount: vBookingCount,
+      bookingRevenue: vBookingRevenue,
+      maintenanceCost: vMaintenanceCost,
+      variableCostPerBooking,
+      netProfitPerBooking,
+      status
+    };
+  });
+
+  // === MONTHLY BREAKDOWN (last 12 months) ===
+  const monthlyData: Record<string, { bookings: number; revenue: number }> = {};
+  recentBookings.forEach(b => {
+    const month = b.start_date.substring(0, 7);
+    if (!monthlyData[month]) monthlyData[month] = { bookings: 0, revenue: 0 };
+    monthlyData[month].bookings++;
+    monthlyData[month].revenue += Number(b.total_amount || 0);
+  });
+
+  const monthlyBreakdown = Object.entries(monthlyData)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, data]) => `  ${month}: ${data.bookings} bookings, €${data.revenue.toFixed(2)} revenue`)
+    .join('\n');
+
+  // === DEBUG SNAPSHOT ===
+  const debugSnapshot = {
+    period: `${cutoffDate} to ${now.toISOString().split('T')[0]}`,
+    totalBookings,
+    totalBookingRevenue: +totalBookingRevenue.toFixed(2),
+    totalMaintenanceCost: +totalMaintenanceCost.toFixed(2),
+    totalFixedCostsAnnual: +totalFixedCostsAnnual.toFixed(2),
+    totalCosts: +totalCosts.toFixed(2),
+    weightedAvgRentalPrice: +weightedAvgRentalPrice.toFixed(2),
+    breakEvenBookings,
+    insufficientData,
+    vehicleCount: vehicles.length
+  };
+  console.log('[FINANCIAL_DEBUG]', JSON.stringify(debugSnapshot));
+
+  // === BUILD FORMATTED CONTEXT STRING ===
+  return `
+═══════════════════════════════════════════════════════════
+PRE-COMPUTED FINANCIAL METRICS (Last 12 Months)
+═══════════════════════════════════════════════════════════
+Analysis Period: ${cutoffDate} to ${now.toISOString().split('T')[0]}
+Data Sufficiency: ${insufficientData ? '❌ INSUFFICIENT (see thresholds below)' : '✅ SUFFICIENT'}
+Vehicles: ${vehicles.length} | Bookings (12m): ${totalBookings} | Cost Entries: ${costEntries}
+
+GLOBAL METRICS (pre-computed — use EXACTLY as given, do NOT recalculate):
+• Total Booking Revenue (12m): €${totalBookingRevenue.toFixed(2)}
+• Weighted Avg Rental Price: €${weightedAvgRentalPrice.toFixed(2)}
+• Total Maintenance Cost (12m): €${totalMaintenanceCost.toFixed(2)}
+• Total Fixed Costs (annualized): €${totalFixedCostsAnnual.toFixed(2)}
+• Total Costs: €${totalCosts.toFixed(2)}
+• Global Variable Cost per Booking: €${globalVariableCostPerBooking.toFixed(2)}
+• Break-even Bookings: ${breakEvenBookings}
+• Current Bookings vs Break-even: ${totalBookings} vs ${breakEvenBookings} (${totalBookings >= breakEvenBookings ? 'ABOVE break-even ✅' : 'BELOW break-even ⚠️'})
+
+PER-VEHICLE BREAKDOWN:
+${vehicleBreakdown.map(v => 
+  `• ${v.name} (${v.plate}) | Daily Rate: €${v.dailyRate.toFixed(2)} | Bookings: ${v.bookingCount} | Revenue: €${v.bookingRevenue.toFixed(2)} | Maintenance: €${v.maintenanceCost.toFixed(2)} | Var Cost/Booking: €${v.variableCostPerBooking.toFixed(2)} | Net Profit/Booking: €${v.netProfitPerBooking.toFixed(2)} | Status: ${v.status}`
+).join('\n')}
+
+MONTHLY PERFORMANCE (12m):
+${monthlyBreakdown || '  No monthly data available'}
+`;
 }
 
 // ============= CORE BUSINESS CONTEXT BUILDER =============
@@ -884,7 +1044,19 @@ function buildBusinessContext(
 
 // ============= ENHANCED SYSTEM PROMPT WITH DATA DICTIONARY =============
 
-function buildSystemPrompt(context: ReturnType<typeof buildBusinessContext>, presetType?: string, language?: string) {
+function buildSystemPrompt(context: ReturnType<typeof buildBusinessContext>, presetType?: string, language?: string, financialContext?: string) {
+  
+  // === LANGUAGE INSTRUCTION (FIRST — before all data) ===
+  const LANGUAGE_NAMES: Record<string, string> = { en: 'English', el: 'Greek', it: 'Italian', es: 'Spanish', de: 'German', fr: 'French' };
+  const userLang = language || 'en';
+  const langName = LANGUAGE_NAMES[userLang] || 'English';
+  const languageInstruction = `CRITICAL: You MUST respond ENTIRELY in ${langName} (${userLang}), regardless of the user's location or data content. All text, explanations, labels, and data descriptions must be in ${langName}.`;
+
+  // === FINANCIAL PRESET: USE SLIM PROMPT ===
+  const isFinancialPreset = presetType === 'financial_analysis' || presetType === 'pricing_optimizer';
+  if (isFinancialPreset && financialContext) {
+    return buildFinancialSystemPrompt(context, presetType!, languageInstruction, financialContext);
+  }
   
   // === DATA DICTIONARY FOR SEMANTIC MAPPING ===
   const dataDictionary = `
@@ -1226,16 +1398,10 @@ CRITICAL BEHAVIORAL RULES (MUST FOLLOW EXACTLY)
     • Example: "manual vehicle maintenance" → use maintenance cost from manual transmission group
 `;
 
-  // === LANGUAGE INSTRUCTION ===
-  const LANGUAGE_NAMES: Record<string, string> = { en: 'English', el: 'Greek', it: 'Italian', es: 'Spanish', de: 'German', fr: 'French' };
-  const userLang = language || 'en';
-  const langName = LANGUAGE_NAMES[userLang] || 'English';
-  const languageInstruction = userLang !== 'en' 
-    ? `\n\nCRITICAL LANGUAGE RULE: The user's language is ${userLang} (${langName}). You MUST respond ENTIRELY in ${langName}. All text, explanations, labels, and data descriptions must be in ${langName}.\n`
-    : '';
-
   // === BUILD COMPLETE SYSTEM PROMPT ===
-  const basePrompt = `You are FlitX AI Assistant, a precise business intelligence assistant for ${context.profile.company || 'this fleet management company'} located in ${context.profile.location}.${languageInstruction}
+  const basePrompt = `You are FlitX AI Assistant, a precise business intelligence assistant for ${context.profile.company || 'this fleet management company'} located in ${context.profile.location}.
+
+${languageInstruction}
 
 ${dataDictionary}
 
@@ -1917,4 +2083,153 @@ Execute immediately.
   }
 
   return basePrompt;
+}
+
+// ============= SLIM FINANCIAL SYSTEM PROMPT =============
+
+function buildFinancialSystemPrompt(
+  context: ReturnType<typeof buildBusinessContext>,
+  presetType: string,
+  languageInstruction: string,
+  financialContext: string
+): string {
+  const presetInstructions = presetType === 'financial_analysis' 
+    ? getFinancialAnalysisInstructions()
+    : getPricingOptimizerInstructions();
+
+  return `${languageInstruction}
+
+You are FlitX AI Assistant, a precise financial analyst for ${context.profile.company || 'this fleet management company'} located in ${context.profile.location}.
+
+═══════════════════════════════════════════════════════════
+BUSINESS OVERVIEW
+═══════════════════════════════════════════════════════════
+• Company: ${context.profile.company || 'Not specified'}
+• Location: ${context.profile.location}
+• Fleet Size: ${context.fleet.count} vehicles
+
+${financialContext}
+
+CRITICAL RULES:
+1. The values above are PRE-COMPUTED and VERIFIED. Use them EXACTLY as given. Do NOT recalculate.
+2. ONLY use numbers from the data above. NEVER invent or estimate values.
+3. Use Euro (€) currency. Format numbers to 2 decimal places.
+4. 'maintenance' ≠ 'vehicle_parts' — these are SEPARATE categories.
+
+${presetInstructions}`;
+}
+
+function getFinancialAnalysisInstructions(): string {
+  return `
+═══════════════════════════════════════
+PRESET: FINANCIAL ANALYSIS — FLEET ECONOMICS
+═══════════════════════════════════════
+
+STEP 0: DATA SUFFICIENCY GATE
+If Data Sufficiency above shows ❌ INSUFFICIENT → respond ONLY with the insufficiency message and STOP.
+Thresholds: ≥3 vehicles, ≥10 bookings, ≥2 cost entries.
+
+OUTPUT STRUCTURE (STRICT ORDER — ALL SECTIONS REQUIRED):
+
+**1. Executive Summary** (max 3 lines)
+- Brief fleet health overview using the pre-computed metrics
+- Confidence level: High / Medium / Low
+
+**2. Key Metrics** (use pre-computed values EXACTLY)
+- Weighted Avg Rental Price
+- Total Fixed Costs (annualized)
+- Total Maintenance Cost (variable)
+- Total Costs
+- Global Variable Cost per Booking
+- Break-even Bookings
+- Current bookings vs break-even
+
+**3. Per-Vehicle Analysis** (table format, from PER-VEHICLE BREAKDOWN above)
+| Vehicle | Daily Rate | Bookings | Var Cost/Booking | Net Profit/Booking | Status |
+Use the pre-computed values. Flag ⚠️ for insufficient_data or loss status.
+
+**4. Top Performers**
+- 🏆 Most profitable (highest net profit per booking)
+- ⚠️ Most underperforming (loss or low_margin status)
+
+**5. Recommendations**
+- Revenue increase: insurance upsells, add-ons, premium tiers
+- Cost reduction: maintenance optimization, bulk purchasing
+
+**6. Monthly Insights** (from MONTHLY PERFORMANCE above)
+- Strongest month (highest revenue/bookings)
+- Weakest month
+- Pricing adjustment suggestions
+
+**7. Next Step**
+"To calculate how many bookings you need for a specific monthly net income, reply with: **CALC_DESIRED: [amount]** (e.g., CALC_DESIRED: 5000)"
+
+CALC_DESIRED HANDLER:
+If user message starts with "CALC_DESIRED:" followed by a number:
+1. required_bookings = ceil((Total Costs + desired_income) / Weighted Avg Rental Price)
+2. Return: Desired income, Required bookings, One insight sentence.
+
+FORMATTING: Use bullet points, bold key numbers, include ALL sections. Be concise and practical. Execute immediately.`;
+}
+
+function getPricingOptimizerInstructions(): string {
+  return `
+═══════════════════════════════════════
+PRESET: PRICING OPTIMIZER — FLEET REVENUE OPTIMIZATION
+═══════════════════════════════════════
+
+STEP 0: DATA SUFFICIENCY GATE
+If Data Sufficiency above shows ❌ INSUFFICIENT → respond ONLY with the insufficiency message and STOP.
+Thresholds: ≥3 vehicles, ≥10 bookings, ≥2 cost entries.
+
+VEHICLE CLASSIFICATION (use pre-computed Status):
+- 🔴 Loss → status = "loss"
+- 🟡 Low Margin → status = "low_margin"  
+- 🟢 Healthy → status = "healthy"
+- ⚠️ Insufficient Data → status = "insufficient_data"
+
+DEMAND DETECTION:
+Fleet avg bookings/vehicle = Total Bookings / Total Vehicles (from pre-computed data)
+- High demand → vehicle bookings > fleet avg
+- Medium demand → ±20% of fleet avg
+- Low demand → < 80% of fleet avg
+
+HARD PRICING RULES:
+1. suggested_price MUST be >= variable_cost_per_booking
+2. Loss vehicles: immediate increase above cost + 20-30% margin
+3. Minimum margin: 15-30% above variable cost
+4. High demand → increase 5-20%; Low demand → decrease 5-15% (never below variable cost)
+5. Cap: no price changes > 50% unless vehicle is at a loss
+6. High profit + low bookings → consider moderate decrease
+
+OUTPUT STRUCTURE (STRICT ORDER — ALL SECTIONS REQUIRED):
+
+**1. Summary** (max 3 lines)
+- Fleet pricing health, Confidence level
+
+**2. Per-Vehicle Pricing Table**
+| Vehicle | Current Price | Suggested Price | Change % | Status | Demand | Action | Reason |
+
+**3. Top Highlights**
+- 🏆 Best performing (highest margin)
+- ⚠️ Most critical (needs immediate action)
+
+**4. Global Pricing Strategy**
+- 2-3 fleet-wide recommendations
+- Revenue opportunities, seasonal strategy
+
+**5. Monthly Pricing Recommendations** (from MONTHLY PERFORMANCE above)
+- Peak months: price adjustments
+- Weak months: discount strategies
+
+**6. Next Step**
+"To calculate the ideal price for a specific profit target, reply with: **CALC_DESIRED: [amount]**"
+
+CALC_DESIRED HANDLER:
+If user message starts with "CALC_DESIRED:" followed by a number:
+1. required_bookings = ceil((Total Costs + desired_income) / Weighted Avg Price)
+2. required_avg_price = (Total Costs + desired_income) / Total Bookings
+3. Return: Desired income, Required bookings, Required avg price, One insight.
+
+FORMATTING: Use tables, bullet points, status emojis consistently, bold key numbers. Include ALL sections. Be concise and actionable. Execute immediately.`;
 }
