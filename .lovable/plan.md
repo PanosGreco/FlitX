@@ -1,68 +1,94 @@
 
 
-# Plan: Fix Financial Analysis — Pre-computation, Edge Cases, and Prompt Optimization
+# Plan: Fix Financial Analysis — Data Integrity, Unit Clarity, Sanity Checks, and Table Rendering
 
-## Overview
+## Data Validation Results
 
-The current financial analysis fails because: (1) revenue uses `totalIncome` from `financial_records` instead of `rental_bookings.total_amount`, (2) the system prompt is ~15K tokens causing truncation, and (3) the AI calculates instead of receiving pre-computed values. This fix moves all math to the backend, slims the prompt, and adds robust edge-case handling.
+I verified all pre-computed values against the actual database. The numbers ARE mathematically correct:
+- Total revenue: €11,680 (39 bookings) — verified per-vehicle
+- Fixed costs: €34,800/year (€1,700 salary + €1,200 insurance, both monthly) — correct
+- Break-even: 129 bookings — correct
+
+The root cause of bad AI output is NOT wrong calculations but a **unit mismatch in presentation**: `daily_rate` (per-day) is shown alongside `variable_cost_per_booking` and `net_profit_per_booking` (per-booking, spanning 3-7 days). The AI then incorrectly compares them, e.g., "Jeep daily rate €80 < var cost €161.54 = needs +143% increase" — but the Jeep actually earns €316/booking over 3.2 days on average.
 
 ## Changes
 
-### 1. `supabase/functions/ai-chat/index.ts`
+### 1. `supabase/functions/ai-chat/index.ts` — `computeFinancialContext()`
 
-**a) Add `computeFinancialContext()` function** (new function, ~120 lines)
+**a) Add `avgRevenuePerBooking` and `avgBookingDuration` per vehicle:**
 
-Pre-computes all financial metrics deterministically. Called only when `presetType` is `financial_analysis` or `pricing_optimizer`.
+```
+avgBookingDuration = totalDaysRented / bookingCount
+avgRevenuePerBooking = bookingRevenue / bookingCount
+```
 
-- **12-month filter**: Compute `twelveMonthsAgo` date, filter `bookings`, `maintenanceRecords`, and `recurringTransactions` to this window
-- **Revenue from bookings**: `totalBookingRevenue = sum(rental_bookings.total_amount)` — NOT `financial_records` income
-- **Division-by-zero guards**:
-  - `totalBookings === 0` → all division-based metrics = 0, flag `insufficientBookings = true`
-  - `vehicleBookings === 0` → `variableCostPerBooking = 0`, `netProfitPerBooking = dailyRate`, flag vehicle as `insufficient_data`
-- **Fixed cost normalization** based on `frequency_unit` and `frequency_value`:
-  - `month` → `amount * (12 / frequency_value)`
-  - `week` → `amount * (52 / frequency_value)`
-  - `year` → `amount * (1 / frequency_value)` (already annual)
-  - `day` → `amount * (365 / frequency_value)`
-  - fallback (unknown) → treat as monthly
-  - Only active expenses where `is_fixed_cost = true`
-- **Pre-computed metrics**: `weightedAvgRentalPrice`, `totalFixedCosts`, `totalMaintenanceCost`, `totalCosts`, `globalVariableCostPerBooking`, `breakEvenBookings`
-- **Per-vehicle breakdown**: For each vehicle: `bookingCount`, `bookingRevenue`, `maintenanceCost`, `variableCostPerBooking`, `netProfitPerBooking`, `status` (insufficient_data / loss / low_margin / healthy)
-- **Monthly breakdown**: bookings + revenue grouped by month (last 12)
-- **Debug snapshot**: `console.log` a compact JSON of all computed values for debugging
-- Returns a formatted string block ready to inject into the system prompt
+These are the correct per-booking metrics to compare against `variableCostPerBooking`.
 
-**b) Modify `buildSystemPrompt()`** to accept optional `financialContext` parameter
+**b) Add data integrity validation before computing:**
+- Skip bookings with `total_amount <= 0` or `null` from revenue calculations (but count them for booking volume)
+- Flag bookings with duration > 90 days or duration = 0 as anomalies
+- Ensure maintenance costs are only counted for the vehicle they belong to (already correct, but add explicit logging)
 
-When `presetType` is `financial_analysis` or `pricing_optimizer`:
-- Use a **slim base prompt** (~3-4K tokens) containing:
-  - Language instruction (FIRST, before all data)
-  - Business overview (company, location, fleet size)
-  - The pre-computed financial context block (from step a)
-  - The preset-specific instructions
-- **Exclude** for financial presets: fleet by type/category/fuel/transmission, collaboration partners, monthly subcategory breakdown, damage reports, full data availability section, full behavioral rules (replaced with short financial-specific rules)
+**c) Add sanity/outlier checks (flags, not blockers):**
+- `varCostExceedsRevenue`: true if `variableCostPerBooking > avgRevenuePerBooking`
+- `unrealisticDuration`: true if any booking has duration > 90 days
+- `extremeProfit`: true if `netProfitPerBooking > avgRevenuePerBooking * 0.95` (suspiciously high margin)
+- Include these flags in the debug snapshot and in the context string as warnings
 
-**c) Update the main handler** (around line 90-101):
-- After `buildBusinessContext()`, check if `presetType` is financial
-- If yes, call `computeFinancialContext()` with the raw data arrays
-- Pass result to `buildSystemPrompt()`
+**d) Fix status classification to use consistent units:**
+Current code compares `netProfitPerBooking < dailyRate * 0.15` — this mixes per-booking and per-day. Change to:
+```
+if netProfitPerBooking <= 0 → 'loss'
+if netProfitPerBooking < avgRevenuePerBooking * 0.15 → 'low_margin'
+else → 'healthy'
+```
 
-**d) Simplify both preset prompt texts**:
-- Remove formula definitions (formulas are pre-computed)
-- Add: "The values below are pre-computed and verified. Use them EXACTLY as given. Do NOT recalculate."
-- Keep output structure and formatting rules
-- Keep CALC_DESIRED handler but reference pre-computed `totalCosts` and `weightedAvgRentalPrice`
-- Keep data sufficiency gate (now backed by pre-computed `insufficientData` flag)
+**e) Update formatted context string:**
+- Replace `Daily Rate` label with `Daily Rate (per day)` 
+- Add `Avg Revenue/Booking (multi-day): €X` per vehicle
+- Add `Avg Booking Duration: X days` per vehicle
+- Add sanity warnings section if any flags are true
 
-### 2. No other file changes needed
+### 2. `supabase/functions/ai-chat/index.ts` — Prompt Instructions
 
-The UI files (`PresetActionButtons.tsx`, `useAIChat.ts`, `ai.json`) were already updated in the previous implementation. This change is entirely within the edge function.
+**Financial Analysis (`getFinancialAnalysisInstructions()`):**
+- Update table columns: replace `Daily Rate` with `Avg Revenue/Booking` for the analysis table
+- Keep `Daily Rate` as reference only
+- Add rule: "Status MUST match profitability: if net_profit > 0, status cannot be 'loss'"
+- Add rule: "Never compare daily_rate directly with per-booking metrics"
 
-## Key Technical Decisions
+**Pricing Optimizer (`getPricingOptimizerInstructions()`):**
+- Change comparison: `suggested_daily_price >= variable_cost_per_booking / avg_booking_duration`
+- Add: "Current Price = daily rate (per day). Variable Cost = per booking (multi-day). To compare, divide variable cost by avg booking duration."
+- Enforce: "If status is 'healthy', max daily price change = ±50%. Only exceed this for 'loss' vehicles."
+- Add: "No contradictory statements: a vehicle cannot be both 'healthy' AND 'at a loss'"
 
-- **Revenue source**: `rental_bookings.total_amount` (correct) instead of `financial_records` income (wrong — includes all income sources)
-- **Fixed cost normalization**: Annual total calculated per `frequency_unit` and `frequency_value`, not blindly `×12`
-- **Zero-safe**: Every division is guarded — returns 0 or safe default, never NaN/Infinity
-- **Debug logging**: `console.log('[FINANCIAL_DEBUG]', JSON.stringify(snapshot))` — visible in edge function logs, not exposed to users
-- **Prompt reduction**: From ~15K to ~3-4K tokens by excluding irrelevant sections for financial presets
+### 3. `src/components/ai-assistant/MessageBubble.tsx` — Table Rendering
+
+Add ReactMarkdown component mappings:
+```tsx
+table: ({ children }) => <div className="overflow-x-auto my-2"><table className="min-w-full text-xs border-collapse">{children}</table></div>
+thead: ({ children }) => <thead className="bg-gray-50">{children}</thead>
+tbody: ({ children }) => <tbody>{children}</tbody>
+tr: ({ children }) => <tr className="border-b border-gray-200">{children}</tr>
+th: ({ children }) => <th className="px-2 py-1.5 text-left font-semibold border border-gray-200">{children}</th>
+td: ({ children }) => <td className="px-2 py-1.5 border border-gray-200">{children}</td>
+```
+
+### 4. `src/i18n/locales/{en,el,it,es,de,fr}/ai.json` — Missing Keys
+
+Add `todayUsage`, `newChat`, `history`, `noConversations` with translations for all 6 languages.
+
+## Files Modified
+
+1. `supabase/functions/ai-chat/index.ts` — per-vehicle metrics, sanity checks, prompt clarity
+2. `src/components/ai-assistant/MessageBubble.tsx` — table rendering
+3. `src/i18n/locales/{en,el,it,es,de,fr}/ai.json` — missing keys
+
+## What This Fixes
+
+- **Pricing optimizer giving +240%/+143%**: Root cause was comparing daily_rate (€35/day) vs var_cost_per_booking (€96.67/booking spanning 4+ days). Now the AI gets `avgBookingDuration` to normalize.
+- **"Healthy" AND contradictory statements**: Status classification now uses consistent per-booking units.
+- **Tables not rendering**: Added missing ReactMarkdown component mappings.
+- **Data integrity**: Anomalous bookings (0 days, >90 days, €0 revenue) are flagged without blocking execution.
 
