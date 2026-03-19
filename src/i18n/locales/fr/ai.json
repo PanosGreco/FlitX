@@ -20,5 +20,9 @@
     }
   },
   "notEnoughData": "Données Insuffisantes",
-  "addMoreDataForAnalysis": "Ajoutez plus de véhicules, réservations et dépenses pour des analyses financières précises."
+  "addMoreDataForAnalysis": "Ajoutez plus de véhicules, réservations et dépenses pour des analyses financières précises.",
+  "todayUsage": "Utilisation aujourd'hui",
+  "newChat": "Nouveau Chat",
+  "history": "Historique",
+  "noConversations": "Aucune conversation pour le moment"
 }

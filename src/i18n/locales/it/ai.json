@@ -20,5 +20,9 @@
     }
   },
   "notEnoughData": "Dati Insufficienti",
-  "addMoreDataForAnalysis": "Aggiungi più veicoli, prenotazioni e spese per abilitare analisi finanziarie accurate."
+  "addMoreDataForAnalysis": "Aggiungi più veicoli, prenotazioni e spese per abilitare analisi finanziarie accurate.",
+  "todayUsage": "Utilizzo di oggi",
+  "newChat": "Nuova Chat",
+  "history": "Cronologia",
+  "noConversations": "Nessuna conversazione ancora"
 }

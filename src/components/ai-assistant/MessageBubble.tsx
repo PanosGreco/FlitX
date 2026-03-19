@@ -51,13 +51,25 @@ export function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
                 ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
                 ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
                 li: ({ children }) => <li className="text-sm">{children}</li>,
+                table: ({ children }) => (
+                  <div className="overflow-x-auto my-3">
+                    <table className="min-w-full text-xs border-collapse border border-border rounded-lg">
+                      {children}
+                    </table>
+                  </div>
+                ),
+                thead: ({ children }) => <thead className="bg-muted/50">{children}</thead>,
+                tbody: ({ children }) => <tbody>{children}</tbody>,
+                tr: ({ children }) => <tr className="border-b border-border">{children}</tr>,
+                th: ({ children }) => <th className="px-2 py-1.5 text-left font-semibold text-xs border border-border">{children}</th>,
+                td: ({ children }) => <td className="px-2 py-1.5 text-xs border border-border">{children}</td>,
                 code: ({ children }) => (
-                  <code className="bg-gray-100 text-gray-800 px-1 py-0.5 rounded text-xs font-mono">
+                  <code className="bg-muted text-foreground px-1 py-0.5 rounded text-xs font-mono">
                     {children}
                   </code>
                 ),
                 pre: ({ children }) => (
-                  <pre className="bg-gray-100 text-gray-800 p-2 rounded-lg overflow-x-auto text-xs mb-2">
+                  <pre className="bg-muted text-foreground p-2 rounded-lg overflow-x-auto text-xs mb-2">
                     {children}
                   </pre>
                 ),
