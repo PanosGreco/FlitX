@@ -356,6 +356,154 @@ interface DamageSummary {
   totalRepairCost: number;
 }
 
+// ============= PRE-COMPUTED FINANCIAL CONTEXT (for financial_analysis & pricing_optimizer) =============
+
+function computeFinancialContext(
+  vehicles: Vehicle[],
+  bookings: Booking[],
+  maintenanceRecords: MaintenanceRecord[],
+  recurringTransactions: RecurringTransaction[]
+): string {
+  // 12-month window
+  const now = new Date();
+  const twelveMonthsAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+  const cutoffDate = twelveMonthsAgo.toISOString().split('T')[0];
+
+  // Filter to last 12 months
+  const recentBookings = bookings.filter(b => b.start_date >= cutoffDate);
+  const recentMaintenance = maintenanceRecords.filter(m => m.date >= cutoffDate);
+
+  // === CORE METRICS ===
+  const totalBookings = recentBookings.length;
+  const totalBookingRevenue = recentBookings.reduce((sum, b) => sum + Number(b.total_amount || 0), 0);
+  const totalMaintenanceCost = recentMaintenance.reduce((sum, m) => sum + Number(m.cost || 0), 0);
+
+  // Fixed cost normalization (active expense recurring transactions with is_fixed_cost)
+  let totalFixedCostsAnnual = 0;
+  recurringTransactions
+    .filter(r => r.type === 'expense' && r.is_fixed_cost && r.is_active !== false)
+    .forEach(r => {
+      const amount = Number(r.amount);
+      const freqValue = r.frequency_value || 1;
+      const unit = (r.frequency_unit || 'month').toLowerCase();
+      
+      let annualAmount: number;
+      switch (unit) {
+        case 'day':   annualAmount = amount * (365 / freqValue); break;
+        case 'week':  annualAmount = amount * (52 / freqValue); break;
+        case 'month': annualAmount = amount * (12 / freqValue); break;
+        case 'year':  annualAmount = amount * (1 / freqValue); break;
+        default:      annualAmount = amount * (12 / freqValue); break; // fallback: monthly
+      }
+      totalFixedCostsAnnual += annualAmount;
+    });
+
+  const totalCosts = totalFixedCostsAnnual + totalMaintenanceCost;
+
+  // Division-by-zero guards
+  const weightedAvgRentalPrice = totalBookings > 0 ? totalBookingRevenue / totalBookings : 0;
+  const globalVariableCostPerBooking = totalBookings > 0 ? totalMaintenanceCost / totalBookings : 0;
+  const breakEvenBookings = weightedAvgRentalPrice > 0 ? Math.ceil(totalCosts / weightedAvgRentalPrice) : 0;
+
+  // === DATA SUFFICIENCY CHECK ===
+  const costEntries = recentMaintenance.length + recurringTransactions.filter(r => r.type === 'expense' && r.is_fixed_cost && r.is_active !== false).length;
+  const insufficientData = vehicles.length < 3 || totalBookings < 10 || costEntries < 2;
+
+  // === PER-VEHICLE BREAKDOWN ===
+  const vehicleBreakdown = vehicles.map(v => {
+    const vBookings = recentBookings.filter(b => b.vehicle_id === v.id);
+    const vBookingCount = vBookings.length;
+    const vBookingRevenue = vBookings.reduce((sum, b) => sum + Number(b.total_amount || 0), 0);
+    const vMaintenanceCost = recentMaintenance.filter(m => m.vehicle_id === v.id).reduce((sum, m) => sum + Number(m.cost || 0), 0);
+    const dailyRate = Number(v.daily_rate) || 0;
+
+    // Division-by-zero guard per vehicle
+    const variableCostPerBooking = vBookingCount > 0 ? vMaintenanceCost / vBookingCount : 0;
+    const netProfitPerBooking = vBookingCount > 0 ? (vBookingRevenue / vBookingCount) - variableCostPerBooking : dailyRate;
+
+    // Status classification
+    let status: string;
+    if (vBookingCount === 0) {
+      status = 'insufficient_data';
+    } else if (netProfitPerBooking <= 0) {
+      status = 'loss';
+    } else if (netProfitPerBooking < dailyRate * 0.15) {
+      status = 'low_margin';
+    } else {
+      status = 'healthy';
+    }
+
+    return {
+      name: `${v.make} ${v.model}`,
+      plate: v.license_plate || 'N/A',
+      dailyRate,
+      bookingCount: vBookingCount,
+      bookingRevenue: vBookingRevenue,
+      maintenanceCost: vMaintenanceCost,
+      variableCostPerBooking,
+      netProfitPerBooking,
+      status
+    };
+  });
+
+  // === MONTHLY BREAKDOWN (last 12 months) ===
+  const monthlyData: Record<string, { bookings: number; revenue: number }> = {};
+  recentBookings.forEach(b => {
+    const month = b.start_date.substring(0, 7);
+    if (!monthlyData[month]) monthlyData[month] = { bookings: 0, revenue: 0 };
+    monthlyData[month].bookings++;
+    monthlyData[month].revenue += Number(b.total_amount || 0);
+  });
+
+  const monthlyBreakdown = Object.entries(monthlyData)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, data]) => `  ${month}: ${data.bookings} bookings, €${data.revenue.toFixed(2)} revenue`)
+    .join('\n');
+
+  // === DEBUG SNAPSHOT ===
+  const debugSnapshot = {
+    period: `${cutoffDate} to ${now.toISOString().split('T')[0]}`,
+    totalBookings,
+    totalBookingRevenue: +totalBookingRevenue.toFixed(2),
+    totalMaintenanceCost: +totalMaintenanceCost.toFixed(2),
+    totalFixedCostsAnnual: +totalFixedCostsAnnual.toFixed(2),
+    totalCosts: +totalCosts.toFixed(2),
+    weightedAvgRentalPrice: +weightedAvgRentalPrice.toFixed(2),
+    breakEvenBookings,
+    insufficientData,
+    vehicleCount: vehicles.length
+  };
+  console.log('[FINANCIAL_DEBUG]', JSON.stringify(debugSnapshot));
+
+  // === BUILD FORMATTED CONTEXT STRING ===
+  return `
+═══════════════════════════════════════════════════════════
+PRE-COMPUTED FINANCIAL METRICS (Last 12 Months)
+═══════════════════════════════════════════════════════════
+Analysis Period: ${cutoffDate} to ${now.toISOString().split('T')[0]}
+Data Sufficiency: ${insufficientData ? '❌ INSUFFICIENT (see thresholds below)' : '✅ SUFFICIENT'}
+Vehicles: ${vehicles.length} | Bookings (12m): ${totalBookings} | Cost Entries: ${costEntries}
+
+GLOBAL METRICS (pre-computed — use EXACTLY as given, do NOT recalculate):
+• Total Booking Revenue (12m): €${totalBookingRevenue.toFixed(2)}
+• Weighted Avg Rental Price: €${weightedAvgRentalPrice.toFixed(2)}
+• Total Maintenance Cost (12m): €${totalMaintenanceCost.toFixed(2)}
+• Total Fixed Costs (annualized): €${totalFixedCostsAnnual.toFixed(2)}
+• Total Costs: €${totalCosts.toFixed(2)}
+• Global Variable Cost per Booking: €${globalVariableCostPerBooking.toFixed(2)}
+• Break-even Bookings: ${breakEvenBookings}
+• Current Bookings vs Break-even: ${totalBookings} vs ${breakEvenBookings} (${totalBookings >= breakEvenBookings ? 'ABOVE break-even ✅' : 'BELOW break-even ⚠️'})
+
+PER-VEHICLE BREAKDOWN:
+${vehicleBreakdown.map(v => 
+  `• ${v.name} (${v.plate}) | Daily Rate: €${v.dailyRate.toFixed(2)} | Bookings: ${v.bookingCount} | Revenue: €${v.bookingRevenue.toFixed(2)} | Maintenance: €${v.maintenanceCost.toFixed(2)} | Var Cost/Booking: €${v.variableCostPerBooking.toFixed(2)} | Net Profit/Booking: €${v.netProfitPerBooking.toFixed(2)} | Status: ${v.status}`
+).join('\n')}
+
+MONTHLY PERFORMANCE (12m):
+${monthlyBreakdown || '  No monthly data available'}
+`;
+}
+
 // ============= CORE BUSINESS CONTEXT BUILDER =============
 
 function buildBusinessContext(
