@@ -372,10 +372,37 @@ function computeFinancialContext(
   const now = new Date();
   const twelveMonthsAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
   const cutoffDate = twelveMonthsAgo.toISOString().split('T')[0];
+  const nowDate = now.toISOString().split('T')[0];
 
-  // Filter to last 12 months
-  const recentBookings = bookings.filter(b => b.start_date >= cutoffDate);
-  const recentMaintenance = maintenanceRecords.filter(m => m.date >= cutoffDate);
+  // === SOLD VEHICLE HANDLING (time-aware) ===
+  const activeVehicles = vehicles.filter(v => !v.is_sold);
+  const soldVehicles = vehicles.filter(v => v.is_sold);
+  const soldVehicleIds = new Set(soldVehicles.map(v => v.id));
+
+  const soldVehicleSaleDate: Record<string, string> = {};
+  soldVehicles.forEach(v => {
+    if (v.sale_date) soldVehicleSaleDate[v.id] = v.sale_date;
+  });
+
+  // Filter bookings: exclude sold vehicle bookings AFTER sale_date
+  const recentBookings = bookings.filter(b => {
+    if (b.start_date < cutoffDate) return false;
+    if (soldVehicleIds.has(b.vehicle_id)) {
+      const saleDate = soldVehicleSaleDate[b.vehicle_id];
+      if (saleDate && b.start_date > saleDate) return false;
+    }
+    return true;
+  });
+
+  // Filter maintenance similarly
+  const recentMaintenance = maintenanceRecords.filter(m => {
+    if (m.date < cutoffDate) return false;
+    if (soldVehicleIds.has(m.vehicle_id)) {
+      const saleDate = soldVehicleSaleDate[m.vehicle_id];
+      if (saleDate && m.date > saleDate) return false;
+    }
+    return true;
+  });
 
   // === DATA INTEGRITY VALIDATION ===
   const anomalies: string[] = [];
@@ -389,21 +416,23 @@ function computeFinancialContext(
     const amount = Number(b.total_amount || 0);
 
     if (durationDays > 90) {
-      anomalies.push(`Booking ${b.id.substring(0,8)} has unrealistic duration: ${durationDays} days — EXCLUDED from revenue`);
+      anomalies.push(`Booking ${b.id.substring(0,8)} has unrealistic duration: ${durationDays} days — EXCLUDED`);
       skippedBookings.push(b);
     } else if (amount <= 0) {
-      anomalies.push(`Booking ${b.id.substring(0,8)} has zero/negative revenue (€${amount}) — counted for volume but excluded from revenue`);
+      anomalies.push(`Booking ${b.id.substring(0,8)} has zero/negative revenue (€${amount}) — excluded from revenue`);
       skippedBookings.push(b);
     } else {
       validBookings.push(b);
     }
   });
 
-  // === CORE METRICS (using validated bookings for revenue, all for volume) ===
-  const totalBookings = recentBookings.length; // volume includes all
-  const totalValidBookings = validBookings.length;
-  const totalBookingRevenue = validBookings.reduce((sum, b) => sum + Number(b.total_amount || 0), 0);
-  const totalMaintenanceCost = recentMaintenance.reduce((sum, m) => sum + Number(m.cost || 0), 0);
+  // === CORE METRICS (active fleet only for global metrics) ===
+  const activeFleetValidBookings = validBookings.filter(b => !soldVehicleIds.has(b.vehicle_id));
+  const activeFleetMaintenance = recentMaintenance.filter(m => !soldVehicleIds.has(m.vehicle_id));
+
+  const totalActiveBookings = activeFleetValidBookings.length;
+  const totalActiveBookingRevenue = activeFleetValidBookings.reduce((sum, b) => sum + Number(b.total_amount || 0), 0);
+  const totalActiveMaintenanceCost = activeFleetMaintenance.reduce((sum, m) => sum + Number(m.cost || 0), 0);
 
   // Fixed cost normalization
   let totalFixedCostsAnnual = 0;
@@ -413,7 +442,6 @@ function computeFinancialContext(
       const amount = Number(r.amount);
       const freqValue = r.frequency_value || 1;
       const unit = (r.frequency_unit || 'month').toLowerCase();
-      
       let annualAmount: number;
       switch (unit) {
         case 'day':   annualAmount = amount * (365 / freqValue); break;
@@ -425,33 +453,37 @@ function computeFinancialContext(
       totalFixedCostsAnnual += annualAmount;
     });
 
-  const totalCosts = totalFixedCostsAnnual + totalMaintenanceCost;
+  const totalCosts = totalFixedCostsAnnual + totalActiveMaintenanceCost;
 
-  // Division-by-zero guards
-  const weightedAvgRentalPrice = totalValidBookings > 0 ? totalBookingRevenue / totalValidBookings : 0;
-  const globalVariableCostPerBooking = totalValidBookings > 0 ? totalMaintenanceCost / totalValidBookings : 0;
-  const breakEvenBookings = weightedAvgRentalPrice > 0 ? Math.ceil(totalCosts / weightedAvgRentalPrice) : 0;
+  const weightedAvgRentalPrice = totalActiveBookings > 0 ? totalActiveBookingRevenue / totalActiveBookings : 0;
+  const globalVariableCostPerBooking = totalActiveBookings > 0 ? totalActiveMaintenanceCost / totalActiveBookings : 0;
+
+  // Contribution-based break-even
+  const weightedAvgContribution = totalActiveBookings > 0
+    ? (totalActiveBookingRevenue - totalActiveMaintenanceCost) / totalActiveBookings
+    : 0;
+  const breakEvenBookings = weightedAvgContribution > 0 ? Math.ceil(totalFixedCostsAnnual / weightedAvgContribution) : 0;
+  const fixedCostSharePerBooking = totalActiveBookings > 0 ? totalFixedCostsAnnual / totalActiveBookings : 0;
 
   // === DATA SUFFICIENCY CHECK ===
   const costEntries = recentMaintenance.length + recurringTransactions.filter(r => r.type === 'expense' && r.is_fixed_cost && r.is_active !== false).length;
-  const insufficientData = vehicles.length < 3 || totalBookings < 10 || costEntries < 2;
+  const insufficientData = activeVehicles.length < 3 || totalActiveBookings < 10 || costEntries < 2;
 
-  // === PER-VEHICLE BREAKDOWN (with avgRevenuePerBooking & avgBookingDuration) ===
+  // === PER-VEHICLE BREAKDOWN (ACTIVE VEHICLES ONLY) ===
   const sanityWarnings: string[] = [];
+  const PROFIT_MARGIN_TARGET = 0.15;
 
-  const vehicleBreakdown = vehicles.map(v => {
+  const vehicleBreakdown = activeVehicles.map(v => {
     const vAllBookings = recentBookings.filter(b => b.vehicle_id === v.id);
     const vValidBookings = validBookings.filter(b => b.vehicle_id === v.id);
     const vBookingCount = vAllBookings.length;
     const vValidCount = vValidBookings.length;
     const vBookingRevenue = vValidBookings.reduce((sum, b) => sum + Number(b.total_amount || 0), 0);
-    
-    // Maintenance costs STRICTLY per vehicle (no cross-vehicle leakage)
+
     const vMaintenanceRecords = recentMaintenance.filter(m => m.vehicle_id === v.id);
     const vMaintenanceCost = vMaintenanceRecords.reduce((sum, m) => sum + Number(m.cost || 0), 0);
     const dailyRate = Number(v.daily_rate) || 0;
 
-    // Calculate total days rented and avg booking duration
     let totalDaysRented = 0;
     vValidBookings.forEach(b => {
       const start = new Date(b.start_date);
@@ -463,50 +495,69 @@ function computeFinancialContext(
     const avgRevenuePerBooking = vValidCount > 0 ? vBookingRevenue / vValidCount : 0;
     const variableCostPerBooking = vValidCount > 0 ? vMaintenanceCost / vValidCount : 0;
     const netProfitPerBooking = vValidCount > 0 ? avgRevenuePerBooking - variableCostPerBooking : 0;
+    const contributionPerBooking = avgRevenuePerBooking - variableCostPerBooking;
 
-    // === STATUS CLASSIFICATION (consistent per-booking units) ===
+    // Utilization
+    const purchaseDate = v.purchase_date ? new Date(v.purchase_date) : twelveMonthsAgo;
+    const windowStart = purchaseDate > twelveMonthsAgo ? purchaseDate : twelveMonthsAgo;
+    const availableDays = Math.max(1, Math.ceil((now.getTime() - windowStart.getTime()) / (1000 * 60 * 60 * 24)));
+    const utilization = availableDays > 0 ? totalDaysRented / availableDays : 0;
+
+    // Target price
+    let targetDailyRate = 0;
+    if (vValidCount > 0 && avgBookingDuration > 0) {
+      const targetRevenuePerBooking = variableCostPerBooking + fixedCostSharePerBooking + (PROFIT_MARGIN_TARGET * avgRevenuePerBooking);
+      targetDailyRate = targetRevenuePerBooking / avgBookingDuration;
+    }
+
+    // Status classification (multi-factor)
     let status: string;
     if (vBookingCount === 0) {
       status = 'insufficient_data';
-    } else if (netProfitPerBooking <= 0) {
+    } else if (contributionPerBooking <= 0) {
       status = 'loss';
-    } else if (avgRevenuePerBooking > 0 && netProfitPerBooking < avgRevenuePerBooking * 0.15) {
-      status = 'low_margin';
+    } else if (contributionPerBooking < fixedCostSharePerBooking) {
+      status = 'below_fixed_cost_share';
+    } else if (utilization < 0.15) {
+      status = 'underutilized';
     } else {
-      status = 'healthy';
+      status = 'profitable';
     }
 
-    // === SANITY FLAGS (warnings, not blockers) ===
+    // Sanity flags
     const vName = `${v.make} ${v.model}`;
     if (vValidCount > 0 && variableCostPerBooking > avgRevenuePerBooking) {
-      sanityWarnings.push(`⚠️ ${vName}: Variable cost/booking (€${variableCostPerBooking.toFixed(2)}) EXCEEDS avg revenue/booking (€${avgRevenuePerBooking.toFixed(2)}) — operating at a LOSS`);
+      sanityWarnings.push(`⚠️ ${vName}: Var cost/booking (€${variableCostPerBooking.toFixed(2)}) EXCEEDS avg revenue/booking (€${avgRevenuePerBooking.toFixed(2)}) — LOSS`);
     }
     if (avgBookingDuration > 30) {
-      sanityWarnings.push(`⚠️ ${vName}: Avg booking duration is ${avgBookingDuration.toFixed(1)} days — unusually long`);
-    }
-    if (vValidCount > 0 && netProfitPerBooking > avgRevenuePerBooking * 0.95) {
-      sanityWarnings.push(`ℹ️ ${vName}: Extremely high margin (${((netProfitPerBooking / avgRevenuePerBooking) * 100).toFixed(0)}%) — likely very low maintenance costs`);
+      sanityWarnings.push(`⚠️ ${vName}: Avg booking duration ${avgBookingDuration.toFixed(1)} days — unusually long`);
     }
 
     return {
-      name: vName,
-      plate: v.license_plate || 'N/A',
-      dailyRate,
-      bookingCount: vBookingCount,
-      bookingRevenue: vBookingRevenue,
-      maintenanceCost: vMaintenanceCost,
-      variableCostPerBooking,
-      netProfitPerBooking,
-      avgRevenuePerBooking,
-      avgBookingDuration,
-      totalDaysRented,
-      status
+      name: vName, plate: v.license_plate || 'N/A', dailyRate, bookingCount: vBookingCount,
+      bookingRevenue: vBookingRevenue, maintenanceCost: vMaintenanceCost,
+      variableCostPerBooking, netProfitPerBooking, avgRevenuePerBooking, avgBookingDuration,
+      totalDaysRented, contributionPerBooking, utilization, availableDays, targetDailyRate, status
     };
   });
 
-  // === MONTHLY BREAKDOWN (last 12 months) ===
+  // Data-driven demand classification
+  const avgFleetUtilization = vehicleBreakdown.length > 0
+    ? vehicleBreakdown.reduce((sum, v) => sum + v.utilization, 0) / vehicleBreakdown.length
+    : 0;
+
+  const vehicleBreakdownWithDemand = vehicleBreakdown.map(v => {
+    let demandLevel: string;
+    if (v.bookingCount === 0) demandLevel = 'none';
+    else if (v.utilization > avgFleetUtilization * 1.2) demandLevel = 'high';
+    else if (v.utilization > avgFleetUtilization * 0.8) demandLevel = 'medium';
+    else demandLevel = 'low';
+    return { ...v, demandLevel };
+  });
+
+  // Monthly breakdown (active fleet only)
   const monthlyData: Record<string, { bookings: number; revenue: number }> = {};
-  validBookings.forEach(b => {
+  activeFleetValidBookings.forEach(b => {
     const month = b.start_date.substring(0, 7);
     if (!monthlyData[month]) monthlyData[month] = { bookings: 0, revenue: 0 };
     monthlyData[month].bookings++;
@@ -518,71 +569,73 @@ function computeFinancialContext(
     .map(([month, data]) => `  ${month}: ${data.bookings} bookings, €${data.revenue.toFixed(2)} revenue`)
     .join('\n');
 
-  // === DEBUG SNAPSHOT ===
+  // Sold vehicles summary
+  const soldVehicleSummary = soldVehicles.length > 0
+    ? `\nSOLD VEHICLES (excluded from per-vehicle analysis):\n${soldVehicles.map(v => `  • ${v.make} ${v.model} (${v.license_plate || 'N/A'}) — sold ${v.sale_date || 'unknown'}`).join('\n')}\n`
+    : '';
+
+  // Debug snapshot
   const debugSnapshot = {
-    period: `${cutoffDate} to ${now.toISOString().split('T')[0]}`,
-    totalBookings,
-    totalValidBookings,
-    skippedBookings: skippedBookings.length,
-    totalBookingRevenue: +totalBookingRevenue.toFixed(2),
-    totalMaintenanceCost: +totalMaintenanceCost.toFixed(2),
-    totalFixedCostsAnnual: +totalFixedCostsAnnual.toFixed(2),
-    totalCosts: +totalCosts.toFixed(2),
-    weightedAvgRentalPrice: +weightedAvgRentalPrice.toFixed(2),
-    breakEvenBookings,
-    insufficientData,
-    vehicleCount: vehicles.length,
-    anomalies: anomalies.length,
-    sanityWarnings: sanityWarnings.length,
-    perVehicle: vehicleBreakdown.map(v => ({
-      name: v.name, bookings: v.bookingCount, revenue: +v.bookingRevenue.toFixed(2),
-      maintenance: +v.maintenanceCost.toFixed(2), avgRevPerBooking: +v.avgRevenuePerBooking.toFixed(2),
-      avgDuration: +v.avgBookingDuration.toFixed(1), varCost: +v.variableCostPerBooking.toFixed(2),
-      netProfit: +v.netProfitPerBooking.toFixed(2), status: v.status
+    period: `${cutoffDate} to ${nowDate}`,
+    activeVehicles: activeVehicles.length, soldVehicles: soldVehicles.length,
+    totalActiveBookings, totalActiveBookingRevenue: +totalActiveBookingRevenue.toFixed(2),
+    totalActiveMaintenanceCost: +totalActiveMaintenanceCost.toFixed(2),
+    totalFixedCostsAnnual: +totalFixedCostsAnnual.toFixed(2), totalCosts: +totalCosts.toFixed(2),
+    weightedAvgContribution: +weightedAvgContribution.toFixed(2),
+    fixedCostSharePerBooking: +fixedCostSharePerBooking.toFixed(2),
+    breakEvenBookings, insufficientData,
+    avgFleetUtilization: +(avgFleetUtilization * 100).toFixed(1),
+    perVehicle: vehicleBreakdownWithDemand.map(v => ({
+      name: v.name, bookings: v.bookingCount, contribution: +v.contributionPerBooking.toFixed(2),
+      utilization: +((v.utilization * 100).toFixed(1)), demand: v.demandLevel,
+      targetDailyRate: +v.targetDailyRate.toFixed(2), status: v.status
     }))
   };
   console.log('[FINANCIAL_DEBUG]', JSON.stringify(debugSnapshot));
 
-  // === BUILD FORMATTED CONTEXT STRING ===
-  const warningsSection = sanityWarnings.length > 0 
-    ? `\nSANITY WARNINGS (review before making recommendations):\n${sanityWarnings.join('\n')}\n`
+  const warningsSection = sanityWarnings.length > 0
+    ? `\nSANITY WARNINGS:\n${sanityWarnings.join('\n')}\n`
     : '';
-
   const anomalySection = anomalies.length > 0
     ? `\nDATA ANOMALIES (${anomalies.length} bookings excluded):\n${anomalies.join('\n')}\n`
     : '';
 
   return `
 ═══════════════════════════════════════════════════════════
-PRE-COMPUTED FINANCIAL METRICS (Last 12 Months)
+PRE-COMPUTED FINANCIAL METRICS (Last 12 Months — Active Fleet Only)
 ═══════════════════════════════════════════════════════════
-Analysis Period: ${cutoffDate} to ${now.toISOString().split('T')[0]}
-Data Sufficiency: ${insufficientData ? '❌ INSUFFICIENT (see thresholds below)' : '✅ SUFFICIENT'}
-Vehicles: ${vehicles.length} | Bookings (12m): ${totalBookings} | Valid Bookings: ${totalValidBookings} | Cost Entries: ${costEntries}
+Analysis Period: ${cutoffDate} to ${nowDate}
+Data Sufficiency: ${insufficientData ? '❌ INSUFFICIENT' : '✅ SUFFICIENT'}
+Active Vehicles: ${activeVehicles.length} | Sold: ${soldVehicles.length} | Bookings (active fleet): ${totalActiveBookings} | Cost Entries: ${costEntries}
 
-GLOBAL METRICS (pre-computed — use EXACTLY as given, do NOT recalculate):
-• Total Booking Revenue (12m): €${totalBookingRevenue.toFixed(2)}
-• Weighted Avg Revenue per Booking: €${weightedAvgRentalPrice.toFixed(2)}
-• Total Maintenance Cost (12m): €${totalMaintenanceCost.toFixed(2)}
+GLOBAL METRICS (pre-computed — use EXACTLY as given):
+• Total Booking Revenue (active fleet): €${totalActiveBookingRevenue.toFixed(2)}
+• Weighted Avg Revenue/Booking: €${weightedAvgRentalPrice.toFixed(2)}
+• Total Maintenance Cost (active fleet): €${totalActiveMaintenanceCost.toFixed(2)}
 • Total Fixed Costs (annualized): €${totalFixedCostsAnnual.toFixed(2)}
 • Total Costs: €${totalCosts.toFixed(2)}
-• Global Variable Cost per Booking: €${globalVariableCostPerBooking.toFixed(2)}
-• Break-even Bookings: ${breakEvenBookings}
-• Current Bookings vs Break-even: ${totalBookings} vs ${breakEvenBookings} (${totalBookings >= breakEvenBookings ? 'ABOVE break-even ✅' : 'BELOW break-even ⚠️'})
+• Global Variable Cost/Booking: €${globalVariableCostPerBooking.toFixed(2)}
+• Weighted Avg Contribution/Booking: €${weightedAvgContribution.toFixed(2)}
+• Fixed Cost Share/Booking: €${fixedCostSharePerBooking.toFixed(2)}
+• Break-even Bookings (contribution-based): ${breakEvenBookings}
+• Current vs Break-even: ${totalActiveBookings} vs ${breakEvenBookings} (${totalActiveBookings >= breakEvenBookings ? 'ABOVE ✅' : 'BELOW ⚠️'})
+• Avg Fleet Utilization: ${(avgFleetUtilization * 100).toFixed(1)}%
 
-UNIT DEFINITIONS (CRITICAL — read before analyzing):
-• "Daily Rate" = price charged PER DAY of rental
-• "Avg Revenue/Booking" = total revenue earned per booking (spans MULTIPLE days)
-• "Var Cost/Booking" = maintenance cost allocated per booking (spans MULTIPLE days)
-• "Net Profit/Booking" = Avg Revenue/Booking minus Var Cost/Booking
-• NEVER compare Daily Rate directly with per-booking metrics. To compare: divide per-booking value by Avg Booking Duration.
+UNIT DEFINITIONS:
+• "Daily Rate" = price PER DAY
+• "Avg Revenue/Booking" = revenue per booking (multi-day)
+• "Contribution/Booking" = Avg Revenue/Booking − Var Cost/Booking
+• "Utilization" = booked days / available days (data-driven)
+• "Target Daily Rate" = price to cover var cost + fixed cost share + 15% margin
+• "Demand Level" = derived from utilization vs fleet average (high/medium/low/none)
+• NEVER compare Daily Rate directly with per-booking metrics
 
-PER-VEHICLE BREAKDOWN:
-${vehicleBreakdown.map(v => 
-  `• ${v.name} (${v.plate}) | Daily Rate (per day): €${v.dailyRate.toFixed(2)} | Avg Revenue/Booking (multi-day): €${v.avgRevenuePerBooking.toFixed(2)} | Avg Booking Duration: ${v.avgBookingDuration.toFixed(1)} days | Bookings: ${v.bookingCount} | Revenue: €${v.bookingRevenue.toFixed(2)} | Maintenance: €${v.maintenanceCost.toFixed(2)} | Var Cost/Booking: €${v.variableCostPerBooking.toFixed(2)} | Net Profit/Booking: €${v.netProfitPerBooking.toFixed(2)} | Status: ${v.status}`
+PER-VEHICLE BREAKDOWN (ACTIVE FLEET ONLY):
+${vehicleBreakdownWithDemand.map(v =>
+  `• ${v.name} (${v.plate}) | Daily Rate: €${v.dailyRate.toFixed(2)} | Avg Rev/Booking: €${v.avgRevenuePerBooking.toFixed(2)} | Avg Duration: ${v.avgBookingDuration.toFixed(1)}d | Bookings: ${v.bookingCount} | Revenue: €${v.bookingRevenue.toFixed(2)} | Maintenance: €${v.maintenanceCost.toFixed(2)} | Var Cost/Booking: €${v.variableCostPerBooking.toFixed(2)} | Contribution/Booking: €${v.contributionPerBooking.toFixed(2)} | Utilization: ${(v.utilization * 100).toFixed(1)}% | Demand: ${v.demandLevel} | Target Daily Rate: €${v.targetDailyRate.toFixed(2)} | Status: ${v.status}`
 ).join('\n')}
-${warningsSection}${anomalySection}
-MONTHLY PERFORMANCE (12m):
+${soldVehicleSummary}${warningsSection}${anomalySection}
+MONTHLY PERFORMANCE (active fleet):
 ${monthlyBreakdown || '  No monthly data available'}
 `;
 }
