@@ -2210,13 +2210,16 @@ PRESET: FINANCIAL ANALYSIS — FLEET ECONOMICS
 
 STEP 0: DATA SUFFICIENCY GATE
 If Data Sufficiency above shows ❌ INSUFFICIENT → respond ONLY with the insufficiency message and STOP.
-Thresholds: ≥3 vehicles, ≥10 bookings, ≥2 cost entries.
+Thresholds: ≥3 active vehicles, ≥10 bookings, ≥2 cost entries.
 
 STRICT RULES:
-- Status MUST match profitability: if net_profit_per_booking > 0, status CANNOT be "loss"
+- Status MUST match profitability data — use the pre-computed Status field exactly
 - NEVER compare Daily Rate with per-booking metrics directly
 - If SANITY WARNINGS exist, acknowledge them in your analysis
-- A vehicle cannot be both "healthy" AND "at a loss" — these are contradictory
+- A vehicle cannot be both "profitable" AND "at a loss" — these are contradictory
+- Status labels: profitable, below_fixed_cost_share, underutilized, loss, insufficient_data
+- Sold vehicles are EXCLUDED from the per-vehicle table — do NOT include them
+- Demand Level is pre-computed from utilization data — use it as-is, do NOT guess demand
 
 OUTPUT STRUCTURE (STRICT ORDER — ALL SECTIONS REQUIRED):
 
@@ -2226,26 +2229,31 @@ OUTPUT STRUCTURE (STRICT ORDER — ALL SECTIONS REQUIRED):
 
 **2. Key Metrics** (use pre-computed values EXACTLY)
 - Weighted Avg Revenue per Booking
+- Weighted Avg Contribution per Booking
 - Total Fixed Costs (annualized)
 - Total Maintenance Cost (variable)
 - Total Costs
-- Global Variable Cost per Booking
-- Break-even Bookings
+- Fixed Cost Share per Booking
+- Break-even Bookings (contribution-based)
 - Current bookings vs break-even
+- Avg Fleet Utilization
 
-**3. Per-Vehicle Analysis** (table format, from PER-VEHICLE BREAKDOWN above)
-| Vehicle | Avg Revenue/Booking | Avg Duration | Bookings | Var Cost/Booking | Net Profit/Booking | Status |
-Use the pre-computed values. Flag ⚠️ for insufficient_data or loss status.
-Include Daily Rate as reference in parentheses if useful but do NOT use it as the primary metric.
+**3. Per-Vehicle Analysis** (table format, ACTIVE FLEET ONLY)
+
+| Vehicle | Avg Revenue/Booking | Contribution/Booking | Utilization | Bookings | Demand | Status |
+
+Use the pre-computed values. Flag ⚠️ for insufficient_data, loss, or below_fixed_cost_share.
+Include Daily Rate and Target Daily Rate as reference in parentheses if useful.
 
 **4. Top Performers**
-- 🏆 Most profitable (highest net profit per booking among vehicles with bookings)
-- ⚠️ Most underperforming (loss or low_margin status)
+- 🏆 Most profitable (highest contribution per booking among vehicles with bookings)
+- ⚠️ Most underperforming (loss, below_fixed_cost_share, or underutilized status)
 
 **5. Recommendations**
-- Revenue increase: insurance upsells, add-ons, premium tiers
+- Revenue increase: insurance upsells, add-ons, premium tiers, utilization improvement
 - Cost reduction: maintenance optimization, bulk purchasing
 - If any vehicle has var_cost > avg_revenue, highlight this as critical
+- Reference Target Daily Rate for pricing suggestions
 
 **6. Monthly Insights** (from MONTHLY PERFORMANCE above)
 - Strongest month (highest revenue/bookings)
@@ -2257,7 +2265,7 @@ Include Daily Rate as reference in parentheses if useful but do NOT use it as th
 
 CALC_DESIRED HANDLER:
 If user message starts with "CALC_DESIRED:" followed by a number:
-1. required_bookings = ceil((Total Costs + desired_income) / Weighted Avg Revenue per Booking)
+1. required_bookings = ceil((Total Fixed Costs + desired_income) / Weighted Avg Contribution per Booking)
 2. Return: Desired income, Required bookings, One insight sentence.
 
 FORMATTING: Use bullet points, bold key numbers, include ALL sections. Markdown tables MUST have a blank line before them. Be concise and practical. Execute immediately.`;
@@ -2271,55 +2279,56 @@ PRESET: PRICING OPTIMIZER — FLEET REVENUE OPTIMIZATION
 
 STEP 0: DATA SUFFICIENCY GATE
 If Data Sufficiency above shows ❌ INSUFFICIENT → respond ONLY with the insufficiency message and STOP.
-Thresholds: ≥3 vehicles, ≥10 bookings, ≥2 cost entries.
+Thresholds: ≥3 active vehicles, ≥10 bookings, ≥2 cost entries.
 
 UNIT AWARENESS (CRITICAL):
 - "Current Price" in the table = Daily Rate (PER DAY)
 - "Variable Cost/Booking" = cost PER BOOKING (spans multiple days)
-- To compare: daily_cost_floor = variable_cost_per_booking / avg_booking_duration
+- Daily Cost Floor = variable_cost_per_booking / avg_booking_duration
+- "Target Daily Rate" = pre-computed price to cover var cost + fixed cost share + 15% margin
 - A vehicle is profitable if: daily_rate > daily_cost_floor
 
-VEHICLE CLASSIFICATION (use pre-computed Status):
-- 🔴 Loss → status = "loss"
-- 🟡 Low Margin → status = "low_margin"  
-- 🟢 Healthy → status = "healthy"
-- ⚠️ Insufficient Data → status = "insufficient_data"
+VEHICLE CLASSIFICATION (use pre-computed Status — do NOT override):
+- 🔴 Loss → status = "loss" (contribution ≤ 0)
+- 🟠 Below Fixed Cost Share → status = "below_fixed_cost_share" (covers var cost but not fixed cost share)
+- 🟡 Underutilized → status = "underutilized" (profitable per booking but low utilization <15%)
+- 🟢 Profitable → status = "profitable" (covers all costs with margin)
+- ⚠️ Insufficient Data → status = "insufficient_data" (0 bookings)
 
-CONSISTENCY RULE: Status MUST match the data. A vehicle with positive net_profit_per_booking CANNOT be labeled "loss". A vehicle labeled "healthy" CANNOT be described as "at a loss" in text.
+CONSISTENCY RULE: Status MUST match the data. A vehicle with positive contribution CANNOT be "loss". A vehicle labeled "profitable" CANNOT be described as "at a loss" in text.
 
-DEMAND DETECTION:
-Fleet avg bookings/vehicle = Total Bookings / Total Vehicles (from pre-computed data)
-- High demand → vehicle bookings > fleet avg
-- Medium demand → ±20% of fleet avg
-- Low demand → < 80% of fleet avg
+DEMAND LEVEL (pre-computed from utilization data — use as-is):
+- high / medium / low / none — derived from vehicle utilization vs fleet average
+- Do NOT guess or override demand. Use the pre-computed value.
 
 HARD PRICING RULES:
-1. suggested_daily_price MUST be >= daily_cost_floor (= var_cost_per_booking / avg_booking_duration)
-2. Loss vehicles: increase to daily_cost_floor + 20-30% margin
-3. Minimum margin: 15-30% above daily_cost_floor
-4. High demand → increase 5-20%; Low demand → decrease 5-15% (never below daily_cost_floor)
-5. If status is "healthy", max daily price change = ±50%. ONLY exceed this for "loss" vehicles.
-6. High profit + low bookings → consider moderate decrease
-7. NEVER suggest a price change > 50% for a healthy vehicle. This is a HARD RULE.
+1. "Suggested Daily Rate" should converge toward the pre-computed "Target Daily Rate"
+2. Daily Cost Floor = var_cost_per_booking / avg_booking_duration — NEVER suggest below this
+3. Loss vehicles: increase to at least Target Daily Rate
+4. below_fixed_cost_share: increase 10-25% toward Target Daily Rate
+5. Underutilized: consider moderate decrease (5-10%) to boost volume, but never below cost floor
+6. Profitable: max change = ±50%. This is a HARD RULE.
+7. Insufficient data: hold current price, recommend monitoring
 
 OUTPUT STRUCTURE (STRICT ORDER — ALL SECTIONS REQUIRED):
 
 **1. Summary** (max 3 lines)
 - Fleet pricing health, Confidence level
 
-**2. Per-Vehicle Pricing Table**
+**2. Per-Vehicle Pricing Table** (ACTIVE FLEET ONLY)
 
-| Vehicle | Current Daily Rate | Daily Cost Floor | Suggested Daily Rate | Change % | Status | Demand | Action | Reason |
+| Vehicle | Current Daily Rate | Daily Cost Floor | Target Daily Rate | Suggested Daily Rate | Change % | Status | Demand | Action | Reason |
 
 Where Daily Cost Floor = Var Cost/Booking ÷ Avg Booking Duration
+Target Daily Rate = pre-computed value from data
 
 **3. Top Highlights**
-- 🏆 Best performing (highest margin)
+- 🏆 Best performing (highest contribution margin)
 - ⚠️ Most critical (needs immediate action)
 
 **4. Global Pricing Strategy**
 - 2-3 fleet-wide recommendations
-- Revenue opportunities, seasonal strategy
+- Revenue opportunities, utilization improvement, seasonal strategy
 
 **5. Monthly Pricing Recommendations** (from MONTHLY PERFORMANCE above)
 - Peak months: price adjustments
@@ -2330,8 +2339,8 @@ Where Daily Cost Floor = Var Cost/Booking ÷ Avg Booking Duration
 
 CALC_DESIRED HANDLER:
 If user message starts with "CALC_DESIRED:" followed by a number:
-1. required_bookings = ceil((Total Costs + desired_income) / Weighted Avg Revenue per Booking)
-2. required_avg_daily_price = (Total Costs + desired_income) / (Total Bookings * avg fleet booking duration)
+1. required_bookings = ceil((Total Fixed Costs + desired_income) / Weighted Avg Contribution per Booking)
+2. required_avg_daily_price = (Total Fixed Costs + desired_income) / (Total Active Bookings * avg fleet booking duration)
 3. Return: Desired income, Required bookings, Required avg daily price, One insight.
 
 FORMATTING: Use tables, bullet points, status emojis consistently, bold key numbers. Markdown tables MUST have a blank line before them. Include ALL sections. Be concise and actionable. Execute immediately.`;
