@@ -1,94 +1,119 @@
 
 
-# Plan: Fix Financial Analysis — Data Integrity, Unit Clarity, Sanity Checks, and Table Rendering
-
-## Data Validation Results
-
-I verified all pre-computed values against the actual database. The numbers ARE mathematically correct:
-- Total revenue: €11,680 (39 bookings) — verified per-vehicle
-- Fixed costs: €34,800/year (€1,700 salary + €1,200 insurance, both monthly) — correct
-- Break-even: 129 bookings — correct
-
-The root cause of bad AI output is NOT wrong calculations but a **unit mismatch in presentation**: `daily_rate` (per-day) is shown alongside `variable_cost_per_booking` and `net_profit_per_booking` (per-booking, spanning 3-7 days). The AI then incorrectly compares them, e.g., "Jeep daily rate €80 < var cost €161.54 = needs +143% increase" — but the Jeep actually earns €316/booking over 3.2 days on average.
+# Plan: Enhanced Financial Analysis — Sold Vehicle Handling, Contribution Margin, Utilization, and Data-Driven Pricing
 
 ## Changes
 
 ### 1. `supabase/functions/ai-chat/index.ts` — `computeFinancialContext()`
 
-**a) Add `avgRevenuePerBooking` and `avgBookingDuration` per vehicle:**
+**a) Time-aware sold vehicle handling (lines ~362-374):**
 
-```
-avgBookingDuration = totalDaysRented / bookingCount
-avgRevenuePerBooking = bookingRevenue / bookingCount
-```
+Instead of blindly excluding sold vehicles, filter intelligently:
+- Separate vehicles into `activeVehicles` (not sold) and `soldVehicles` (is_sold = true)
+- For sold vehicles: include their bookings/maintenance only for the period BEFORE `sale_date`
+- For active vehicles: include all bookings/maintenance within the 12-month window
+- Only active vehicles appear in the per-vehicle breakdown table
+- Sold vehicle revenue/costs still count toward global totals for the period they were active
 
-These are the correct per-booking metrics to compare against `variableCostPerBooking`.
-
-**b) Add data integrity validation before computing:**
-- Skip bookings with `total_amount <= 0` or `null` from revenue calculations (but count them for booking volume)
-- Flag bookings with duration > 90 days or duration = 0 as anomalies
-- Ensure maintenance costs are only counted for the vehicle they belong to (already correct, but add explicit logging)
-
-**c) Add sanity/outlier checks (flags, not blockers):**
-- `varCostExceedsRevenue`: true if `variableCostPerBooking > avgRevenuePerBooking`
-- `unrealisticDuration`: true if any booking has duration > 90 days
-- `extremeProfit`: true if `netProfitPerBooking > avgRevenuePerBooking * 0.95` (suspiciously high margin)
-- Include these flags in the debug snapshot and in the context string as warnings
-
-**d) Fix status classification to use consistent units:**
-Current code compares `netProfitPerBooking < dailyRate * 0.15` — this mixes per-booking and per-day. Change to:
-```
-if netProfitPerBooking <= 0 → 'loss'
-if netProfitPerBooking < avgRevenuePerBooking * 0.15 → 'low_margin'
-else → 'healthy'
+```text
+recentBookings filtering:
+  - If vehicle is sold AND booking.start_date > vehicle.sale_date → exclude
+  - If vehicle is sold AND booking.start_date <= vehicle.sale_date → include in global totals only
+  - Active vehicles → include normally
 ```
 
-**e) Update formatted context string:**
-- Replace `Daily Rate` label with `Daily Rate (per day)` 
-- Add `Avg Revenue/Booking (multi-day): €X` per vehicle
-- Add `Avg Booking Duration: X days` per vehicle
-- Add sanity warnings section if any flags are true
+**b) Add Contribution Margin per vehicle (lines ~460-473):**
+
+New metric computed per vehicle:
+```
+contributionPerBooking = avgRevenuePerBooking - variableCostPerBooking
+```
+This is the amount each booking contributes toward covering fixed costs and profit. Used for:
+- Break-even: `breakEvenBookings = ceil(totalFixedCostsAnnual / weightedAvgContribution)`
+- Status classification
+- Pricing decisions
+
+**c) Add Utilization metrics per vehicle (new block after line ~456):**
+
+```
+availableDays = days vehicle was in the fleet during the 12-month window
+  - For active vehicles: min(365, days since purchase or start of window)
+  - For sold vehicles: days between max(window_start, purchase_date) and sale_date
+bookedDays = totalDaysRented (already computed)
+utilization = bookedDays / availableDays (0-1 ratio, as percentage)
+```
+
+**d) Replace "Demand" with data-driven classification (replaces subjective AI guessing):**
+
+Computed per vehicle based on utilization and booking frequency:
+```
+avgFleetUtilization = sum(all vehicle utilizations) / activeVehicleCount
+if utilization > avgFleetUtilization * 1.2 → 'high'
+if utilization > avgFleetUtilization * 0.8 → 'medium'
+else → 'low'
+```
+
+**e) Improved status classification (replaces lines 464-473):**
+
+Multi-factor status using contribution margin and utilization:
+```
+if bookingCount === 0 → 'insufficient_data'
+if contributionPerBooking <= 0 → 'loss'
+if contributionPerBooking < (totalFixedCostsAnnual / totalActiveBookings) → 'below_fixed_cost_share'
+if utilization < 0.15 → 'underutilized'
+if contributionPerBooking > 0 && utilization >= 0.15 → 'profitable'
+```
+
+**f) Add target price per vehicle:**
+
+```
+fixedCostSharePerBooking = totalFixedCostsAnnual / totalActiveBookings
+targetRevenuePerBooking = variableCostPerBooking + fixedCostSharePerBooking + (profitMargin * avgRevenuePerBooking)
+targetDailyRate = targetRevenuePerBooking / avgBookingDuration
+```
+Where `profitMargin` = 0.15 (15% target margin). This gives the AI a concrete "should-be" price.
+
+**g) Update formatted context string:**
+
+Add per vehicle: `contributionPerBooking`, `utilization`, `demandLevel`, `targetDailyRate`, `availableDays`
+
+**h) Break-even recalculation:**
+
+```
+weightedAvgContribution = totalBookingRevenue - totalMaintenanceCost (for active fleet only) / totalActiveBookings
+breakEvenBookings = ceil(totalFixedCostsAnnual / weightedAvgContribution)
+```
 
 ### 2. `supabase/functions/ai-chat/index.ts` — Prompt Instructions
 
 **Financial Analysis (`getFinancialAnalysisInstructions()`):**
-- Update table columns: replace `Daily Rate` with `Avg Revenue/Booking` for the analysis table
-- Keep `Daily Rate` as reference only
-- Add rule: "Status MUST match profitability: if net_profit > 0, status cannot be 'loss'"
-- Add rule: "Never compare daily_rate directly with per-booking metrics"
+- Update table columns to include `Contribution/Booking` and `Utilization %`
+- Replace "Status: healthy/loss" with new multi-factor labels
+- Add rule: "Status reflects BOTH unit profitability AND contribution to fixed costs"
 
 **Pricing Optimizer (`getPricingOptimizerInstructions()`):**
-- Change comparison: `suggested_daily_price >= variable_cost_per_booking / avg_booking_duration`
-- Add: "Current Price = daily rate (per day). Variable Cost = per booking (multi-day). To compare, divide variable cost by avg booking duration."
-- Enforce: "If status is 'healthy', max daily price change = ±50%. Only exceed this for 'loss' vehicles."
-- Add: "No contradictory statements: a vehicle cannot be both 'healthy' AND 'at a loss'"
+- Replace subjective "Demand: High/Medium/Low" with pre-computed `demandLevel` from utilization data
+- Add `Target Daily Rate` column to pricing table (the data-driven recommendation)
+- Update pricing rules to reference target price: "Suggested price should converge toward Target Daily Rate"
+- Keep ±50% cap for profitable vehicles
 
-### 3. `src/components/ai-assistant/MessageBubble.tsx` — Table Rendering
+### 3. No other file changes needed
 
-Add ReactMarkdown component mappings:
-```tsx
-table: ({ children }) => <div className="overflow-x-auto my-2"><table className="min-w-full text-xs border-collapse">{children}</table></div>
-thead: ({ children }) => <thead className="bg-gray-50">{children}</thead>
-tbody: ({ children }) => <tbody>{children}</tbody>
-tr: ({ children }) => <tr className="border-b border-gray-200">{children}</tr>
-th: ({ children }) => <th className="px-2 py-1.5 text-left font-semibold border border-gray-200">{children}</th>
-td: ({ children }) => <td className="px-2 py-1.5 border border-gray-200">{children}</td>
-```
+All changes are within the edge function.
 
-### 4. `src/i18n/locales/{en,el,it,es,de,fr}/ai.json` — Missing Keys
+## Expected Impact
 
-Add `todayUsage`, `newChat`, `history`, `noConversations` with translations for all 6 languages.
+With "hhh bbb" handled as time-aware sold vehicle:
+- Its pre-sale bookings still count in global totals for accuracy
+- It no longer appears in the per-vehicle table
+- Break-even uses only active fleet contribution margins
+
+New metrics provide the AI with concrete, data-driven values instead of subjective guesses:
+- `utilization: 42%` instead of AI guessing "High demand"
+- `targetDailyRate: €75` instead of AI suggesting +240%
+- `contributionPerBooking: €154` instead of raw profit with no fixed-cost context
 
 ## Files Modified
 
-1. `supabase/functions/ai-chat/index.ts` — per-vehicle metrics, sanity checks, prompt clarity
-2. `src/components/ai-assistant/MessageBubble.tsx` — table rendering
-3. `src/i18n/locales/{en,el,it,es,de,fr}/ai.json` — missing keys
-
-## What This Fixes
-
-- **Pricing optimizer giving +240%/+143%**: Root cause was comparing daily_rate (€35/day) vs var_cost_per_booking (€96.67/booking spanning 4+ days). Now the AI gets `avgBookingDuration` to normalize.
-- **"Healthy" AND contradictory statements**: Status classification now uses consistent per-booking units.
-- **Tables not rendering**: Added missing ReactMarkdown component mappings.
-- **Data integrity**: Anomalous bookings (0 days, >90 days, €0 revenue) are flagged without blocking execution.
+1. `supabase/functions/ai-chat/index.ts` — sold vehicle filtering, contribution margin, utilization, target pricing, prompt updates
 
