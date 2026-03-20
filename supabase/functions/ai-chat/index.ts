@@ -180,12 +180,16 @@ interface Vehicle {
   model: string;
   license_plate: string;
   daily_rate?: number;
-  type?: string;           // category (suv, economy, etc.)
-  vehicle_type?: string;   // top-level type (car, motorbike, atv) - PHASE 2
-  fuel_type?: string;      // PHASE 3: petrol, diesel, hybrid, electric
-  transmission_type?: string; // PHASE 4: manual, automatic
+  type?: string;
+  vehicle_type?: string;
+  fuel_type?: string;
+  transmission_type?: string;
   year?: number;
   status?: string;
+  is_sold?: boolean;
+  sale_date?: string;
+  sale_price?: number;
+  purchase_date?: string;
 }
 
 interface Booking {
