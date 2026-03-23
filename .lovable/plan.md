@@ -1,130 +1,219 @@
 
 
-# Plan: Daily Program Section Documentation — Multi-File Structure
+# Plan: AI Chat Section Documentation — Multi-File Structure
 
 ## Overview
 
-Create `/documentation/daily-program/` with 8 markdown files documenting the Daily Program as the operational execution layer that bridges bookings to real-world actions.
+Create `/documentation/ai-chat/` with 8 markdown files documenting the AI Chat as the intelligence and decision-making layer of FlitX.
 
 ## Files to Create
 
-### 1. `/documentation/daily-program/README.md` (~130 lines)
-**System-level context.**
-- Daily Program as the execution layer (route `/daily-program`, rendered by `DailyProgram.tsx`)
-- System role clarification: Reservations = planning layer, Fleet = asset layer, Daily Program = execution layer
-- Three-column layout: Drop-Offs (returns), Pick-Ups (deliveries), Other Tasks
-- Source of truth: `daily_tasks` table (linked via `booking_id`, `vehicle_id`)
-- Task types: `delivery` (pickup), `return` (drop-off), `other` (manual)
-- Connections: Fleet (vehicles in tasks), Reservations (auto-generate delivery/return tasks), Home (timeline displays same tasks), Analytics (indirect — completed bookings generate financial records), AI (not currently consumed)
-- Task ownership model: tasks linked to `booking_id` + `vehicle_id`, derived from `rental_bookings`
+### 1. `/documentation/ai-chat/README.md` (~150 lines)
+**System-level context and role definitions.**
+- AI Chat as the intelligence layer (route `/ai`, rendered by `AIAssistant.tsx`)
+- System role clarity:
+  - AI Chat = intelligence layer (interprets, recommends)
+  - Analytics = data layer (stores, aggregates)
+  - Fleet = asset layer (manages vehicles)
+  - Reservations = transaction layer (books vehicles)
+  - Daily Program = execution layer (manages tasks)
+- Architecture layers: Data Layer → Processing Layer → AI Layer → Output Layer
+- Four-layer pipeline: `Supabase tables → computeFinancialContext() + buildBusinessContext() → Lovable AI Gateway (Gemini) → SSE stream → React UI`
+- Source of truth: AI computes NOTHING — all metrics are pre-calculated server-side and injected into the prompt
+- Two edge functions: `ai-chat` (main inference pipeline) and `ai-chat-save` (persistence layer)
+- Database tables: `ai_chat_conversations`, `ai_chat_messages`, `ai_chat_usage`
+- Connections: Analytics (reads `financial_records`), Fleet (reads `vehicles`, `vehicle_maintenance`, `damage_reports`), Reservations (reads `rental_bookings`), Recurring (reads `recurring_transactions`), Profile (reads `profiles`)
+- AI Model Selection & Comparison table (Gemini 3 Flash Preview vs GPT-5 vs others — why Gemini chosen: cost ~$0.50/user/month, strong structured data handling, sufficient for pre-computed metric interpretation)
 
-### 2. `/documentation/daily-program/data-flow.md` (~200 lines)
-**Step-by-step lifecycles.**
-- **Booking → Task generation**: `UnifiedBookingDialog` → `rental_bookings` INSERT → `daily_tasks` INSERT ×2 (delivery on start_date with pickup_time/pickup_location, return on end_date with return_time/dropoff_location) → contract_path copied to both tasks
-- **Manual task creation**: AddTaskDialog → `daily_tasks` INSERT (task_type=other, title required) → `fetchTasks()` refetch
-- **Task update flow**: EditTaskDialog → `daily_tasks` UPDATE (time, notes, location, completion status) → refetch
-- **Task delete flow**: check for `contractPath` → delete from `rental-contracts` storage → `daily_tasks` DELETE → refetch
-- **Contract delete flow**: TaskItem → remove from storage → UPDATE `daily_tasks.contract_path = null` → UPDATE `rental_bookings.contract_photo_path = null` (if booking linked)
-- **Booking delete cascade** (from Fleet): deletes all linked `daily_tasks` as part of cascade
-- **Data enrichment on fetch**: `useDailyTasks` runs 4 sequential queries: daily_tasks (with vehicle join) → rental_bookings (fuel_level, payment_status, balance_due) → booking_additional_info → additional_info_categories
-- **Dependency mapping**: bookings → generate tasks, vehicles → referenced in tasks, reminders → NOT injected into Daily Program (separate system via `vehicle_reminders`, shown only in Home's RemindersWidget)
+### 2. `/documentation/ai-chat/data-flow.md` (~250 lines)
+**Full end-to-end pipeline documentation.**
+- **General chat flow**: User types → `useAIChat.sendMessage()` → builds `apiMessages` from conversation history → `fetch(CHAT_URL)` with auth token → edge function authenticates via `getUser()` → input validation (4000 chars, 20 messages max) → daily usage check (20/day limit) → usage increment → 7 parallel data fetches (`financial_records`, `vehicles`, `rental_bookings`, `profiles`, `recurring_transactions`, `vehicle_maintenance`, `damage_reports`) → `buildBusinessContext()` → `buildSystemPrompt()` → Lovable AI Gateway call (streaming) → SSE response piped back to client → client parses SSE line-by-line → assistant message built token-by-token → `setMessages()` update → after stream complete → `fetch(SAVE_URL)` to persist conversation
+- **Preset action flow**: Same as above but `presetType` is included → if `financial_analysis` or `pricing_optimizer`: additional `computeFinancialContext()` call with 12-month window filtering → financial context string appended to system prompt → preset-specific prompt instructions appended
+- **Conversation save flow**: `ai-chat-save` edge function → if no `conversationId`: create new `ai_chat_conversations` row (title from preset name or first 50 chars) → insert user message → insert assistant message → update conversation `updated_at` → return `conversationId` to client
+- **Conversation switch flow**: `switchConversation(id)` → fetch `ai_chat_messages` by `conversation_id` ordered by `created_at` → replace `messages` state
+- **CALC_DESIRED follow-up flow**: User sends "CALC_DESIRED: 5000" → treated as normal message → AI detects pattern in prompt instructions → computes `ceil((total_costs + desired_income) / weighted_avg_price)` → returns targeted response
 
-### 3. `/documentation/daily-program/components.md` (~200 lines)
-**Component tree.**
+### 3. `/documentation/ai-chat/components.md` (~200 lines)
+**Component tree and preset action documentation.**
 ```text
-DailyProgram.tsx (page — state owner via useDailyTasks hook)
-├── Date selector (Calendar popover, controls selectedDate)
-├── "Add New Task" button → opens AddTaskDialog
-├── 3-column grid (md:grid-cols-3, items-start):
-│   ├── DailyProgramSection "Drop-Offs" (tasks.type === 'return')
-│   ├── DailyProgramSection "Pick-Ups" (tasks.type === 'delivery')
-│   └── DailyProgramSection "Other Tasks" (tasks.type === 'other')
-└── AddTaskDialog (modal)
-
-DailyProgramSection.tsx (column container)
-├── Card with title + task count badge
-├── Shows first 4 tasks (VISIBLE_TASKS_COUNT = 4)
-├── "View All" button → Dialog with paginated list (10/page)
-├── Sorting: incomplete first, then by scheduledTime ascending
-└── TaskItem × N
-
-TaskItem.tsx (individual task card)
-├── Type badge (blue=return, green=delivery, gray=other)
-├── Title: other→user title, delivery/return→vehicleName
-├── Time, location, notes display
-├── Fuel level + payment status (delivery/return only, from booking data)
-├── Additional info rows (from booking_additional_info)
-├── Contract viewer (FilePreviewModal) + delete contract
-├── Complete/Reopen toggle button
-├── Edit button → EditTaskDialog
-└── Delete button
-
-EditTaskDialog.tsx (edit modal — limited fields)
-├── Read-only: type, vehicle (shown in muted box)
-├── Editable: title (other only), time (native input), location, notes, completed toggle
-└── Cannot change type or vehicle after creation
-
-AddTaskDialog.tsx (create modal)
-├── Date picker (syncs with page selectedDate)
-├── Type selector (return/delivery/other)
-├── Title field (other tasks only, required)
-├── Vehicle selector (required for delivery/return, optional for other; sold vehicles excluded)
-├── Time selector (24h, hourly increments 00:00-23:00)
-├── Location field (delivery/return only)
-└── Notes textarea
+AIAssistant.tsx (page wrapper)
+└── AIAssistantLayout.tsx (layout — owns sidebar + chat area)
+    ├── ChatSidebar.tsx (left panel, 256px)
+    │   ├── "New Chat" button → createNewChat()
+    │   ├── Conversation list (ordered by updated_at desc)
+    │   │   ├── Inline rename (pencil icon → input field)
+    │   │   └── Delete button (trash icon)
+    │   └── Usage meter (used/20 with gradient progress bar)
+    ├── ChatArea.tsx (main panel — conditional rendering)
+    │   ├── [Empty state] EmptyStateView.tsx
+    │   │   ├── AnimatedBackground (blue/white liquid-glass)
+    │   │   ├── StaticLogo (blue gradient, no animation)
+    │   │   ├── Greeting ("Hey {firstName}, ready to assist you")
+    │   │   ├── ChatInput (centered, max-w-2xl)
+    │   │   └── PresetActionButtons (2×2 grid)
+    │   └── [Active chat] MessageList + ChatInput (bottom)
+    │       ├── MessageList.tsx (scrollable, auto-scroll to bottom)
+    │       │   ├── MessageBubble.tsx × N (user/assistant styling)
+    │       │   └── ThinkingIndicator.tsx (shown while waiting for first token)
+    │       └── ChatInput.tsx (textarea with send button)
+    └── Mobile: hamburger menu for sidebar toggle
 ```
 
-### 4. `/documentation/daily-program/formulas.md` (~80 lines)
-**Logic and rules.**
-- **Task generation from booking**: pickup task → `due_date = booking.start_date`, `due_time = booking.pickup_time`, `location = booking.pickup_location`; return task → `due_date = booking.end_date`, `due_time = booking.return_time`, `location = booking.dropoff_location`
-- **Sorting**: `completed ? 1 : -1` (incomplete first), then `scheduledTime.localeCompare()` (chronological)
-- **Title derivation**: `task.title || task.vehicleName || type.charAt(0).toUpperCase() + type.slice(1)`
-- **Pagination**: `VISIBLE_TASKS_COUNT = 4` inline, `TASKS_PER_PAGE = 10` in modal; `totalPages = ceil(tasks.length / 10)`
-- **Vehicle requirement**: delivery/return → vehicle mandatory; other → vehicle optional (can select "none")
-- **Time format**: stored as `HH:MM` (24h), displayed via `formatTime24h()`, selector offers hourly increments only
+**Preset Actions (with exact system prompts):**
 
-### 5. `/documentation/daily-program/state-management.md` (~100 lines)
+1. **Marketing & Growth** (`marketing_growth`): 6-section output (Location insight → Social Media Ads → Organic Content → Pricing Strategies → Local Collaborations → Follow-up Questions). Uses full business context. No pre-computed financial metrics.
+
+2. **Expense Optimization** (`expense_optimization`): 6-step process (Data Sufficiency → Expense Analysis → Optimization Suggestions → Recurring Review → Summary → Follow-up). Requires ≥7 days of data. Category-specific advice (maintenance parts bulk buying, carwash in-house vs outsource).
+
+3. **Financial Analysis** (`financial_analysis`): 7-section strict output (Executive Summary → Key Metrics → Per-Vehicle Table → Top Performers → Recommendations → Monthly Insights → CALC_DESIRED handler). Data sufficiency gate: ≥3 vehicles, ≥10 bookings, ≥2 cost entries. Uses `computeFinancialContext()` pre-computed metrics.
+
+4. **Pricing Optimizer** (`pricing_optimizer`): 7-step pipeline (Data Sufficiency → Edge Cases → Per-Vehicle Profitability → Classification [🔴🟡🟢] → Demand Detection → Seasonality → Pricing Table). Hard pricing rules: never below variable cost, ±50% cap for profitable vehicles, 15-30% margin target. Uses `computeFinancialContext()`.
+
+Each preset's FULL default system prompt is included verbatim in the documentation.
+
+### 4. `/documentation/ai-chat/formulas.md` (~200 lines)
+**All pre-computed metrics (NOT computed by AI).**
+
+**Global metrics (from `computeFinancialContext()`):**
+- `weightedAvgRentalPrice = totalActiveBookingRevenue / totalActiveBookings`
+- `globalVariableCostPerBooking = totalActiveMaintenanceCost / totalActiveBookings`
+- `weightedAvgContribution = (totalActiveBookingRevenue - totalActiveMaintenanceCost) / totalActiveBookings`
+- `breakEvenBookings = ceil(totalFixedCostsAnnual / weightedAvgContribution)`
+- `fixedCostSharePerBooking = totalFixedCostsAnnual / totalActiveBookings`
+- `avgFleetUtilization = avg(all vehicle utilizations)`
+
+**Fixed cost annualization:**
+- `day → amount * (365 / freq_value)`
+- `week → amount * (52 / freq_value)`
+- `month → amount * (12 / freq_value)`
+- `year → amount * (1 / freq_value)`
+
+**Per-vehicle metrics:**
+- `avgRevenuePerBooking = vBookingRevenue / vValidCount`
+- `variableCostPerBooking = vMaintenanceCost / vValidCount`
+- `contributionPerBooking = avgRevenuePerBooking - variableCostPerBooking`
+- `utilization = totalDaysRented / availableDays` (available = max(1, days since purchase or 12 months ago))
+- `targetDailyRate = (variableCostPerBooking + fixedCostSharePerBooking + 15% * avgRevenuePerBooking) / avgBookingDuration`
+- `demandLevel`: high if utilization > fleet avg × 1.2, medium if > 0.8×, low otherwise, none if 0 bookings
+
+**Status classification:** `insufficient_data` (0 bookings) → `loss` (contribution ≤ 0) → `below_fixed_cost_share` → `underutilized` (util < 15%) → `profitable`
+
+**From `buildBusinessContext()`:**
+- Per-vehicle financials (income, expenses, net profit, margin, days rented, avg revenue/booking)
+- Pre-computed rankings: by profit, by bookings, by revenue
+- Expense category + subcategory breakdown (global and monthly)
+- Collaboration partner YTD income
+- Monthly vehicle profitability
+- Fleet distributions: by vehicle type, category, fuel type, transmission type
+- Maintenance + damage summaries per vehicle
+
+**CALC_DESIRED formula:** `required_bookings = ceil((total_costs + desired_income) / weighted_avg_price)`
+
+### 5. `/documentation/ai-chat/state-management.md` (~120 lines)
 **State ownership and propagation.**
-- `DailyProgram.tsx` owns: `selectedDate` (Date), `isAddDialogOpen`
-- `useDailyTasks(selectedDate)` hook owns: `tasks`, `loading`, `vehicles` — refetches when `selectedDateString` changes
-- `selectedDateString = format(selectedDate, 'yyyy-MM-dd')` used as query filter
-- `fetchTasks()` is a `useCallback` dependent on `[user, selectedDateString]` — called on mount + after every add/update/delete
-- No Supabase Realtime subscription — all updates are manual refetch after mutation
-- `DailyProgramSection` owns: `isViewAllOpen`, `currentPage` — local UI state only
-- `TaskItem` owns: `isEditDialogOpen`, `isUpdating`, `isContractOpen`, `contractUrl` — per-task local state
-- Cross-section: tasks created from booking (Fleet/Home) appear automatically when user navigates to matching date in Daily Program (fetched on date selection)
+- `useAIChat()` hook owns ALL chat state: `messages`, `isLoading`, `error`, `usage`, `conversations`, `activeConversation`
+- On mount: `fetchConversations()` + `fetchUsage()` (from `ai_chat_usage` table)
+- `sendMessage()` flow: add user message optimistically → build apiMessages from current messages → stream response → update assistant message token-by-token → save via `SAVE_URL` → update `activeConversation` if new → increment usage counter
+- Error recovery: on 429/402/error → remove optimistic user message from state → set error string → reset loading
+- `createNewChat()`: clears messages + activeConversation + error (no DB call)
+- `switchConversation()`: fetches messages from `ai_chat_messages` → replaces entire messages array
+- `deleteConversation()`: DB delete → remove from conversations array → if active, trigger createNewChat
+- `renameConversation()`: DB update → update conversations array in-place
+- SSE streaming state: `buffer` string accumulates chunks → parsed line-by-line → `assistantContent` string grows → `setMessages` called on each delta token
+- No Supabase Realtime — all state is local + manual fetch
 
-### 6. `/documentation/daily-program/edge-cases.md` (~100 lines)
+### 6. `/documentation/ai-chat/edge-cases.md` (~120 lines)
 **Error handling and safeguards.**
-- **Empty day**: each section shows "No scheduled [type]" message
-- **Booking without tasks**: possible if booking creation fails after `rental_bookings` INSERT but before `daily_tasks` INSERT — no automatic repair mechanism
-- **Orphan tasks after booking delete**: booking delete cascade explicitly deletes linked `daily_tasks` (by `booking_id`) — should not leave orphans
-- **Same-day pickup & return**: generates 2 tasks on same date — one in Pick-Ups column, one in Drop-Offs column
-- **Duplicate task creation**: no deduplication check — if booking creation runs twice, duplicate tasks possible
-- **Task without vehicle**: allowed for `other` type; renders title instead of vehicle name
-- **Task without time**: `scheduledTime` stored as empty string; renders empty in time display; sorts to top (empty string < any time string)
-- **Contract storage cleanup**: on task delete, checks `contractPath` and removes from storage before DB delete; on contract-only delete, also nullifies `rental_bookings.contract_photo_path`
-- **Timezone**: dates stored as `yyyy-MM-dd` strings, filtered via string equality — no timezone conversion
-- **No vehicles**: AddTaskDialog shows "No vehicles found" hint; delivery/return tasks cannot be created
+- **Insufficient data**: Financial presets check ≥3 vehicles, ≥10 bookings, ≥2 cost entries → returns localized refusal message, no partial analysis
+- **Daily limit**: 20 messages/day per user → 429 with "Daily limit reached" → UI shows limit error + updates usage meter
+- **Provider rate limit**: 429 from AI gateway (different from daily limit) → "AI is busy" message → removes failed user message
+- **Payment required**: 402 → "Service temporarily unavailable" → removes failed user message
+- **Message too long**: >4000 chars → 400 error server-side
+- **Conversation history overflow**: trimmed to last 20 messages before sending to AI
+- **AI hallucination prevention**: 14 behavioral rules in system prompt (Missing Data Rule, No Inference Rule, Category Distinction, etc.)
+- **Data anomaly filtering**: bookings >90 days or amount ≤0 excluded from `computeFinancialContext()` with logged anomaly warnings
+- **Sold vehicle handling**: time-aware filtering — pre-sale bookings included, post-sale excluded, vehicle excluded from per-vehicle table
+- **Zero-division protection**: all denominators checked before division in `computeFinancialContext()`
+- **SSE parse failure**: incomplete JSON put back into buffer and retried on next chunk
+- **Auth failure**: 401 returned, no data exposed
+- **Sanitized errors**: internal errors never exposed to client — generic "An error occurred" message returned
 
-### 7. `/documentation/daily-program/ai-integration.md` (~60 lines)
-**AI relationship.**
-- Daily Program data (`daily_tasks`) is NOT currently consumed by the AI Assistant
-- `computeFinancialContext()` reads `rental_bookings` and `vehicle_maintenance` — not `daily_tasks`
-- Indirect connection: bookings that generate tasks also generate `financial_records`, which ARE consumed by AI
-- Future potential: AI could analyze `daily_tasks` for workload patterns, busiest days, task completion rates, operational bottlenecks
-- `daily_tasks.status` (pending/completed) could feed operational efficiency metrics
+### 7. `/documentation/ai-chat/ai-integration.md` (~250 lines)
+**THE core document — full AI system architecture.**
 
-### 8. `/documentation/daily-program/performance.md` (~70 lines)
-**Scaling considerations.**
-- **Query per date**: `daily_tasks` filtered by `due_date = selectedDateString` — efficient single-date query with user_id filter
-- **Enrichment queries**: 4 sequential queries (tasks → bookings → additional_info → categories) — could be parallelized for bookings + additional_info
-- **Rendering**: 3 columns × max 4 visible tasks = 12 TaskItem components; overflow handled via paginated dialog (10/page)
-- **No real-time**: manual refetch only — changes from Fleet/Home booking creation won't appear until date navigation or page refresh
-- **Sorting**: O(n log n) per column on every render — fine for typical daily task counts (< 50)
-- **Vehicle dropdown**: fetches all non-sold vehicles on mount — no search/filter for large fleets
-- **Future optimizations**: add Realtime subscription on `daily_tasks` for live updates, batch enrichment queries, add vehicle search in dropdown
+**1. `computeFinancialContext()` — step by step:**
+- Calculates 12-month window cutoff
+- Separates active vs sold vehicles
+- Filters bookings/maintenance by cutoff + sold vehicle sale dates
+- Validates booking integrity (excludes >90 day duration, ≤0 amount)
+- Computes global metrics (weighted avg, contribution, break-even)
+- Computes per-vehicle breakdown (17 metrics each)
+- Classifies demand level relative to fleet average
+- Generates monthly booking breakdown
+- Outputs formatted text string with unit definitions and sanity warnings
+
+**2. `buildBusinessContext()` — data aggregation:**
+- 7 parallel fetches from Supabase (all RLS-scoped)
+- Per-vehicle financial breakdown from `financial_records`
+- Pre-computed rankings (by profit, bookings, revenue)
+- Expense category + subcategory breakdown (global + monthly)
+- Income source breakdown + collaboration partner YTD
+- Monthly vehicle profitability with most-profitable-per-month
+- Fleet distributions (by type, category, fuel, transmission)
+- Maintenance + damage summaries
+- Data availability status flags
+
+**3. Context Design — why pre-computed:**
+- AI models are unreliable at arithmetic → all numbers pre-calculated
+- Prompt instructs AI to use values "EXACTLY as given"
+- Sanity warnings flag inconsistencies for AI to acknowledge
+- Unit definitions prevent metric confusion (daily rate vs per-booking)
+
+**4. Prompt Design Strategy:**
+- Language instruction placed FIRST (ensures correct output language)
+- Semantic dictionary maps user synonyms to data fields ("profit" → totalIncome - totalExpenses)
+- Category definitions prevent merging (maintenance ≠ vehicle_parts)
+- 14 behavioral rules enforce strict data-only responses
+- Data availability section with ✅/❌/⚠️ flags for each data type
+- Preset prompts appended after base prompt (additive, not replacement)
+
+**5. AI Safety Layer:**
+- AI cannot override computed values (prompt: "use EXACTLY as given")
+- AI cannot create new numbers (No Inference Rule)
+- AI must follow structured output (strict section order enforced)
+- Missing data → single limitation sentence → STOP (no workarounds)
+- ±50% price cap for profitable vehicles (Pricing Optimizer)
+- Price floor at variable cost (never suggest below cost)
+
+**6. Slim prompt optimization:**
+- For financial presets: `buildFinancialSystemPrompt()` excludes non-essential context (damage reports, partner lists) → reduces ~15k to ~4k tokens
+- Prevents token overflow and truncation errors
+
+### 8. `/documentation/ai-chat/performance.md` (~120 lines)
+**Scaling, latency, and optimization.**
+- **Data fetch**: 7 parallel Supabase queries on every message (no caching) — ~200-500ms
+- **Context computation**: O(vehicles × bookings) for per-vehicle breakdown — fine for <100 vehicles, <1000 bookings
+- **Prompt size**: Base prompt ~8-12K tokens; with financial context ~15K tokens; slim financial prompt ~4K tokens
+- **Token optimization**: `buildFinancialSystemPrompt()` strips non-essential sections for financial presets
+- **Streaming latency**: first token ~1-3s (model dependent), then continuous stream
+- **SSE parsing**: line-by-line with buffer — O(1) per chunk, no buffering of entire response
+- **Usage tracking**: single upsert per message (not batched)
+- **Conversation persistence**: async save after stream complete — doesn't block UI
+- **Daily limit check**: single DB read per message — efficient but not cached
+- **Model selection rationale**: Gemini 3 Flash Preview chosen for cost-effectiveness (~$0.50/user/month) and strong structured data handling. Current inaccuracies stem from data contract design, not model limitations. Switching to GPT-5 not recommended without first improving prompt/data architecture.
+- **Future optimizations**: cache business context per session (invalidate on data change), paginate conversation history, add response caching for identical preset queries, consider edge-side aggregation views
+
+**AI Model Comparison Table:**
+
+| Model | Strengths | Weaknesses | Cost | Latency | Best Use Case |
+|-------|-----------|------------|------|---------|---------------|
+| Gemini 3 Flash Preview | Fast, good structured data, cost-effective | Less nuanced on complex reasoning | ~$0.50/user/mo | Low (~1-2s first token) | Default — fleet analytics, preset actions |
+| Gemini 2.5 Pro | Superior reasoning, large context | Higher cost, slower | ~$2-3/user/mo | Medium (~2-4s) | Complex multi-step analysis |
+| GPT-5 | Excellent reasoning, multimodal | Expensive, higher latency | ~$3-5/user/mo | High (~3-5s) | When accuracy is critical |
+| GPT-5-mini | Good balance of cost/performance | Less precise than full GPT-5 | ~$1-2/user/mo | Medium | Budget alternative to GPT-5 |
+
+Why Gemini currently: inaccuracies are data-contract issues, not model issues. Improving `computeFinancialContext()` and behavioral rules yields better ROI than model upgrades.
 
 ## Files Modified
-1-8: All new files in `/documentation/daily-program/`
+1-8: All new files in `/documentation/ai-chat/`
 
