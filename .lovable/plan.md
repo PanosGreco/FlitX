@@ -1,219 +1,90 @@
 
 
-# Plan: AI Chat Section Documentation — Multi-File Structure
+# Plan: Data Management Documentation — 8-File Structure
 
 ## Overview
 
-Create `/documentation/ai-chat/` with 8 markdown files documenting the AI Chat as the intelligence and decision-making layer of FlitX.
+Create `/documentation/data-management/` with 8 markdown files covering security, GDPR compliance, data lifecycle, storage optimization, AI usage limits, user data control, and planned admin monitoring.
 
 ## Files to Create
 
-### 1. `/documentation/ai-chat/README.md` (~150 lines)
-**System-level context and role definitions.**
-- AI Chat as the intelligence layer (route `/ai`, rendered by `AIAssistant.tsx`)
-- System role clarity:
-  - AI Chat = intelligence layer (interprets, recommends)
-  - Analytics = data layer (stores, aggregates)
-  - Fleet = asset layer (manages vehicles)
-  - Reservations = transaction layer (books vehicles)
-  - Daily Program = execution layer (manages tasks)
-- Architecture layers: Data Layer → Processing Layer → AI Layer → Output Layer
-- Four-layer pipeline: `Supabase tables → computeFinancialContext() + buildBusinessContext() → Lovable AI Gateway (Gemini) → SSE stream → React UI`
-- Source of truth: AI computes NOTHING — all metrics are pre-calculated server-side and injected into the prompt
-- Two edge functions: `ai-chat` (main inference pipeline) and `ai-chat-save` (persistence layer)
-- Database tables: `ai_chat_conversations`, `ai_chat_messages`, `ai_chat_usage`
-- Connections: Analytics (reads `financial_records`), Fleet (reads `vehicles`, `vehicle_maintenance`, `damage_reports`), Reservations (reads `rental_bookings`), Recurring (reads `recurring_transactions`), Profile (reads `profiles`)
-- AI Model Selection & Comparison table (Gemini 3 Flash Preview vs GPT-5 vs others — why Gemini chosen: cost ~$0.50/user/month, strong structured data handling, sufficient for pre-computed metric interpretation)
+### 1. `/documentation/data-management/README.md` (~100 lines)
+- What Data Management means in FlitX
+- Five data layers: User Data (profiles), Operational Data (bookings, tasks), Financial Data (financial_records, recurring_transactions), AI Data (conversations, usage), Stored Files (vehicle-documents, rental-contracts, damage-images)
+- How each layer connects to Fleet, Reservations, Analytics, AI Chat, Daily Program
+- Index linking to all 7 sub-documents
 
-### 2. `/documentation/ai-chat/data-flow.md` (~250 lines)
-**Full end-to-end pipeline documentation.**
-- **General chat flow**: User types → `useAIChat.sendMessage()` → builds `apiMessages` from conversation history → `fetch(CHAT_URL)` with auth token → edge function authenticates via `getUser()` → input validation (4000 chars, 20 messages max) → daily usage check (20/day limit) → usage increment → 7 parallel data fetches (`financial_records`, `vehicles`, `rental_bookings`, `profiles`, `recurring_transactions`, `vehicle_maintenance`, `damage_reports`) → `buildBusinessContext()` → `buildSystemPrompt()` → Lovable AI Gateway call (streaming) → SSE response piped back to client → client parses SSE line-by-line → assistant message built token-by-token → `setMessages()` update → after stream complete → `fetch(SAVE_URL)` to persist conversation
-- **Preset action flow**: Same as above but `presetType` is included → if `financial_analysis` or `pricing_optimizer`: additional `computeFinancialContext()` call with 12-month window filtering → financial context string appended to system prompt → preset-specific prompt instructions appended
-- **Conversation save flow**: `ai-chat-save` edge function → if no `conversationId`: create new `ai_chat_conversations` row (title from preset name or first 50 chars) → insert user message → insert assistant message → update conversation `updated_at` → return `conversationId` to client
-- **Conversation switch flow**: `switchConversation(id)` → fetch `ai_chat_messages` by `conversation_id` ordered by `created_at` → replace `messages` state
-- **CALC_DESIRED follow-up flow**: User sends "CALC_DESIRED: 5000" → treated as normal message → AI detects pattern in prompt instructions → computes `ceil((total_costs + desired_income) / weighted_avg_price)` → returns targeted response
+### 2. `/documentation/data-management/security.md` (~150 lines)
+- **RLS enforcement**: every table has `auth.uid() = user_id` policies for SELECT/INSERT/UPDATE/DELETE — no cross-user access possible
+- **Storage isolation**: `vehicle-documents` (private bucket, signed URLs with 1-hour TTL), `rental-contracts` and `damage-images` (public buckets but paths scoped by user_id)
+- **Edge function security**: JWT validation via `getClaims()`, user_id derived server-side, never from client input
+- **AI isolation**: all 7 data fetches in `ai-chat` are RLS-scoped, system prompts instruct no cross-tenant data leakage, sanitized error responses
+- **Admin functions**: `cleanup-completed-tasks` requires admin role verified via `user_roles` table with service_role client
+- **Input validation**: 4000 char message limit, 10MB file upload limit, path traversal sanitization
+- **Principles**: least privilege, defense in depth, no secrets in codebase, no client-side role checks
+- **NO secrets, keys, or internal URLs exposed in this document**
 
-### 3. `/documentation/ai-chat/components.md` (~200 lines)
-**Component tree and preset action documentation.**
-```text
-AIAssistant.tsx (page wrapper)
-└── AIAssistantLayout.tsx (layout — owns sidebar + chat area)
-    ├── ChatSidebar.tsx (left panel, 256px)
-    │   ├── "New Chat" button → createNewChat()
-    │   ├── Conversation list (ordered by updated_at desc)
-    │   │   ├── Inline rename (pencil icon → input field)
-    │   │   └── Delete button (trash icon)
-    │   └── Usage meter (used/20 with gradient progress bar)
-    ├── ChatArea.tsx (main panel — conditional rendering)
-    │   ├── [Empty state] EmptyStateView.tsx
-    │   │   ├── AnimatedBackground (blue/white liquid-glass)
-    │   │   ├── StaticLogo (blue gradient, no animation)
-    │   │   ├── Greeting ("Hey {firstName}, ready to assist you")
-    │   │   ├── ChatInput (centered, max-w-2xl)
-    │   │   └── PresetActionButtons (2×2 grid)
-    │   └── [Active chat] MessageList + ChatInput (bottom)
-    │       ├── MessageList.tsx (scrollable, auto-scroll to bottom)
-    │       │   ├── MessageBubble.tsx × N (user/assistant styling)
-    │       │   └── ThinkingIndicator.tsx (shown while waiting for first token)
-    │       └── ChatInput.tsx (textarea with send button)
-    └── Mobile: hamburger menu for sidebar toggle
-```
+### 3. `/documentation/data-management/gdpr-compliance.md` (~150 lines)
+- **Right to access**: users can view all their data through the app UI (vehicles, bookings, finances, documents, AI conversations)
+- **Right to erasure**: `handleDeleteAccount()` in `UserProfile.tsx` — sequential deletion of: daily_tasks → damage_reports → financial_records → vehicle_maintenance → vehicle_reminders → vehicle_documents → maintenance_blocks → booking_contacts → rental_bookings → vehicles → user_roles → profiles → signOut. Note: currently missing deletion of ai_chat_messages, ai_chat_conversations, ai_chat_usage, user_notes, user_assets, user_asset_categories, recurring_transactions, booking_additional_costs, booking_additional_info, additional_cost_categories, additional_info_categories, insurance_types, user_reminders (flagged as gap to fix)
+- **Right to rectify**: users can edit profile, vehicles, bookings, financial records, maintenance, reminders
+- **Data minimization**: only business-relevant fields collected, no tracking pixels, no third-party analytics
+- **Purpose limitation**: data used only for fleet management and AI analysis within the app
+- **Data retention policy**: contract attachments auto-deleted 30 days after booking end_date via `cleanup-completed-tasks` edge function
+- **Subscription expiry policy**: data automatically deleted 15 days after free trial expires (planned — document current status vs planned)
+- **Consent**: user explicitly creates account, no pre-checked boxes
 
-**Preset Actions (with exact system prompts):**
+### 4. `/documentation/data-management/data-lifecycle.md` (~120 lines)
+- **Create → Store → Use → Process → Archive → Delete** for each data type
+- **Booking lifecycle**: UI creation → `rental_bookings` INSERT → `financial_records` INSERT (income) → `daily_tasks` INSERT ×2 → displayed in Home/Fleet/Analytics → contract attachment cleaned after 30 days → booking record persists until account deletion
+- **Vehicle lifecycle**: creation → active operations → optional sale (is_sold=true, sale financial record) → sorted to bottom → excluded from new bookings → AI handles time-aware filtering → persists until account deletion
+- **AI data lifecycle**: message sent → `ai_chat_usage` incremented → context fetched (not stored) → response streamed → conversation + messages persisted in `ai_chat_conversations`/`ai_chat_messages` → user can delete conversations → all deleted on account deletion
+- **File lifecycle**: upload → size validation (10MB) → compression (if image >500KB) → storage bucket → signed URL on access → contract cleanup after 30 days → storage deletion on account deletion
 
-1. **Marketing & Growth** (`marketing_growth`): 6-section output (Location insight → Social Media Ads → Organic Content → Pricing Strategies → Local Collaborations → Follow-up Questions). Uses full business context. No pre-computed financial metrics.
+### 5. `/documentation/data-management/storage-optimization.md` (~100 lines)
+- **Upload limits**: 10MB max per file (`validateFileSize()` in `imageUtils.ts`)
+- **Image compression**: JPG/PNG/WebP ≥500KB → canvas resize to max 2000px width at 85% quality; HEIC/HEIF always converted to JPEG for browser compatibility; PDF/GIF/SVG never compressed
+- **Storage buckets**: `vehicle-documents` (private), `rental-contracts` (public), `damage-images` (public)
+- **Vehicle images**: stored as base64 data URLs in `vehicles.image` column — simple but increases row size; future optimization: move to Storage bucket
+- **Signed URLs**: generated on-demand with 1-hour TTL, not pre-fetched
+- **Contract cleanup**: `cleanup-completed-tasks` removes files >30 days old, clears DB references
+- **Database efficiency**: all queries RLS-filtered server-side, `useMemo` for client-side aggregation, debounced writes (600ms for assets, 1000ms for notes)
 
-2. **Expense Optimization** (`expense_optimization`): 6-step process (Data Sufficiency → Expense Analysis → Optimization Suggestions → Recurring Review → Summary → Follow-up). Requires ≥7 days of data. Category-specific advice (maintenance parts bulk buying, carwash in-house vs outsource).
+### 6. `/documentation/data-management/ai-usage-limits.md` (~100 lines)
+- **Daily message limit**: 20 messages/day per user, tracked in `ai_chat_usage` table (date + user_id), enforced server-side in `ai-chat` edge function
+- **Input limits**: max 4000 characters per message, conversation history trimmed to last 20 messages
+- **Token optimization**: `buildFinancialSystemPrompt()` reduces context from ~15K to ~4K tokens for financial presets by excluding non-essential data
+- **Cost control**: pre-computed metrics (not AI-computed) reduce prompt-response cycles; context fetched fresh per message but not cached (future optimization)
+- **Model selection**: Gemini 3 Flash Preview chosen for cost (~$0.50/user/month) over GPT-5 (~$3-5/user/month)
+- **Rate limiting**: provider-side 429s handled with user-friendly "AI is busy" message, distinct from daily quota
+- **Insufficient data gates**: financial presets require ≥3 vehicles, ≥10 bookings, ≥2 cost entries — prevents wasteful API calls on empty datasets
 
-3. **Financial Analysis** (`financial_analysis`): 7-section strict output (Executive Summary → Key Metrics → Per-Vehicle Table → Top Performers → Recommendations → Monthly Insights → CALC_DESIRED handler). Data sufficiency gate: ≥3 vehicles, ≥10 bookings, ≥2 cost entries. Uses `computeFinancialContext()` pre-computed metrics.
+### 7. `/documentation/data-management/user-data-control.md` (~80 lines)
+- **View**: users see all their data through app sections (Fleet, Analytics, Daily Program, AI Chat)
+- **Edit**: vehicles, bookings, financial records, maintenance, reminders, profile, notes — all editable in-app
+- **Delete**: individual records deletable per section; full account deletion via Profile → Delete Account
+- **AI conversations**: users can delete individual conversations or all via sidebar
+- **Data portability / export**: not currently implemented — document as future feature
+- **Data isolation**: RLS ensures no user can access another user's data, even via API manipulation
 
-4. **Pricing Optimizer** (`pricing_optimizer`): 7-step pipeline (Data Sufficiency → Edge Cases → Per-Vehicle Profitability → Classification [🔴🟡🟢] → Demand Detection → Seasonality → Pricing Table). Hard pricing rules: never below variable cost, ±50% cap for profitable vehicles, 15-30% margin target. Uses `computeFinancialContext()`.
+### 8. `/documentation/data-management/admin-monitoring.md` (~80 lines)
+- **Status: PLANNED — NOT YET IMPLEMENTED** (prominent banner)
+- **Purpose**: SaaS cost monitoring and system optimization
+- **Planned admin dashboard** showing per-user metrics:
+  - Daily AI output cost (tokens × model rate)
+  - Total AI usage cost (cumulative)
+  - Storage used (total bytes across all buckets)
+  - Number of files stored
+  - Message count per day
+- **Example table format** with mock data
+- **Security**: admin-only access via `has_role(user_id, 'admin')`, no user PII exposed in monitoring view
+- **Current infrastructure**: `user_roles` table + `has_role()` function already exist; `ai_chat_usage` already tracks daily message counts — foundation is in place
+- **Implementation path**: new `admin_monitoring` view or edge function, aggregating `ai_chat_usage`, storage bucket metadata, `financial_records` counts
 
-Each preset's FULL default system prompt is included verbatim in the documentation.
+## Important Discovery
 
-### 4. `/documentation/ai-chat/formulas.md` (~200 lines)
-**All pre-computed metrics (NOT computed by AI).**
-
-**Global metrics (from `computeFinancialContext()`):**
-- `weightedAvgRentalPrice = totalActiveBookingRevenue / totalActiveBookings`
-- `globalVariableCostPerBooking = totalActiveMaintenanceCost / totalActiveBookings`
-- `weightedAvgContribution = (totalActiveBookingRevenue - totalActiveMaintenanceCost) / totalActiveBookings`
-- `breakEvenBookings = ceil(totalFixedCostsAnnual / weightedAvgContribution)`
-- `fixedCostSharePerBooking = totalFixedCostsAnnual / totalActiveBookings`
-- `avgFleetUtilization = avg(all vehicle utilizations)`
-
-**Fixed cost annualization:**
-- `day → amount * (365 / freq_value)`
-- `week → amount * (52 / freq_value)`
-- `month → amount * (12 / freq_value)`
-- `year → amount * (1 / freq_value)`
-
-**Per-vehicle metrics:**
-- `avgRevenuePerBooking = vBookingRevenue / vValidCount`
-- `variableCostPerBooking = vMaintenanceCost / vValidCount`
-- `contributionPerBooking = avgRevenuePerBooking - variableCostPerBooking`
-- `utilization = totalDaysRented / availableDays` (available = max(1, days since purchase or 12 months ago))
-- `targetDailyRate = (variableCostPerBooking + fixedCostSharePerBooking + 15% * avgRevenuePerBooking) / avgBookingDuration`
-- `demandLevel`: high if utilization > fleet avg × 1.2, medium if > 0.8×, low otherwise, none if 0 bookings
-
-**Status classification:** `insufficient_data` (0 bookings) → `loss` (contribution ≤ 0) → `below_fixed_cost_share` → `underutilized` (util < 15%) → `profitable`
-
-**From `buildBusinessContext()`:**
-- Per-vehicle financials (income, expenses, net profit, margin, days rented, avg revenue/booking)
-- Pre-computed rankings: by profit, by bookings, by revenue
-- Expense category + subcategory breakdown (global and monthly)
-- Collaboration partner YTD income
-- Monthly vehicle profitability
-- Fleet distributions: by vehicle type, category, fuel type, transmission type
-- Maintenance + damage summaries per vehicle
-
-**CALC_DESIRED formula:** `required_bookings = ceil((total_costs + desired_income) / weighted_avg_price)`
-
-### 5. `/documentation/ai-chat/state-management.md` (~120 lines)
-**State ownership and propagation.**
-- `useAIChat()` hook owns ALL chat state: `messages`, `isLoading`, `error`, `usage`, `conversations`, `activeConversation`
-- On mount: `fetchConversations()` + `fetchUsage()` (from `ai_chat_usage` table)
-- `sendMessage()` flow: add user message optimistically → build apiMessages from current messages → stream response → update assistant message token-by-token → save via `SAVE_URL` → update `activeConversation` if new → increment usage counter
-- Error recovery: on 429/402/error → remove optimistic user message from state → set error string → reset loading
-- `createNewChat()`: clears messages + activeConversation + error (no DB call)
-- `switchConversation()`: fetches messages from `ai_chat_messages` → replaces entire messages array
-- `deleteConversation()`: DB delete → remove from conversations array → if active, trigger createNewChat
-- `renameConversation()`: DB update → update conversations array in-place
-- SSE streaming state: `buffer` string accumulates chunks → parsed line-by-line → `assistantContent` string grows → `setMessages` called on each delta token
-- No Supabase Realtime — all state is local + manual fetch
-
-### 6. `/documentation/ai-chat/edge-cases.md` (~120 lines)
-**Error handling and safeguards.**
-- **Insufficient data**: Financial presets check ≥3 vehicles, ≥10 bookings, ≥2 cost entries → returns localized refusal message, no partial analysis
-- **Daily limit**: 20 messages/day per user → 429 with "Daily limit reached" → UI shows limit error + updates usage meter
-- **Provider rate limit**: 429 from AI gateway (different from daily limit) → "AI is busy" message → removes failed user message
-- **Payment required**: 402 → "Service temporarily unavailable" → removes failed user message
-- **Message too long**: >4000 chars → 400 error server-side
-- **Conversation history overflow**: trimmed to last 20 messages before sending to AI
-- **AI hallucination prevention**: 14 behavioral rules in system prompt (Missing Data Rule, No Inference Rule, Category Distinction, etc.)
-- **Data anomaly filtering**: bookings >90 days or amount ≤0 excluded from `computeFinancialContext()` with logged anomaly warnings
-- **Sold vehicle handling**: time-aware filtering — pre-sale bookings included, post-sale excluded, vehicle excluded from per-vehicle table
-- **Zero-division protection**: all denominators checked before division in `computeFinancialContext()`
-- **SSE parse failure**: incomplete JSON put back into buffer and retried on next chunk
-- **Auth failure**: 401 returned, no data exposed
-- **Sanitized errors**: internal errors never exposed to client — generic "An error occurred" message returned
-
-### 7. `/documentation/ai-chat/ai-integration.md` (~250 lines)
-**THE core document — full AI system architecture.**
-
-**1. `computeFinancialContext()` — step by step:**
-- Calculates 12-month window cutoff
-- Separates active vs sold vehicles
-- Filters bookings/maintenance by cutoff + sold vehicle sale dates
-- Validates booking integrity (excludes >90 day duration, ≤0 amount)
-- Computes global metrics (weighted avg, contribution, break-even)
-- Computes per-vehicle breakdown (17 metrics each)
-- Classifies demand level relative to fleet average
-- Generates monthly booking breakdown
-- Outputs formatted text string with unit definitions and sanity warnings
-
-**2. `buildBusinessContext()` — data aggregation:**
-- 7 parallel fetches from Supabase (all RLS-scoped)
-- Per-vehicle financial breakdown from `financial_records`
-- Pre-computed rankings (by profit, bookings, revenue)
-- Expense category + subcategory breakdown (global + monthly)
-- Income source breakdown + collaboration partner YTD
-- Monthly vehicle profitability with most-profitable-per-month
-- Fleet distributions (by type, category, fuel, transmission)
-- Maintenance + damage summaries
-- Data availability status flags
-
-**3. Context Design — why pre-computed:**
-- AI models are unreliable at arithmetic → all numbers pre-calculated
-- Prompt instructs AI to use values "EXACTLY as given"
-- Sanity warnings flag inconsistencies for AI to acknowledge
-- Unit definitions prevent metric confusion (daily rate vs per-booking)
-
-**4. Prompt Design Strategy:**
-- Language instruction placed FIRST (ensures correct output language)
-- Semantic dictionary maps user synonyms to data fields ("profit" → totalIncome - totalExpenses)
-- Category definitions prevent merging (maintenance ≠ vehicle_parts)
-- 14 behavioral rules enforce strict data-only responses
-- Data availability section with ✅/❌/⚠️ flags for each data type
-- Preset prompts appended after base prompt (additive, not replacement)
-
-**5. AI Safety Layer:**
-- AI cannot override computed values (prompt: "use EXACTLY as given")
-- AI cannot create new numbers (No Inference Rule)
-- AI must follow structured output (strict section order enforced)
-- Missing data → single limitation sentence → STOP (no workarounds)
-- ±50% price cap for profitable vehicles (Pricing Optimizer)
-- Price floor at variable cost (never suggest below cost)
-
-**6. Slim prompt optimization:**
-- For financial presets: `buildFinancialSystemPrompt()` excludes non-essential context (damage reports, partner lists) → reduces ~15k to ~4k tokens
-- Prevents token overflow and truncation errors
-
-### 8. `/documentation/ai-chat/performance.md` (~120 lines)
-**Scaling, latency, and optimization.**
-- **Data fetch**: 7 parallel Supabase queries on every message (no caching) — ~200-500ms
-- **Context computation**: O(vehicles × bookings) for per-vehicle breakdown — fine for <100 vehicles, <1000 bookings
-- **Prompt size**: Base prompt ~8-12K tokens; with financial context ~15K tokens; slim financial prompt ~4K tokens
-- **Token optimization**: `buildFinancialSystemPrompt()` strips non-essential sections for financial presets
-- **Streaming latency**: first token ~1-3s (model dependent), then continuous stream
-- **SSE parsing**: line-by-line with buffer — O(1) per chunk, no buffering of entire response
-- **Usage tracking**: single upsert per message (not batched)
-- **Conversation persistence**: async save after stream complete — doesn't block UI
-- **Daily limit check**: single DB read per message — efficient but not cached
-- **Model selection rationale**: Gemini 3 Flash Preview chosen for cost-effectiveness (~$0.50/user/month) and strong structured data handling. Current inaccuracies stem from data contract design, not model limitations. Switching to GPT-5 not recommended without first improving prompt/data architecture.
-- **Future optimizations**: cache business context per session (invalidate on data change), paginate conversation history, add response caching for identical preset queries, consider edge-side aggregation views
-
-**AI Model Comparison Table:**
-
-| Model | Strengths | Weaknesses | Cost | Latency | Best Use Case |
-|-------|-----------|------------|------|---------|---------------|
-| Gemini 3 Flash Preview | Fast, good structured data, cost-effective | Less nuanced on complex reasoning | ~$0.50/user/mo | Low (~1-2s first token) | Default — fleet analytics, preset actions |
-| Gemini 2.5 Pro | Superior reasoning, large context | Higher cost, slower | ~$2-3/user/mo | Medium (~2-4s) | Complex multi-step analysis |
-| GPT-5 | Excellent reasoning, multimodal | Expensive, higher latency | ~$3-5/user/mo | High (~3-5s) | When accuracy is critical |
-| GPT-5-mini | Good balance of cost/performance | Less precise than full GPT-5 | ~$1-2/user/mo | Medium | Budget alternative to GPT-5 |
-
-Why Gemini currently: inaccuracies are data-contract issues, not model issues. Improving `computeFinancialContext()` and behavioral rules yields better ROI than model upgrades.
+The GDPR compliance document will flag a **real gap**: `handleDeleteAccount()` currently deletes 12 tables but misses 9 tables (ai_chat_messages, ai_chat_conversations, ai_chat_usage, user_notes, user_assets, user_asset_categories, recurring_transactions, booking_additional_costs, booking_additional_info, additional_cost_categories, additional_info_categories, insurance_types, user_reminders). This will be documented as a required fix.
 
 ## Files Modified
-1-8: All new files in `/documentation/ai-chat/`
+1-8: All new files in `/documentation/data-management/`
 
