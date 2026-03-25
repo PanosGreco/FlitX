@@ -460,6 +460,8 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
               </Tooltip></TooltipProvider>
             </div>
             <Input id="initial-mileage" type="number" value={initialMileage} onChange={(e) => setInitialMileage(Number(e.target.value))} min={0} placeholder="0" />
+          </div>
+
           {/* Camper Features */}
           {vehicleType === 'camper' && (
             <CamperFeaturesForm
