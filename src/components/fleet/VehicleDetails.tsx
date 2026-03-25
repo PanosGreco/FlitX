@@ -44,6 +44,7 @@ import { RentalBookingsList } from "./RentalBookingsList";
 import { CalendarView } from "./CalendarView";
 import { VehicleFinanceTab } from "./VehicleFinanceTab";
 import { EditVehicleDialog } from "./EditVehicleDialog";
+import { CamperFeaturesDisplay } from "./CamperFeaturesDisplay";
 import { MaintenanceBlockDialog } from "./MaintenanceBlockDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -291,6 +292,11 @@ export function VehicleDetails({
                 </Button>
               </div>
             </div>}
+
+          {/* Camper Features Display */}
+          {vehicle.vehicle_type === 'camper' && (
+            <CamperFeaturesDisplay vehicleId={vehicleId || ""} refreshTrigger={refreshVehicle} />
+          )}
           
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="flex w-full max-w-5xl mb-6 overflow-x-auto scrollbar-hide">
