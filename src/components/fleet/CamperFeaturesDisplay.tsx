@@ -6,7 +6,7 @@ import {
   BedDouble, Bed, Users, Flame, Snowflake, Droplets, Bath,
   Thermometer, Wind, Tent, Shield, Moon, Sun, Plug, Zap,
   Droplet, Ruler, ArrowUpFromLine, Bike, Camera, Navigation,
-  Tv, Wifi, PawPrint,
+  Tv, Wifi, PawPrint, ChevronDown,
 } from "lucide-react";
 import { UtensilsCrossed } from "lucide-react";
 
