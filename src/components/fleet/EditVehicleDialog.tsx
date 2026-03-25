@@ -20,6 +20,8 @@ import {
 } from "@/constants/vehicleTypes";
 import { TRANSMISSION_TYPES, TransmissionType } from "@/constants/transmissionTypes";
 import { validateFileSize, compressImage } from "@/utils/imageUtils";
+import { CamperFeaturesForm, CamperFeaturesState, defaultCamperFeatures } from "./CamperFeaturesForm";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface EditVehicleDialogProps {
   isOpen: boolean;
@@ -46,6 +48,7 @@ interface EditVehicleDialogProps {
 export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVehicleDialogProps) {
   const { language } = useLanguage();
   const { t } = useTranslation(['fleet', 'common']);
+  const { user } = useAuth();
   const [mileage, setMileage] = useState(vehicle.mileage ?? 0);
   const [dailyRate, setDailyRate] = useState(vehicle.daily_rate ?? 0);
   const [licensePlate, setLicensePlate] = useState(vehicle.license_plate ?? '');
@@ -63,6 +66,13 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  // Camper features state
+  const [camperFeatures, setCamperFeatures] = useState<CamperFeaturesState>({ ...defaultCamperFeatures });
+  const [originalVehicleType, setOriginalVehicleType] = useState<string>('');
+  const updateCamperFeatures = (updates: Partial<CamperFeaturesState>) => {
+    setCamperFeatures(prev => ({ ...prev, ...updates }));
+  };
 
   useEffect(() => {
     setMileage(vehicle.mileage ?? 0);
@@ -82,6 +92,7 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     } else {
       setVehicleType('car');
     }
+    setOriginalVehicleType(vehicle.vehicle_type ?? 'car');
     const category = vehicle.type ?? '';
     if (category && !isStandardCategory(category)) {
       setIsCustomCategory(true);
@@ -91,6 +102,51 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
       setIsCustomCategory(false);
       setCustomCategory('');
       setVehicleCategory(category);
+    }
+
+    // Fetch camper features if vehicle is a camper
+    setCamperFeatures({ ...defaultCamperFeatures });
+    if (vType === 'camper') {
+      supabase.from('camper_features').select('*').eq('vehicle_id', vehicle.id).maybeSingle().then(({ data }) => {
+        if (data) {
+          setCamperFeatures({
+            sleepingCapacity: data.sleeping_capacity ?? 0,
+            numBeds: data.num_beds ?? 0,
+            bedType: data.bed_type ?? '',
+            hasKitchen: data.has_kitchen ?? false,
+            numBurners: data.num_burners ?? 0,
+            hasFridge: data.has_fridge ?? false,
+            fridgeSizeLiters: data.fridge_size_liters ?? 0,
+            hasSink: data.has_sink ?? false,
+            hasOven: data.has_oven ?? false,
+            hasMicrowave: data.has_microwave ?? false,
+            hasToilet: data.has_toilet ?? false,
+            toiletType: data.toilet_type ?? '',
+            hasShower: data.has_shower ?? false,
+            hasHotWater: data.has_hot_water ?? false,
+            hasHeating: data.has_heating ?? false,
+            hasAC: data.has_air_conditioning ?? false,
+            hasAwning: data.has_awning ?? false,
+            hasMosquitoScreens: data.has_mosquito_screens ?? false,
+            hasBlackoutBlinds: data.has_blackout_blinds ?? false,
+            hasSolarPanels: data.has_solar_panels ?? false,
+            hasExternalPower: data.has_external_power_hookup ?? false,
+            hasInverter: data.has_inverter ?? false,
+            hasGenerator: data.has_generator ?? false,
+            freshWaterCapacity: data.fresh_water_capacity_liters ?? 0,
+            grayWaterCapacity: data.gray_water_capacity_liters ?? 0,
+            vehicleLength: data.vehicle_length_meters?.toString() ?? '',
+            vehicleHeight: data.vehicle_height_meters?.toString() ?? '',
+            hasBikeRack: data.has_bike_rack ?? false,
+            hasRearCamera: data.has_rear_camera ?? false,
+            hasGPS: data.has_gps ?? false,
+            hasTV: data.has_tv ?? false,
+            hasWifi: data.has_wifi ?? false,
+            hasPetFriendly: data.has_pet_friendly ?? false,
+            additionalNotes: data.additional_notes ?? '',
+          });
+        }
+      });
     }
   }, [vehicle.id]);
 
@@ -116,6 +172,9 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     setVehicleCategory('');
     setCustomCategory('');
     setIsCustomCategory(false);
+    if (newType !== 'camper') {
+      setCamperFeatures({ ...defaultCamperFeatures });
+    }
   };
 
   const handleCategoryChange = (value: string) => {
@@ -157,6 +216,52 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
         toast({ title: t('common:error'), description: t('fleet:vehicleUpdateFailed'), variant: "destructive" });
         return;
       }
+
+      // Handle camper features
+      if (vehicleType === 'camper' && user) {
+        await supabase.from('camper_features').upsert({
+          vehicle_id: vehicle.id,
+          user_id: user.id,
+          sleeping_capacity: camperFeatures.sleepingCapacity,
+          num_beds: camperFeatures.numBeds,
+          bed_type: camperFeatures.bedType,
+          has_kitchen: camperFeatures.hasKitchen,
+          num_burners: camperFeatures.numBurners,
+          has_fridge: camperFeatures.hasFridge,
+          fridge_size_liters: camperFeatures.fridgeSizeLiters,
+          has_sink: camperFeatures.hasSink,
+          has_oven: camperFeatures.hasOven,
+          has_microwave: camperFeatures.hasMicrowave,
+          has_toilet: camperFeatures.hasToilet,
+          toilet_type: camperFeatures.toiletType,
+          has_shower: camperFeatures.hasShower,
+          has_hot_water: camperFeatures.hasHotWater,
+          has_heating: camperFeatures.hasHeating,
+          has_air_conditioning: camperFeatures.hasAC,
+          has_awning: camperFeatures.hasAwning,
+          has_mosquito_screens: camperFeatures.hasMosquitoScreens,
+          has_blackout_blinds: camperFeatures.hasBlackoutBlinds,
+          has_solar_panels: camperFeatures.hasSolarPanels,
+          has_external_power_hookup: camperFeatures.hasExternalPower,
+          has_inverter: camperFeatures.hasInverter,
+          has_generator: camperFeatures.hasGenerator,
+          fresh_water_capacity_liters: camperFeatures.freshWaterCapacity,
+          gray_water_capacity_liters: camperFeatures.grayWaterCapacity,
+          vehicle_length_meters: camperFeatures.vehicleLength ? parseFloat(camperFeatures.vehicleLength) : 0,
+          vehicle_height_meters: camperFeatures.vehicleHeight ? parseFloat(camperFeatures.vehicleHeight) : 0,
+          has_bike_rack: camperFeatures.hasBikeRack,
+          has_rear_camera: camperFeatures.hasRearCamera,
+          has_gps: camperFeatures.hasGPS,
+          has_tv: camperFeatures.hasTV,
+          has_wifi: camperFeatures.hasWifi,
+          has_pet_friendly: camperFeatures.hasPetFriendly,
+          additional_notes: camperFeatures.additionalNotes,
+        }, { onConflict: 'vehicle_id' });
+      } else if (originalVehicleType === 'camper' && vehicleType !== 'camper') {
+        // Type changed from camper — delete camper features
+        await supabase.from('camper_features').delete().eq('vehicle_id', vehicle.id);
+      }
+
       toast({ title: t('fleet:vehicleUpdated'), description: t('fleet:vehicleUpdateSuccess') });
       onSaved();
       onClose();
@@ -356,6 +461,15 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
             </div>
             <Input id="initial-mileage" type="number" value={initialMileage} onChange={(e) => setInitialMileage(Number(e.target.value))} min={0} placeholder="0" />
           </div>
+
+          {/* Camper Features */}
+          {vehicleType === 'camper' && (
+            <CamperFeaturesForm
+              state={camperFeatures}
+              onChange={updateCamperFeatures}
+              disabled={isLoading}
+            />
+          )}
         </div>
         
         <DialogFooter>

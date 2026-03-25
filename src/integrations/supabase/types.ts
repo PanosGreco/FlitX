@@ -276,6 +276,140 @@ export type Database = {
           },
         ]
       }
+      camper_features: {
+        Row: {
+          additional_notes: string | null
+          bed_type: string | null
+          created_at: string
+          fresh_water_capacity_liters: number | null
+          fridge_size_liters: number | null
+          gray_water_capacity_liters: number | null
+          has_air_conditioning: boolean | null
+          has_awning: boolean | null
+          has_bike_rack: boolean | null
+          has_blackout_blinds: boolean | null
+          has_external_power_hookup: boolean | null
+          has_fridge: boolean | null
+          has_generator: boolean | null
+          has_gps: boolean | null
+          has_heating: boolean | null
+          has_hot_water: boolean | null
+          has_inverter: boolean | null
+          has_kitchen: boolean | null
+          has_microwave: boolean | null
+          has_mosquito_screens: boolean | null
+          has_oven: boolean | null
+          has_pet_friendly: boolean | null
+          has_rear_camera: boolean | null
+          has_shower: boolean | null
+          has_sink: boolean | null
+          has_solar_panels: boolean | null
+          has_toilet: boolean | null
+          has_tv: boolean | null
+          has_wifi: boolean | null
+          id: string
+          num_beds: number | null
+          num_burners: number | null
+          sleeping_capacity: number | null
+          toilet_type: string | null
+          updated_at: string
+          user_id: string
+          vehicle_height_meters: number | null
+          vehicle_id: string
+          vehicle_length_meters: number | null
+        }
+        Insert: {
+          additional_notes?: string | null
+          bed_type?: string | null
+          created_at?: string
+          fresh_water_capacity_liters?: number | null
+          fridge_size_liters?: number | null
+          gray_water_capacity_liters?: number | null
+          has_air_conditioning?: boolean | null
+          has_awning?: boolean | null
+          has_bike_rack?: boolean | null
+          has_blackout_blinds?: boolean | null
+          has_external_power_hookup?: boolean | null
+          has_fridge?: boolean | null
+          has_generator?: boolean | null
+          has_gps?: boolean | null
+          has_heating?: boolean | null
+          has_hot_water?: boolean | null
+          has_inverter?: boolean | null
+          has_kitchen?: boolean | null
+          has_microwave?: boolean | null
+          has_mosquito_screens?: boolean | null
+          has_oven?: boolean | null
+          has_pet_friendly?: boolean | null
+          has_rear_camera?: boolean | null
+          has_shower?: boolean | null
+          has_sink?: boolean | null
+          has_solar_panels?: boolean | null
+          has_toilet?: boolean | null
+          has_tv?: boolean | null
+          has_wifi?: boolean | null
+          id?: string
+          num_beds?: number | null
+          num_burners?: number | null
+          sleeping_capacity?: number | null
+          toilet_type?: string | null
+          updated_at?: string
+          user_id: string
+          vehicle_height_meters?: number | null
+          vehicle_id: string
+          vehicle_length_meters?: number | null
+        }
+        Update: {
+          additional_notes?: string | null
+          bed_type?: string | null
+          created_at?: string
+          fresh_water_capacity_liters?: number | null
+          fridge_size_liters?: number | null
+          gray_water_capacity_liters?: number | null
+          has_air_conditioning?: boolean | null
+          has_awning?: boolean | null
+          has_bike_rack?: boolean | null
+          has_blackout_blinds?: boolean | null
+          has_external_power_hookup?: boolean | null
+          has_fridge?: boolean | null
+          has_generator?: boolean | null
+          has_gps?: boolean | null
+          has_heating?: boolean | null
+          has_hot_water?: boolean | null
+          has_inverter?: boolean | null
+          has_kitchen?: boolean | null
+          has_microwave?: boolean | null
+          has_mosquito_screens?: boolean | null
+          has_oven?: boolean | null
+          has_pet_friendly?: boolean | null
+          has_rear_camera?: boolean | null
+          has_shower?: boolean | null
+          has_sink?: boolean | null
+          has_solar_panels?: boolean | null
+          has_toilet?: boolean | null
+          has_tv?: boolean | null
+          has_wifi?: boolean | null
+          id?: string
+          num_beds?: number | null
+          num_burners?: number | null
+          sleeping_capacity?: number | null
+          toilet_type?: string | null
+          updated_at?: string
+          user_id?: string
+          vehicle_height_meters?: number | null
+          vehicle_id?: string
+          vehicle_length_meters?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "camper_features_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: true
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       daily_tasks: {
         Row: {
           assigned_to: string | null
