@@ -6,7 +6,7 @@ import {
   BedDouble, Bed, Users, Flame, Snowflake, Droplets, Bath,
   Thermometer, Wind, Tent, Shield, Moon, Sun, Plug, Zap,
   Droplet, Ruler, ArrowUpFromLine, Bike, Camera, Navigation,
-  Tv, Wifi, PawPrint,
+  Tv, Wifi, PawPrint, ChevronDown,
 } from "lucide-react";
 import { UtensilsCrossed } from "lucide-react";
 
@@ -25,6 +25,7 @@ export function CamperFeaturesDisplay({ vehicleId, refreshTrigger }: CamperFeatu
   const { t } = useTranslation('fleet');
   const [features, setFeatures] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     const fetchFeatures = async () => {
@@ -148,12 +149,35 @@ export function CamperFeaturesDisplay({ vehicleId, refreshTrigger }: CamperFeatu
     );
   }
 
-  // Group items by group name
+  // Group items by group name preserving insertion order
   const grouped: Record<string, FeatureItem[]> = {};
   items.forEach(item => {
     if (!grouped[item.group]) grouped[item.group] = [];
     grouped[item.group].push(item);
   });
+
+  const groupEntries = Object.entries(grouped);
+  const sleepingKey = t('camperFeatures_sleeping');
+  const kitchenKey = t('camperFeatures_kitchen');
+  const initialGroups = groupEntries.filter(([g]) => g === sleepingKey || g === kitchenKey);
+  const collapsedGroups = groupEntries.filter(([g]) => g !== sleepingKey && g !== kitchenKey);
+
+  const renderGroup = ([group, groupItems]: [string, FeatureItem[]]) => (
+    <div key={group}>
+      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{group}</p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+        {groupItems.map((item, idx) => {
+          const Icon = item.icon;
+          return (
+            <div key={idx} className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-muted/50 text-sm">
+              <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <span className="truncate">{item.label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <Card className="mt-4 mb-2">
@@ -161,22 +185,21 @@ export function CamperFeaturesDisplay({ vehicleId, refreshTrigger }: CamperFeatu
         <CardTitle className="text-base">{t('camperFeatures')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {Object.entries(grouped).map(([group, groupItems]) => (
-          <div key={group}>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">{group}</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-              {groupItems.map((item, idx) => {
-                const Icon = item.icon;
-                return (
-                  <div key={idx} className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-muted/50 text-sm">
-                    <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                    <span className="truncate">{item.label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+        {initialGroups.map(renderGroup)}
+
+        {collapsedGroups.length > 0 && (
+          <>
+            {expanded && collapsedGroups.map(renderGroup)}
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors w-full justify-center pt-1"
+            >
+              <span>{expanded ? t('common:showLess', 'Show less') : t('common:showMore', 'Show more')}</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+            </button>
+          </>
+        )}
+
         {features.additional_notes && (
           <p className="text-sm text-muted-foreground border-t pt-3 mt-2">{features.additional_notes}</p>
         )}
