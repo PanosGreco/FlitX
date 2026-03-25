@@ -39,6 +39,7 @@ import {
 } from "@/constants/vehicleTypes";
 import { TRANSMISSION_TYPES, TransmissionType } from "@/constants/transmissionTypes";
 import { validateFileSize, compressImage } from "@/utils/imageUtils";
+import { CamperFeaturesForm, CamperFeaturesState, defaultCamperFeatures } from "@/components/fleet/CamperFeaturesForm";
 
 const Fleet = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -71,6 +72,12 @@ const Fleet = () => {
   const [marketValueAtPurchase, setMarketValueAtPurchase] = useState("");
   const [purchaseDate, setPurchaseDate] = useState("");
   const [initialMileage, setInitialMileage] = useState("");
+
+  // Camper features state
+  const [camperFeatures, setCamperFeatures] = useState<CamperFeaturesState>({ ...defaultCamperFeatures });
+  const updateCamperFeatures = (updates: Partial<CamperFeaturesState>) => {
+    setCamperFeatures(prev => ({ ...prev, ...updates }));
+  };
   
   usePageTitle("fleet");
 
@@ -192,6 +199,7 @@ const Fleet = () => {
     setPurchaseDate("");
     setInitialMileage("");
     setVehicleImage(null);
+    setCamperFeatures({ ...defaultCamperFeatures });
   };
 
   // Handle vehicle type change - reset category
@@ -200,6 +208,9 @@ const Fleet = () => {
     setVehicleCategory("");
     setCustomCategory("");
     setIsCustomCategory(false);
+    if (newType !== 'camper') {
+      setCamperFeatures({ ...defaultCamperFeatures });
+    }
   };
 
   // Handle category selection
@@ -253,7 +264,7 @@ const Fleet = () => {
         return;
       }
 
-      const { error } = await supabase
+      const { data: vehicleData, error } = await supabase
         .from('vehicles')
         .insert({
           user_id: user.id,
@@ -274,9 +285,11 @@ const Fleet = () => {
           initial_mileage: initialMileage ? parseInt(initialMileage) : 0,
           image: vehicleImage,
           status: 'available',
-        });
+        })
+        .select()
+        .single();
 
-      if (error) {
+      if (error || !vehicleData) {
         console.error('Error adding vehicle:', error);
         toast({
           title: t('common:error'),
@@ -284,6 +297,58 @@ const Fleet = () => {
           variant: 'destructive',
         });
         return;
+      }
+
+      // Save camper features if vehicle type is camper
+      if (vehicleType === 'camper') {
+        const { error: camperError } = await supabase
+          .from('camper_features')
+          .insert({
+            vehicle_id: vehicleData.id,
+            user_id: user.id,
+            sleeping_capacity: camperFeatures.sleepingCapacity,
+            num_beds: camperFeatures.numBeds,
+            bed_type: camperFeatures.bedType,
+            has_kitchen: camperFeatures.hasKitchen,
+            num_burners: camperFeatures.numBurners,
+            has_fridge: camperFeatures.hasFridge,
+            fridge_size_liters: camperFeatures.fridgeSizeLiters,
+            has_sink: camperFeatures.hasSink,
+            has_oven: camperFeatures.hasOven,
+            has_microwave: camperFeatures.hasMicrowave,
+            has_toilet: camperFeatures.hasToilet,
+            toilet_type: camperFeatures.toiletType,
+            has_shower: camperFeatures.hasShower,
+            has_hot_water: camperFeatures.hasHotWater,
+            has_heating: camperFeatures.hasHeating,
+            has_air_conditioning: camperFeatures.hasAC,
+            has_awning: camperFeatures.hasAwning,
+            has_mosquito_screens: camperFeatures.hasMosquitoScreens,
+            has_blackout_blinds: camperFeatures.hasBlackoutBlinds,
+            has_solar_panels: camperFeatures.hasSolarPanels,
+            has_external_power_hookup: camperFeatures.hasExternalPower,
+            has_inverter: camperFeatures.hasInverter,
+            has_generator: camperFeatures.hasGenerator,
+            fresh_water_capacity_liters: camperFeatures.freshWaterCapacity,
+            gray_water_capacity_liters: camperFeatures.grayWaterCapacity,
+            vehicle_length_meters: camperFeatures.vehicleLength ? parseFloat(camperFeatures.vehicleLength) : 0,
+            vehicle_height_meters: camperFeatures.vehicleHeight ? parseFloat(camperFeatures.vehicleHeight) : 0,
+            has_bike_rack: camperFeatures.hasBikeRack,
+            has_rear_camera: camperFeatures.hasRearCamera,
+            has_gps: camperFeatures.hasGPS,
+            has_tv: camperFeatures.hasTV,
+            has_wifi: camperFeatures.hasWifi,
+            has_pet_friendly: camperFeatures.hasPetFriendly,
+            additional_notes: camperFeatures.additionalNotes,
+          });
+
+        if (camperError) {
+          console.error('Error saving camper features:', camperError);
+          toast({
+            title: t('common:warning', 'Warning'),
+            description: "Vehicle was created but camper features could not be saved. Please edit the vehicle to add camper details.",
+          });
+        }
       }
 
       // Refetch vehicles from backend after successful insert
@@ -731,6 +796,15 @@ const Fleet = () => {
                   onChange={(e) => setInitialMileage(e.target.value)}
                 />
               </div>
+
+              {/* Camper Features - only for camper type */}
+              {vehicleType === 'camper' && (
+                <CamperFeaturesForm
+                  state={camperFeatures}
+                  onChange={updateCamperFeatures}
+                  disabled={isSubmitting}
+                />
+              )}
               
               <DialogFooter>
                 <Button 

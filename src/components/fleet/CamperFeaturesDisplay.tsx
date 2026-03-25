@@ -61,7 +61,7 @@ export function CamperFeaturesDisplay({ vehicleId, refreshTrigger }: CamperFeatu
     items.push({ icon: BedDouble, label: t('camperFeatures_nBeds', { count: features.num_beds }), group: t('camperFeatures_sleeping') });
   if (features.bed_type) {
     const bedTypeKey = `camperFeatures_bedType_${features.bed_type}`;
-    items.push({ icon: Bed, label: t(bedTypeKey, features.bed_type), group: t('camperFeatures_sleeping') });
+    items.push({ icon: Bed, label: String(t(bedTypeKey, features.bed_type)), group: String(t('camperFeatures_sleeping')) });
   }
 
   // Kitchen
