@@ -25,6 +25,7 @@ export function CamperFeaturesDisplay({ vehicleId, refreshTrigger }: CamperFeatu
   const { t } = useTranslation('fleet');
   const [features, setFeatures] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     const fetchFeatures = async () => {
