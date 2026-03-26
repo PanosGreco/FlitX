@@ -1,40 +1,56 @@
 
 
-# Plan: Analytics Dashboard Visual Refinement Round 1
+# Plan: Analytics Dashboard Visual Refinement Round 2
 
-Styling-only changes across 2 files. No logic changes.
+Styling-only changes across 4 files. Zero logic changes.
 
-## File 1: `src/components/finances/FinanceDashboard.tsx`
+## File 1: `src/components/finances/IncomeBreakdown.tsx`
 
-**Root container (line 483):** `space-y-6` → `space-y-4` (already has `animate-fade-in`)
+- **Lines 262-267** (empty state): Smaller icon `h-4 w-4`, header to `text-sm font-semibold uppercase tracking-wide text-muted-foreground`
+- **Line 274**: Add `shadow-sm` to Card
+- **Lines 276-278** (section header): Same icon/header changes as empty state, `mb-4` → `mb-3`
+- **Line 290**: Table header `bg-primary hover:bg-primary` → `bg-slate-800 hover:bg-slate-800`
+- **Line 338**: Vehicle category header `bg-emerald-600 hover:bg-emerald-600` → `bg-slate-700 hover:bg-slate-700`
+- **Line 414**: Remove `mx-[70px]` from Most Profitable card
+- **Line 424**: Vehicle rows get `py-1.5 px-2.5 bg-green-50/70 rounded-md border border-green-100`
 
-**Summary cards grid (line 568):** `gap-4` → `gap-3`
+## File 2: `src/components/finances/ExpenseBreakdown.tsx`
 
-**Charts grid (line 602):** `gap-6` → `gap-4`
+- **Lines 313-317** (empty state): Same icon/header changes
+- **Line 325**: Add `shadow-sm` to Card
+- **Lines 327-329** (section header): Same changes
+- **Line 341**: Table header → `bg-slate-800 hover:bg-slate-800`
+- **Line 389**: Vehicle category header → `bg-slate-700 hover:bg-slate-700`
+- **Line 465**: Remove `mx-[70px]` from Least Profitable card
+- **Line 475**: Vehicle rows get `py-1.5 px-2.5 bg-red-50/70 rounded-md border border-red-100`
 
-**Assets+Transactions grid (line 641):** `gap-6` → `gap-4`
+## File 3: `src/components/finances/AssetTrackingWidget.tsx`
 
-**Chart card 1 (lines 603-610):**
-- `<CardHeader>` → `<CardHeader className="pb-2">`
-- `<CardTitle className="text-lg">` → `<CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">`
-- `<CardContent className="pt-0">` → `<CardContent className="pt-0 pb-3">`
+- **Lines 257-258**: CardTitle to `text-sm font-semibold uppercase tracking-wide text-muted-foreground`, icon `h-4 w-4`
+- **Lines 121, 174**: Category section `mb-3` → `mb-2`
+- **Lines 122, 175**: Separator add `opacity-50`
+- **Lines 124, 177**: Category header text to `font-semibold text-xs tracking-wider text-foreground/80`
+- **Line 131**: Vehicle rows add `hover:bg-muted/30 rounded-sm transition-colors`, `py-1.5` → `py-1`
+- **Line 132**: Vehicle name `text-sm` → `text-xs`
+- **Line 136**: Euro `text-sm` → `text-xs`
+- **Lines 139, 203**: Number inputs `h-8 w-24 text-sm` → `h-7 w-20 text-xs border-muted`
+- **Line 187**: Name inputs `h-8 text-sm` → `h-7 text-xs border-muted`
+- **Line 200**: Euro in custom cats `text-sm` → `text-xs`
+- **Lines 159, 243**: Category total `text-sm` → `text-xs`
+- **Line 274**: Grand total bg to `bg-slate-100 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700`
+- **Line 275**: Grand total text `text-base` → `text-sm`
 
-**Chart card 2 (lines 612-619):** Same changes as chart card 1.
+## File 4: `src/components/finances/FinanceDashboard.tsx`
 
-**SummaryCard component (lines 749-796):**
-- Line 773: `p-6` → `p-4`
-- Line 776: `text-sm text-muted-foreground` → `text-xs font-medium text-muted-foreground uppercase tracking-wide`
-- Line 777: `text-2xl font-semibold mt-1` → `text-2xl font-bold mt-0.5`
-- Lines 782-785: Replace the trend `<div>` classes with `cn("flex items-center text-xs font-medium px-2 py-0.5 rounded-full", displayedTrend ? "text-green-700 bg-green-100" : "text-red-700 bg-red-100")`
-
-## File 2: `src/components/finances/charts.tsx`
-
-- BarChart (line 194): `h-80` → `h-64`
-- LineChart (line 242): `h-80` → `h-64`
-
-No other changes in this file.
+- **Lines 647-648**: Transaction header add `pb-2`, title to `text-sm font-semibold uppercase tracking-wide text-muted-foreground`
+- **Line 811**: Transaction item padding `p-3` → `p-2.5`
+- **Line 814**: Icon circle `w-8 h-8` → `w-7 h-7`
+- **Lines 818, 820**: Icons `h-4 w-4` → `h-3.5 w-3.5`
+- **Line 825**: Title add `text-sm`
 
 ## Files Modified
-1. `src/components/finances/FinanceDashboard.tsx` — spacing, card padding, typography, trend badge
-2. `src/components/finances/charts.tsx` — chart heights only
+1. `src/components/finances/IncomeBreakdown.tsx`
+2. `src/components/finances/ExpenseBreakdown.tsx`
+3. `src/components/finances/AssetTrackingWidget.tsx`
+4. `src/components/finances/FinanceDashboard.tsx`
 
