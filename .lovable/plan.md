@@ -1,67 +1,40 @@
 
 
-# Plan: Camper/Motorhome Features Implementation
+# Plan: Analytics Dashboard Visual Refinement Round 1
 
-## Clarifications Incorporated
-- Vehicle INSERT in Fleet.tsx will use `.insert({...}).select().single()` to get the new vehicle ID directly
-- Supabase types will be regenerated after migration
-- Warning toast on camper features INSERT failure: "Vehicle was created but camper features could not be saved. Please edit the vehicle to add camper details."
-- Part 7 (documentation updates) is SKIPPED
+Styling-only changes across 2 files. No logic changes.
 
-## Part 1 — Database Migration
+## File 1: `src/components/finances/FinanceDashboard.tsx`
 
-Create `camper_features` table with the exact schema from the request (35+ columns), RLS policies for all 4 operations, indexes on `vehicle_id` and `user_id`.
+**Root container (line 483):** `space-y-6` → `space-y-4` (already has `animate-fade-in`)
 
-## Part 2 — New Component: `CamperFeaturesForm.tsx`
+**Summary cards grid (line 568):** `gap-4` → `gap-3`
 
-Shared form component (~300 lines) used by both Add and Edit dialogs. Props receive all camper state values + setters + `disabled` boolean. 6 collapsible groups (all expanded by default) using `Collapsible` from radix. Conditional reveal logic for kitchen sub-fields, fridge size, toilet type.
+**Charts grid (line 602):** `gap-6` → `gap-4`
 
-## Part 3 — Fleet.tsx (Add Vehicle)
+**Assets+Transactions grid (line 641):** `gap-6` → `gap-4`
 
-- Add ~35 camper state variables after line 73
-- Add camper resets to `resetForm()` (line 176)
-- Add camper reset to `handleVehicleTypeChange()` (line 198)
-- Change vehicle INSERT (line 256) to `.insert({...}).select().single()` to get `data.id`
-- After successful insert, if `vehicleType === 'camper'`, INSERT into `camper_features` with the new vehicle ID
-- If camper INSERT fails, show warning toast with specified message
-- Render `<CamperFeaturesForm />` conditionally before `<DialogFooter>` (before line 735)
+**Chart card 1 (lines 603-610):**
+- `<CardHeader>` → `<CardHeader className="pb-2">`
+- `<CardTitle className="text-lg">` → `<CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">`
+- `<CardContent className="pt-0">` → `<CardContent className="pt-0 pb-3">`
 
-## Part 4 — EditVehicleDialog.tsx
+**Chart card 2 (lines 612-619):** Same changes as chart card 1.
 
-- Add ~35 camper state variables + `originalVehicleType` state
-- In `useEffect` on `vehicle.id` (line 67): if vehicle is camper, fetch `camper_features` and populate state
-- Add camper reset to `handleVehicleTypeChange()` (line 114)
-- In `handleSave()` (line 138): after vehicle update, if camper → UPSERT camper_features; if changed FROM camper → DELETE camper_features
-- Render `<CamperFeaturesForm />` after the depreciation section (before line 359)
+**SummaryCard component (lines 749-796):**
+- Line 773: `p-6` → `p-4`
+- Line 776: `text-sm text-muted-foreground` → `text-xs font-medium text-muted-foreground uppercase tracking-wide`
+- Line 777: `text-2xl font-semibold mt-1` → `text-2xl font-bold mt-0.5`
+- Lines 782-785: Replace the trend `<div>` classes with `cn("flex items-center text-xs font-medium px-2 py-0.5 rounded-full", displayedTrend ? "text-green-700 bg-green-100" : "text-red-700 bg-red-100")`
 
-## Part 5 — New Component: `CamperFeaturesDisplay.tsx`
+## File 2: `src/components/finances/charts.tsx`
 
-Props: `vehicleId`, `refreshTrigger`. Fetches `camper_features` on mount/trigger change. Filters to only show enabled/non-zero features. Responsive grid (2/3/4 cols). Grouped by category with icon chips. Shows "No camper features configured" if empty. Shows `additional_notes` if present.
+- BarChart (line 194): `h-80` → `h-64`
+- LineChart (line 242): `h-80` → `h-64`
 
-## Part 6 — VehicleDetails.tsx
-
-- Import and conditionally render `<CamperFeaturesDisplay>` between the header (line 293) and `<Tabs>` (line 295)
-- Only when `vehicle.vehicle_type === 'camper'`
-
-## Part 7 — Translations
-
-Add ~60 camper feature keys to all 6 locale files (en, el, de, fr, it, es) as specified in the request.
-
-## Files Created
-1. `src/components/fleet/CamperFeaturesForm.tsx`
-2. `src/components/fleet/CamperFeaturesDisplay.tsx`
+No other changes in this file.
 
 ## Files Modified
-1. `src/pages/Fleet.tsx`
-2. `src/components/fleet/EditVehicleDialog.tsx`
-3. `src/components/fleet/VehicleDetails.tsx`
-4. `src/i18n/locales/en/fleet.json`
-5. `src/i18n/locales/el/fleet.json`
-6. `src/i18n/locales/de/fleet.json`
-7. `src/i18n/locales/fr/fleet.json`
-8. `src/i18n/locales/it/fleet.json`
-9. `src/i18n/locales/es/fleet.json`
-
-## Database Migration
-1 new migration: `camper_features` table + RLS + indexes
+1. `src/components/finances/FinanceDashboard.tsx` — spacing, card padding, typography, trend badge
+2. `src/components/finances/charts.tsx` — chart heights only
 
