@@ -286,7 +286,7 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
   const currencySymbol = '€';
 
   return (
-    <div className="h-80">
+    <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
         <RechartsBarChart
           data={chartData}
@@ -348,7 +348,7 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
   };
 
   return (
-    <div className="h-80">
+    <div className="h-64">
       <ResponsiveContainer width="100%" height="100%">
         <RechartsLineChart
           data={chartData}

@@ -480,7 +480,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   }
   
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 animate-fade-in">
       {/* Profile Header */}
       <div className="flex items-center gap-4 mb-2">
         <Avatar className="h-12 w-12">
@@ -565,7 +565,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       />
       
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <SummaryCard 
           title={t('income')} 
           value={summaryData.totalIncome} 
@@ -599,21 +599,21 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       </div>
       
       {/* Charts - Now using real backend data with timeframe sync */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">{t('incomeVsExpenses')}</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{t('incomeVsExpenses')}</CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="pt-0 pb-3">
             <BarChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} />
           </CardContent>
         </Card>
         
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">{t('trendOverTime')}</CardTitle>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{t('trendOverTime')}</CardTitle>
           </CardHeader>
-          <CardContent className="pt-0">
+          <CardContent className="pt-0 pb-3">
             <LineChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} />
           </CardContent>
         </Card>
@@ -638,7 +638,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       />
 
       {/* Assets + Transactions side-by-side */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-start">
       {/* Asset Tracking Widget */}
       <AssetTrackingWidget />
         
@@ -770,18 +770,18 @@ function SummaryCard({ title, value, change, trend, prefix = "", trendReversed =
       "rounded-2xl shadow-sm",
       variant && variantStyles[variant]
     )}>
-      <CardContent className="p-6">
+      <CardContent className="p-4">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-sm text-muted-foreground">{title}</p>
-            <h3 className="text-2xl font-semibold mt-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{title}</p>
+            <h3 className="text-2xl font-bold mt-0.5">
               {prefix}{value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </h3>
           </div>
           
           <div className={cn(
-            "flex items-center text-sm",
-            displayedTrend ? "text-green-600" : "text-red-600"
+            "flex items-center text-xs font-medium px-2 py-0.5 rounded-full",
+            displayedTrend ? "text-green-700 bg-green-100" : "text-red-700 bg-red-100"
           )}>
             {displayedTrend ? (
               <TrendingUp className="h-4 w-4 mr-1" />
