@@ -644,8 +644,8 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         
       {/* Transactions - Global list, independent of date filters */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-lg">{t('transactions')}</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between pb-2">
+          <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t('transactions')}</CardTitle>
           {allTransactions.length > 5 && (
             <Button 
               variant="outline" 
@@ -808,21 +808,21 @@ function TransactionItem({ id, title, amount, date, type, lang, onDelete }: {
   const isIncome = type === "income";
   
   return (
-    <div className="flex items-center justify-between p-3 rounded-md hover:bg-accent/50 transition-colors group">
+    <div className="flex items-center justify-between p-2.5 rounded-md hover:bg-accent/50 transition-colors group">
       <div className="flex items-center flex-1 min-w-0">
         <div className={cn(
-          "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
+          "flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center",
           isIncome ? "bg-green-100" : "bg-red-100"
         )}>
           {isIncome ? (
-            <TrendingUp className="h-4 w-4 text-green-600" />
+            <TrendingUp className="h-3.5 w-3.5 text-green-600" />
           ) : (
-            <TrendingDown className="h-4 w-4 text-red-600" />
+            <TrendingDown className="h-3.5 w-3.5 text-red-600" />
           )}
         </div>
         
         <div className="ml-3 min-w-0 flex-1">
-          <div className="font-medium truncate">{title}</div>
+          <div className="text-sm font-medium truncate">{title}</div>
           <div className="text-xs text-muted-foreground">{date}</div>
         </div>
       </div>

@@ -118,25 +118,25 @@ export function AssetTrackingWidget() {
     grandTotal += categoryTotal;
 
     return (
-      <div key={cat.id} className="mb-3">
-        <Separator className="mb-1" />
+    <div key={cat.id} className="mb-2">
+        <Separator className="mb-1 opacity-50" />
         <div className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-1.5 mb-1">
-          <span className="font-bold text-sm uppercase tracking-wide">{catLabel}</span>
+          <span className="font-semibold text-xs uppercase tracking-wider text-foreground/80">{catLabel}</span>
         </div>
         <div className="space-y-1">
           {vehs.map((v) => {
             const existing = catAssets.find((a) => a.vehicle_id === v.id);
             const value = existing ? Number(existing.asset_value) : 0;
             return (
-              <div key={v.id} className="flex items-center justify-between px-3 py-1.5">
-                <span className="text-sm truncate mr-2">
+              <div key={v.id} className="flex items-center justify-between px-3 py-1 hover:bg-muted/30 rounded-sm transition-colors">
+                <span className="text-xs truncate mr-2">
                   {v.make} {v.model} {v.year}
                 </span>
                 <div className="flex items-center gap-1 shrink-0">
-                  <span className="text-sm text-muted-foreground">€</span>
+                  <span className="text-xs text-muted-foreground">€</span>
                   <Input
                     type="number"
-                    className="h-8 w-24 text-right text-sm"
+                    className="h-7 w-20 text-right text-xs border-muted"
                     defaultValue={value || ""}
                     placeholder="0"
                     onChange={(e) => {
@@ -156,7 +156,7 @@ export function AssetTrackingWidget() {
           })}
         </div>
         <div className="flex justify-end px-3 py-2 border-t border-border/50 mt-1">
-          <span className="text-sm font-bold">
+          <span className="text-xs font-bold">
             {lang === "el" ? `Σύνολο ${catLabel}` : `Total ${catLabel}`}: {formatCurrency(categoryTotal)}
           </span>
         </div>
@@ -171,10 +171,10 @@ export function AssetTrackingWidget() {
     grandTotal += categoryTotal;
 
     return (
-      <div key={cat.id} className="mb-3">
-        <Separator className="mb-1" />
+      <div key={cat.id} className="mb-2">
+        <Separator className="mb-1 opacity-50" />
         <div className="flex items-center justify-between bg-muted/50 rounded-md px-3 py-1.5 mb-1">
-          <span className="font-bold text-sm uppercase tracking-wide">{cat.name}</span>
+          <span className="font-semibold text-xs uppercase tracking-wider text-foreground/80">{cat.name}</span>
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => deleteCategory(cat.id)}>
             <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
           </Button>
@@ -184,7 +184,7 @@ export function AssetTrackingWidget() {
             <div key={asset.id} className="flex items-center justify-between px-3 py-1.5 group">
               <Input
                 type="text"
-                className="h-8 text-sm mr-2 min-w-0"
+                className="h-7 text-xs mr-2 min-w-0 border-muted"
                 placeholder={lang === "el" ? "Όνομα στοιχείου" : "Asset name"}
                 defaultValue={asset.asset_name}
                 onChange={(e) => {
@@ -197,10 +197,10 @@ export function AssetTrackingWidget() {
                 }}
               />
               <div className="flex items-center gap-1 shrink-0">
-                <span className="text-sm text-muted-foreground">€</span>
+                <span className="text-xs text-muted-foreground">€</span>
                 <Input
                   type="number"
-                  className="h-8 w-24 text-right text-sm"
+                  className="h-7 w-20 text-right text-xs border-muted"
                   defaultValue={Number(asset.asset_value) || ""}
                   placeholder="0"
                   onChange={(e) => {
@@ -240,7 +240,7 @@ export function AssetTrackingWidget() {
             <Plus className="h-3.5 w-3.5 mr-1" />
             {lang === "el" ? "Προσθήκη" : "Add Asset"}
           </Button>
-          <span className="text-sm font-bold">
+          <span className="text-xs font-bold">
             {lang === "el" ? `Σύνολο ${cat.name}` : `Total ${cat.name}`}: {formatCurrency(categoryTotal)}
           </span>
         </div>
@@ -254,8 +254,8 @@ export function AssetTrackingWidget() {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Package className="h-5 w-5" />
+  <CardTitle className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+          <Package className="h-4 w-4" />
           {lang === "el" ? "Περιουσιακά Στοιχεία" : "Assets"}
         </CardTitle>
       </CardHeader>
@@ -271,8 +271,8 @@ export function AssetTrackingWidget() {
 
             {/* Grand Total */}
             <Separator className="my-2" />
-            <div className="flex justify-end px-3 py-2 bg-primary/5 rounded-lg">
-              <span className="text-base font-bold">
+            <div className="flex justify-end px-3 py-2.5 bg-slate-100 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+              <span className="text-sm font-bold">
                 {lang === "el" ? "Συνολικά Περιουσιακά Στοιχεία" : "Total Assets"}: {formatCurrency(grandTotal)}
               </span>
             </div>
