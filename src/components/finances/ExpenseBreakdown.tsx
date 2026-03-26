@@ -310,10 +310,10 @@ export function ExpenseBreakdown({
     slice(0, 5);
   }, [vehicleProfitRanking]);
   if (filteredRecords.length === 0) {
-    return <Card className="p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <TrendingDown className="h-5 w-5 text-red-600" />
-          <h2 className="text-lg font-semibold">
+    return <Card className="p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <TrendingDown className="h-4 w-4 text-red-600" />
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
             {t('finance:expenseBreakdown')}
           </h2>
         </div>
@@ -322,11 +322,11 @@ export function ExpenseBreakdown({
         </p>
       </Card>;
   }
-  return <Card className="p-4">
+  return <Card className="p-4 shadow-sm">
       {/* Section Header */}
-      <div className="flex items-center gap-2 mb-4">
-        <TrendingDown className="h-5 w-5 text-red-600" />
-        <h2 className="text-lg font-semibold">
+      <div className="flex items-center gap-2 mb-3">
+        <TrendingDown className="h-4 w-4 text-red-600" />
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           {t('finance:expenseBreakdown')}
         </h2>
       </div>
@@ -338,7 +338,7 @@ export function ExpenseBreakdown({
           <div className="border rounded-lg overflow-hidden">
             <Table className="table-fixed">
               <TableHeader>
-                <TableRow className="bg-primary hover:bg-primary">
+                <TableRow className="bg-slate-800 hover:bg-slate-800">
                   <TableHead className="text-primary-foreground font-semibold w-[45%] px-2 py-1.5 text-xs">
                     {t('finance:category')}
                   </TableHead>
@@ -386,7 +386,7 @@ export function ExpenseBreakdown({
           <div className="border rounded-lg overflow-hidden">
             <Table className="table-fixed">
               <TableHeader>
-                <TableRow className="bg-red-600 hover:bg-red-600">
+                <TableRow className="bg-slate-700 hover:bg-slate-700">
                   <TableHead className="text-white font-semibold w-[70%] px-2 py-1.5 text-xs">
                     <div className="flex flex-col leading-tight">
                       <span>{t('finance:vehicleCategory')}</span>
@@ -462,7 +462,7 @@ export function ExpenseBreakdown({
             </div>}
 
           {/* Least Profitable Vehicles - Card UI */}
-          {leastProfitableVehicles.length > 0 && <div className="border rounded-lg p-3 bg-card shadow-sm mx-[70px] mt-2">
+          {leastProfitableVehicles.length > 0 && <div className="border rounded-lg p-3 bg-card shadow-sm mt-2">
               <div className="mb-2">
                 <div className="flex items-center gap-1.5 text-xs font-semibold">
                   <span>{t('finance:leastProfitable')}</span>
@@ -472,7 +472,7 @@ export function ExpenseBreakdown({
                 </p>
               </div>
               <div className="space-y-1">
-                {leastProfitableVehicles.map((vehicle, index) => <div key={vehicle.id} className="flex items-center justify-between py-1 px-2 bg-red-50 rounded text-[11px]">
+                {leastProfitableVehicles.map((vehicle, index) => <div key={vehicle.id} className="flex items-center justify-between py-1.5 px-2.5 bg-red-50/70 rounded-md text-[11px] border border-red-100">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <span className="font-bold text-red-700 w-4 text-center">#{index + 1}</span>
                       <span className="font-medium truncate text-xs">{vehicle.name}</span>
