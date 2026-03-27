@@ -85,5 +85,7 @@
   "pricePerBooking": "Precio por Reserva",
   "variableCostPerBooking": "Coste Variable",
   "netProfitPerBooking": "Beneficio Neto por Reserva",
-  "variableCostFormula": "Mantenimiento / Reservas"
+  "variableCostFormula": "Mantenimiento / Reservas",
+  "growth": "Crecimiento",
+  "new": "NUEVO"
 }
