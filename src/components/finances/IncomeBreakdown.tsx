@@ -2,12 +2,14 @@ import { useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { TrendingUp, Car, Ship } from "lucide-react";
-import { getMonth, format } from "date-fns";
+import { TrendingUp, TrendingDown, Car, Ship } from "lucide-react";
+import { getMonth, format, startOfWeek, startOfMonth, startOfYear, subWeeks, subMonths, subYears, endOfDay } from "date-fns";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { getVehicleCategoryLabel } from "@/constants/vehicleTypes";
 import { useTranslation } from "react-i18next";
 import { getDateFnsLocale, getBcp47Locale } from "@/utils/localeMap";
+import { cn } from "@/lib/utils";
+
 interface FinancialRecord {
   id: string;
   type: string;
@@ -24,8 +26,8 @@ interface Vehicle {
   make: string;
   model: string;
   year: number;
-  type?: string; // vehicle category (suv, sedan, etc.)
-  vehicle_type?: string; // top-level type (car, motorbike, atv)
+  type?: string;
+  vehicle_type?: string;
 }
 interface VehicleProfitRank {
   id: string;
@@ -34,10 +36,12 @@ interface VehicleProfitRank {
 }
 interface IncomeBreakdownProps {
   financialRecords: FinancialRecord[];
+  allRecords?: FinancialRecord[];
   vehicles?: Vehicle[];
   lang?: string;
   timeframe?: string;
   vehicleProfitRanking?: VehicleProfitRank[];
+  customRange?: { startDate: Date; endDate: Date };
 }
 
 // Distinct income colors: Blue, Green, Orange, Purple, Red
@@ -52,17 +56,97 @@ const INCOME_SOURCE_KEYS: Record<string, string> = {
   sales: "sales"
 };
 
-// Helper to get abbreviated month name using date-fns locale
-const getMonthName = (monthIndex: string, lang: string): string => {
-  const date = new Date(2024, parseInt(monthIndex), 1);
-  return format(date, 'MMM', { locale: getDateFnsLocale(lang) });
+// Helper to get the category key for a record (shared between current and previous period)
+const getCategoryKey = (record: FinancialRecord): string => {
+  const sourceType = record.income_source_type || 'other';
+  if (record.category === 'additional' && record.description) {
+    const insuranceWithTypeMatch = record.description.match(/^Insurance\s*-\s*(.+?)\s*\(Additional Cost\)/);
+    const legacyInsuranceMatch = record.description.match(/^Insurance\s*\(Additional Cost\)\s*-\s*(.+?)\s*-/);
+    const genericMatch = record.description.match(/^(.+?)\s*\(Additional Cost\)/);
+    let costName: string;
+    if (insuranceWithTypeMatch) costName = `Insurance - ${insuranceWithTypeMatch[1].trim()}`;
+    else if (legacyInsuranceMatch) costName = `Insurance - ${legacyInsuranceMatch[1].trim()}`;
+    else if (genericMatch) costName = genericMatch[1].trim();
+    else costName = 'Additional Cost';
+    return `additional_${costName.toLowerCase().replace(/\s+/g, '_')}`;
+  } else if (sourceType === 'collaboration' && record.income_source_specification) {
+    return `${sourceType}_${record.income_source_specification.trim().toLowerCase()}`;
+  } else if (sourceType === 'other' && record.income_source_specification) {
+    return `other_${record.income_source_specification.trim().toLowerCase()}`;
+  }
+  return sourceType;
 };
+
+// Helper to get previous period date range
+const getPreviousPeriodRange = (timeframe: string, customRange?: { startDate: Date; endDate: Date }): { startDate: Date; endDate: Date } => {
+  const now = new Date();
+  switch (timeframe) {
+    case 'week': {
+      const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
+      const prevWeekStart = subWeeks(currentWeekStart, 1);
+      const prevWeekEnd = new Date(currentWeekStart.getTime() - 1);
+      return { startDate: prevWeekStart, endDate: prevWeekEnd };
+    }
+    case 'month': {
+      const currentMonthStart = startOfMonth(now);
+      const prevMonthStart = subMonths(currentMonthStart, 1);
+      const prevMonthEnd = new Date(currentMonthStart.getTime() - 1);
+      return { startDate: prevMonthStart, endDate: prevMonthEnd };
+    }
+    case 'year': {
+      const currentYearStart = startOfYear(now);
+      const prevYearStart = subYears(currentYearStart, 1);
+      const prevYearEnd = new Date(currentYearStart.getTime() - 1);
+      return { startDate: prevYearStart, endDate: prevYearEnd };
+    }
+    case 'custom': {
+      if (customRange) {
+        const rangeMs = customRange.endDate.getTime() - customRange.startDate.getTime();
+        const prevEnd = new Date(customRange.startDate.getTime() - 1);
+        const prevStart = new Date(customRange.startDate.getTime() - rangeMs);
+        return { startDate: prevStart, endDate: prevEnd };
+      }
+      const currentMonthStart2 = startOfMonth(now);
+      return { startDate: subMonths(currentMonthStart2, 1), endDate: new Date(currentMonthStart2.getTime() - 1) };
+    }
+    default:
+      return { startDate: new Date(2000, 0, 1), endDate: endOfDay(now) };
+  }
+};
+
+// Calculate average monthly growth rate for "all" timeframe
+const calcAvgMonthlyGrowth = (records: FinancialRecord[], categoryKey: string): number | null => {
+  // Group by YYYY-MM
+  const monthlyTotals: Record<string, number> = {};
+  records.filter(r => r.type === 'income' && getCategoryKey(r) === categoryKey).forEach(r => {
+    const ym = r.date.substring(0, 7); // YYYY-MM
+    monthlyTotals[ym] = (monthlyTotals[ym] || 0) + Number(r.amount);
+  });
+  
+  const sortedMonths = Object.keys(monthlyTotals).sort();
+  if (sortedMonths.length < 2) return null;
+  
+  const momChanges: number[] = [];
+  for (let i = 1; i < sortedMonths.length; i++) {
+    const prev = monthlyTotals[sortedMonths[i - 1]];
+    const curr = monthlyTotals[sortedMonths[i]];
+    if (prev > 0) {
+      momChanges.push(((curr - prev) / prev) * 100);
+    }
+  }
+  
+  if (momChanges.length === 0) return null;
+  return Math.round(momChanges.reduce((sum, c) => sum + c, 0) / momChanges.length);
+};
+
 export function IncomeBreakdown({
   financialRecords,
+  allRecords,
   vehicles = [],
   lang = 'en',
   timeframe = 'month',
-  vehicleProfitRanking = []
+  vehicleProfitRanking = [],
+  customRange
 }: IncomeBreakdownProps) {
   const isBoats = isBoatBusiness();
   const { t } = useTranslation('finance');
@@ -88,7 +172,6 @@ export function IncomeBreakdown({
   // Helper function to get display specification (properly capitalized)
   const getDisplaySpecification = (spec: string): string => {
     if (!spec) return '';
-    // Capitalize first letter of each word
     return spec.trim().split(' ').map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
   };
 
@@ -100,48 +183,32 @@ export function IncomeBreakdown({
       displayLabel: string;
     }> = {};
     filteredRecords.forEach((record) => {
-      const sourceType = record.income_source_type || 'other';
       const month = getMonth(new Date(record.date));
+      const categoryKey = getCategoryKey(record);
+      const sourceType = record.income_source_type || 'other';
 
-      // For additional cost records, categorize by their specific cost name
-      let categoryKey: string;
       let displayLabel: string;
       if (record.category === 'additional' && record.description) {
-        // Extract cost name from description like "Insurance - Full Coverage (Additional Cost) - Vehicle"
-        // or "Insurance (Additional Cost) - Premium - Vehicle" (legacy format)
-        // or "Baby Seat (Additional Cost) - Vehicle"
         const insuranceWithTypeMatch = record.description.match(/^Insurance\s*-\s*(.+?)\s*\(Additional Cost\)/);
         const legacyInsuranceMatch = record.description.match(/^Insurance\s*\(Additional Cost\)\s*-\s*(.+?)\s*-/);
         const genericMatch = record.description.match(/^(.+?)\s*\(Additional Cost\)/);
-        
         let costName: string;
-        if (insuranceWithTypeMatch) {
-          costName = `Insurance - ${insuranceWithTypeMatch[1].trim()}`;
-        } else if (legacyInsuranceMatch) {
-          costName = `Insurance - ${legacyInsuranceMatch[1].trim()}`;
-        } else if (genericMatch) {
-          costName = genericMatch[1].trim();
-        } else {
-          costName = 'Additional Cost';
-        }
-        const normalizedKey = costName.toLowerCase().replace(/\s+/g, '_');
-        categoryKey = `additional_${normalizedKey}`;
+        if (insuranceWithTypeMatch) costName = `Insurance - ${insuranceWithTypeMatch[1].trim()}`;
+        else if (legacyInsuranceMatch) costName = `Insurance - ${legacyInsuranceMatch[1].trim()}`;
+        else if (genericMatch) costName = genericMatch[1].trim();
+        else costName = 'Additional Cost';
         displayLabel = `${costName} (${t('additionalCost')})`;
       } else if (sourceType === 'collaboration' && record.income_source_specification) {
-        const normalizedSpec = normalizeSpecification(record.income_source_specification);
         const displaySpec = getDisplaySpecification(record.income_source_specification);
-        categoryKey = `${sourceType}_${normalizedSpec}`;
         const baseLabel = getSourceLabel(sourceType);
         displayLabel = `${baseLabel} (${displaySpec})`;
       } else if (sourceType === 'other' && record.income_source_specification) {
-        const normalizedSpec = normalizeSpecification(record.income_source_specification);
         const displaySpec = getDisplaySpecification(record.income_source_specification);
-        categoryKey = `other_${normalizedSpec}`;
         displayLabel = displaySpec;
       } else {
-        categoryKey = sourceType;
         displayLabel = getSourceLabel(sourceType);
       }
+
       if (!sourceData[categoryKey]) {
         sourceData[categoryKey] = {
           total: 0,
@@ -153,29 +220,41 @@ export function IncomeBreakdown({
       sourceData[categoryKey].months[month] = (sourceData[categoryKey].months[month] || 0) + Number(record.amount);
     });
 
-    // Calculate total for percentage calculation
-    const totalIncome = Object.values(sourceData).reduce((sum, d) => sum + d.total, 0);
-    return Object.entries(sourceData).map(([key, data]) => {
-      const sortedMonths = Object.entries(data.months).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([month]) => getMonthName(month, lang));
+    // Calculate growth for each source
+    const recordsForGrowth = allRecords || financialRecords;
 
-      // Format top months with percentages
-      const sortedMonthsWithPercentages = Object.entries(data.months).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([month, amount]) => {
-        const percentage = totalIncome > 0 ? Math.round(amount / totalIncome * 100) : 0;
-        const monthName = getMonthName(month, lang);
-        return {
-          monthName,
-          percentage
-        };
-      });
+    return Object.entries(sourceData).map(([key, data]) => {
+      let growth: number | null = null;
+      let isNew = false;
+
+      if (timeframe === 'all') {
+        growth = calcAvgMonthlyGrowth(recordsForGrowth, key);
+      } else {
+        const prevRange = getPreviousPeriodRange(timeframe, customRange);
+        const prevTotal = recordsForGrowth
+          .filter(r => r.type === 'income' && getCategoryKey(r) === key)
+          .filter(r => {
+            const d = new Date(r.date);
+            return d >= prevRange.startDate && d <= prevRange.endDate;
+          })
+          .reduce((sum, r) => sum + Number(r.amount), 0);
+
+        if (prevTotal > 0) {
+          growth = Math.round(((data.total - prevTotal) / prevTotal) * 100);
+        } else if (data.total > 0) {
+          isNew = true;
+        }
+      }
+
       return {
         key,
         label: data.displayLabel,
         total: data.total,
-        topMonths: sortedMonths.join(", "),
-        topMonthsWithPercentage: sortedMonthsWithPercentages
+        growth,
+        isNew,
       };
     }).sort((a, b) => b.total - a.total);
-  }, [filteredRecords, lang]);
+  }, [filteredRecords, lang, allRecords, timeframe, customRange]);
 
   // Prepare pie chart data with <5% grouping
   const pieData = useMemo(() => {
@@ -196,7 +275,6 @@ export function IncomeBreakdown({
     
     const otherAmount = minorSlices.reduce((sum, s) => sum + s.amount, 0);
     const otherValue = Math.round(otherAmount / total * 100) || 0;
-    // Use dominant (highest %) minor slice's color
     const dominantMinor = minorSlices.reduce((a, b) => a.value >= b.value ? a : b);
     
     return [
@@ -228,20 +306,12 @@ export function IncomeBreakdown({
       if (!record.vehicle_id) return;
       const vehicle = vehicleMap.get(record.vehicle_id);
       if (!vehicle) return;
-
-      // Get the vehicle category (type field) - SKIP if empty/unknown
       const rawCategory = vehicle.type;
-      if (!rawCategory || rawCategory.trim() === '' || rawCategory.toLowerCase() === 'unknown') {
-        return; // Skip records with no valid category
-      }
+      if (!rawCategory || rawCategory.trim() === '' || rawCategory.toLowerCase() === 'unknown') return;
       const normalizedKey = rawCategory.trim().toLowerCase();
       if (!categoryData[normalizedKey]) {
-        // Get display label using the utility function
         const displayLabel = getVehicleCategoryLabel(rawCategory, lang);
-        categoryData[normalizedKey] = {
-          total: 0,
-          displayLabel
-        };
+        categoryData[normalizedKey] = { total: 0, displayLabel };
       }
       categoryData[normalizedKey].total += Number(record.amount);
     });
@@ -254,10 +324,9 @@ export function IncomeBreakdown({
 
   // Top 5 most profitable vehicles by avg profit/day
   const topVehicles = useMemo(() => {
-    return [...vehicleProfitRanking].
-    sort((a, b) => b.avgProfitPerDay - a.avgProfitPerDay).
-    slice(0, 5);
+    return [...vehicleProfitRanking].sort((a, b) => b.avgProfitPerDay - a.avgProfitPerDay).slice(0, 5);
   }, [vehicleProfitRanking]);
+
   if (filteredRecords.length === 0) {
     return <Card className="p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-3">
@@ -291,11 +360,11 @@ export function IncomeBreakdown({
                   <TableHead className="text-primary-foreground font-semibold w-[45%] px-2 py-1.5 text-xs">
                     {t('source')}
                   </TableHead>
-                  <TableHead className="text-right text-primary-foreground font-semibold w-[25%] px-1 py-1.5 text-xs">
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[30%] px-1 py-1.5 text-xs">
                     {t('total')}
                   </TableHead>
-                  <TableHead className="text-right text-primary-foreground font-semibold hidden sm:table-cell w-[30%] px-1 py-1.5 text-xs">
-                    {t('topMonths')}
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[25%] px-1 py-1.5 text-xs">
+                    {t('growth')}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -316,12 +385,24 @@ export function IncomeBreakdown({
                     minimumFractionDigits: 0
                   })}
                     </TableCell>
-                    <TableCell className="text-right text-muted-foreground text-[11px] hidden sm:table-cell px-1 py-1">
-                      <div className="flex flex-wrap justify-end gap-0.5">
-                        {item.topMonthsWithPercentage?.slice(0, 2).map((m, i) => <span key={i} className="whitespace-nowrap">
-                            {m.monthName}<span className="text-muted-foreground/60 ml-0.5">{m.percentage}%</span>
-                            {i < Math.min(item.topMonthsWithPercentage.length, 2) - 1 && ','}
-                          </span>)}
+                    <TableCell className="text-right text-xs px-1 py-1">
+                      <div className="flex items-center justify-end gap-0.5">
+                        {item.isNew ? (
+                          <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">{t('new')}</span>
+                        ) : item.growth !== null ? (
+                          <>
+                            {item.growth >= 0 ? (
+                              <TrendingUp className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <TrendingDown className="h-3 w-3 text-red-600" />
+                            )}
+                            <span className={cn("text-xs font-medium", item.growth >= 0 ? "text-green-600" : "text-red-600")}>
+                              {item.growth >= 0 ? "+" : ""}{item.growth}%
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>)}

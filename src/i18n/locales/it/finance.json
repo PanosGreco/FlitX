@@ -85,5 +85,7 @@
   "pricePerBooking": "Prezzo per Prenotazione",
   "variableCostPerBooking": "Costo Variabile",
   "netProfitPerBooking": "Profitto Netto per Prenotazione",
-  "variableCostFormula": "Manutenzione / Prenotazioni"
+  "variableCostFormula": "Manutenzione / Prenotazioni",
+  "growth": "Crescita",
+  "new": "NUOVO"
 }

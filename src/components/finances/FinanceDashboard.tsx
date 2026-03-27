@@ -622,19 +622,23 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       {/* Income Breakdown Section */}
       <IncomeBreakdown 
         financialRecords={filteredRecords}
+        allRecords={financialRecords}
         vehicles={vehicles}
         lang={language}
         timeframe={timeframe}
         vehicleProfitRanking={vehicleProfitRanking}
+        customRange={customRange}
       />
 
       {/* Expense Breakdown Section */}
       <ExpenseBreakdown 
         financialRecords={filteredRecords}
+        allRecords={financialRecords}
         vehicles={vehicles}
         lang={language}
         timeframe={timeframe}
         vehicleProfitRanking={vehicleProfitRanking}
+        customRange={customRange}
       />
 
       {/* Assets + Transactions side-by-side */}

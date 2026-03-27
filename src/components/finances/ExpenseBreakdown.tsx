@@ -2,13 +2,15 @@ import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { TrendingDown, Car, Ship } from "lucide-react";
-import { getMonth, format } from "date-fns";
+import { TrendingDown, TrendingUp, Car, Ship } from "lucide-react";
+import { getMonth, startOfWeek, startOfMonth, startOfYear, subWeeks, subMonths, subYears, endOfDay } from "date-fns";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { getMaintenanceTypeLabel } from "@/constants/maintenanceTypes";
 import { getVehicleCategoryLabel } from "@/constants/vehicleTypes";
 import { useTranslation } from "react-i18next";
 import { getDateFnsLocale, getBcp47Locale } from "@/utils/localeMap";
+import { cn } from "@/lib/utils";
+
 interface FinancialRecord {
   id: string;
   type: string;
@@ -27,8 +29,8 @@ interface Vehicle {
   model: string;
   year: number;
   fuel_type?: string;
-  type?: string; // vehicle category (suv, sedan, etc.)
-  vehicle_type?: string; // top-level type (car, motorbike, atv)
+  type?: string;
+  vehicle_type?: string;
 }
 const getFuelTypeLabel = (fuelType: string | null | undefined, t: (key: string) => string) => {
   if (!fuelType) return '–';
@@ -43,32 +45,32 @@ interface VehicleProfitRank {
 }
 interface ExpenseBreakdownProps {
   financialRecords: FinancialRecord[];
+  allRecords?: FinancialRecord[];
   vehicles?: Vehicle[];
   lang?: string;
   timeframe?: string;
   vehicleProfitRanking?: VehicleProfitRank[];
+  customRange?: { startDate: Date; endDate: Date };
 }
 
 // Parent category colors - all subcategories inherit parent color
 const PARENT_CATEGORY_COLORS: Record<string, string> = {
-  maintenance: "#ef4444", // Red
-  tax: "#eab308", // Yellow
-  fuel: "#f97316", // Orange
-  marketing: "#8b5cf6", // Purple
-  other: "#3b82f6", // Blue
-  insurance: "#06b6d4", // Cyan
-  salary: "#22c55e", // Green
-  carwash: "#ec4899", // Pink
-  cleaning: "#14b8a6", // Teal
-  docking: "#a16207", // Brown
-  licensing: "#6366f1", // Indigo
-  vehicle_parts: "#d97706" // Amber
+  maintenance: "#ef4444",
+  tax: "#eab308",
+  fuel: "#f97316",
+  marketing: "#8b5cf6",
+  other: "#3b82f6",
+  insurance: "#06b6d4",
+  salary: "#22c55e",
+  carwash: "#ec4899",
+  cleaning: "#14b8a6",
+  docking: "#a16207",
+  licensing: "#6366f1",
+  vehicle_parts: "#d97706"
 };
 
-// Fallback colors for unknown categories
 const FALLBACK_COLORS = ["#8b5cf6", "#ef4444", "#3b82f6", "#22c55e", "#14b8a6", "#ec4899", "#a16207", "#f97316"];
 
-// Helper function to get parent category from key
 const getParentCategory = (key: string): string => {
   if (key.startsWith('maintenance_')) return 'maintenance';
   if (key.startsWith('other_')) return 'other';
@@ -78,15 +80,12 @@ const getParentCategory = (key: string): string => {
   return key;
 };
 
-// Get color for a category (subcategories inherit parent color)
 const getCategoryColor = (key: string, index: number): string => {
   const parentCategory = getParentCategory(key);
   return PARENT_CATEGORY_COLORS[parentCategory] || FALLBACK_COLORS[index % FALLBACK_COLORS.length];
 };
 
-// Additional colors for vehicle category breakdown
 const CATEGORY_COLORS = ["#ef4444", "#f97316", "#8b5cf6", "#06b6d4", "#ec4899", "#14b8a6", "#6366f1", "#84cc16"];
-// Maps expense category keys to finance translation keys
 const EXPENSE_CATEGORY_KEYS: Record<string, string> = {
   maintenance: "vehicleMaintenance",
   fuel: "fuel",
@@ -102,34 +101,101 @@ const EXPENSE_CATEGORY_KEYS: Record<string, string> = {
   other: "other"
 };
 
-// Helper to get abbreviated month name using date-fns locale
-const getMonthName = (monthIndex: string, lang: string): string => {
-  const date = new Date(2024, parseInt(monthIndex), 1);
-  return format(date, 'MMM', { locale: getDateFnsLocale(lang) });
+// Helper to get the aggregation key for a record
+const getExpenseCategoryKey = (record: FinancialRecord): string => {
+  const baseCategory = record.category || 'other';
+  if (baseCategory === 'maintenance' && record.expense_subcategory) return `maintenance_${record.expense_subcategory}`;
+  if (baseCategory === 'other' && record.expense_subcategory) return `other_${record.expense_subcategory}`;
+  if (baseCategory === 'marketing' && record.expense_subcategory) return `marketing_${record.expense_subcategory}`;
+  if (baseCategory === 'vehicle_parts' && record.expense_subcategory) return `vehicle_parts_${record.expense_subcategory}`;
+  if (baseCategory === 'tax' && record.expense_subcategory) return `tax_${record.expense_subcategory}`;
+  return baseCategory;
 };
+
+// Helper to get previous period date range
+const getPreviousPeriodRange = (timeframe: string, customRange?: { startDate: Date; endDate: Date }): { startDate: Date; endDate: Date } => {
+  const now = new Date();
+  switch (timeframe) {
+    case 'week': {
+      const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
+      const prevWeekStart = subWeeks(currentWeekStart, 1);
+      const prevWeekEnd = new Date(currentWeekStart.getTime() - 1);
+      return { startDate: prevWeekStart, endDate: prevWeekEnd };
+    }
+    case 'month': {
+      const currentMonthStart = startOfMonth(now);
+      const prevMonthStart = subMonths(currentMonthStart, 1);
+      const prevMonthEnd = new Date(currentMonthStart.getTime() - 1);
+      return { startDate: prevMonthStart, endDate: prevMonthEnd };
+    }
+    case 'year': {
+      const currentYearStart = startOfYear(now);
+      const prevYearStart = subYears(currentYearStart, 1);
+      const prevYearEnd = new Date(currentYearStart.getTime() - 1);
+      return { startDate: prevYearStart, endDate: prevYearEnd };
+    }
+    case 'custom': {
+      if (customRange) {
+        const rangeMs = customRange.endDate.getTime() - customRange.startDate.getTime();
+        const prevEnd = new Date(customRange.startDate.getTime() - 1);
+        const prevStart = new Date(customRange.startDate.getTime() - rangeMs);
+        return { startDate: prevStart, endDate: prevEnd };
+      }
+      const currentMonthStart2 = startOfMonth(now);
+      return { startDate: subMonths(currentMonthStart2, 1), endDate: new Date(currentMonthStart2.getTime() - 1) };
+    }
+    default:
+      return { startDate: new Date(2000, 0, 1), endDate: endOfDay(now) };
+  }
+};
+
+// Calculate average monthly growth rate for "all" timeframe
+const calcAvgMonthlyGrowth = (records: FinancialRecord[], categoryKey: string): number | null => {
+  const monthlyTotals: Record<string, number> = {};
+  records.filter(r => r.type === 'expense' && getExpenseCategoryKey(r) === categoryKey).forEach(r => {
+    const ym = r.date.substring(0, 7);
+    monthlyTotals[ym] = (monthlyTotals[ym] || 0) + Number(r.amount);
+  });
+  
+  const sortedMonths = Object.keys(monthlyTotals).sort();
+  if (sortedMonths.length < 2) return null;
+  
+  const momChanges: number[] = [];
+  for (let i = 1; i < sortedMonths.length; i++) {
+    const prev = monthlyTotals[sortedMonths[i - 1]];
+    const curr = monthlyTotals[sortedMonths[i]];
+    if (prev > 0) {
+      momChanges.push(((curr - prev) / prev) * 100);
+    }
+  }
+  
+  if (momChanges.length === 0) return null;
+  return Math.round(momChanges.reduce((sum, c) => sum + c, 0) / momChanges.length);
+};
+
 export function ExpenseBreakdown({
   financialRecords,
+  allRecords,
   vehicles = [],
   lang = 'en',
   timeframe = 'month',
-  vehicleProfitRanking = []
+  vehicleProfitRanking = [],
+  customRange
 }: ExpenseBreakdownProps) {
   const isBoats = isBoatBusiness();
   const { t } = useTranslation(['finance', 'fleet']);
   const currencySymbol = '€';
 
-  // Helper to get expense category label via translation
   const getCatLabel = (cat: string): string => {
     const key = EXPENSE_CATEGORY_KEYS[cat];
     return key ? t(`finance:${key}`) : cat;
   };
 
-  // Records are already filtered by the parent component using calendar-based timeframes
   const filteredRecords = useMemo(() => {
     return financialRecords.filter((r) => r.type === 'expense');
   }, [financialRecords]);
 
-  // Aggregate expenses by category AND subcategory for maintenance
+  // Aggregate expenses by category AND subcategory
   const expensesByCategory = useMemo(() => {
     const categoryData: Record<string, {
       total: number;
@@ -138,22 +204,9 @@ export function ExpenseBreakdown({
       years: Set<number>;
     }> = {};
     filteredRecords.forEach((record) => {
-      const baseCategory = record.category || 'other';
       const month = getMonth(new Date(record.date));
+      const aggregationKey = getExpenseCategoryKey(record);
 
-      // For maintenance, other, marketing, and vehicle_parts, aggregate by subcategory
-      let aggregationKey = baseCategory;
-      if (baseCategory === 'maintenance' && record.expense_subcategory) {
-        aggregationKey = `maintenance_${record.expense_subcategory}`;
-      } else if (baseCategory === 'other' && record.expense_subcategory) {
-        aggregationKey = `other_${record.expense_subcategory}`;
-      } else if (baseCategory === 'marketing' && record.expense_subcategory) {
-        aggregationKey = `marketing_${record.expense_subcategory}`;
-      } else if (baseCategory === 'vehicle_parts' && record.expense_subcategory) {
-        aggregationKey = `vehicle_parts_${record.expense_subcategory}`;
-      } else if (baseCategory === 'tax' && record.expense_subcategory) {
-        aggregationKey = `tax_${record.expense_subcategory}`;
-      }
       if (!categoryData[aggregationKey]) {
         categoryData[aggregationKey] = {
           total: 0,
@@ -164,33 +217,22 @@ export function ExpenseBreakdown({
       }
       categoryData[aggregationKey].total += Number(record.amount);
       categoryData[aggregationKey].months[month] = (categoryData[aggregationKey].months[month] || 0) + Number(record.amount);
-
-      // Track fuel types and years from vehicle-linked expenses
-      if (record.vehicle_fuel_type) {
-        categoryData[aggregationKey].fuelTypes.add(record.vehicle_fuel_type);
-      }
-      if (record.vehicle_year) {
-        categoryData[aggregationKey].years.add(record.vehicle_year);
-      }
+      if (record.vehicle_fuel_type) categoryData[aggregationKey].fuelTypes.add(record.vehicle_fuel_type);
+      if (record.vehicle_year) categoryData[aggregationKey].years.add(record.vehicle_year);
     });
+
+    const recordsForGrowth = allRecords || financialRecords;
+
     return Object.entries(categoryData).map(([key, data]) => {
-      const sortedMonths = Object.entries(data.months).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([month]) => getMonthName(month, lang));
-
-      // Calculate total for percentage calculation
-      const totalExpenses = Object.values(categoryData).reduce((sum, d) => sum + d.total, 0);
-
-      // Determine label based on key
       let label: string;
       if (key.startsWith('maintenance_')) {
         const subcategory = key.replace('maintenance_', '');
         const maintenanceLabel = getMaintenanceTypeLabel(subcategory, lang);
         const categoryLabel = getCatLabel('maintenance');
-        // If label equals the key, it's a custom type - show the raw name
         const displaySubcat = maintenanceLabel === subcategory ? subcategory : maintenanceLabel;
         label = `${categoryLabel} (${displaySubcat})`;
       } else if (key.startsWith('other_')) {
         const subcategory = key.replace('other_', '');
-        // Display as standalone category name (autonomous)
         label = subcategory.charAt(0).toUpperCase() + subcategory.slice(1);
       } else if (key.startsWith('marketing_')) {
         const subcategory = key.replace('marketing_', '');
@@ -208,24 +250,38 @@ export function ExpenseBreakdown({
         label = getCatLabel(key);
       }
 
-      // Format top months with percentages
-      const sortedMonthsWithPercentages = Object.entries(data.months).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([month, amount]) => {
-        const percentage = totalExpenses > 0 ? Math.round(amount / totalExpenses * 100) : 0;
-        const monthName = getMonthName(month, lang);
-        return {
-          monthName,
-          percentage
-        };
-      });
+      // Calculate growth
+      let growth: number | null = null;
+      let isNew = false;
+
+      if (timeframe === 'all') {
+        growth = calcAvgMonthlyGrowth(recordsForGrowth, key);
+      } else {
+        const prevRange = getPreviousPeriodRange(timeframe, customRange);
+        const prevTotal = recordsForGrowth
+          .filter(r => r.type === 'expense' && getExpenseCategoryKey(r) === key)
+          .filter(r => {
+            const d = new Date(r.date);
+            return d >= prevRange.startDate && d <= prevRange.endDate;
+          })
+          .reduce((sum, r) => sum + Number(r.amount), 0);
+
+        if (prevTotal > 0) {
+          growth = Math.round(((data.total - prevTotal) / prevTotal) * 100);
+        } else if (data.total > 0) {
+          isNew = true;
+        }
+      }
+
       return {
         key,
         label,
         total: data.total,
-        topMonths: sortedMonths.join(", "),
-        topMonthsWithPercentage: sortedMonthsWithPercentages
+        growth,
+        isNew,
       };
     }).sort((a, b) => b.total - a.total);
-  }, [filteredRecords, lang]);
+  }, [filteredRecords, lang, allRecords, timeframe, customRange]);
 
   // Prepare pie chart data with parent-based colors and <5% grouping
   const pieData = useMemo(() => {
@@ -262,14 +318,12 @@ export function ExpenseBreakdown({
     ];
   }, [expensesByCategory, lang]);
 
-  // Create vehicle lookup map
   const vehicleMap = useMemo(() => {
     const map = new Map<string, Vehicle>();
     vehicles.forEach((v) => map.set(v.id, v));
     return map;
   }, [vehicles]);
 
-  // Aggregate expenses by vehicle category (case-insensitive, no duplicates, NO UNKNOWN)
   const expensesByVehicleCategory = useMemo(() => {
     const categoryData: Record<string, {
       total: number;
@@ -279,20 +333,12 @@ export function ExpenseBreakdown({
       if (!record.vehicle_id) return;
       const vehicle = vehicleMap.get(record.vehicle_id);
       if (!vehicle) return;
-
-      // Get the vehicle category (type field) - SKIP if empty/unknown
       const rawCategory = vehicle.type;
-      if (!rawCategory || rawCategory.trim() === '' || rawCategory.toLowerCase() === 'unknown') {
-        return; // Skip records with no valid category
-      }
+      if (!rawCategory || rawCategory.trim() === '' || rawCategory.toLowerCase() === 'unknown') return;
       const normalizedKey = rawCategory.trim().toLowerCase();
       if (!categoryData[normalizedKey]) {
-        // Get display label using the utility function
         const displayLabel = getVehicleCategoryLabel(rawCategory, lang);
-        categoryData[normalizedKey] = {
-          total: 0,
-          displayLabel
-        };
+        categoryData[normalizedKey] = { total: 0, displayLabel };
       }
       categoryData[normalizedKey].total += Number(record.amount);
     });
@@ -303,12 +349,10 @@ export function ExpenseBreakdown({
     })).sort((a, b) => b.total - a.total);
   }, [filteredRecords, vehicleMap, lang]);
 
-  // Top 5 least profitable vehicles by avg profit/day
   const leastProfitableVehicles = useMemo(() => {
-    return [...vehicleProfitRanking].
-    sort((a, b) => a.avgProfitPerDay - b.avgProfitPerDay).
-    slice(0, 5);
+    return [...vehicleProfitRanking].sort((a, b) => a.avgProfitPerDay - b.avgProfitPerDay).slice(0, 5);
   }, [vehicleProfitRanking]);
+
   if (filteredRecords.length === 0) {
     return <Card className="p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-3">
@@ -342,11 +386,11 @@ export function ExpenseBreakdown({
                   <TableHead className="text-primary-foreground font-semibold w-[45%] px-2 py-1.5 text-xs">
                     {t('finance:category')}
                   </TableHead>
-                  <TableHead className="text-right text-primary-foreground font-semibold w-[25%] px-1 py-1.5 text-xs">
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[30%] px-1 py-1.5 text-xs">
                     {t('finance:total')}
                   </TableHead>
-                  <TableHead className="text-right text-primary-foreground font-semibold hidden sm:table-cell w-[30%] px-1 py-1.5 text-xs">
-                    {t('finance:topMonths')}
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[25%] px-1 py-1.5 text-xs">
+                    {t('finance:growth')}
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -367,12 +411,24 @@ export function ExpenseBreakdown({
                     minimumFractionDigits: 0
                   })}
                     </TableCell>
-                    <TableCell className="text-right text-muted-foreground text-[11px] hidden sm:table-cell px-1 py-1">
-                      <div className="flex flex-wrap justify-end gap-0.5">
-                        {item.topMonthsWithPercentage?.slice(0, 2).map((m, i) => <span key={i} className="whitespace-nowrap">
-                            {m.monthName}<span className="text-muted-foreground/60 ml-0.5">{m.percentage}%</span>
-                            {i < Math.min(item.topMonthsWithPercentage.length, 2) - 1 && ','}
-                          </span>)}
+                    <TableCell className="text-right text-xs px-1 py-1">
+                      <div className="flex items-center justify-end gap-0.5">
+                        {item.isNew ? (
+                          <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">{t('finance:new')}</span>
+                        ) : item.growth !== null ? (
+                          <>
+                            {item.growth >= 0 ? (
+                              <TrendingUp className="h-3 w-3 text-green-600" />
+                            ) : (
+                              <TrendingDown className="h-3 w-3 text-red-600" />
+                            )}
+                            <span className={cn("text-xs font-medium", item.growth >= 0 ? "text-green-600" : "text-red-600")}>
+                              {item.growth >= 0 ? "+" : ""}{item.growth}%
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>)}

@@ -245,5 +245,7 @@
   "pricePerBooking": "Τιμή ανά Κράτηση",
   "variableCostPerBooking": "Μεταβλητό Κόστος",
   "netProfitPerBooking": "Καθαρό Κέρδος ανά Κράτηση",
-  "variableCostFormula": "Συντήρηση / Κρατήσεις"
+  "variableCostFormula": "Συντήρηση / Κρατήσεις",
+  "growth": "Μεταβολή",
+  "new": "ΝΕΟ"
 }
