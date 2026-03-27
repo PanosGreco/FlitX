@@ -1,56 +1,69 @@
 
 
-# Plan: Analytics Dashboard Visual Refinement Round 2
+# Plan: Replace "Top Mo." with Growth/Decline Column
 
-Styling-only changes across 4 files. Zero logic changes.
+## Overview
+Replace the "Top Months" column in both breakdown tables with a "Growth" column showing percentage change vs. the previous equivalent period. For "all" timeframe, calculate average monthly growth rate across all months with data.
 
-## File 1: `src/components/finances/IncomeBreakdown.tsx`
+## Part 1 — FinanceDashboard.tsx (2 lines changed)
+Pass `allRecords={financialRecords}` to both `<IncomeBreakdown>` and `<ExpenseBreakdown>` (lines 623-629, 632-638). Also pass `customRange={customRange}`.
 
-- **Lines 262-267** (empty state): Smaller icon `h-4 w-4`, header to `text-sm font-semibold uppercase tracking-wide text-muted-foreground`
-- **Line 274**: Add `shadow-sm` to Card
-- **Lines 276-278** (section header): Same icon/header changes as empty state, `mb-4` → `mb-3`
-- **Line 290**: Table header `bg-primary hover:bg-primary` → `bg-slate-800 hover:bg-slate-800`
-- **Line 338**: Vehicle category header `bg-emerald-600 hover:bg-emerald-600` → `bg-slate-700 hover:bg-slate-700`
-- **Line 414**: Remove `mx-[70px]` from Most Profitable card
-- **Line 424**: Vehicle rows get `py-1.5 px-2.5 bg-green-50/70 rounded-md border border-green-100`
+## Part 2 — IncomeBreakdown.tsx
 
-## File 2: `src/components/finances/ExpenseBreakdown.tsx`
+**Props**: Add `allRecords?: FinancialRecord[]` and `customRange?: { startDate: Date; endDate: Date }`.
 
-- **Lines 313-317** (empty state): Same icon/header changes
-- **Line 325**: Add `shadow-sm` to Card
-- **Lines 327-329** (section header): Same changes
-- **Line 341**: Table header → `bg-slate-800 hover:bg-slate-800`
-- **Line 389**: Vehicle category header → `bg-slate-700 hover:bg-slate-700`
-- **Line 465**: Remove `mx-[70px]` from Least Profitable card
-- **Line 475**: Vehicle rows get `py-1.5 px-2.5 bg-red-50/70 rounded-md border border-red-100`
+**Growth logic** (new `useMemo`):
+- Helper `getPreviousPeriodRange(timeframe, customRange)`:
+  - `week`: previous Mon-Sun before current week start
+  - `month`: previous calendar month
+  - `year`: previous calendar year
+  - `custom`: N days immediately before custom start
+  - `all`: special — compute average monthly MoM growth rate
+- For each source in `incomeBySource`, filter `allRecords` (type=income) to previous period, match by same categoryKey logic, compute `growth = round(((current - prev) / prev) * 100)`.
+- For `all` timeframe: group all income records by `YYYY-MM` per source, compute MoM change for each consecutive month pair, average them.
+- `isNew = true` when previous total is 0 but current > 0.
 
-## File 3: `src/components/finances/AssetTrackingWidget.tsx`
+**Table changes**:
+- Remove `topMonths`/`topMonthsWithPercentage` from the useMemo output, add `growth: number | null` and `isNew: boolean`
+- Remove `getMonthName` helper (only used for topMonths; `getMonth` still used in months tracking for pie chart — keep `getMonth` import)
+- Header: replace "Top Mo." with `t('growth')`, remove `hidden sm:table-cell`, set `w-[25%]`; adjust Source to `w-[45%]`, Total to `w-[30%]`
+- Body cell: show `TrendingUp`/`TrendingDown` icon (h-3 w-3) + colored percentage, "NEW" badge, or "—"
+- Import `TrendingDown` and `cn`
 
-- **Lines 257-258**: CardTitle to `text-sm font-semibold uppercase tracking-wide text-muted-foreground`, icon `h-4 w-4`
-- **Lines 121, 174**: Category section `mb-3` → `mb-2`
-- **Lines 122, 175**: Separator add `opacity-50`
-- **Lines 124, 177**: Category header text to `font-semibold text-xs tracking-wider text-foreground/80`
-- **Line 131**: Vehicle rows add `hover:bg-muted/30 rounded-sm transition-colors`, `py-1.5` → `py-1`
-- **Line 132**: Vehicle name `text-sm` → `text-xs`
-- **Line 136**: Euro `text-sm` → `text-xs`
-- **Lines 139, 203**: Number inputs `h-8 w-24 text-sm` → `h-7 w-20 text-xs border-muted`
-- **Line 187**: Name inputs `h-8 text-sm` → `h-7 text-xs border-muted`
-- **Line 200**: Euro in custom cats `text-sm` → `text-xs`
-- **Lines 159, 243**: Category total `text-sm` → `text-xs`
-- **Line 274**: Grand total bg to `bg-slate-100 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700`
-- **Line 275**: Grand total text `text-base` → `text-sm`
+## Part 3 — ExpenseBreakdown.tsx
+Identical structural changes as IncomeBreakdown:
+- Add `allRecords` and `customRange` props
+- Growth calculation in `expensesByCategory` useMemo using same period logic
+- Same table column replacement
+- Remove `topMonths`/`topMonthsWithPercentage`, remove `getMonthName` (check: `getMonth` is used in months tracking — keep it)
+- Import `TrendingUp` and `cn`
 
-## File 4: `src/components/finances/FinanceDashboard.tsx`
+## Part 4 — Translation keys (6 files)
+Add to all `finance.json` locales:
+- EN: `"growth": "Growth"`, `"new": "NEW"`
+- EL: `"growth": "Μεταβολή"`, `"new": "ΝΕΟ"`
+- DE: `"growth": "Wachstum"`, `"new": "NEU"`
+- FR: `"growth": "Croissance"`, `"new": "NOUVEAU"`
+- IT: `"growth": "Crescita"`, `"new": "NUOVO"`
+- ES: `"growth": "Crecimiento"`, `"new": "NUEVO"`
 
-- **Lines 647-648**: Transaction header add `pb-2`, title to `text-sm font-semibold uppercase tracking-wide text-muted-foreground`
-- **Line 811**: Transaction item padding `p-3` → `p-2.5`
-- **Line 814**: Icon circle `w-8 h-8` → `w-7 h-7`
-- **Lines 818, 820**: Icons `h-4 w-4` → `h-3.5 w-3.5`
-- **Line 825**: Title add `text-sm`
+## "All" Timeframe — Average Monthly Growth Rate
+For the "all" timeframe, each source/category gets its growth calculated as:
+1. Group all records (from `allRecords`) for that source by `YYYY-MM`
+2. For each consecutive month pair, compute `(monthN - monthN-1) / monthN-1 * 100`
+3. Average all those MoM percentages → this is the growth value displayed
+4. If only 1 month of data exists → show "—" (not enough data for trend)
+
+This gives "on average, this source grows/declines by X% per month."
 
 ## Files Modified
-1. `src/components/finances/IncomeBreakdown.tsx`
-2. `src/components/finances/ExpenseBreakdown.tsx`
-3. `src/components/finances/AssetTrackingWidget.tsx`
-4. `src/components/finances/FinanceDashboard.tsx`
+1. `src/components/finances/FinanceDashboard.tsx` — pass `allRecords` + `customRange` props
+2. `src/components/finances/IncomeBreakdown.tsx` — growth logic + table column
+3. `src/components/finances/ExpenseBreakdown.tsx` — growth logic + table column
+4-9. `src/i18n/locales/{en,el,de,fr,it,es}/finance.json` — add 2 keys each
+
+## Not Changed
+- Pie charts, vehicle category tables, profit ranking cards
+- Chart data processing, asset tracking, transaction list
+- Any aggregation logic beyond adding growth field and removing topMonths
 
