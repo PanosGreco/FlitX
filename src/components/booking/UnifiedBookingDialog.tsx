@@ -42,7 +42,6 @@ interface Vehicle {
   vehicle_type: string;
   type: string;
   status: string;
-  image: string | null;
 }
 
 interface ExistingBooking {
@@ -143,11 +142,11 @@ export function UnifiedBookingDialog({
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState<string[]>([]);
   const [transmissionTypeFilter, setTransmissionTypeFilter] = useState<string[]>([]);
 
-  // Collapsible section state (C4)
-  const [additionalCostsOpen, setAdditionalCostsOpen] = useState(false);
-  const [additionalInfoOpen, setAdditionalInfoOpen] = useState(false);
-  const [notesContractOpen, setNotesContractOpen] = useState(false);
-  const [paymentFuelOpen, setPaymentFuelOpen] = useState(false);
+  // Collapsible section state (C4) — open by default
+  const [additionalCostsOpen, setAdditionalCostsOpen] = useState(true);
+  const [additionalInfoOpen, setAdditionalInfoOpen] = useState(true);
+  const [notesContractOpen, setNotesContractOpen] = useState(true);
+  const [paymentFuelOpen, setPaymentFuelOpen] = useState(true);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -216,7 +215,7 @@ export function UnifiedBookingDialog({
     if (!user) return;
     try {
       const [vehiclesResult, bookingsResult, maintenanceResult] = await Promise.all([
-        supabase.from('vehicles').select('id, make, model, year, license_plate, daily_rate, fuel_type, transmission_type, vehicle_type, type, status, is_sold, image').eq('user_id', user.id),
+        supabase.from('vehicles').select('id, make, model, year, license_plate, daily_rate, fuel_type, transmission_type, vehicle_type, type, status, is_sold').eq('user_id', user.id),
         supabase.from('rental_bookings').select('id, vehicle_id, start_date, end_date, customer_name').eq('user_id', user.id).in('status', ['confirmed', 'active', 'pending']),
         supabase.from('maintenance_blocks').select('id, vehicle_id, start_date, end_date, description').eq('user_id', user.id)
       ]);
@@ -270,6 +269,10 @@ export function UnifiedBookingDialog({
       return 0;
     });
   }, [vehicles, vehicleSearch, fuelTypeFilter, vehicleTypeFilter, transmissionTypeFilter, startDate, endDate, allBookings, allMaintenanceBlocks]);
+
+  const availableVehicleTypes = useMemo(() => {
+    return [...new Set(vehicles.map(v => v.vehicle_type))].sort();
+  }, [vehicles]);
 
   const hasActiveFilters = fuelTypeFilter.length > 0 || vehicleTypeFilter.length > 0 || transmissionTypeFilter.length > 0;
 
@@ -529,12 +532,7 @@ export function UnifiedBookingDialog({
     setEndDate(range?.to);
   };
 
-  // Vehicle image URL helper
-  const getVehicleImageUrl = (imagePath: string | null) => {
-    if (!imagePath) return null;
-    const { data } = supabase.storage.from('vehicle-images').getPublicUrl(imagePath);
-    return data?.publicUrl || null;
-  };
+
 
   const formContent = (
     <>
@@ -570,7 +568,7 @@ export function UnifiedBookingDialog({
             {/* C5: Rental Duration Badge */}
             {startDate && endDate ? (
               <Badge variant="secondary" className="text-xs">
-                {format(startDate, "EEE, MMM d")} → {format(endDate, "EEE, MMM d")} · {rentalDays} {t('fleet:booking_nights')}
+                {format(startDate, "EEE, MMM d")} → {format(endDate, "EEE, MMM d")} · {rentalDays} {rentalDays > 1 ? t('fleet:booking_days') : t('fleet:booking_day')}
               </Badge>
             ) : startDate && !endDate ? (
               <p className="text-xs text-muted-foreground">{t('fleet:booking_selectDropoff')}</p>
@@ -643,12 +641,13 @@ export function UnifiedBookingDialog({
                       {hasActiveFilters && <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => { setFuelTypeFilter([]); setVehicleTypeFilter([]); setTransmissionTypeFilter([]); }}>{t('fleet:booking_clear')}</Button>}
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">{t('fleet:booking_type')}</Label>
-                      <div className="flex gap-2">
-                        {['car', 'motorbike'].map(type => (
-                          <Button key={type} variant={vehicleTypeFilter.includes(type) ? 'default' : 'outline'} size="sm" onClick={() => setVehicleTypeFilter(prev => prev.includes(type) ? prev.filter(ft => ft !== type) : [...prev, type])} className="flex-1 text-xs h-7">
-                            {t(`fleet:booking_${type}`)}
-                          </Button>
+                       <Label className="text-xs text-muted-foreground">{t('fleet:booking_type')}</Label>
+                      <div className="grid grid-cols-2 gap-1">
+                        {availableVehicleTypes.map(type => (
+                          <label key={type} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                            <Checkbox checked={vehicleTypeFilter.includes(type)} onCheckedChange={() => setVehicleTypeFilter(prev => prev.includes(type) ? prev.filter(ft => ft !== type) : [...prev, type])} className="h-3.5 w-3.5" />
+                            <span>{t(`fleet:vehicleType_${type}`, type)}</span>
+                          </label>
                         ))}
                       </div>
                     </div>
@@ -683,55 +682,46 @@ export function UnifiedBookingDialog({
               <Input value={vehicleSearch} onChange={(e) => setVehicleSearch(e.target.value)} className="pl-9" placeholder={t('fleet:booking_searchVehicle')} />
             </div>
 
-            <Select value={selectedVehicleId} onValueChange={(value) => { const a = getVehicleAvailability(value); if (a.available) setSelectedVehicleId(value); }}>
-              <SelectTrigger className={cn(conflictError && "border-destructive")}>
-                <SelectValue placeholder={t('fleet:booking_selectVehicle')} />
-              </SelectTrigger>
-              <SelectContent>
-                <TooltipProvider>
-                  {filteredAndSortedVehicles.map(vehicle => {
-                    const availability = getVehicleAvailability(vehicle.id);
-                    const isUnavailable = !availability.available;
-                    return (
-                      <Tooltip key={vehicle.id}>
-                        <TooltipTrigger asChild>
-                          <SelectItem value={vehicle.id} disabled={isUnavailable} className={cn(isUnavailable && "cursor-not-allowed")}>
-                            <div className="flex items-center gap-2">
-                              {isUnavailable && <AlertTriangle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />}
-                              <span className={cn(isUnavailable && "line-through")}>{vehicle.make} {vehicle.model} {vehicle.year}{vehicle.license_plate && ` (${vehicle.license_plate})`}</span>
-                              {isUnavailable && availability.reason === 'booked' && <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4 font-semibold">{t('fleet:booking_booked')}</Badge>}
-                              {isUnavailable && availability.reason === 'maintenance' && <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-yellow-500 text-yellow-600 font-semibold">{t('common:maintenance')}</Badge>}
-                              {isUnavailable && availability.reason === 'repair' && <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-orange-500 text-orange-600 font-semibold text-center leading-none" style={{ fontSize: '11px', padding: '2px 8px', height: 'auto' }}>{t('fleet:booking_needsRepair')}</Badge>}
-                              {!isUnavailable && <span className="text-muted-foreground text-xs">€{vehicle.daily_rate}/{t('fleet:booking_day')}</span>}
-                            </div>
-                          </SelectItem>
-                        </TooltipTrigger>
-                        {isUnavailable && availability.conflictInfo && (
-                          <TooltipContent side="left" className="max-w-[200px]">
-                            <p className="text-xs">{availability.conflictInfo}</p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    );
-                  })}
-                </TooltipProvider>
-              </SelectContent>
-            </Select>
+            {/* Inline scrollable vehicle list — auto-visible, no dropdown click needed */}
+            <div className={cn("max-h-[200px] overflow-y-auto rounded-md border", conflictError && "border-destructive")}>
+              {filteredAndSortedVehicles.length === 0 ? (
+                <p className="text-xs text-muted-foreground p-3 text-center">{t('fleet:noSearchResults')}</p>
+              ) : (
+                filteredAndSortedVehicles.map(vehicle => {
+                  const availability = getVehicleAvailability(vehicle.id);
+                  const isUnavailable = !availability.available;
+                  const isSelected = selectedVehicleId === vehicle.id;
+                  return (
+                    <button
+                      key={vehicle.id}
+                      type="button"
+                      disabled={isUnavailable}
+                      onClick={() => { if (availability.available) setSelectedVehicleId(vehicle.id); }}
+                      className={cn(
+                        "w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition-colors border-b last:border-b-0",
+                        isSelected && "bg-primary/10 border-primary",
+                        !isSelected && !isUnavailable && "hover:bg-muted/50",
+                        isUnavailable && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      {isUnavailable && <AlertTriangle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />}
+                      <span className={cn("flex-1 min-w-0", isUnavailable && "line-through")}>
+                        {vehicle.make} {vehicle.model} {vehicle.year}
+                        {vehicle.license_plate && <span className="text-muted-foreground"> ({vehicle.license_plate})</span>}
+                      </span>
+                      {isUnavailable && availability.reason === 'booked' && <Badge variant="destructive" className="text-[10px] px-1.5 py-0 h-4 font-semibold flex-shrink-0">{t('fleet:booking_booked')}</Badge>}
+                      {isUnavailable && availability.reason === 'maintenance' && <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-yellow-500 text-yellow-600 font-semibold flex-shrink-0">{t('common:maintenance')}</Badge>}
+                      {isUnavailable && availability.reason === 'repair' && <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-orange-500 text-orange-600 font-semibold flex-shrink-0">{t('fleet:booking_needsRepair')}</Badge>}
+                      {!isUnavailable && <span className="text-muted-foreground text-xs flex-shrink-0">€{vehicle.daily_rate}/{t('fleet:booking_day')}</span>}
+                    </button>
+                  );
+                })
+              )}
+            </div>
 
-            {/* C6: Vehicle Quick-Info Card */}
+            {/* C6: Vehicle Quick-Info Card (text only) */}
             {selectedVehicle && (
-              <div className="flex items-center gap-3 bg-primary/5 rounded-md p-2 border border-primary/20">
-                {selectedVehicle.image ? (
-                  <img 
-                    src={getVehicleImageUrl(selectedVehicle.image) || ''} 
-                    alt={`${selectedVehicle.make} ${selectedVehicle.model}`}
-                    className="w-10 h-10 rounded object-cover flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                    {selectedVehicle.vehicle_type === 'motorbike' ? <Bike className="h-5 w-5 text-muted-foreground" /> : <Car className="h-5 w-5 text-muted-foreground" />}
-                  </div>
-                )}
+              <div className="flex items-center bg-primary/5 rounded-md p-2 border border-primary/20">
                 <div className="text-sm min-w-0">
                   <span className="font-medium">{selectedVehicle.make} {selectedVehicle.model}</span>
                   {selectedVehicle.license_plate && <span className="text-muted-foreground"> · {selectedVehicle.license_plate}</span>}
