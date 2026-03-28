@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * Shared hook that fetches user-created income categories from financial_records.
- * Used across Finance page, UnifiedBookingDialog, and RentalBookingDialog
+ * Used across Finance page and UnifiedBookingDialog
  * to maintain a single source of truth for non-recurring income categories.
  */
 export function useIncomeCategories() {

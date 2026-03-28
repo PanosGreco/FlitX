@@ -403,5 +403,12 @@
   "camperFeatures_grayWaterDisplay": "Γκρι Νερό: {{liters}}L",
   "camperFeatures_lengthDisplay": "{{meters}}μ μήκος",
   "camperFeatures_heightDisplay": "{{meters}}μ ύψος",
-  "camperFeatures_camperSaveWarning": "Το όχημα δημιουργήθηκε αλλά τα χαρακτηριστικά τροχόσπιτου δεν αποθηκεύτηκαν. Επεξεργαστείτε το όχημα για να προσθέσετε λεπτομέρειες."
+  "camperFeatures_camperSaveWarning": "Το όχημα δημιουργήθηκε αλλά τα χαρακτηριστικά τροχόσπιτου δεν αποθηκεύτηκαν. Επεξεργαστείτε το όχημα για να προσθέσετε λεπτομέρειες.",
+  "booking_customTotalHint": "Τα πρόσθετα κόστη θα προστεθούν σε αυτό το ποσό",
+  "booking_selectDropoff": "Επιλέξτε ημερομηνία επιστροφής",
+  "booking_nights": "νύχτες",
+  "booking_additionalCostsSection": "Πρόσθετα Κόστη",
+  "booking_additionalInfoSection": "Πρόσθετες Πληροφορίες",
+  "booking_notesContract": "Σημειώσεις & Συμβόλαιο",
+  "booking_paymentFuel": "Πληρωμή & Καύσιμο"
 }
