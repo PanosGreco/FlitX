@@ -1,69 +1,91 @@
 
 
-# Plan: Replace "Top Mo." with Growth/Decline Column
+# Plan: Booking System — Consolidation, Bug Fixes & UX Improvements
 
-## Overview
-Replace the "Top Months" column in both breakdown tables with a "Growth" column showing percentage change vs. the previous equivalent period. For "all" timeframe, calculate average monthly growth rate across all months with data.
+## Part A: Delete Dead Code
+- **Delete** `src/components/fleet/RentalBookingDialog.tsx` — it is not imported anywhere (confirmed by search). Only a comment in `useIncomeCategories.ts` mentions it; update that comment.
 
-## Part 1 — FinanceDashboard.tsx (2 lines changed)
-Pass `allRecords={financialRecords}` to both `<IncomeBreakdown>` and `<ExpenseBreakdown>` (lines 623-629, 632-638). Also pass `customRange={customRange}`.
+## Part B: Bug Fixes in `UnifiedBookingDialog.tsx`
 
-## Part 2 — IncomeBreakdown.tsx
+**B1** — After the custom total input (line 722), add hint text: `<p className="text-xs text-muted-foreground mt-1">{t('fleet:booking_customTotalHint')}</p>`
 
-**Props**: Add `allRecords?: FinancialRecord[]` and `customRange?: { startDate: Date; endDate: Date }`.
+**B2** — After line 361 (rate validation), add: `if (pricingMode === 'custom' && customTotalPrice <= 0) { toast.error(t('fleet:booking_setValidRate')); return; }`
 
-**Growth logic** (new `useMemo`):
-- Helper `getPreviousPeriodRange(timeframe, customRange)`:
-  - `week`: previous Mon-Sun before current week start
-  - `month`: previous calendar month
-  - `year`: previous calendar year
-  - `custom`: N days immediately before custom start
-  - `all`: special — compute average monthly MoM growth rate
-- For each source in `incomeBySource`, filter `allRecords` (type=income) to previous period, match by same categoryKey logic, compute `growth = round(((current - prev) / prev) * 100)`.
-- For `all` timeframe: group all income records by `YYYY-MM` per source, compute MoM change for each consecutive month pair, average them.
-- `isNew = true` when previous total is 0 but current > 0.
+**B3** — Add comment above `calculateRentalDays` (line 279): `// Same-day rental (start === end) = 1 day charge. This is intentional.`
 
-**Table changes**:
-- Remove `topMonths`/`topMonthsWithPercentage` from the useMemo output, add `growth: number | null` and `isNew: boolean`
-- Remove `getMonthName` helper (only used for topMonths; `getMonth` still used in months tracking for pie chart — keep `getMonth` import)
-- Header: replace "Top Mo." with `t('growth')`, remove `hidden sm:table-cell`, set `w-[25%]`; adjust Source to `w-[45%]`, Total to `w-[30%]`
-- Body cell: show `TrendingUp`/`TrendingDown` icon (h-3 w-3) + colored percentage, "NEW" badge, or "—"
-- Import `TrendingDown` and `cn`
+**B4** — Add `image` to Vehicle interface (`image: string | null`) and to the select query on line 213.
 
-## Part 3 — ExpenseBreakdown.tsx
-Identical structural changes as IncomeBreakdown:
-- Add `allRecords` and `customRange` props
-- Growth calculation in `expensesByCategory` useMemo using same period logic
-- Same table column replacement
-- Remove `topMonths`/`topMonthsWithPercentage`, remove `getMonthName` (check: `getMonth` is used in months tracking — keep it)
-- Import `TrendingUp` and `cn`
+## Part C: UX Improvements in `UnifiedBookingDialog.tsx`
 
-## Part 4 — Translation keys (6 files)
-Add to all `finance.json` locales:
-- EN: `"growth": "Growth"`, `"new": "NEW"`
-- EL: `"growth": "Μεταβολή"`, `"new": "ΝΕΟ"`
-- DE: `"growth": "Wachstum"`, `"new": "NEU"`
-- FR: `"growth": "Croissance"`, `"new": "NOUVEAU"`
-- IT: `"growth": "Crescita"`, `"new": "NUOVO"`
-- ES: `"growth": "Crecimiento"`, `"new": "NUEVO"`
+**C1 — Inline Date Range Calendar**: Replace the two separate Popover date pickers (lines 526-588) with a single `<Calendar mode="range" selected={{ from: startDate, to: endDate }} onSelect={...} />` rendered inline after Customer Name. Disable past dates. Import `startOfDay` from date-fns.
 
-## "All" Timeframe — Average Monthly Growth Rate
-For the "all" timeframe, each source/category gets its growth calculated as:
-1. Group all records (from `allRecords`) for that source by `YYYY-MM`
-2. For each consecutive month pair, compute `(monthN - monthN-1) / monthN-1 * 100`
-3. Average all those MoM percentages → this is the growth value displayed
-4. If only 1 month of data exists → show "—" (not enough data for trend)
+**C2 — Grouped Time + Location**: Below the calendar, render a `bg-muted/30 rounded-lg p-3` container with two rows:
+- "Pick-Up · 15 Apr" header + grid-cols-2 (time Select + location Input)
+- "Drop-Off · 18 Apr" header + grid-cols-2 (time Select + location Input)
 
-This gives "on average, this source grows/declines by X% per month."
+**C3 — Sticky Price Summary Bar**: Place as a sibling to the `<div className="pt-4">` DialogFooter block (around line 1017), NOT inside the `<div className="space-y-4">` form wrapper. This ensures `sticky bottom-0` actually sticks to the bottom of the `overflow-y-auto` DialogContent. Show `[X days] · €[total]` + Create button. Only visible when `rentalDays > 0 && selectedVehicleId`.
+
+**C4 — Collapsible Sections**: `src/components/ui/collapsible.tsx` already exists (verified). Wrap 4 sections in `<Collapsible>`:
+1. "Additional Costs" (insurance, dynamic costs, saved categories, VAT) — collapsed by default, badge with count
+2. "Additional Information" — collapsed by default, badge with count
+3. "Notes & Contract" — collapsed by default, dot indicator if content exists
+4. "Payment & Fuel" — collapsed by default, payment status indicator
+
+Always visible: Income Source, Customer Name, Date Range Calendar, Time/Location, Vehicle Selection, Pricing Mode.
+
+**C5 — Rental Duration Badge**: Below the range calendar, show `Badge variant="secondary"` with `"Tue, Apr 15 → Fri, Apr 18 · 3 nights"`. If only start date: show "Select drop-off date" muted.
+
+**C6 — Vehicle Quick-Info Card**: After vehicle selection, show compact card with vehicle image (40x40) or fallback icon, plus `Make Model · Plate · €XX/day`. Styled `bg-primary/5 rounded-md p-2 border border-primary/20`.
+
+## Part D: Translation Keys
+
+Add to all 6 locale `fleet.json` files:
+- `booking_customTotalHint` — EN: "Additional costs below will be added to this amount"
+- `booking_selectDropoff` — EN: "Select drop-off date"
+- `booking_nights` — EN: "nights"
+- `booking_additionalCostsSection` — EN: "Additional Costs"
+- `booking_additionalInfoSection` — EN: "Additional Information"  
+- `booking_notesContract` — EN: "Notes & Contract"
+- `booking_paymentFuel` — EN: "Payment & Fuel"
+
+With proper EL, DE, FR, IT, ES translations.
+
+## Structure Detail for C3 (Sticky Bar Placement)
+
+```text
+<DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">  ← scroll container
+  <DialogHeader>...</DialogHeader>
+  <>                                                                 ← formContent
+    <div>
+      <div className="space-y-4">
+        ...all form fields...
+      </div>
+      <div className="pt-4">                                         ← existing footer
+        <DialogFooter>...</DialogFooter>
+      </div>
+    </div>
+    {/* Sticky bar as sibling AFTER the form div, still inside formContent */}
+    {rentalDays > 0 && selectedVehicleId && (
+      <div className="sticky bottom-0 bg-background border-t z-10 px-4 py-2">
+        <div className="flex items-center justify-between">
+          <span>{rentalDays} {days} · <span className="text-green-600 font-semibold">€{total}</span></span>
+          <Button onClick={handleSaveBooking}>Create</Button>
+        </div>
+      </div>
+    )}
+  </>
+</DialogContent>
+```
 
 ## Files Modified
-1. `src/components/finances/FinanceDashboard.tsx` — pass `allRecords` + `customRange` props
-2. `src/components/finances/IncomeBreakdown.tsx` — growth logic + table column
-3. `src/components/finances/ExpenseBreakdown.tsx` — growth logic + table column
-4-9. `src/i18n/locales/{en,el,de,fr,it,es}/finance.json` — add 2 keys each
+1. `src/components/booking/UnifiedBookingDialog.tsx` — all fixes + improvements
+2. `src/components/fleet/RentalBookingDialog.tsx` — **DELETE**
+3. `src/hooks/useIncomeCategories.ts` — update comment (remove RentalBookingDialog mention)
+4. `src/i18n/locales/{en,el,de,fr,it,es}/fleet.json` — new translation keys
 
 ## Not Changed
-- Pie charts, vehicle category tables, profit ranking cards
-- Chart data processing, asset tracking, transaction list
-- Any aggregation logic beyond adding growth field and removing topMonths
+- `handleSaveBooking`, `createDailyTasks`, all Supabase insert operations
+- `VehicleDetails.tsx`, `CalendarView.tsx`, `CreateDialog.tsx`
+- Pricing calculations, conflict detection logic
+- Any component outside the booking flow
 
