@@ -60,6 +60,11 @@ interface MaintenanceBlock {
   end_date: string;
   description: string | null;
 }
+interface VehicleAvailability {
+  available: boolean;
+  reason?: 'booked' | 'maintenance' | 'repair';
+  conflictInfo?: string;
+}
 
 interface UnifiedBookingDialogProps {
   isOpen: boolean;
