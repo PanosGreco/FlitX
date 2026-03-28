@@ -407,7 +407,6 @@
   "camperFeatures_camperSaveWarning": "Vehicle was created but camper features could not be saved. Please edit the vehicle to add camper details.",
   "booking_customTotalHint": "Los costos adicionales se sumarán a este monto",
   "booking_selectDropoff": "Seleccionar fecha de devolución",
-  "booking_nights": "noches",
   "booking_additionalCostsSection": "Costos Adicionales",
   "booking_additionalInfoSection": "Información Adicional",
   "booking_notesContract": "Notas & Contrato",
