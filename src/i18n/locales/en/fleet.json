@@ -403,5 +403,12 @@
   "camperFeatures_grayWaterDisplay": "Gray Water: {{liters}}L",
   "camperFeatures_lengthDisplay": "{{meters}}m long",
   "camperFeatures_heightDisplay": "{{meters}}m tall",
-  "camperFeatures_camperSaveWarning": "Vehicle was created but camper features could not be saved. Please edit the vehicle to add camper details."
+  "camperFeatures_camperSaveWarning": "Vehicle was created but camper features could not be saved. Please edit the vehicle to add camper details.",
+  "booking_customTotalHint": "Additional costs below will be added to this amount",
+  "booking_selectDropoff": "Select drop-off date",
+  "booking_nights": "nights",
+  "booking_additionalCostsSection": "Additional Costs",
+  "booking_additionalInfoSection": "Additional Information",
+  "booking_notesContract": "Notes & Contract",
+  "booking_paymentFuel": "Payment & Fuel"
 }
