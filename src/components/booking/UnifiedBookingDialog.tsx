@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { format, differenceInDays, differenceInHours, isBefore, isAfter, parseISO, isWithinInterval } from "date-fns";
-import { CalendarIcon, Camera, Upload, X, MapPin, Clock, Plus, Trash2, Search, Filter, Car, AlertTriangle, Fuel, Shield } from "lucide-react";
+import { format, differenceInDays, differenceInHours, isBefore, isAfter, parseISO, isWithinInterval, startOfDay } from "date-fns";
+import { CalendarIcon, Camera, Upload, X, MapPin, Clock, Plus, Trash2, Search, Filter, Car, AlertTriangle, Fuel, Shield, ChevronDown, Bike } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
@@ -27,6 +28,7 @@ import { toast } from "sonner";
 import { validateFileSize, compressImage } from "@/utils/imageUtils";
 import { useVatSettings } from "@/hooks/useVatSettings";
 import { VatControl } from "@/components/finances/VatControl";
+import type { DateRange } from "react-day-picker";
 
 interface Vehicle {
   id: string;
@@ -40,6 +42,7 @@ interface Vehicle {
   vehicle_type: string;
   type: string;
   status: string;
+  image: string | null;
 }
 
 interface ExistingBooking {
@@ -58,12 +61,6 @@ interface MaintenanceBlock {
   description: string | null;
 }
 
-interface VehicleAvailability {
-  available: boolean;
-  reason?: 'booked' | 'maintenance' | 'repair';
-  conflictInfo?: string;
-}
-
 interface UnifiedBookingDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -73,8 +70,6 @@ interface UnifiedBookingDialogProps {
   preselectedEndDate?: Date;
   embedded?: boolean;
 }
-
-
 
 export function UnifiedBookingDialog({ 
   isOpen, 
@@ -142,6 +137,12 @@ export function UnifiedBookingDialog({
   const [fuelTypeFilter, setFuelTypeFilter] = useState<string[]>([]);
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState<string[]>([]);
   const [transmissionTypeFilter, setTransmissionTypeFilter] = useState<string[]>([]);
+
+  // Collapsible section state (C4)
+  const [additionalCostsOpen, setAdditionalCostsOpen] = useState(false);
+  const [additionalInfoOpen, setAdditionalInfoOpen] = useState(false);
+  const [notesContractOpen, setNotesContractOpen] = useState(false);
+  const [paymentFuelOpen, setPaymentFuelOpen] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -210,7 +211,7 @@ export function UnifiedBookingDialog({
     if (!user) return;
     try {
       const [vehiclesResult, bookingsResult, maintenanceResult] = await Promise.all([
-        supabase.from('vehicles').select('id, make, model, year, license_plate, daily_rate, fuel_type, transmission_type, vehicle_type, type, status, is_sold').eq('user_id', user.id),
+        supabase.from('vehicles').select('id, make, model, year, license_plate, daily_rate, fuel_type, transmission_type, vehicle_type, type, status, is_sold, image').eq('user_id', user.id),
         supabase.from('rental_bookings').select('id, vehicle_id, start_date, end_date, customer_name').eq('user_id', user.id).in('status', ['confirmed', 'active', 'pending']),
         supabase.from('maintenance_blocks').select('id, vehicle_id, start_date, end_date, description').eq('user_id', user.id)
       ]);
@@ -276,6 +277,7 @@ export function UnifiedBookingDialog({
     }
   }, [selectedVehicleId, startDate, endDate, allBookings, allMaintenanceBlocks]);
 
+  // Same-day rental (start === end) = 1 day charge. This is intentional.
   const calculateRentalDays = () => {
     if (!startDate || !endDate) return 0;
     const baseDays = differenceInDays(endDate, startDate);
@@ -304,6 +306,11 @@ export function UnifiedBookingDialog({
   const allAdditionalCostsTotal = effectiveInsuranceCost + dynamicCostsTotal;
   const totalAmount = pricingMode === 'custom' ? (customTotalPrice + allAdditionalCostsTotal) : (baseAmount + allAdditionalCostsTotal);
 
+  // Counts for collapsible badges
+  const additionalCostsCount = (effectiveInsuranceCost > 0 ? 1 : 0) + dynamicCosts.filter(c => c.amount > 0 && c.name).length;
+  const additionalInfoCount = additionalInfoRows.filter(r => r.subcategoryValue.trim() !== '').length;
+  const hasNotesOrContract = notes.trim().length > 0 || !!contractPhoto;
+
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -325,7 +332,7 @@ export function UnifiedBookingDialog({
   };
 
   const uploadContractPhoto = async (file: File, userId: string): Promise<string | null> => {
-    const safeFilename = file.name.replace(/\.\./g, '').replace(/[\/\\]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 100);
+    const safeFilename = file.name.replace(/\.\./g, '').replace(/[\\/]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 100);
     const fileName = `${userId}/${Date.now()}_${safeFilename}`;
     const { data, error } = await supabase.storage.from('rental-contracts').upload(fileName, file, { contentType: file.type });
     if (error) { console.error('Error uploading photo:', error); return null; }
@@ -356,6 +363,11 @@ export function UnifiedBookingDialog({
       return;
     }
     if (effectiveRate <= 0 && pricingMode !== 'custom') {
+      toast.error(t('fleet:booking_setValidRate'));
+      return;
+    }
+    // B2: Custom mode zero validation
+    if (pricingMode === 'custom' && customTotalPrice <= 0) {
       toast.error(t('fleet:booking_setValidRate'));
       return;
     }
@@ -502,6 +514,21 @@ export function UnifiedBookingDialog({
     setAdditionalInfoRows([{ categoryName: 'Insurance', subcategoryValue: '', isDefault: true }]);
     setVehicleSearch(""); setFuelTypeFilter([]); setVehicleTypeFilter([]); setTransmissionTypeFilter([]);
     setVatEnabled(false);
+    setAdditionalCostsOpen(false); setAdditionalInfoOpen(false);
+    setNotesContractOpen(false); setPaymentFuelOpen(false);
+  };
+
+  // C1: Date range handler
+  const handleDateRangeSelect = (range: DateRange | undefined) => {
+    setStartDate(range?.from);
+    setEndDate(range?.to);
+  };
+
+  // Vehicle image URL helper
+  const getVehicleImageUrl = (imagePath: string | null) => {
+    if (!imagePath) return null;
+    const { data } = supabase.storage.from('vehicle-images').getPublicUrl(imagePath);
+    return data?.publicUrl || null;
   };
 
   const formContent = (
@@ -523,69 +550,74 @@ export function UnifiedBookingDialog({
             <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder={t('fleet:booking_fullName')} />
           </div>
 
-          {/* Pickup Section */}
-          <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
-            <Label className="text-base font-semibold">{t('fleet:booking_pickUp')}</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs text-muted-foreground">{t('fleet:booking_date')}</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate ? format(startDate, "dd MMM") : t('fleet:booking_pickDate')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus className="p-3 pointer-events-auto" />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{t('fleet:booking_time')}</Label>
-                <Select value={pickupTime} onValueChange={setPickupTime}>
-                  <SelectTrigger><SelectValue placeholder={t('fleet:booking_time')} /></SelectTrigger>
-                  <SelectContent>{timeOptions.map(time => <SelectItem key={time} value={time}>{time}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" />{t('fleet:booking_location')}</Label>
-              <Input value={pickupLocation} onChange={(e) => setPickupLocation(e.target.value)} placeholder={t('fleet:booking_pickupLocation')} />
-            </div>
+          {/* C1: Inline Date Range Calendar */}
+          <div className="space-y-2">
+            <Label className="text-base font-semibold">{t('fleet:booking_pickUp')} & {t('fleet:booking_dropOff')}</Label>
+            <Calendar
+              mode="range"
+              selected={{ from: startDate, to: endDate }}
+              onSelect={handleDateRangeSelect}
+              disabled={(date) => isBefore(date, startOfDay(new Date()))}
+              numberOfMonths={1}
+              className="p-3 pointer-events-auto rounded-md border"
+            />
+
+            {/* C5: Rental Duration Badge */}
+            {startDate && endDate ? (
+              <Badge variant="secondary" className="text-xs">
+                {format(startDate, "EEE, MMM d")} → {format(endDate, "EEE, MMM d")} · {rentalDays} {t('fleet:booking_nights')}
+              </Badge>
+            ) : startDate && !endDate ? (
+              <p className="text-xs text-muted-foreground">{t('fleet:booking_selectDropoff')}</p>
+            ) : null}
           </div>
 
-          {/* Return Section */}
-          <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
-            <Label className="text-base font-semibold">{t('fleet:booking_dropOff')}</Label>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs text-muted-foreground">{t('fleet:booking_date')}</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {endDate ? format(endDate, "dd MMM") : t('fleet:booking_pickDate')}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={endDate} onSelect={setEndDate} disabled={(date) => startDate ? isBefore(date, startDate) : false} initialFocus className="p-3 pointer-events-auto" />
-                  </PopoverContent>
-                </Popover>
+          {/* C2: Grouped Time + Location Rows */}
+          {(startDate || endDate) && (
+            <div className="bg-muted/30 rounded-lg p-3 space-y-3">
+              {/* Pick-Up row */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-semibold">
+                  {t('fleet:booking_pickUp')}
+                  {startDate && <span className="text-muted-foreground font-normal ml-1">· {format(startDate, "dd MMM")}</span>}
+                </Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <Select value={pickupTime} onValueChange={setPickupTime}>
+                    <SelectTrigger className="h-9">
+                      <Clock className="h-3 w-3 mr-1.5 text-muted-foreground" />
+                      <SelectValue placeholder={t('fleet:booking_time')} />
+                    </SelectTrigger>
+                    <SelectContent>{timeOptions.map(time => <SelectItem key={time} value={time}>{time}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <div className="relative">
+                    <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                    <Input value={pickupLocation} onChange={(e) => setPickupLocation(e.target.value)} placeholder={t('fleet:booking_pickupLocation')} className="pl-7 h-9" />
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{t('fleet:booking_time')}</Label>
-                <Select value={returnTime} onValueChange={setReturnTime}>
-                  <SelectTrigger><SelectValue placeholder={t('fleet:booking_time')} /></SelectTrigger>
-                  <SelectContent>{timeOptions.map(time => <SelectItem key={time} value={time}>{time}</SelectItem>)}</SelectContent>
-                </Select>
+
+              {/* Drop-Off row */}
+              <div className="space-y-1.5">
+                <Label className="text-sm font-semibold">
+                  {t('fleet:booking_dropOff')}
+                  {endDate && <span className="text-muted-foreground font-normal ml-1">· {format(endDate, "dd MMM")}</span>}
+                </Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <Select value={returnTime} onValueChange={setReturnTime}>
+                    <SelectTrigger className="h-9">
+                      <Clock className="h-3 w-3 mr-1.5 text-muted-foreground" />
+                      <SelectValue placeholder={t('fleet:booking_time')} />
+                    </SelectTrigger>
+                    <SelectContent>{timeOptions.map(time => <SelectItem key={time} value={time}>{time}</SelectItem>)}</SelectContent>
+                  </Select>
+                  <div className="relative">
+                    <MapPin className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+                    <Input value={dropoffLocation} onChange={(e) => setDropoffLocation(e.target.value)} placeholder={t('fleet:booking_dropoffLocation')} className="pl-7 h-9" />
+                  </div>
+                </div>
               </div>
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" />{t('fleet:booking_location')}</Label>
-              <Input value={dropoffLocation} onChange={(e) => setDropoffLocation(e.target.value)} placeholder={t('fleet:booking_dropoffLocation')} />
-            </div>
-          </div>
+          )}
 
           {/* Vehicle Selection with Search and Filter */}
           <div className="space-y-3">
@@ -681,6 +713,28 @@ export function UnifiedBookingDialog({
               </SelectContent>
             </Select>
 
+            {/* C6: Vehicle Quick-Info Card */}
+            {selectedVehicle && (
+              <div className="flex items-center gap-3 bg-primary/5 rounded-md p-2 border border-primary/20">
+                {selectedVehicle.image ? (
+                  <img 
+                    src={getVehicleImageUrl(selectedVehicle.image) || ''} 
+                    alt={`${selectedVehicle.make} ${selectedVehicle.model}`}
+                    className="w-10 h-10 rounded object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                    {selectedVehicle.vehicle_type === 'motorbike' ? <Bike className="h-5 w-5 text-muted-foreground" /> : <Car className="h-5 w-5 text-muted-foreground" />}
+                  </div>
+                )}
+                <div className="text-sm min-w-0">
+                  <span className="font-medium">{selectedVehicle.make} {selectedVehicle.model}</span>
+                  {selectedVehicle.license_plate && <span className="text-muted-foreground"> · {selectedVehicle.license_plate}</span>}
+                  <span className="text-muted-foreground"> · €{selectedVehicle.daily_rate}/{t('fleet:booking_day')}</span>
+                </div>
+              </div>
+            )}
+
             {conflictError && (
               <Alert variant="destructive" className="py-2">
                 <AlertTriangle className="h-4 w-4" />
@@ -716,15 +770,63 @@ export function UnifiedBookingDialog({
               )}
 
               {pricingMode === 'custom' && (
-                <div className="pl-6 flex items-center gap-2">
-                  <span className="text-muted-foreground">€</span>
-                  <Input type="number" value={customTotalPrice} onChange={(e) => setCustomTotalPrice(Number(e.target.value))} min={0} step="0.01" className="w-32" placeholder={t('fleet:booking_total')} />
+                <div className="pl-6">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">€</span>
+                    <Input type="number" value={customTotalPrice} onChange={(e) => setCustomTotalPrice(Number(e.target.value))} min={0} step="0.01" className="w-32" placeholder={t('fleet:booking_total')} />
+                  </div>
+                  {/* B1: Custom pricing hint */}
+                  <p className="text-xs text-muted-foreground mt-1">{t('fleet:booking_customTotalHint')}</p>
                 </div>
               )}
 
-              {/* Additional Costs Section */}
-              {(
-                <div className="pt-3 border-t space-y-3">
+              {/* Analytical Price Breakdown */}
+              <div className="pt-3 border-t space-y-1">
+                {pricingMode === 'custom' ? (
+                  <div className="flex justify-between text-sm">
+                    <span>{t('fleet:booking_customTotal')}</span>
+                    <span>€{customTotalPrice.toFixed(2)}</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between text-sm">
+                    <span>{rentalDays} {rentalDays > 1 ? t('fleet:booking_days') : t('fleet:booking_day')} × €{effectiveRate}/{t('fleet:booking_day')}</span>
+                    <span>€{baseAmount.toFixed(2)}</span>
+                  </div>
+                )}
+                {effectiveInsuranceCost > 0 && (
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>{t('fleet:booking_insurance')} ({insuranceType})</span>
+                    <span>+€{effectiveInsuranceCost.toFixed(2)}</span>
+                  </div>
+                )}
+                {dynamicCosts.filter(c => c.amount > 0 && c.name).map(cost => (
+                  <div key={cost.id} className="flex justify-between text-sm text-muted-foreground">
+                    <span>{cost.name}</span>
+                    <span>+€{cost.amount.toFixed(2)}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between text-sm font-semibold pt-1">
+                  <span>{t('fleet:booking_total')}</span>
+                  <span className="text-green-600">€{totalAmount.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* C4: Collapsible — Additional Costs */}
+          {selectedVehicleId && startDate && endDate && (
+            <Collapsible open={additionalCostsOpen} onOpenChange={setAdditionalCostsOpen}>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="w-full justify-between h-auto py-2 px-3 bg-muted/30 rounded-lg hover:bg-muted/50">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold">{t('fleet:booking_additionalCostsSection')}</span>
+                    {additionalCostsCount > 0 && <Badge variant="secondary" className="text-[10px] px-1.5 h-4">{additionalCostsCount}</Badge>}
+                  </div>
+                  <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", additionalCostsOpen && "rotate-180")} />
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-3 pt-2">
+                <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
                   <div className="flex items-center justify-between">
                     <Label className="text-sm font-medium">{t('fleet:booking_additionalCosts')}</Label>
                     <Button type="button" variant="ghost" size="sm" onClick={() => addDynamicCost()} className="h-7 px-2">
@@ -845,14 +947,7 @@ export function UnifiedBookingDialog({
                         <Label className="text-xs text-muted-foreground">{t('fleet:booking_savedCosts')}</Label>
                         <div className="flex flex-wrap gap-1.5">
                           {savedCategories.map(cat => (
-                            <Button
-                              key={cat.id}
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-7 text-xs"
-                              onClick={() => addDynamicCost(cat.name)}
-                            >
+                            <Button key={cat.id} type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => addDynamicCost(cat.name)}>
                               <Plus className="h-3 w-3 mr-1" />
                               {cat.name}
                             </Button>
@@ -867,148 +962,150 @@ export function UnifiedBookingDialog({
                       {savedCategories
                         .filter(cat => !dynamicCosts.some(dc => dc.name.toLowerCase() === cat.name.toLowerCase()))
                         .map(cat => (
-                          <Button
-                            key={cat.id}
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-6 text-[11px] opacity-70"
-                            onClick={() => addDynamicCost(cat.name)}
-                          >
+                          <Button key={cat.id} type="button" variant="outline" size="sm" className="h-6 text-[11px] opacity-70" onClick={() => addDynamicCost(cat.name)}>
                             <Plus className="h-2.5 w-2.5 mr-0.5" />
                             {cat.name}
                           </Button>
                         ))}
                     </div>
                   )}
-                </div>
-              )}
 
-              {/* VAT Control */}
-              <VatControl
-                vatEnabled={vatEnabled}
-                onVatEnabledChange={setVatEnabled}
-                vatRate={vatRate}
-                onVatRateChange={setVatRate}
-              />
-
-              {/* Analytical Price Breakdown */}
-              <div className="pt-3 border-t space-y-1">
-                {pricingMode === 'custom' ? (
-                  <div className="flex justify-between text-sm">
-                    <span>{t('fleet:booking_customTotal')}</span>
-                    <span>€{customTotalPrice.toFixed(2)}</span>
-                  </div>
-                ) : (
-                  <div className="flex justify-between text-sm">
-                    <span>{rentalDays} {rentalDays > 1 ? t('fleet:booking_days') : t('fleet:booking_day')} × €{effectiveRate}/{t('fleet:booking_day')}</span>
-                    <span>€{baseAmount.toFixed(2)}</span>
-                  </div>
-                )}
-                {effectiveInsuranceCost > 0 && (
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>{t('fleet:booking_insurance')} ({insuranceType})</span>
-                    <span>+€{effectiveInsuranceCost.toFixed(2)}</span>
-                  </div>
-                )}
-                {dynamicCosts.filter(c => c.amount > 0 && c.name).map(cost => (
-                  <div key={cost.id} className="flex justify-between text-sm text-muted-foreground">
-                    <span>{cost.name}</span>
-                    <span>+€{cost.amount.toFixed(2)}</span>
-                  </div>
-                ))}
-                <div className="flex justify-between text-sm font-semibold pt-1">
-                  <span>{t('fleet:booking_total')}</span>
-                  <span className="text-green-600">€{totalAmount.toFixed(2)}</span>
+                  {/* VAT Control */}
+                  <VatControl
+                    vatEnabled={vatEnabled}
+                    onVatEnabledChange={setVatEnabled}
+                    vatRate={vatRate}
+                    onVatRateChange={setVatRate}
+                  />
                 </div>
-              </div>
-            </div>
+              </CollapsibleContent>
+            </Collapsible>
           )}
 
-          {/* Payment Status */}
-          <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
-            <Label className="text-base font-semibold">{t('fleet:booking_paymentStatus')}</Label>
-            <RadioGroup value={paymentStatus} onValueChange={(v) => setPaymentStatus(v as 'paid_in_full' | 'balance_due')} className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="paid_in_full" id="paid_in_full" />
-                <Label htmlFor="paid_in_full" className="font-normal cursor-pointer">{t('fleet:booking_paidInFull')}</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="balance_due" id="balance_due" />
-                <Label htmlFor="balance_due" className="font-normal cursor-pointer">{t('fleet:booking_balanceDue')}</Label>
-              </div>
-            </RadioGroup>
-            {paymentStatus === 'balance_due' && (
-              <div className="pl-6 flex items-center gap-2">
-                <span className="text-muted-foreground">€</span>
-                <Input type="number" value={balanceDueAmount || ''} onChange={(e) => setBalanceDueAmount(Number(e.target.value))} min={0} step="0.01" className="w-32" placeholder={t('fleet:booking_amount')} />
-              </div>
-            )}
-          </div>
-
-          {/* Fuel Level */}
-          <div>
-            <Label className="text-base font-semibold flex items-center gap-1"><Fuel className="h-4 w-4" /> {t('fleet:booking_fuelLevel')}</Label>
-            <Input value={fuelLevel} onChange={(e) => setFuelLevel(e.target.value)} placeholder={t('fleet:booking_fuelPlaceholder')} className="placeholder:text-muted-foreground/50" />
-          </div>
-
-          {/* Additional Information */}
-          <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
-            <Label className="text-base font-semibold">{t('fleet:booking_additionalInfo')}</Label>
-            {additionalInfoRows.map((row, index) => (
-              <div key={index} className="flex items-center gap-2">
-                {row.isDefault ? (
-                  <div className="w-[100px] flex-shrink-0"><span className="text-sm font-semibold text-foreground">{row.categoryName}</span></div>
-                ) : (
-                  <Input value={row.categoryName} onChange={(e) => { const u = [...additionalInfoRows]; u[index].categoryName = e.target.value; setAdditionalInfoRows(u); }} placeholder={t('fleet:booking_category')} className="w-[100px] flex-shrink-0" />
-                )}
-                <Input
-                  value={row.subcategoryValue}
-                  onChange={(e) => { const u = [...additionalInfoRows]; u[index].subcategoryValue = e.target.value; setAdditionalInfoRows(u); }}
-                  placeholder={row.isDefault ? t('fleet:booking_egPremium') : t('fleet:booking_value')}
-                  className="flex-1 placeholder:text-muted-foreground/50"
-                  disabled={row.isDefault && !!insuranceType}
-                />
-                {!row.isDefault && (
-                  <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive" onClick={() => setAdditionalInfoRows(additionalInfoRows.filter((_, i) => i !== index))}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-            <Button type="button" variant="outline" size="sm" onClick={() => setAdditionalInfoRows([...additionalInfoRows, { categoryName: '', subcategoryValue: '', isDefault: false }])} className="w-full">
-              <Plus className="h-4 w-4 mr-1" />{t('fleet:booking_addCategory')}
-            </Button>
-          </div>
-
-          {/* Notes */}
-          <div>
-            <Label>{t('fleet:booking_notes')}</Label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('fleet:booking_notesPlaceholder')} className="resize-none" rows={2} />
-          </div>
-
-          {/* Contract Photo */}
-          <div>
-            <Label>{t('fleet:booking_contractPhoto')}</Label>
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => cameraInputRef.current?.click()} className="flex-1">
-                  <Camera className="h-4 w-4 mr-2" />{t('fleet:booking_takePhoto')}
-                </Button>
-                <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="flex-1">
-                  <Upload className="h-4 w-4 mr-2" />{t('fleet:booking_upload')}
-                </Button>
-              </div>
-              {contractPhotoPreview && (
-                <Card><CardContent className="p-3">
-                  <div className="relative">
-                    <img src={contractPhotoPreview} alt="Contract preview" className="w-full h-32 object-cover rounded" />
-                    <Button variant="destructive" size="sm" className="absolute top-2 right-2" onClick={handleRemovePhoto}><X className="h-4 w-4" /></Button>
+          {/* C4: Collapsible — Additional Information */}
+          <Collapsible open={additionalInfoOpen} onOpenChange={setAdditionalInfoOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between h-auto py-2 px-3 bg-muted/30 rounded-lg hover:bg-muted/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold">{t('fleet:booking_additionalInfoSection')}</span>
+                  {additionalInfoCount > 0 && <Badge variant="secondary" className="text-[10px] px-1.5 h-4">{additionalInfoCount}</Badge>}
+                </div>
+                <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", additionalInfoOpen && "rotate-180")} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-3 pt-2">
+              <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+                {additionalInfoRows.map((row, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    {row.isDefault ? (
+                      <div className="w-[100px] flex-shrink-0"><span className="text-sm font-semibold text-foreground">{row.categoryName}</span></div>
+                    ) : (
+                      <Input value={row.categoryName} onChange={(e) => { const u = [...additionalInfoRows]; u[index].categoryName = e.target.value; setAdditionalInfoRows(u); }} placeholder={t('fleet:booking_category')} className="w-[100px] flex-shrink-0" />
+                    )}
+                    <Input
+                      value={row.subcategoryValue}
+                      onChange={(e) => { const u = [...additionalInfoRows]; u[index].subcategoryValue = e.target.value; setAdditionalInfoRows(u); }}
+                      placeholder={row.isDefault ? t('fleet:booking_egPremium') : t('fleet:booking_value')}
+                      className="flex-1 placeholder:text-muted-foreground/50"
+                      disabled={row.isDefault && !!insuranceType}
+                    />
+                    {!row.isDefault && (
+                      <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive" onClick={() => setAdditionalInfoRows(additionalInfoRows.filter((_, i) => i !== index))}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
-                </CardContent></Card>
-              )}
-            </div>
-          </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => setAdditionalInfoRows([...additionalInfoRows, { categoryName: '', subcategoryValue: '', isDefault: false }])} className="w-full">
+                  <Plus className="h-4 w-4 mr-1" />{t('fleet:booking_addCategory')}
+                </Button>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* C4: Collapsible — Notes & Contract */}
+          <Collapsible open={notesContractOpen} onOpenChange={setNotesContractOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between h-auto py-2 px-3 bg-muted/30 rounded-lg hover:bg-muted/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold">{t('fleet:booking_notesContract')}</span>
+                  {hasNotesOrContract && <div className="w-2 h-2 rounded-full bg-primary" />}
+                </div>
+                <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", notesContractOpen && "rotate-180")} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-3 pt-2">
+              {/* Notes */}
+              <div>
+                <Label>{t('fleet:booking_notes')}</Label>
+                <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t('fleet:booking_notesPlaceholder')} className="resize-none" rows={2} />
+              </div>
+
+              {/* Contract Photo */}
+              <div>
+                <Label>{t('fleet:booking_contractPhoto')}</Label>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={() => cameraInputRef.current?.click()} className="flex-1">
+                      <Camera className="h-4 w-4 mr-2" />{t('fleet:booking_takePhoto')}
+                    </Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="flex-1">
+                      <Upload className="h-4 w-4 mr-2" />{t('fleet:booking_upload')}
+                    </Button>
+                  </div>
+                  {contractPhotoPreview && (
+                    <Card><CardContent className="p-3">
+                      <div className="relative">
+                        <img src={contractPhotoPreview} alt="Contract preview" className="w-full h-32 object-cover rounded" />
+                        <Button variant="destructive" size="sm" className="absolute top-2 right-2" onClick={handleRemovePhoto}><X className="h-4 w-4" /></Button>
+                      </div>
+                    </CardContent></Card>
+                  )}
+                </div>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* C4: Collapsible — Payment & Fuel */}
+          <Collapsible open={paymentFuelOpen} onOpenChange={setPaymentFuelOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between h-auto py-2 px-3 bg-muted/30 rounded-lg hover:bg-muted/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold">{t('fleet:booking_paymentFuel')}</span>
+                  {paymentStatus === 'balance_due' && <Badge variant="outline" className="text-[10px] px-1.5 h-4 border-yellow-500 text-yellow-600">{t('fleet:booking_balanceDue')}</Badge>}
+                </div>
+                <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", paymentFuelOpen && "rotate-180")} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-3 pt-2">
+              {/* Payment Status */}
+              <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+                <Label className="text-sm font-semibold">{t('fleet:booking_paymentStatus')}</Label>
+                <RadioGroup value={paymentStatus} onValueChange={(v) => setPaymentStatus(v as 'paid_in_full' | 'balance_due')} className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="paid_in_full" id="paid_in_full" />
+                    <Label htmlFor="paid_in_full" className="font-normal cursor-pointer">{t('fleet:booking_paidInFull')}</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="balance_due" id="balance_due" />
+                    <Label htmlFor="balance_due" className="font-normal cursor-pointer">{t('fleet:booking_balanceDue')}</Label>
+                  </div>
+                </RadioGroup>
+                {paymentStatus === 'balance_due' && (
+                  <div className="pl-6 flex items-center gap-2">
+                    <span className="text-muted-foreground">€</span>
+                    <Input type="number" value={balanceDueAmount || ''} onChange={(e) => setBalanceDueAmount(Number(e.target.value))} min={0} step="0.01" className="w-32" placeholder={t('fleet:booking_amount')} />
+                  </div>
+                )}
+              </div>
+
+              {/* Fuel Level */}
+              <div>
+                <Label className="text-sm font-semibold flex items-center gap-1"><Fuel className="h-4 w-4" /> {t('fleet:booking_fuelLevel')}</Label>
+                <Input value={fuelLevel} onChange={(e) => setFuelLevel(e.target.value)} placeholder={t('fleet:booking_fuelPlaceholder')} className="placeholder:text-muted-foreground/50" />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
           <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
           <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileSelect} className="hidden" />
@@ -1023,6 +1120,20 @@ export function UnifiedBookingDialog({
           </DialogFooter>
         </div>
       </div>
+
+      {/* C3: Sticky Price Summary Bar — sibling to the form div, inside formContent */}
+      {rentalDays > 0 && selectedVehicleId && (
+        <div className="sticky bottom-0 bg-background border-t z-10 px-4 py-2 -mx-6 -mb-6 mt-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm">
+              {rentalDays} {rentalDays > 1 ? t('fleet:booking_days') : t('fleet:booking_day')} · <span className="text-green-600 font-semibold">€{totalAmount.toFixed(2)}</span>
+            </span>
+            <Button size="sm" onClick={handleSaveBooking} disabled={isLoading || !!conflictError}>
+              {isLoading ? t('fleet:booking_creating') : t('fleet:booking_create')}
+            </Button>
+          </div>
+        </div>
+      )}
     </>
   );
 
