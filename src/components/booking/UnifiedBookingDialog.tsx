@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { format, differenceInDays, differenceInHours, isBefore, isAfter, parseISO, isWithinInterval, startOfDay } from "date-fns";
-import { CalendarIcon, Camera, Upload, X, MapPin, Clock, Plus, Trash2, Search, Filter, Car, AlertTriangle, Fuel, Shield, ChevronDown, Bike } from "lucide-react";
+import { format, differenceInDays, differenceInHours, isBefore, isAfter, parseISO, startOfDay } from "date-fns";
+import { Camera, Upload, X, MapPin, Clock, Plus, Trash2, Search, Filter, AlertTriangle, Fuel, Shield, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -522,8 +522,8 @@ export function UnifiedBookingDialog({
     setAdditionalInfoRows([{ categoryName: 'Insurance', subcategoryValue: '', isDefault: true }]);
     setVehicleSearch(""); setFuelTypeFilter([]); setVehicleTypeFilter([]); setTransmissionTypeFilter([]);
     setVatEnabled(false);
-    setAdditionalCostsOpen(false); setAdditionalInfoOpen(false);
-    setNotesContractOpen(false); setPaymentFuelOpen(false);
+    setAdditionalCostsOpen(true); setAdditionalInfoOpen(true);
+    setNotesContractOpen(true); setPaymentFuelOpen(true);
   };
 
   // C1: Date range handler
