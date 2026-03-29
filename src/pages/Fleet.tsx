@@ -453,6 +453,70 @@ const Fleet = () => {
                     />
                   </label>
                 </div>
+                
+                {/* Additional Photos Grid (up to 4) */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">{t('fleet:additionalPhotos')}</Label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[0, 1, 2, 3].map((idx) => {
+                      const preview = additionalImagePreviews[idx];
+                      return (
+                        <div key={idx} className="relative aspect-square rounded-md overflow-hidden border border-dashed border-muted-foreground/30">
+                          {preview ? (
+                            <>
+                              <img src={preview} alt={`Additional ${idx + 1}`} className="h-full w-full object-cover" />
+                              <button
+                                type="button"
+                                className="absolute top-0.5 right-0.5 bg-background/80 rounded-full p-0.5"
+                                onClick={() => {
+                                  const newImages = [...additionalImages];
+                                  const newPreviews = [...additionalImagePreviews];
+                                  newImages.splice(idx, 1);
+                                  newPreviews.splice(idx, 1);
+                                  setAdditionalImages(newImages);
+                                  setAdditionalImagePreviews(newPreviews);
+                                }}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </>
+                          ) : idx === additionalImages.length ? (
+                            <label className="flex items-center justify-center h-full w-full cursor-pointer hover:bg-muted/50 transition-colors">
+                              <Plus className="h-5 w-5 text-muted-foreground" />
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  if (e.target.files && e.target.files[0]) {
+                                    const file = e.target.files[0];
+                                    const sizeCheck = validateFileSize(file);
+                                    if (!sizeCheck.valid) {
+                                      toast({ title: t('common:fileTooLarge'), description: sizeCheck.message, variant: 'destructive' });
+                                      return;
+                                    }
+                                    const processed = await compressImage(file);
+                                    const reader = new FileReader();
+                                    reader.onload = (ev) => {
+                                      if (ev.target?.result) {
+                                        setAdditionalImages(prev => [...prev, processed]);
+                                        setAdditionalImagePreviews(prev => [...prev, ev.target!.result!.toString()]);
+                                      }
+                                    };
+                                    reader.readAsDataURL(processed);
+                                  }
+                                  e.target.value = '';
+                                }}
+                              />
+                            </label>
+                          ) : (
+                            <div className="flex items-center justify-center h-full w-full bg-muted/20" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
               
               {/* Vehicle Type - FIRST and PROMINENT */}
