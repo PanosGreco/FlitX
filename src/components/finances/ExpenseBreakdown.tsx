@@ -31,6 +31,7 @@ interface Vehicle {
   fuel_type?: string;
   type?: string;
   vehicle_type?: string;
+  is_sold?: boolean;
 }
 const getFuelTypeLabel = (fuelType: string | null | undefined, t: (key: string) => string) => {
   if (!fuelType) return '–';
@@ -332,7 +333,7 @@ export function ExpenseBreakdown({
     filteredRecords.forEach((record) => {
       if (!record.vehicle_id) return;
       const vehicle = vehicleMap.get(record.vehicle_id);
-      if (!vehicle) return;
+      if (!vehicle || vehicle.is_sold) return;
       const rawCategory = vehicle.type;
       if (!rawCategory || rawCategory.trim() === '' || rawCategory.toLowerCase() === 'unknown') return;
       const normalizedKey = rawCategory.trim().toLowerCase();
