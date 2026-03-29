@@ -1,91 +1,89 @@
 
 
-# Plan: Booking System — Consolidation, Bug Fixes & UX Improvements
+# Plan: Reminders Time, Vehicle Photos & Analytics Sold Vehicle Fix
 
-## Part A: Delete Dead Code
-- **Delete** `src/components/fleet/RentalBookingDialog.tsx` — it is not imported anywhere (confirmed by search). Only a comment in `useIncomeCategories.ts` mentions it; update that comment.
+## Feature 1: Reminder Time Selection
 
-## Part B: Bug Fixes in `UnifiedBookingDialog.tsx`
+### 1A. Database Migration
+Add `due_time TIME DEFAULT NULL` to `vehicle_reminders` table.
 
-**B1** — After the custom total input (line 722), add hint text: `<p className="text-xs text-muted-foreground mt-1">{t('fleet:booking_customTotalHint')}</p>`
+### 1B. VehicleReminders.tsx
+- Add `due_time: string | null` to `Reminder` interface
+- Add `dueTime` state, time `<Select>` in Add dialog (24 options: 00:00–23:00), between date picker and description
+- Include `due_time: dueTime || null` in insert, reset in `resetForm()`
+- Display time next to date in reminder cards: `· <Clock> HH:MM` when present
+- Import `Select, SelectContent, SelectItem, SelectTrigger, SelectValue` from shadcn
 
-**B2** — After line 361 (rate validation), add: `if (pricingMode === 'custom' && customTotalPrice <= 0) { toast.error(t('fleet:booking_setValidRate')); return; }`
+### 1C. RemindersWidget.tsx
+- Add `due_time` to the `.select()` query
+- Map `time: reminder.due_time ? reminder.due_time.substring(0, 5) : null` instead of `time: null`
+- Time display already exists in the JSX (Clock icon + time), it will now show real values
 
-**B3** — Add comment above `calculateRentalDays` (line 279): `// Same-day rental (start === end) = 1 day charge. This is intentional.`
+---
 
-**B4** — Add `image` to Vehicle interface (`image: string | null`) and to the select query on line 213.
+## Feature 2: Multiple Vehicle Photos
 
-## Part C: UX Improvements in `UnifiedBookingDialog.tsx`
+### 2A. Database Migration
+Create `vehicle_images` table (id, vehicle_id, user_id, file_path, sort_order, created_at) with RLS policies (SELECT/INSERT/DELETE by user_id). Foreign key to `vehicles(id) ON DELETE CASCADE` and `auth.users(id) ON DELETE CASCADE`.
 
-**C1 — Inline Date Range Calendar**: Replace the two separate Popover date pickers (lines 526-588) with a single `<Calendar mode="range" selected={{ from: startDate, to: endDate }} onSelect={...} />` rendered inline after Customer Name. Disable past dates. Import `startOfDay` from date-fns.
+### 2B. Storage Bucket Migration
+Create public `vehicle-images` bucket + RLS policies on `storage.objects` for user-scoped access.
 
-**C2 — Grouped Time + Location**: Below the calendar, render a `bg-muted/30 rounded-lg p-3` container with two rows:
-- "Pick-Up · 15 Apr" header + grid-cols-2 (time Select + location Input)
-- "Drop-Off · 18 Apr" header + grid-cols-2 (time Select + location Input)
+### 2C. Fleet.tsx — Add Vehicle Dialog
+- Add state: `additionalImages: File[]`, `additionalImagePreviews: string[]`
+- Add 2×2 grid UI after main image upload for up to 4 additional photos
+- Each slot: empty = dashed border + icon, filled = preview + remove button
+- Validate with `validateFileSize()`, compress with `compressImage()`
+- After vehicle insert: upload each file to `vehicle-images` bucket, insert `vehicle_images` records
+- Reset in `resetForm()`
 
-**C3 — Sticky Price Summary Bar**: Place as a sibling to the `<div className="pt-4">` DialogFooter block (around line 1017), NOT inside the `<div className="space-y-4">` form wrapper. This ensures `sticky bottom-0` actually sticks to the bottom of the `overflow-y-auto` DialogContent. Show `[X days] · €[total]` + Create button. Only visible when `rentalDays > 0 && selectedVehicleId`.
+### 2D. VehicleDetails.tsx — Gallery Button + Modal
+- Add "View Photos" button next to "Edit Vehicle" button in the header action buttons area (line 284)
+- Create inline gallery dialog:
+  - Fetch from `vehicle_images` WHERE `vehicle_id` ORDER BY `sort_order`
+  - Get public URLs from `vehicle-images` bucket
+  - Grid display of thumbnails, click for full-size lightbox (Dialog with large img)
+  - Upload button (file picker + compress + upload + insert)
+  - Delete button per image (delete from storage + delete DB record)
+  - 4-image limit enforcement
+  - Empty state with upload prompt
 
-**C4 — Collapsible Sections**: `src/components/ui/collapsible.tsx` already exists (verified). Wrap 4 sections in `<Collapsible>`:
-1. "Additional Costs" (insurance, dynamic costs, saved categories, VAT) — collapsed by default, badge with count
-2. "Additional Information" — collapsed by default, badge with count
-3. "Notes & Contract" — collapsed by default, dot indicator if content exists
-4. "Payment & Fuel" — collapsed by default, payment status indicator
+---
 
-Always visible: Income Source, Customer Name, Date Range Calendar, Time/Location, Vehicle Selection, Pricing Mode.
+## Feature 3: Analytics — Exclude Sold Vehicles
 
-**C5 — Rental Duration Badge**: Below the range calendar, show `Badge variant="secondary"` with `"Tue, Apr 15 → Fri, Apr 18 · 3 nights"`. If only start date: show "Select drop-off date" muted.
+### 3A. FinanceDashboard.tsx
+- Add `is_sold` to Vehicle interface and `fetchVehicles` select query (currently missing)
+- In `vehicleProfitRanking` useMemo, filter: `const activeVehicles = vehicles.filter(v => !v.is_sold)` then use `activeVehicles` in the `.find()` lookup (line 411)
 
-**C6 — Vehicle Quick-Info Card**: After vehicle selection, show compact card with vehicle image (40x40) or fallback icon, plus `Make Model · Plate · €XX/day`. Styled `bg-primary/5 rounded-md p-2 border border-primary/20`.
+### 3B. IncomeBreakdown.tsx & ExpenseBreakdown.tsx
+- These receive `vehicles` prop for category breakdowns. When grouping records by vehicle for category tables and pie charts, skip records where `vehicle.is_sold === true`
+- The `vehicleProfitRanking` is already filtered at source (3A), so rankings are automatically clean
+- Summary totals and bar/line charts remain unaffected (they use `filteredRecords` directly, not vehicle groupings)
 
-## Part D: Translation Keys
+---
 
+## Translations
 Add to all 6 locale `fleet.json` files:
-- `booking_customTotalHint` — EN: "Additional costs below will be added to this amount"
-- `booking_selectDropoff` — EN: "Select drop-off date"
-- `booking_nights` — EN: "nights"
-- `booking_additionalCostsSection` — EN: "Additional Costs"
-- `booking_additionalInfoSection` — EN: "Additional Information"  
-- `booking_notesContract` — EN: "Notes & Contract"
-- `booking_paymentFuel` — EN: "Payment & Fuel"
+- `reminderTime`: "Time (optional)" / "Ώρα (προαιρετικό)" / "Zeit (optional)" / "Heure (optionnel)" / "Ora (opzionale)" / "Hora (opcional)"
+- `additionalPhotos`: "Additional Photos (up to 4)" + equivalents
+- `viewPhotos`, `noAdditionalPhotos`, `uploadPhotos`, `maxPhotosReached`, `photoDeleted`, `photoUploaded`, `photoUploadFailed` + equivalents
 
-With proper EL, DE, FR, IT, ES translations.
-
-## Structure Detail for C3 (Sticky Bar Placement)
-
-```text
-<DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">  ← scroll container
-  <DialogHeader>...</DialogHeader>
-  <>                                                                 ← formContent
-    <div>
-      <div className="space-y-4">
-        ...all form fields...
-      </div>
-      <div className="pt-4">                                         ← existing footer
-        <DialogFooter>...</DialogFooter>
-      </div>
-    </div>
-    {/* Sticky bar as sibling AFTER the form div, still inside formContent */}
-    {rentalDays > 0 && selectedVehicleId && (
-      <div className="sticky bottom-0 bg-background border-t z-10 px-4 py-2">
-        <div className="flex items-center justify-between">
-          <span>{rentalDays} {days} · <span className="text-green-600 font-semibold">€{total}</span></span>
-          <Button onClick={handleSaveBooking}>Create</Button>
-        </div>
-      </div>
-    )}
-  </>
-</DialogContent>
-```
+---
 
 ## Files Modified
-1. `src/components/booking/UnifiedBookingDialog.tsx` — all fixes + improvements
-2. `src/components/fleet/RentalBookingDialog.tsx` — **DELETE**
-3. `src/hooks/useIncomeCategories.ts` — update comment (remove RentalBookingDialog mention)
-4. `src/i18n/locales/{en,el,de,fr,it,es}/fleet.json` — new translation keys
+1. `src/components/fleet/VehicleReminders.tsx` — time picker + display
+2. `src/components/home/RemindersWidget.tsx` — fetch + map `due_time`
+3. `src/pages/Fleet.tsx` — additional image upload in Add Vehicle
+4. `src/components/fleet/VehicleDetails.tsx` — gallery button + modal
+5. `src/components/finances/FinanceDashboard.tsx` — filter sold vehicles, add `is_sold` to query
+6. `src/components/finances/IncomeBreakdown.tsx` — skip sold in category breakdowns
+7. `src/components/finances/ExpenseBreakdown.tsx` — skip sold in category breakdowns
+8. `src/i18n/locales/{en,el,de,fr,it,es}/fleet.json` — new keys
+9. Supabase migrations — `due_time` column + `vehicle_images` table + `vehicle-images` bucket
 
-## Not Changed
-- `handleSaveBooking`, `createDailyTasks`, all Supabase insert operations
-- `VehicleDetails.tsx`, `CalendarView.tsx`, `CreateDialog.tsx`
-- Pricing calculations, conflict detection logic
-- Any component outside the booking flow
+## Not Modified
+- `UnifiedBookingDialog.tsx`, `handleSaveBooking`, `createDailyTasks`
+- `EditVehicleDialog.tsx`, `CalendarView.tsx`, `CreateDialog.tsx`
+- Financial record insert/delete logic, summary totals, bar/line charts
 
