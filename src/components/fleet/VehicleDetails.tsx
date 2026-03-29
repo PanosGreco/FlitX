@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Car, Calendar, AlertTriangle, FileText, ChevronLeft, Gauge, Settings, RefreshCcw, Wrench, Upload, Fuel, Users, Bell } from "lucide-react";
+import { Car, Calendar, AlertTriangle, FileText, ChevronLeft, Gauge, Settings, RefreshCcw, Wrench, Upload, Fuel, Users, Bell, ImageIcon, Trash2, Plus, X, Loader2 } from "lucide-react";
 const FUEL_TYPE_LABELS: Record<string, {
   en: string;
   el: string;
@@ -282,6 +282,10 @@ export function VehicleDetails({
               </div>
               
               <div className="flex-shrink-0 flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setIsGalleryOpen(true)}>
+                  <ImageIcon className="h-4 w-4 mr-2" />
+                  {t('fleet:viewPhotos')}
+                </Button>
                 <Button variant="outline" size="sm" onClick={handleEditVehicle}>
                   <Car className="h-4 w-4 mr-2" />
                   {t('fleet:editVehicle')}

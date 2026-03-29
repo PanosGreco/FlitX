@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Image, Loader2, Info } from "lucide-react";
+import { Upload, Image, Loader2, Info, Plus, X } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "react-i18next";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -45,6 +45,8 @@ const Fleet = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [vehicleImage, setVehicleImage] = useState<string | null>(null);
+  const [additionalImages, setAdditionalImages] = useState<File[]>([]);
+  const [additionalImagePreviews, setAdditionalImagePreviews] = useState<string[]>([]);
   const [vehicles, setVehicles] = useState<VehicleData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -199,6 +201,8 @@ const Fleet = () => {
     setPurchaseDate("");
     setInitialMileage("");
     setVehicleImage(null);
+    setAdditionalImages([]);
+    setAdditionalImagePreviews([]);
     setCamperFeatures({ ...defaultCamperFeatures });
   };
 
@@ -348,6 +352,28 @@ const Fleet = () => {
             title: t('common:warning', 'Warning'),
             description: "Vehicle was created but camper features could not be saved. Please edit the vehicle to add camper details.",
           });
+        }
+      }
+
+      // Upload additional images to vehicle-images bucket
+      if (additionalImages.length > 0) {
+        for (let i = 0; i < additionalImages.length; i++) {
+          const file = additionalImages[i];
+          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 100);
+          const filePath = `${user.id}/${vehicleData.id}/${Date.now()}_${safeName}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('vehicle-images')
+            .upload(filePath, file, { contentType: file.type });
+          
+          if (!uploadError) {
+            await supabase.from('vehicle_images' as any).insert({
+              vehicle_id: vehicleData.id,
+              user_id: user.id,
+              file_path: filePath,
+              sort_order: i,
+            });
+          }
         }
       }
 
