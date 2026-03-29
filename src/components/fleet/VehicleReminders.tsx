@@ -28,6 +28,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -39,12 +46,15 @@ interface Reminder {
   title: string;
   description: string | null;
   due_date: string;
+  due_time: string | null;
   is_completed: boolean;
 }
 
 interface VehicleRemindersProps {
   vehicleId: string;
 }
+
+const timeOptions = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
 export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
   const [reminders, setReminders] = useState<Reminder[]>([]);
@@ -54,6 +64,7 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState<Date>(new Date());
+  const [dueTime, setDueTime] = useState("");
   
   const { toast } = useToast();
   const { user } = useAuth();
@@ -71,7 +82,7 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
       
       const { data, error } = await supabase
         .from("vehicle_reminders")
-        .select("*")
+        .select("id, title, description, due_date, due_time, is_completed")
         .eq("vehicle_id", vehicleId)
         .order("due_date");
       
@@ -108,7 +119,8 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
           user_id: user.id,
           title,
           description: description || null,
-          due_date: dueDate.toISOString().split('T')[0]
+          due_date: dueDate.toISOString().split('T')[0],
+          due_time: dueTime || null,
         }]);
 
       if (error) throw error;
@@ -180,6 +192,7 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
     setTitle("");
     setDescription("");
     setDueDate(new Date());
+    setDueTime("");
   };
 
   return (
@@ -219,6 +232,13 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
                   <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                     <Calendar className="h-3.5 w-3.5" />
                     {format(new Date(reminder.due_date), "dd/MM/yyyy")}
+                    {reminder.due_time && (
+                      <>
+                        <span className="mx-1">·</span>
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>{reminder.due_time.substring(0, 5)}</span>
+                      </>
+                    )}
                   </div>
                   {reminder.description && (
                     <p className="text-sm mt-1 text-muted-foreground">{reminder.description}</p>
@@ -288,6 +308,21 @@ export function VehicleReminders({ vehicleId }: VehicleRemindersProps) {
                   />
                 </PopoverContent>
               </Popover>
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t('fleet:reminderTime')}</Label>
+              <Select value={dueTime} onValueChange={setDueTime}>
+                <SelectTrigger>
+                  <SelectValue placeholder={t('fleet:reminderTime')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">—</SelectItem>
+                  {timeOptions.map(time => (
+                    <SelectItem key={time} value={time}>{time}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

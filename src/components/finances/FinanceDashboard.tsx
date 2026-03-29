@@ -62,10 +62,9 @@ interface Vehicle {
   model: string;
   year: number;
   created_at?: string;
-  // Category stored in DB (vehicles.type)
   type?: string | null;
-  // Top-level type stored in DB (vehicles.vehicle_type)
   vehicle_type?: string | null;
+  is_sold?: boolean;
 }
 
 interface FinanceDashboardProps {
@@ -115,7 +114,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     try {
       const { data, error } = await supabase
         .from('vehicles')
-        .select('id, make, model, year, type, vehicle_type, created_at')
+        .select('id, make, model, year, type, vehicle_type, created_at, is_sold')
         .order('make');
 
       if (!error && data) {
@@ -409,7 +408,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     // Calculate avg profit per day for each vehicle
     return Object.entries(vehicleData).map(([vehicleId, data]) => {
       const vehicle = vehicles.find(v => v.id === vehicleId);
-      if (!vehicle) return null;
+      if (!vehicle || vehicle.is_sold) return null;
       
       // Active days from vehicle created_at to today
       const createdAt = vehicle.created_at;

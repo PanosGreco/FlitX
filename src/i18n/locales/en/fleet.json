@@ -409,5 +409,14 @@
   "booking_additionalCostsSection": "Additional Costs",
   "booking_additionalInfoSection": "Additional Information",
   "booking_notesContract": "Notes & Contract",
-  "booking_paymentFuel": "Payment & Fuel"
+  "booking_paymentFuel": "Payment & Fuel",
+  "reminderTime": "Time (optional)",
+  "additionalPhotos": "Additional Photos (up to 4)",
+  "viewPhotos": "View Photos",
+  "noAdditionalPhotos": "No additional photos yet",
+  "uploadPhotos": "Upload Photos",
+  "maxPhotosReached": "Maximum 4 photos reached",
+  "photoDeleted": "Photo deleted",
+  "photoUploaded": "Photo uploaded",
+  "photoUploadFailed": "Failed to upload photo"
 }

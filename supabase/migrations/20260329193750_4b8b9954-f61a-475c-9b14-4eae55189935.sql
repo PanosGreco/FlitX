@@ -1,0 +1,1 @@
+ALTER TABLE public.vehicle_reminders ADD COLUMN due_time TIME DEFAULT NULL;

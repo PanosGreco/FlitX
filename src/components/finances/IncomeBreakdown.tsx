@@ -28,6 +28,7 @@ interface Vehicle {
   year: number;
   type?: string;
   vehicle_type?: string;
+  is_sold?: boolean;
 }
 interface VehicleProfitRank {
   id: string;
@@ -305,7 +306,7 @@ export function IncomeBreakdown({
     filteredRecords.forEach((record) => {
       if (!record.vehicle_id) return;
       const vehicle = vehicleMap.get(record.vehicle_id);
-      if (!vehicle) return;
+      if (!vehicle || vehicle.is_sold) return;
       const rawCategory = vehicle.type;
       if (!rawCategory || rawCategory.trim() === '' || rawCategory.toLowerCase() === 'unknown') return;
       const normalizedKey = rawCategory.trim().toLowerCase();

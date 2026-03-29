@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Car, Calendar, AlertTriangle, FileText, ChevronLeft, Gauge, Settings, RefreshCcw, Wrench, Upload, Fuel, Users, Bell } from "lucide-react";
+import { Car, Calendar, AlertTriangle, FileText, ChevronLeft, Gauge, Settings, RefreshCcw, Wrench, Upload, Fuel, Users, Bell, ImageIcon, Trash2, Plus, X, Loader2 } from "lucide-react";
 const FUEL_TYPE_LABELS: Record<string, {
   en: string;
   el: string;
@@ -34,6 +34,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { validateFileSize, compressImage } from "@/utils/imageUtils";
+import { toast as sonnerToast } from "sonner";
 import { useToast } from "@/components/ui/use-toast";
 import { VehicleMaintenance } from "./VehicleMaintenance";
 import { VehicleReminders } from "./VehicleReminders";
@@ -48,6 +50,7 @@ import { CamperFeaturesDisplay } from "./CamperFeaturesDisplay";
 import { MaintenanceBlockDialog } from "./MaintenanceBlockDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import { useVehicleStatus, ComputedStatus } from "@/hooks/useVehicleStatus";
 
@@ -68,6 +71,11 @@ export function VehicleDetails({
   const [isRentalBookingOpen, setIsRentalBookingOpen] = useState(false);
   const [isMaintenanceBlockOpen, setIsMaintenanceBlockOpen] = useState(false);
   const [needsRepair, setNeedsRepair] = useState(false);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<{ id: string; url: string; file_path: string }[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
+  const [galleryUploading, setGalleryUploading] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [documentName, setDocumentName] = useState("");
   const [documents, setDocuments] = useState<{
@@ -81,6 +89,7 @@ export function VehicleDetails({
   } = useToast();
   const { language } = useLanguage();
   const { t } = useTranslation(['fleet', 'common']);
+  const { user } = useAuth();
   const vehicle = vehicles.find(v => v.id === vehicleId) || {
     id: "default",
     make: "Vehicle",
@@ -221,6 +230,79 @@ export function VehicleDetails({
     refetchStatus();
   };
 
+  const fetchGalleryImages = async () => {
+    if (!vehicleId) return;
+    setGalleryLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('vehicle_images' as any)
+        .select('id, file_path, sort_order')
+        .eq('vehicle_id', vehicleId)
+        .order('sort_order');
+      if (error) throw error;
+      const images = (data || []).map((img: any) => {
+        const { data: urlData } = supabase.storage.from('vehicle-images').getPublicUrl(img.file_path);
+        return { id: img.id, url: urlData.publicUrl, file_path: img.file_path };
+      });
+      setGalleryImages(images);
+    } catch (err) {
+      console.error('Error fetching gallery images:', err);
+    } finally {
+      setGalleryLoading(false);
+    }
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0] || !vehicleId || !user) return;
+    const file = e.target.files[0];
+    e.target.value = '';
+    const sizeCheck = validateFileSize(file);
+    if (!sizeCheck.valid) {
+      sonnerToast.error(sizeCheck.message);
+      return;
+    }
+    setGalleryUploading(true);
+    try {
+      const processed = await compressImage(file);
+      const safeName = processed.name.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 100);
+      const filePath = `${user.id}/${vehicleId}/${Date.now()}_${safeName}`;
+      const { error: uploadError } = await supabase.storage
+        .from('vehicle-images')
+        .upload(filePath, processed, { contentType: processed.type });
+      if (uploadError) throw uploadError;
+      await supabase.from('vehicle_images' as any).insert({
+        vehicle_id: vehicleId,
+        user_id: user.id,
+        file_path: filePath,
+        sort_order: galleryImages.length,
+      });
+      sonnerToast.success(t('fleet:photoUploaded'));
+      fetchGalleryImages();
+    } catch (err) {
+      console.error('Error uploading image:', err);
+      sonnerToast.error(t('fleet:photoUploadFailed'));
+    } finally {
+      setGalleryUploading(false);
+    }
+  };
+
+  const handleGalleryDelete = async (imageId: string, filePath: string) => {
+    try {
+      await supabase.storage.from('vehicle-images').remove([filePath]);
+      await supabase.from('vehicle_images' as any).delete().eq('id', imageId);
+      sonnerToast.success(t('fleet:photoDeleted'));
+      fetchGalleryImages();
+    } catch (err) {
+      console.error('Error deleting image:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (isGalleryOpen && vehicleId) {
+      fetchGalleryImages();
+    }
+  }, [isGalleryOpen, vehicleId]);
+
   return <div className="animate-fade-in">
       <div className="bg-white shadow-bottom">
         <div className="container py-4">
@@ -282,6 +364,10 @@ export function VehicleDetails({
               </div>
               
               <div className="flex-shrink-0 flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setIsGalleryOpen(true)}>
+                  <ImageIcon className="h-4 w-4 mr-2" />
+                  {t('fleet:viewPhotos')}
+                </Button>
                 <Button variant="outline" size="sm" onClick={handleEditVehicle}>
                   <Car className="h-4 w-4 mr-2" />
                   {t('fleet:editVehicle')}
@@ -446,5 +532,72 @@ export function VehicleDetails({
       <UnifiedBookingDialog isOpen={isRentalBookingOpen} onClose={() => setIsRentalBookingOpen(false)} onSuccess={() => { handleBookingAdded({ customer_name: 'Booking' }); }} preselectedVehicleId={vehicleId || ""} preselectedStartDate={selectedDates.length > 0 ? selectedDates[0] : undefined} preselectedEndDate={selectedDates.length > 1 ? selectedDates[selectedDates.length - 1] : undefined} />
 
       <MaintenanceBlockDialog isOpen={isMaintenanceBlockOpen} onClose={() => setIsMaintenanceBlockOpen(false)} vehicleId={vehicleId || ""} vehicleName={`${vehicle.year} ${vehicle.make} ${vehicle.model}`} onBlockAdded={handleMaintenanceBlockAdded} />
+
+      {/* Photo Gallery Dialog */}
+      <Dialog open={isGalleryOpen} onOpenChange={setIsGalleryOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t('fleet:viewPhotos')}</DialogTitle>
+          </DialogHeader>
+          {galleryLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : galleryImages.length === 0 ? (
+            <div className="text-center py-8 space-y-3">
+              <p className="text-sm text-muted-foreground">{t('fleet:noAdditionalPhotos')}</p>
+              <label className="inline-flex items-center px-4 py-2 text-sm border border-input rounded-md bg-background hover:bg-accent cursor-pointer">
+                <Upload className="h-4 w-4 mr-2" />
+                {t('fleet:uploadPhotos')}
+                <input type="file" accept="image/*" className="hidden" onChange={handleGalleryUpload} />
+              </label>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                {galleryImages.map((img) => (
+                  <div key={img.id} className="relative group aspect-square rounded-md overflow-hidden border">
+                    <img
+                      src={img.url}
+                      alt="Vehicle"
+                      className="h-full w-full object-cover cursor-pointer"
+                      onClick={() => setLightboxUrl(img.url)}
+                    />
+                    <button
+                      className="absolute top-1 right-1 bg-background/80 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleGalleryDelete(img.id, img.file_path)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {galleryImages.length < 4 && (
+                <label className="flex items-center justify-center w-full px-4 py-2 text-sm border border-dashed rounded-md hover:bg-muted/50 cursor-pointer">
+                  {galleryUploading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4 mr-2" />
+                  )}
+                  {t('fleet:uploadPhotos')}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleGalleryUpload} disabled={galleryUploading} />
+                </label>
+              )}
+              {galleryImages.length >= 4 && (
+                <p className="text-xs text-muted-foreground text-center">{t('fleet:maxPhotosReached')}</p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Lightbox */}
+      <Dialog open={!!lightboxUrl} onOpenChange={() => setLightboxUrl(null)}>
+        <DialogContent className="max-w-3xl p-2">
+          {lightboxUrl && (
+            <img src={lightboxUrl} alt="Vehicle" className="w-full h-auto rounded-md" />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>;
 }

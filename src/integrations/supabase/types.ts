@@ -1094,6 +1094,41 @@ export type Database = {
           },
         ]
       }
+      vehicle_images: {
+        Row: {
+          created_at: string
+          file_path: string
+          id: string
+          sort_order: number
+          user_id: string
+          vehicle_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_path: string
+          id?: string
+          sort_order?: number
+          user_id: string
+          vehicle_id: string
+        }
+        Update: {
+          created_at?: string
+          file_path?: string
+          id?: string
+          sort_order?: number
+          user_id?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_images_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicle_maintenance: {
         Row: {
           cost: number | null
@@ -1149,6 +1184,7 @@ export type Database = {
           created_at: string
           description: string | null
           due_date: string
+          due_time: string | null
           id: string
           is_completed: boolean | null
           title: string
@@ -1160,6 +1196,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date: string
+          due_time?: string | null
           id?: string
           is_completed?: boolean | null
           title: string
@@ -1171,6 +1208,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_date?: string
+          due_time?: string | null
           id?: string
           is_completed?: boolean | null
           title?: string

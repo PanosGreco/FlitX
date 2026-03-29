@@ -410,5 +410,14 @@
   "booking_additionalCostsSection": "Zusatzkosten",
   "booking_additionalInfoSection": "Zusätzliche Informationen",
   "booking_notesContract": "Notizen & Vertrag",
-  "booking_paymentFuel": "Zahlung & Kraftstoff"
+  "booking_paymentFuel": "Zahlung & Kraftstoff",
+  "reminderTime": "Zeit (optional)",
+  "additionalPhotos": "Zusätzliche Fotos (bis zu 4)",
+  "viewPhotos": "Fotos anzeigen",
+  "noAdditionalPhotos": "Noch keine zusätzlichen Fotos",
+  "uploadPhotos": "Fotos hochladen",
+  "maxPhotosReached": "Maximal 4 Fotos erreicht",
+  "photoDeleted": "Foto gelöscht",
+  "photoUploaded": "Foto hochgeladen",
+  "photoUploadFailed": "Foto-Upload fehlgeschlagen"
 }

@@ -409,5 +409,14 @@
   "booking_additionalCostsSection": "Πρόσθετα Κόστη",
   "booking_additionalInfoSection": "Πρόσθετες Πληροφορίες",
   "booking_notesContract": "Σημειώσεις & Συμβόλαιο",
-  "booking_paymentFuel": "Πληρωμή & Καύσιμο"
+  "booking_paymentFuel": "Πληρωμή & Καύσιμο",
+  "reminderTime": "Ώρα (προαιρετικό)",
+  "additionalPhotos": "Επιπλέον Φωτογραφίες (έως 4)",
+  "viewPhotos": "Προβολή Φωτογραφιών",
+  "noAdditionalPhotos": "Δεν υπάρχουν επιπλέον φωτογραφίες",
+  "uploadPhotos": "Ανέβασμα Φωτογραφιών",
+  "maxPhotosReached": "Μέγιστο 4 φωτογραφίες",
+  "photoDeleted": "Η φωτογραφία διαγράφηκε",
+  "photoUploaded": "Η φωτογραφία ανέβηκε",
+  "photoUploadFailed": "Αποτυχία ανεβάσματος φωτογραφίας"
 }

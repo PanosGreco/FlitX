@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Image, Loader2, Info } from "lucide-react";
+import { Upload, Image, Loader2, Info, Plus, X } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "react-i18next";
 import { usePageTitle } from "@/hooks/usePageTitle";
@@ -45,6 +45,8 @@ const Fleet = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [vehicleImage, setVehicleImage] = useState<string | null>(null);
+  const [additionalImages, setAdditionalImages] = useState<File[]>([]);
+  const [additionalImagePreviews, setAdditionalImagePreviews] = useState<string[]>([]);
   const [vehicles, setVehicles] = useState<VehicleData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -199,6 +201,8 @@ const Fleet = () => {
     setPurchaseDate("");
     setInitialMileage("");
     setVehicleImage(null);
+    setAdditionalImages([]);
+    setAdditionalImagePreviews([]);
     setCamperFeatures({ ...defaultCamperFeatures });
   };
 
@@ -351,6 +355,28 @@ const Fleet = () => {
         }
       }
 
+      // Upload additional images to vehicle-images bucket
+      if (additionalImages.length > 0) {
+        for (let i = 0; i < additionalImages.length; i++) {
+          const file = additionalImages[i];
+          const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 100);
+          const filePath = `${user.id}/${vehicleData.id}/${Date.now()}_${safeName}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('vehicle-images')
+            .upload(filePath, file, { contentType: file.type });
+          
+          if (!uploadError) {
+            await supabase.from('vehicle_images' as any).insert({
+              vehicle_id: vehicleData.id,
+              user_id: user.id,
+              file_path: filePath,
+              sort_order: i,
+            });
+          }
+        }
+      }
+
       // Refetch vehicles from backend after successful insert
       await fetchVehicles();
       
@@ -426,6 +452,70 @@ const Fleet = () => {
                       disabled={isLanguageLoading}
                     />
                   </label>
+                </div>
+                
+                {/* Additional Photos Grid (up to 4) */}
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">{t('fleet:additionalPhotos')}</Label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[0, 1, 2, 3].map((idx) => {
+                      const preview = additionalImagePreviews[idx];
+                      return (
+                        <div key={idx} className="relative aspect-square rounded-md overflow-hidden border border-dashed border-muted-foreground/30">
+                          {preview ? (
+                            <>
+                              <img src={preview} alt={`Additional ${idx + 1}`} className="h-full w-full object-cover" />
+                              <button
+                                type="button"
+                                className="absolute top-0.5 right-0.5 bg-background/80 rounded-full p-0.5"
+                                onClick={() => {
+                                  const newImages = [...additionalImages];
+                                  const newPreviews = [...additionalImagePreviews];
+                                  newImages.splice(idx, 1);
+                                  newPreviews.splice(idx, 1);
+                                  setAdditionalImages(newImages);
+                                  setAdditionalImagePreviews(newPreviews);
+                                }}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </>
+                          ) : idx === additionalImages.length ? (
+                            <label className="flex items-center justify-center h-full w-full cursor-pointer hover:bg-muted/50 transition-colors">
+                              <Plus className="h-5 w-5 text-muted-foreground" />
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={async (e) => {
+                                  if (e.target.files && e.target.files[0]) {
+                                    const file = e.target.files[0];
+                                    const sizeCheck = validateFileSize(file);
+                                    if (!sizeCheck.valid) {
+                                      toast({ title: t('common:fileTooLarge'), description: sizeCheck.message, variant: 'destructive' });
+                                      return;
+                                    }
+                                    const processed = await compressImage(file);
+                                    const reader = new FileReader();
+                                    reader.onload = (ev) => {
+                                      if (ev.target?.result) {
+                                        setAdditionalImages(prev => [...prev, processed]);
+                                        setAdditionalImagePreviews(prev => [...prev, ev.target!.result!.toString()]);
+                                      }
+                                    };
+                                    reader.readAsDataURL(processed);
+                                  }
+                                  e.target.value = '';
+                                }}
+                              />
+                            </label>
+                          ) : (
+                            <div className="flex items-center justify-center h-full w-full bg-muted/20" />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
               
