@@ -34,6 +34,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { validateFileSize, compressImage } from "@/utils/imageUtils";
+import { toast as sonnerToast } from "sonner";
 import { useToast } from "@/components/ui/use-toast";
 import { VehicleMaintenance } from "./VehicleMaintenance";
 import { VehicleReminders } from "./VehicleReminders";
@@ -68,6 +70,11 @@ export function VehicleDetails({
   const [isRentalBookingOpen, setIsRentalBookingOpen] = useState(false);
   const [isMaintenanceBlockOpen, setIsMaintenanceBlockOpen] = useState(false);
   const [needsRepair, setNeedsRepair] = useState(false);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [galleryImages, setGalleryImages] = useState<{ id: string; url: string; file_path: string }[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState(false);
+  const [galleryUploading, setGalleryUploading] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [documentName, setDocumentName] = useState("");
   const [documents, setDocuments] = useState<{
