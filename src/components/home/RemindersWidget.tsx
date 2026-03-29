@@ -33,7 +33,7 @@ export function RemindersWidget() {
     try {
       const { data: vehicleReminders, error: vehicleError } = await supabase
         .from('vehicle_reminders')
-        .select(`id, title, description, due_date, is_completed, vehicle_id, vehicles (make, model)`)
+        .select(`id, title, description, due_date, due_time, is_completed, vehicle_id, vehicles (make, model)`)
         .eq('user_id', user.id)
         .eq('due_date', today);
       if (vehicleError) {
@@ -46,7 +46,7 @@ export function RemindersWidget() {
         vehicleName: reminder.vehicles ? `${reminder.vehicles.make} ${reminder.vehicles.model}` : 'Unknown Vehicle',
         title: reminder.title,
         notes: reminder.description,
-        time: null,
+        time: reminder.due_time ? reminder.due_time.substring(0, 5) : null,
         is_completed: reminder.is_completed || false
       }));
       const sortedReminders = mappedReminders.sort((a, b) => {
