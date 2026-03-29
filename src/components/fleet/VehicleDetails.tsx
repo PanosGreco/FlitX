@@ -88,6 +88,7 @@ export function VehicleDetails({
   } = useToast();
   const { language } = useLanguage();
   const { t } = useTranslation(['fleet', 'common']);
+  const { user } = useAuth();
   const vehicle = vehicles.find(v => v.id === vehicleId) || {
     id: "default",
     make: "Vehicle",
