@@ -50,6 +50,7 @@ import { CamperFeaturesDisplay } from "./CamperFeaturesDisplay";
 import { MaintenanceBlockDialog } from "./MaintenanceBlockDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "react-i18next";
 import { useVehicleStatus, ComputedStatus } from "@/hooks/useVehicleStatus";
 
