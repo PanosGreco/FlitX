@@ -228,6 +228,79 @@ export function VehicleDetails({
     refetchStatus();
   };
 
+  const fetchGalleryImages = async () => {
+    if (!vehicleId) return;
+    setGalleryLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('vehicle_images' as any)
+        .select('id, file_path, sort_order')
+        .eq('vehicle_id', vehicleId)
+        .order('sort_order');
+      if (error) throw error;
+      const images = (data || []).map((img: any) => {
+        const { data: urlData } = supabase.storage.from('vehicle-images').getPublicUrl(img.file_path);
+        return { id: img.id, url: urlData.publicUrl, file_path: img.file_path };
+      });
+      setGalleryImages(images);
+    } catch (err) {
+      console.error('Error fetching gallery images:', err);
+    } finally {
+      setGalleryLoading(false);
+    }
+  };
+
+  const handleGalleryUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0] || !vehicleId || !user) return;
+    const file = e.target.files[0];
+    e.target.value = '';
+    const sizeCheck = validateFileSize(file);
+    if (!sizeCheck.valid) {
+      sonnerToast.error(sizeCheck.message);
+      return;
+    }
+    setGalleryUploading(true);
+    try {
+      const processed = await compressImage(file);
+      const safeName = processed.name.replace(/[^a-zA-Z0-9._-]/g, '_').substring(0, 100);
+      const filePath = `${user.id}/${vehicleId}/${Date.now()}_${safeName}`;
+      const { error: uploadError } = await supabase.storage
+        .from('vehicle-images')
+        .upload(filePath, processed, { contentType: processed.type });
+      if (uploadError) throw uploadError;
+      await supabase.from('vehicle_images' as any).insert({
+        vehicle_id: vehicleId,
+        user_id: user.id,
+        file_path: filePath,
+        sort_order: galleryImages.length,
+      });
+      sonnerToast.success(t('fleet:photoUploaded'));
+      fetchGalleryImages();
+    } catch (err) {
+      console.error('Error uploading image:', err);
+      sonnerToast.error(t('fleet:photoUploadFailed'));
+    } finally {
+      setGalleryUploading(false);
+    }
+  };
+
+  const handleGalleryDelete = async (imageId: string, filePath: string) => {
+    try {
+      await supabase.storage.from('vehicle-images').remove([filePath]);
+      await supabase.from('vehicle_images' as any).delete().eq('id', imageId);
+      sonnerToast.success(t('fleet:photoDeleted'));
+      fetchGalleryImages();
+    } catch (err) {
+      console.error('Error deleting image:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (isGalleryOpen && vehicleId) {
+      fetchGalleryImages();
+    }
+  }, [isGalleryOpen, vehicleId]);
+
   return <div className="animate-fade-in">
       <div className="bg-white shadow-bottom">
         <div className="container py-4">
