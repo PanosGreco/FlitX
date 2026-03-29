@@ -410,5 +410,14 @@
   "booking_additionalCostsSection": "Costi Aggiuntivi",
   "booking_additionalInfoSection": "Informazioni Aggiuntive",
   "booking_notesContract": "Note & Contratto",
-  "booking_paymentFuel": "Pagamento & Carburante"
+  "booking_paymentFuel": "Pagamento & Carburante",
+  "reminderTime": "Ora (opzionale)",
+  "additionalPhotos": "Foto aggiuntive (fino a 4)",
+  "viewPhotos": "Visualizza foto",
+  "noAdditionalPhotos": "Nessuna foto aggiuntiva",
+  "uploadPhotos": "Carica foto",
+  "maxPhotosReached": "Massimo 4 foto raggiunto",
+  "photoDeleted": "Foto eliminata",
+  "photoUploaded": "Foto caricata",
+  "photoUploadFailed": "Caricamento foto fallito"
 }
