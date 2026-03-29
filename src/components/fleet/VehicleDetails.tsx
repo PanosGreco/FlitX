@@ -532,5 +532,72 @@ export function VehicleDetails({
       <UnifiedBookingDialog isOpen={isRentalBookingOpen} onClose={() => setIsRentalBookingOpen(false)} onSuccess={() => { handleBookingAdded({ customer_name: 'Booking' }); }} preselectedVehicleId={vehicleId || ""} preselectedStartDate={selectedDates.length > 0 ? selectedDates[0] : undefined} preselectedEndDate={selectedDates.length > 1 ? selectedDates[selectedDates.length - 1] : undefined} />
 
       <MaintenanceBlockDialog isOpen={isMaintenanceBlockOpen} onClose={() => setIsMaintenanceBlockOpen(false)} vehicleId={vehicleId || ""} vehicleName={`${vehicle.year} ${vehicle.make} ${vehicle.model}`} onBlockAdded={handleMaintenanceBlockAdded} />
+
+      {/* Photo Gallery Dialog */}
+      <Dialog open={isGalleryOpen} onOpenChange={setIsGalleryOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t('fleet:viewPhotos')}</DialogTitle>
+          </DialogHeader>
+          {galleryLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : galleryImages.length === 0 ? (
+            <div className="text-center py-8 space-y-3">
+              <p className="text-sm text-muted-foreground">{t('fleet:noAdditionalPhotos')}</p>
+              <label className="inline-flex items-center px-4 py-2 text-sm border border-input rounded-md bg-background hover:bg-accent cursor-pointer">
+                <Upload className="h-4 w-4 mr-2" />
+                {t('fleet:uploadPhotos')}
+                <input type="file" accept="image/*" className="hidden" onChange={handleGalleryUpload} />
+              </label>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                {galleryImages.map((img) => (
+                  <div key={img.id} className="relative group aspect-square rounded-md overflow-hidden border">
+                    <img
+                      src={img.url}
+                      alt="Vehicle"
+                      className="h-full w-full object-cover cursor-pointer"
+                      onClick={() => setLightboxUrl(img.url)}
+                    />
+                    <button
+                      className="absolute top-1 right-1 bg-background/80 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleGalleryDelete(img.id, img.file_path)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {galleryImages.length < 4 && (
+                <label className="flex items-center justify-center w-full px-4 py-2 text-sm border border-dashed rounded-md hover:bg-muted/50 cursor-pointer">
+                  {galleryUploading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4 mr-2" />
+                  )}
+                  {t('fleet:uploadPhotos')}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleGalleryUpload} disabled={galleryUploading} />
+                </label>
+              )}
+              {galleryImages.length >= 4 && (
+                <p className="text-xs text-muted-foreground text-center">{t('fleet:maxPhotosReached')}</p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Lightbox */}
+      <Dialog open={!!lightboxUrl} onOpenChange={() => setLightboxUrl(null)}>
+        <DialogContent className="max-w-3xl p-2">
+          {lightboxUrl && (
+            <img src={lightboxUrl} alt="Vehicle" className="w-full h-auto rounded-md" />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>;
 }
