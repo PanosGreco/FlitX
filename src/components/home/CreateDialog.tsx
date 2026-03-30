@@ -39,7 +39,7 @@ export function CreateDialog({ isOpen, onClose, onSuccess }: CreateDialogProps) 
 
   const fetchVehicles = async () => {
     if (!user) return;
-    const { data, error } = await supabase.from('vehicles').select('id, make, model, license_plate').eq('user_id', user.id);
+    const { data, error } = await supabase.from('vehicles').select('id, make, model, license_plate').eq('user_id', user.id).eq('is_sold', false);
     if (!error) setVehicles(data || []);
   };
 
