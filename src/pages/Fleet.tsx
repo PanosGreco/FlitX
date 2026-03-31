@@ -70,10 +70,6 @@ const Fleet = () => {
   const [dailyRate, setDailyRate] = useState("");
   const [mileage, setMileage] = useState("");
   const [purchasePrice, setPurchasePrice] = useState("");
-  // Depreciation data fields
-  const [marketValueAtPurchase, setMarketValueAtPurchase] = useState("");
-  const [purchaseDate, setPurchaseDate] = useState("");
-  const [initialMileage, setInitialMileage] = useState("");
 
   // Camper features state
   const [camperFeatures, setCamperFeatures] = useState<CamperFeaturesState>({ ...defaultCamperFeatures });
