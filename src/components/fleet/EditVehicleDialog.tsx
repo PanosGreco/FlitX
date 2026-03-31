@@ -50,9 +50,6 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
   const [dailyRate, setDailyRate] = useState(vehicle.daily_rate ?? 0);
   const [licensePlate, setLicensePlate] = useState(vehicle.license_plate ?? '');
   const [purchasePrice, setPurchasePrice] = useState<string>(vehicle.purchase_price?.toString() ?? '');
-  const [purchaseDate, setPurchaseDate] = useState<string>(vehicle.purchase_date ?? '');
-  const [initialMileage, setInitialMileage] = useState(vehicle.initial_mileage ?? 0);
-  const [marketValueAtPurchase, setMarketValueAtPurchase] = useState<string>(vehicle.market_value_at_purchase?.toString() ?? '');
   const [vehicleImage, setVehicleImage] = useState<string | null>(vehicle.image ?? null);
   const [fuelType, setFuelType] = useState(vehicle.fuel_type ?? 'petrol');
   const [transmissionType, setTransmissionType] = useState<TransmissionType>((vehicle.transmission_type as TransmissionType) ?? 'manual');
