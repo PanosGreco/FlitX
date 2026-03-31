@@ -428,8 +428,6 @@ export function VehicleDetails({
                       vehicleId={vehicleId || ""} 
                       vehicleName={`${vehicle.year} ${vehicle.make} ${vehicle.model}`} 
                       purchasePrice={vehicle.purchase_price}
-                      marketValueAtPurchase={vehicle.market_value_at_purchase}
-                      purchaseDate={vehicle.purchase_date}
                       currentMileage={vehicle.mileage}
                       initialMileage={vehicle.initial_mileage}
                       vehicleType={vehicle.vehicle_type}

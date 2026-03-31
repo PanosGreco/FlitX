@@ -408,48 +408,6 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
               className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
           </div>
 
-          {/* Depreciation Data Section */}
-          <div className="pt-4 pb-2">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-xs font-medium uppercase tracking-wide">{t('fleet:depreciationData')}</span>
-              <div className="h-px flex-1 bg-border" />
-            </div>
-            <p className="text-xs text-muted-foreground text-center mt-1">{t('fleet:depreciationDataDesc')}</p>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center gap-1">
-              <Label htmlFor="market-value">{t('fleet:marketValueAtPurchase')}</Label>
-              <TooltipProvider><Tooltip><TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
-                <TooltipContent className="max-w-xs"><p className="text-xs">{t('fleet:marketValueTooltip')}</p></TooltipContent>
-              </Tooltip></TooltipProvider>
-            </div>
-            <Input id="market-value" type="text" inputMode="decimal" value={marketValueAtPurchase}
-              onChange={(e) => { const value = e.target.value.replace(/[^0-9.]/g, ''); setMarketValueAtPurchase(value); }}
-              placeholder={t('fleet:customCategoryPlaceholder')}
-              className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center gap-1">
-              <Label htmlFor="purchase-date">{t('fleet:purchaseDate')}</Label>
-              <TooltipProvider><Tooltip><TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
-                <TooltipContent className="max-w-xs"><p className="text-xs">{t('fleet:purchaseDateTooltip')}</p></TooltipContent>
-              </Tooltip></TooltipProvider>
-            </div>
-            <Input id="purchase-date" type="date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} className="w-full" />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center gap-1">
-              <Label htmlFor="initial-mileage">{t('fleet:mileageAtPurchase')}</Label>
-              <TooltipProvider><Tooltip><TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
-                <TooltipContent className="max-w-xs"><p className="text-xs">{t('fleet:mileageAtPurchaseTooltip')}</p></TooltipContent>
-              </Tooltip></TooltipProvider>
-            </div>
-            <Input id="initial-mileage" type="number" value={initialMileage} onChange={(e) => setInitialMileage(Number(e.target.value))} min={0} placeholder="0" />
-          </div>
 
           {/* Camper Features */}
           {vehicleType === 'camper' && (

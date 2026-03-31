@@ -203,7 +203,7 @@ const Finance = () => {
         return;
       }
 
-      const { calculateUsageDepreciation } = await import("@/utils/depreciationUtils");
+      
 
       const purchasePrice = vehicleData.purchase_price ? Number(vehicleData.purchase_price) : 0;
       
