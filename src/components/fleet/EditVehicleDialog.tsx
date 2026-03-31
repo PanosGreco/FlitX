@@ -196,8 +196,6 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
       const { error } = await supabase.from('vehicles').update({
         mileage, daily_rate: dailyRate, license_plate: licensePlate,
         purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
-        purchase_date: purchaseDate || null, initial_mileage: initialMileage,
-        market_value_at_purchase: marketValueAtPurchase ? parseFloat(marketValueAtPurchase) : null,
         image: vehicleImage, fuel_type: fuelType, transmission_type: transmissionType,
         passenger_capacity: parseInt(passengerCapacity), vehicle_type: vehicleType, type: finalCategory,
       }).eq('id', vehicle.id);
