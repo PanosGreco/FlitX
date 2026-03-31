@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AnimatedCircularProgressBar } from "@/components/ui/animated-circular-progress-bar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTranslation } from "react-i18next";
-import { calculateUsageDepreciation, formatYearsOwned } from "@/utils/depreciationUtils";
+import { calculateMileageDepreciation } from "@/utils/mileageDepreciation";
+import { Progress } from "@/components/ui/progress";
 
 interface Vehicle {
   id: string;
