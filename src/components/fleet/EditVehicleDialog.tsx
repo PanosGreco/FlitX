@@ -73,9 +73,6 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     setDailyRate(vehicle.daily_rate ?? 0);
     setLicensePlate(vehicle.license_plate ?? '');
     setPurchasePrice(vehicle.purchase_price?.toString() ?? '');
-    setPurchaseDate(vehicle.purchase_date ?? '');
-    setInitialMileage(vehicle.initial_mileage ?? 0);
-    setMarketValueAtPurchase(vehicle.market_value_at_purchase?.toString() ?? '');
     setVehicleImage(vehicle.image ?? null);
     setFuelType(vehicle.fuel_type ?? 'petrol');
     setTransmissionType((vehicle.transmission_type as TransmissionType) ?? 'manual');
