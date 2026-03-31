@@ -193,9 +193,6 @@ const Fleet = () => {
     setDailyRate("");
     setMileage("");
     setPurchasePrice("");
-    setMarketValueAtPurchase("");
-    setPurchaseDate("");
-    setInitialMileage("");
     setVehicleImage(null);
     setAdditionalImages([]);
     setAdditionalImagePreviews([]);
