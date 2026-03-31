@@ -115,9 +115,7 @@ export function VehicleDetails({
     transmission_type: 'manual',
     fuel_type: 'petrol',
     purchase_price: null,
-    purchase_date: null,
-    initial_mileage: 0,
-    market_value_at_purchase: null
+    initial_mileage: 0
   };
 
   const {
