@@ -235,16 +235,13 @@ export function VehicleFinanceTab({
   };
   const depreciationStatus = getDepreciationStatus();
 
-  const marketValue = typeof marketValueAtPurchase === "number" ? marketValueAtPurchase : Number(marketValueAtPurchase);
-  const hasDepreciationData = marketValue && marketValue > 0;
-  const usageDepreciation = hasDepreciationData ? calculateUsageDepreciation({
-    marketValueAtPurchase: marketValue,
-    vehicleModelYear: vehicleYear,
-    purchaseDate,
-    currentMileage,
-    initialMileage,
-    vehicleType: vehicleType as 'car' | 'motorbike' | 'boat' | 'atv'
-  }) : null;
+  const mileageDepreciation = (purchaseValue && purchaseValue > 0)
+    ? calculateMileageDepreciation({
+        purchasePrice: purchaseValue,
+        initialMileage: initialMileage || 0,
+        currentMileage: currentMileage || 0,
+      })
+    : null;
 
   if (isLoading) {
     return <div className="flex justify-center py-12">
