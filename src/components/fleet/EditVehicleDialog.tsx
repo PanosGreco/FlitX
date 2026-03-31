@@ -33,9 +33,6 @@ interface EditVehicleDialogProps {
     license_plate?: string;
     image?: string;
     purchase_price?: number | null;
-    purchase_date?: string | null;
-    initial_mileage?: number;
-    market_value_at_purchase?: number | null;
     fuel_type?: string;
     transmission_type?: string;
     passenger_capacity?: number;
