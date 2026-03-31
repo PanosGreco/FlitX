@@ -420,8 +420,8 @@ export function VehicleFinanceTab({
                   </PopoverTrigger>
                   <PopoverContent className="max-w-xs p-3">
                     <p className="text-xs">
-                      {t('fleet:mileageDepreciationTooltip').split('Update mileage in Edit Vehicle to see changes.')[0]}
-                      <strong>Update mileage in Edit Vehicle to see changes.</strong>
+                      {t('fleet:mileageDepreciationTooltipText')}{' '}
+                      <strong>{t('fleet:mileageDepreciationTooltipBold')}</strong>
                     </p>
                   </PopoverContent>
                 </Popover>
