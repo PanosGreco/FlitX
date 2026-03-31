@@ -33,9 +33,6 @@ interface EditVehicleDialogProps {
     license_plate?: string;
     image?: string;
     purchase_price?: number | null;
-    purchase_date?: string | null;
-    initial_mileage?: number;
-    market_value_at_purchase?: number | null;
     fuel_type?: string;
     transmission_type?: string;
     passenger_capacity?: number;
@@ -53,9 +50,6 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
   const [dailyRate, setDailyRate] = useState(vehicle.daily_rate ?? 0);
   const [licensePlate, setLicensePlate] = useState(vehicle.license_plate ?? '');
   const [purchasePrice, setPurchasePrice] = useState<string>(vehicle.purchase_price?.toString() ?? '');
-  const [purchaseDate, setPurchaseDate] = useState<string>(vehicle.purchase_date ?? '');
-  const [initialMileage, setInitialMileage] = useState(vehicle.initial_mileage ?? 0);
-  const [marketValueAtPurchase, setMarketValueAtPurchase] = useState<string>(vehicle.market_value_at_purchase?.toString() ?? '');
   const [vehicleImage, setVehicleImage] = useState<string | null>(vehicle.image ?? null);
   const [fuelType, setFuelType] = useState(vehicle.fuel_type ?? 'petrol');
   const [transmissionType, setTransmissionType] = useState<TransmissionType>((vehicle.transmission_type as TransmissionType) ?? 'manual');
@@ -79,9 +73,6 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     setDailyRate(vehicle.daily_rate ?? 0);
     setLicensePlate(vehicle.license_plate ?? '');
     setPurchasePrice(vehicle.purchase_price?.toString() ?? '');
-    setPurchaseDate(vehicle.purchase_date ?? '');
-    setInitialMileage(vehicle.initial_mileage ?? 0);
-    setMarketValueAtPurchase(vehicle.market_value_at_purchase?.toString() ?? '');
     setVehicleImage(vehicle.image ?? null);
     setFuelType(vehicle.fuel_type ?? 'petrol');
     setTransmissionType((vehicle.transmission_type as TransmissionType) ?? 'manual');
@@ -205,8 +196,6 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
       const { error } = await supabase.from('vehicles').update({
         mileage, daily_rate: dailyRate, license_plate: licensePlate,
         purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
-        purchase_date: purchaseDate || null, initial_mileage: initialMileage,
-        market_value_at_purchase: marketValueAtPurchase ? parseFloat(marketValueAtPurchase) : null,
         image: vehicleImage, fuel_type: fuelType, transmission_type: transmissionType,
         passenger_capacity: parseInt(passengerCapacity), vehicle_type: vehicleType, type: finalCategory,
       }).eq('id', vehicle.id);
@@ -419,48 +408,6 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
               className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
           </div>
 
-          {/* Depreciation Data Section */}
-          <div className="pt-4 pb-2">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-xs font-medium uppercase tracking-wide">{t('fleet:depreciationData')}</span>
-              <div className="h-px flex-1 bg-border" />
-            </div>
-            <p className="text-xs text-muted-foreground text-center mt-1">{t('fleet:depreciationDataDesc')}</p>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center gap-1">
-              <Label htmlFor="market-value">{t('fleet:marketValueAtPurchase')}</Label>
-              <TooltipProvider><Tooltip><TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
-                <TooltipContent className="max-w-xs"><p className="text-xs">{t('fleet:marketValueTooltip')}</p></TooltipContent>
-              </Tooltip></TooltipProvider>
-            </div>
-            <Input id="market-value" type="text" inputMode="decimal" value={marketValueAtPurchase}
-              onChange={(e) => { const value = e.target.value.replace(/[^0-9.]/g, ''); setMarketValueAtPurchase(value); }}
-              placeholder={t('fleet:customCategoryPlaceholder')}
-              className="[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center gap-1">
-              <Label htmlFor="purchase-date">{t('fleet:purchaseDate')}</Label>
-              <TooltipProvider><Tooltip><TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
-                <TooltipContent className="max-w-xs"><p className="text-xs">{t('fleet:purchaseDateTooltip')}</p></TooltipContent>
-              </Tooltip></TooltipProvider>
-            </div>
-            <Input id="purchase-date" type="date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} className="w-full" />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center gap-1">
-              <Label htmlFor="initial-mileage">{t('fleet:mileageAtPurchase')}</Label>
-              <TooltipProvider><Tooltip><TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" /></TooltipTrigger>
-                <TooltipContent className="max-w-xs"><p className="text-xs">{t('fleet:mileageAtPurchaseTooltip')}</p></TooltipContent>
-              </Tooltip></TooltipProvider>
-            </div>
-            <Input id="initial-mileage" type="number" value={initialMileage} onChange={(e) => setInitialMileage(Number(e.target.value))} min={0} placeholder="0" />
-          </div>
 
           {/* Camper Features */}
           {vehicleType === 'camper' && (

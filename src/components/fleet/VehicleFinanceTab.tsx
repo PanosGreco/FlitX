@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AnimatedCircularProgressBar } from "@/components/ui/animated-circular-progress-bar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTranslation } from "react-i18next";
-import { calculateUsageDepreciation, formatYearsOwned } from "@/utils/depreciationUtils";
+import { calculateMileageDepreciation } from "@/utils/mileageDepreciation";
+import { Progress } from "@/components/ui/progress";
 
 interface Vehicle {
   id: string;
@@ -106,8 +107,6 @@ interface VehicleFinanceTabProps {
   vehicleId: string;
   vehicleName: string;
   purchasePrice?: number | null;
-  marketValueAtPurchase?: number | null;
-  purchaseDate?: string | null;
   currentMileage?: number;
   initialMileage?: number;
   vehicleType?: string;
@@ -125,8 +124,6 @@ export function VehicleFinanceTab({
   vehicleId,
   vehicleName,
   purchasePrice,
-  marketValueAtPurchase,
-  purchaseDate,
   currentMileage = 0,
   initialMileage = 0,
   vehicleType = 'car',
@@ -236,16 +233,13 @@ export function VehicleFinanceTab({
   };
   const depreciationStatus = getDepreciationStatus();
 
-  const marketValue = typeof marketValueAtPurchase === "number" ? marketValueAtPurchase : Number(marketValueAtPurchase);
-  const hasDepreciationData = marketValue && marketValue > 0;
-  const usageDepreciation = hasDepreciationData ? calculateUsageDepreciation({
-    marketValueAtPurchase: marketValue,
-    vehicleModelYear: vehicleYear,
-    purchaseDate,
-    currentMileage,
-    initialMileage,
-    vehicleType: vehicleType as 'car' | 'motorbike' | 'boat' | 'atv'
-  }) : null;
+  const mileageDepreciation = (purchaseValue && purchaseValue > 0)
+    ? calculateMileageDepreciation({
+        purchasePrice: purchaseValue,
+        initialMileage: initialMileage || 0,
+        currentMileage: currentMileage || 0,
+      })
+    : null;
 
   if (isLoading) {
     return <div className="flex justify-center py-12">
@@ -411,15 +405,14 @@ export function VehicleFinanceTab({
             </CardContent>
           </Card>
 
-          {/* Vehicle Value Loss Over Time Card */}
+          {/* Mileage Depreciation Card */}
           {!isSold && (
           <Card className="border-border bg-card h-[106px] overflow-hidden">
             <CardContent className="p-4 h-full">
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-2 text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" />
-                  <Gauge className="h-3.5 w-3.5" />
-                  <span className="text-[10px] font-medium uppercase tracking-wide">{t('fleet:valueLossOverTime')}</span>
+                  <TrendingDown className="h-3.5 w-3.5" />
+                  <span className="text-[10px] font-medium uppercase tracking-wide">{t('fleet:mileageDepreciation')}</span>
                 </div>
                 <TooltipProvider>
                   <Tooltip>
@@ -427,22 +420,41 @@ export function VehicleFinanceTab({
                       <Info className="h-3 w-3 text-muted-foreground cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs p-3">
-                      <p className="text-xs">{t('fleet:valueLossTooltip')}</p>
+                      <p className="text-xs">{t('fleet:mileageDepreciationTooltip')}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
-              {hasDepreciationData && usageDepreciation ? <div className="flex flex-col">
-                  <div className="text-lg font-bold text-orange-600">
-                    -€{Math.round(usageDepreciation.totalDepreciation).toLocaleString()}
+              {mileageDepreciation ? (
+                mileageDepreciation.kmDriven === 0 ? (
+                  <div className="flex items-center gap-2 text-muted-foreground mt-1">
+                    <Gauge className="h-4 w-4" />
+                    <span className="text-xs">{t('fleet:noMileageRecorded')}</span>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {Math.round(usageDepreciation.depreciationPercentage)}% {t('fleet:loss')} • €{Math.round(usageDepreciation.estimatedCurrentValue).toLocaleString()} {t('fleet:currentValue')}
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-lg font-bold text-orange-600">-€{Math.round(mileageDepreciation.totalDepreciation).toLocaleString()}</span>
+                        <p className="text-[10px] text-muted-foreground">{t('fleet:estimatedLoss')}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-lg font-bold">€{Math.round(mileageDepreciation.estimatedResidualValue).toLocaleString()}</span>
+                        <p className="text-[10px] text-muted-foreground">{t('fleet:estimatedValue')}</p>
+                      </div>
+                    </div>
+                    <Progress value={mileageDepreciation.depreciationPercentage} className="h-1.5" />
+                    <p className="text-[10px] text-muted-foreground">
+                      {Math.round(mileageDepreciation.depreciationPercentage)}% {t('fleet:depreciated')} · {mileageDepreciation.kmDriven.toLocaleString()} {t('fleet:kmDriven')}
+                    </p>
                   </div>
-                </div> : <div className="flex items-center gap-2 text-muted-foreground">
+                )
+              ) : (
+                <div className="flex items-center gap-2 text-muted-foreground mt-1">
                   <AlertCircle className="h-4 w-4" />
-                  <span className="text-xs">{t('fleet:unavailableAddData')}</span>
-                </div>}
+                  <span className="text-xs">{t('fleet:addPurchasePrice')}</span>
+                </div>
+              )}
             </CardContent>
           </Card>
           )}
