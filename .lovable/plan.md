@@ -1,89 +1,104 @@
 
 
-# Plan: Reminders Time, Vehicle Photos & Analytics Sold Vehicle Fix
+# Plan: Depreciation System Redesign — Mileage-Only Model
 
-## Feature 1: Reminder Time Selection
-
-### 1A. Database Migration
-Add `due_time TIME DEFAULT NULL` to `vehicle_reminders` table.
-
-### 1B. VehicleReminders.tsx
-- Add `due_time: string | null` to `Reminder` interface
-- Add `dueTime` state, time `<Select>` in Add dialog (24 options: 00:00–23:00), between date picker and description
-- Include `due_time: dueTime || null` in insert, reset in `resetForm()`
-- Display time next to date in reminder cards: `· <Clock> HH:MM` when present
-- Import `Select, SelectContent, SelectItem, SelectTrigger, SelectValue` from shadcn
-
-### 1C. RemindersWidget.tsx
-- Add `due_time` to the `.select()` query
-- Map `time: reminder.due_time ? reminder.due_time.substring(0, 5) : null` instead of `time: null`
-- Time display already exists in the JSX (Clock icon + time), it will now show real values
+## Overview
+Replace the two-factor depreciation model (time curve + mileage tiers) with a simpler mileage-only model. Remove the `market_value_at_purchase` UI field, auto-set `initial_mileage` from mileage at creation, and replace the "Value Loss Over Time" card with a new mileage depreciation card.
 
 ---
 
-## Feature 2: Multiple Vehicle Photos
+## Part 1: Remove Old System
 
-### 2A. Database Migration
-Create `vehicle_images` table (id, vehicle_id, user_id, file_path, sort_order, created_at) with RLS policies (SELECT/INSERT/DELETE by user_id). Foreign key to `vehicles(id) ON DELETE CASCADE` and `auth.users(id) ON DELETE CASCADE`.
+### 1A. Delete `src/utils/depreciationUtils.ts`
 
-### 2B. Storage Bucket Migration
-Create public `vehicle-images` bucket + RLS policies on `storage.objects` for user-scoped access.
+### 1B. Fleet.tsx — Remove Depreciation Data section
+- Remove state vars: `marketValueAtPurchase`, `purchaseDate`, `initialMileage` and their setters
+- Remove the entire "Depreciation Data" section (lines 802–888): the divider, market value input, purchase date input, initial mileage input
+- Keep `purchasePrice` input (above the section)
+- In `handleSubmitNewVehicle` insert object: remove `market_value_at_purchase`, `purchase_date`; set `initial_mileage: mileage ? parseInt(mileage) : 0` automatically
+- Update `resetForm()` to remove the three deleted states
 
-### 2C. Fleet.tsx — Add Vehicle Dialog
-- Add state: `additionalImages: File[]`, `additionalImagePreviews: string[]`
-- Add 2×2 grid UI after main image upload for up to 4 additional photos
-- Each slot: empty = dashed border + icon, filled = preview + remove button
-- Validate with `validateFileSize()`, compress with `compressImage()`
-- After vehicle insert: upload each file to `vehicle-images` bucket, insert `vehicle_images` records
-- Reset in `resetForm()`
+### 1C. EditVehicleDialog.tsx — Remove deprecated fields
+- Remove state vars: `marketValueAtPurchase`, `purchaseDate`, `initialMileage` and their UI (lines 424–463: the depreciation divider + 3 fields)
+- Remove from `handleSave` update object: `market_value_at_purchase`, `purchase_date`, `initial_mileage`
+- Remove from `resetForm` equivalent
+- Keep `purchasePrice`, `mileage` fields
 
-### 2D. VehicleDetails.tsx — Gallery Button + Modal
-- Add "View Photos" button next to "Edit Vehicle" button in the header action buttons area (line 284)
-- Create inline gallery dialog:
-  - Fetch from `vehicle_images` WHERE `vehicle_id` ORDER BY `sort_order`
-  - Get public URLs from `vehicle-images` bucket
-  - Grid display of thumbnails, click for full-size lightbox (Dialog with large img)
-  - Upload button (file picker + compress + upload + insert)
-  - Delete button per image (delete from storage + delete DB record)
-  - 4-image limit enforcement
-  - Empty state with upload prompt
+### 1D. Finance.tsx — Remove unused import
+- Remove line 206: `const { calculateUsageDepreciation } = await import("@/utils/depreciationUtils");`
 
 ---
 
-## Feature 3: Analytics — Exclude Sold Vehicles
+## Part 2: New Utility
 
-### 3A. FinanceDashboard.tsx
-- Add `is_sold` to Vehicle interface and `fetchVehicles` select query (currently missing)
-- In `vehicleProfitRanking` useMemo, filter: `const activeVehicles = vehicles.filter(v => !v.is_sold)` then use `activeVehicles` in the `.find()` lookup (line 411)
-
-### 3B. IncomeBreakdown.tsx & ExpenseBreakdown.tsx
-- These receive `vehicles` prop for category breakdowns. When grouping records by vehicle for category tables and pie charts, skip records where `vehicle.is_sold === true`
-- The `vehicleProfitRanking` is already filtered at source (3A), so rankings are automatically clean
-- Summary totals and bar/line charts remain unaffected (they use `filteredRecords` directly, not vehicle groupings)
+### 2A. Create `src/utils/mileageDepreciation.ts`
+Tiered percentage model as specified:
+- 0–30k km: 0.40% per 1,000 km
+- 30k–80k km: 0.25% per 1,000 km
+- 80k–150k km: 0.15% per 1,000 km
+- 150k+ km: 0.08% per 1,000 km
+- 10% residual floor
 
 ---
 
-## Translations
-Add to all 6 locale `fleet.json` files:
-- `reminderTime`: "Time (optional)" / "Ώρα (προαιρετικό)" / "Zeit (optional)" / "Heure (optionnel)" / "Ora (opzionale)" / "Hora (opcional)"
-- `additionalPhotos`: "Additional Photos (up to 4)" + equivalents
-- `viewPhotos`, `noAdditionalPhotos`, `uploadPhotos`, `maxPhotosReached`, `photoDeleted`, `photoUploaded`, `photoUploadFailed` + equivalents
+## Part 3: New UI in VehicleFinanceTab
+
+### 3A. Update imports and props
+- Replace old import with `import { calculateMileageDepreciation } from "@/utils/mileageDepreciation"`
+- Remove `marketValueAtPurchase` and `purchaseDate` from `VehicleFinanceTabProps` interface and destructuring
+- Remove `formatYearsOwned` import
+- Remove lines 239–248 (old `usageDepreciation` computation)
+
+### 3B. New depreciation computation
+```typescript
+const mileageDepreciation = (purchaseValue && purchaseValue > 0)
+  ? calculateMileageDepreciation({
+      purchasePrice: purchaseValue,
+      initialMileage: initialMileage || 0,
+      currentMileage: currentMileage || 0,
+    })
+  : null;
+```
+
+### 3C. Replace "Value Loss Over Time" card (lines 414–448)
+New card in same `h-[106px]` slot:
+- Header: TrendingDown icon + "MILEAGE DEPRECIATION" label + info tooltip
+- Left: `-€X,XXX` in orange + "estimated loss" label
+- Right: `€X,XXX` + "estimated value" label
+- Progress bar showing depreciation percentage
+- Bottom: `"X% depreciated · X,XXX km driven"` in muted text
+- Empty state when no purchase price
+- Zero-km state when kmDriven === 0
+
+### 3D. Update VehicleDetails.tsx
+- Remove `marketValueAtPurchase` and `purchaseDate` props from `<VehicleFinanceTab>` call (lines 433–434)
+- Remove `market_value_at_purchase` from the vehicle interface default values (line 120)
+
+---
+
+## Part 4: Translations
+
+### Add keys (all 6 locales)
+`mileageDepreciation`, `estimatedLoss`, `estimatedValue`, `kmDriven`, `noMileageRecorded`, `mileageDepreciationTooltip`, `addPurchasePrice`
+
+### Remove deprecated keys (all 6 locales)
+`depreciationData`, `depreciationDataDesc`, `marketValueAtPurchase`, `marketValueTooltip`, `purchaseDate`, `purchaseDateTooltip`, `mileageAtPurchase`, `mileageAtPurchaseTooltip`, `valueLossOverTime`, `valueLossTooltip`
 
 ---
 
 ## Files Modified
-1. `src/components/fleet/VehicleReminders.tsx` — time picker + display
-2. `src/components/home/RemindersWidget.tsx` — fetch + map `due_time`
-3. `src/pages/Fleet.tsx` — additional image upload in Add Vehicle
-4. `src/components/fleet/VehicleDetails.tsx` — gallery button + modal
-5. `src/components/finances/FinanceDashboard.tsx` — filter sold vehicles, add `is_sold` to query
-6. `src/components/finances/IncomeBreakdown.tsx` — skip sold in category breakdowns
-7. `src/components/finances/ExpenseBreakdown.tsx` — skip sold in category breakdowns
-8. `src/i18n/locales/{en,el,de,fr,it,es}/fleet.json` — new keys
-9. Supabase migrations — `due_time` column + `vehicle_images` table + `vehicle-images` bucket
+1. `src/utils/depreciationUtils.ts` — **DELETE**
+2. `src/utils/mileageDepreciation.ts` — **CREATE**
+3. `src/pages/Fleet.tsx` — Remove depreciation section, auto-set initial_mileage
+4. `src/components/fleet/EditVehicleDialog.tsx` — Remove 3 deprecated fields
+5. `src/components/fleet/VehicleFinanceTab.tsx` — New card, updated imports/props
+6. `src/components/fleet/VehicleDetails.tsx` — Remove 2 props from VehicleFinanceTab call
+7. `src/pages/Finance.tsx` — Remove unused import
+8. `src/i18n/locales/{en,el,de,fr,it,es}/fleet.json` — Add/remove keys
 
 ## Not Modified
-- `UnifiedBookingDialog.tsx`, `handleSaveBooking`, `createDailyTasks`
-- `EditVehicleDialog.tsx`, `CalendarView.tsx`, `CreateDialog.tsx`
-- Financial record insert/delete logic, summary totals, bar/line charts
+- Finance.tsx sale logic (purchase_price - netIncome)
+- Purchase value card / ROI circular progress
+- Booking, task, financial record logic
+- Database columns (no migrations)
 
