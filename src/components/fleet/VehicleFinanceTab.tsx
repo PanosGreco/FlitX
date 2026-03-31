@@ -414,16 +414,17 @@ export function VehicleFinanceTab({
                   <TrendingDown className="h-3.5 w-3.5" />
                   <span className="text-[10px] font-medium uppercase tracking-wide">{t('fleet:mileageDepreciation')}</span>
                 </div>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs p-3">
-                      <p className="text-xs">{t('fleet:mileageDepreciationTooltip')}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" />
+                  </PopoverTrigger>
+                  <PopoverContent className="max-w-xs p-3">
+                    <p className="text-xs">
+                      {t('fleet:mileageDepreciationTooltip').split('Update mileage in Edit Vehicle to see changes.')[0]}
+                      <strong>Update mileage in Edit Vehicle to see changes.</strong>
+                    </p>
+                  </PopoverContent>
+                </Popover>
               </div>
               {mileageDepreciation ? (
                 mileageDepreciation.kmDriven === 0 ? (
@@ -440,13 +441,9 @@ export function VehicleFinanceTab({
                       </div>
                       <div className="text-right">
                         <span className="text-lg font-bold">€{Math.round(mileageDepreciation.estimatedResidualValue).toLocaleString()}</span>
-                        <p className="text-[10px] text-muted-foreground">{t('fleet:estimatedValue')}</p>
+                        <p className="text-[10px] text-muted-foreground">{t('fleet:estimatedResidualValue')}</p>
                       </div>
                     </div>
-                    <Progress value={mileageDepreciation.depreciationPercentage} className="h-1.5" />
-                    <p className="text-[10px] text-muted-foreground">
-                      {Math.round(mileageDepreciation.depreciationPercentage)}% {t('fleet:depreciated')} · {mileageDepreciation.kmDriven.toLocaleString()} {t('fleet:kmDriven')}
-                    </p>
                   </div>
                 )
               ) : (
