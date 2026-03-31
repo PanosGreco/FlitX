@@ -107,8 +107,6 @@ interface VehicleFinanceTabProps {
   vehicleId: string;
   vehicleName: string;
   purchasePrice?: number | null;
-  marketValueAtPurchase?: number | null;
-  purchaseDate?: string | null;
   currentMileage?: number;
   initialMileage?: number;
   vehicleType?: string;
