@@ -277,9 +277,7 @@ const Fleet = () => {
           daily_rate: parseFloat(dailyRate),
           mileage: parseInt(mileage),
           purchase_price: purchasePrice ? parseFloat(purchasePrice) : null,
-          market_value_at_purchase: marketValueAtPurchase ? parseFloat(marketValueAtPurchase) : null,
-          purchase_date: purchaseDate || null,
-          initial_mileage: initialMileage ? parseInt(initialMileage) : 0,
+          initial_mileage: mileage ? parseInt(mileage) : 0,
           image: vehicleImage,
           status: 'available',
         })
