@@ -124,8 +124,6 @@ export function VehicleFinanceTab({
   vehicleId,
   vehicleName,
   purchasePrice,
-  marketValueAtPurchase,
-  purchaseDate,
   currentMileage = 0,
   initialMileage = 0,
   vehicleType = 'car',
