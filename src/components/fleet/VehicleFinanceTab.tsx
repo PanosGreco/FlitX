@@ -7,9 +7,9 @@ import { format, differenceInDays } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AnimatedCircularProgressBar } from "@/components/ui/animated-circular-progress-bar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTranslation } from "react-i18next";
 import { calculateMileageDepreciation } from "@/utils/mileageDepreciation";
-import { Progress } from "@/components/ui/progress";
 
 interface Vehicle {
   id: string;
@@ -414,16 +414,17 @@ export function VehicleFinanceTab({
                   <TrendingDown className="h-3.5 w-3.5" />
                   <span className="text-[10px] font-medium uppercase tracking-wide">{t('fleet:mileageDepreciation')}</span>
                 </div>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs p-3">
-                      <p className="text-xs">{t('fleet:mileageDepreciationTooltip')}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" />
+                  </PopoverTrigger>
+                  <PopoverContent className="max-w-xs p-3">
+                    <p className="text-xs">
+                      {t('fleet:mileageDepreciationTooltipText')}{' '}
+                      <strong>{t('fleet:mileageDepreciationTooltipBold')}</strong>
+                    </p>
+                  </PopoverContent>
+                </Popover>
               </div>
               {mileageDepreciation ? (
                 mileageDepreciation.kmDriven === 0 ? (
@@ -440,13 +441,9 @@ export function VehicleFinanceTab({
                       </div>
                       <div className="text-right">
                         <span className="text-lg font-bold">€{Math.round(mileageDepreciation.estimatedResidualValue).toLocaleString()}</span>
-                        <p className="text-[10px] text-muted-foreground">{t('fleet:estimatedValue')}</p>
+                        <p className="text-[10px] text-muted-foreground">{t('fleet:estimatedResidualValue')}</p>
                       </div>
                     </div>
-                    <Progress value={mileageDepreciation.depreciationPercentage} className="h-1.5" />
-                    <p className="text-[10px] text-muted-foreground">
-                      {Math.round(mileageDepreciation.depreciationPercentage)}% {t('fleet:depreciated')} · {mileageDepreciation.kmDriven.toLocaleString()} {t('fleet:kmDriven')}
-                    </p>
                   </div>
                 )
               ) : (
