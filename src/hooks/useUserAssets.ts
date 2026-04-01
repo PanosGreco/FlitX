@@ -54,12 +54,12 @@ export function useUserAssets() {
     fetchAll();
   }, [fetchAll]);
 
-  const addCategory = async (name: string, isVehicle = false) => {
+  const addCategory = async (name: string, isVehicle = false, vehicleTypeKey?: string) => {
     if (!user) return null;
     const maxOrder = categories.reduce((m, c) => Math.max(m, c.sort_order), -1);
     const { data, error } = await supabase
       .from("user_asset_categories")
-      .insert({ user_id: user.id, name, sort_order: maxOrder + 1, is_vehicle_category: isVehicle } as any)
+      .insert({ user_id: user.id, name, sort_order: maxOrder + 1, is_vehicle_category: isVehicle, vehicle_type_key: vehicleTypeKey ?? null } as any)
       .select()
       .single();
     if (error) return null;

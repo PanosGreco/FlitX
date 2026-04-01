@@ -15,12 +15,18 @@ interface Vehicle {
   model: string;
   year: number;
   vehicle_type: string;
+  purchase_price: number | null;
 }
 
 const VEHICLE_TYPE_LABELS: Record<string, { en: string; el: string }> = {
   car: { en: "Cars", el: "Αυτοκίνητα" },
   motorbike: { en: "Motorbikes", el: "Μοτοσυκλέτες" },
   atv: { en: "ATVs", el: "ATVs" },
+  snowmobile: { en: "Snowmobiles", el: "Χιονοκινητήρες" },
+  camper: { en: "Campers", el: "Τροχόσπιτα" },
+  van: { en: "Vans", el: "Βαν" },
+  truck: { en: "Trucks", el: "Φορτηγά" },
+  jet_ski: { en: "Jet Skis", el: "Jet Ski" },
   boat: { en: "Boats", el: "Σκάφη" },
   bicycle: { en: "Bicycles", el: "Ποδήλατα" },
   scooter: { en: "Scooters", el: "Σκούτερ" },
