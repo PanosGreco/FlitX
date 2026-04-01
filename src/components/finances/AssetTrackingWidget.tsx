@@ -133,7 +133,7 @@ export function AssetTrackingWidget() {
         <div className="space-y-1">
           {vehs.map((v) => {
             const existing = catAssets.find((a) => a.vehicle_id === v.id);
-            const value = existing ? Number(existing.asset_value) : 0;
+            const value = existing ? Number(existing.asset_value) : (v.purchase_price ? Number(v.purchase_price) : 0);
             return (
               <div key={v.id} className="flex items-center justify-between px-3 py-1 hover:bg-muted/30 rounded-sm transition-colors">
                 <span className="text-xs truncate mr-2">
