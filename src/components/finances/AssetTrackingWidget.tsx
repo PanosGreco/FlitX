@@ -92,18 +92,25 @@ export function AssetTrackingWidget() {
     vehiclesByType[v.vehicle_type].push(v);
   });
 
-  const vehicleCategories = categories
-    .filter((c) => c.is_vehicle_category)
-    .filter((cat) => {
-      // Deduplicate: if a category with vehicle_type_key exists for this type, hide legacy ones without it
-      const key = cat.vehicle_type_key ??
-        Object.keys(VEHICLE_TYPE_LABELS).find(
-          (k) => VEHICLE_TYPE_LABELS[k].en.toLowerCase() === cat.name.toLowerCase() || k === cat.name.toLowerCase()
-        );
-      if (!key) return true;
-      const canonical = categories.find((c) => c.is_vehicle_category && c.vehicle_type_key === key);
-      return canonical ? cat.id === canonical.id : true;
-    });
+  const vehicleCategories = Array.from(
+    categories
+      .filter((c) => c.is_vehicle_category)
+      .reduce((map, c) => {
+        const key =
+          c.vehicle_type_key ??
+          Object.keys(VEHICLE_TYPE_LABELS).find(
+            (k) =>
+              VEHICLE_TYPE_LABELS[k].en.toLowerCase() === c.name.toLowerCase() ||
+              VEHICLE_TYPE_LABELS[k].el.toLowerCase() === c.name.toLowerCase() ||
+              k === c.name.toLowerCase()
+          ) ??
+          `cat:${c.id}`;
+        const prev = map.get(key);
+        if (!prev || (!prev.vehicle_type_key && c.vehicle_type_key)) map.set(key, c);
+        return map;
+      }, new Map<string, AssetCategory>())
+      .values()
+  );
   const customCategories = categories.filter((c) => !c.is_vehicle_category);
 
   // Calculate totals
