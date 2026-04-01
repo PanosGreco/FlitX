@@ -113,12 +113,12 @@ export function AssetTrackingWidget() {
   const lang = language as "en" | "el";
 
   const renderVehicleCategory = (cat: AssetCategory) => {
-    const vType = Object.keys(VEHICLE_TYPE_LABELS).find(
+    const vType = cat.vehicle_type_key || Object.keys(VEHICLE_TYPE_LABELS).find(
       (k) => VEHICLE_TYPE_LABELS[k].en === cat.name
     );
     const vehs = vType ? vehiclesByType[vType] || [] : [];
     const catAssets = assets.filter((a) => a.category_id === cat.id);
-    const catLabel = vType ? VEHICLE_TYPE_LABELS[vType][lang] : cat.name;
+    const catLabel = vType ? (VEHICLE_TYPE_LABELS[vType]?.[lang] || cat.name) : cat.name;
 
     let categoryTotal = 0;
     catAssets.forEach((a) => (categoryTotal += Number(a.asset_value) || 0));
