@@ -94,7 +94,16 @@ export function AssetTrackingWidget() {
 
   const vehicleCategories = categories
     .filter((c) => c.is_vehicle_category)
-    .filter((c, i, arr) => arr.findIndex((x) => x.name === c.name) === i);
+    .filter((cat) => {
+      // Deduplicate: if a category with vehicle_type_key exists for this type, hide legacy ones without it
+      const key = cat.vehicle_type_key ??
+        Object.keys(VEHICLE_TYPE_LABELS).find(
+          (k) => VEHICLE_TYPE_LABELS[k].en.toLowerCase() === cat.name.toLowerCase() || k === cat.name.toLowerCase()
+        );
+      if (!key) return true;
+      const canonical = categories.find((c) => c.is_vehicle_category && c.vehicle_type_key === key);
+      return canonical ? cat.id === canonical.id : true;
+    });
   const customCategories = categories.filter((c) => !c.is_vehicle_category);
 
   // Calculate totals
