@@ -70,12 +70,13 @@ export function AssetTrackingWidget() {
       categories.filter((c) => c.is_vehicle_category).map((c) => c.name)
     );
 
-    const missing = vehicleTypes.filter(
-      (vt) => !existingNames.has(VEHICLE_TYPE_LABELS[vt]?.en || vt)
-    );
+    const missing = vehicleTypes.filter((vt) => {
+      const label = VEHICLE_TYPE_LABELS[vt]?.en || vt;
+      return !categories.some((c) => c.is_vehicle_category && (c.vehicle_type_key === vt || c.name === label));
+    });
 
     if (missing.length > 0) {
-      Promise.all(missing.map((vt) => addCategory(VEHICLE_TYPE_LABELS[vt]?.en || vt, true)));
+      Promise.all(missing.map((vt) => addCategory(VEHICLE_TYPE_LABELS[vt]?.en || vt, true, vt)));
     }
   }, [loading, vehicles, categories]);
 
