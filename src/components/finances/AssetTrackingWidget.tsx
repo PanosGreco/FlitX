@@ -15,12 +15,18 @@ interface Vehicle {
   model: string;
   year: number;
   vehicle_type: string;
+  purchase_price: number | null;
 }
 
 const VEHICLE_TYPE_LABELS: Record<string, { en: string; el: string }> = {
   car: { en: "Cars", el: "Αυτοκίνητα" },
   motorbike: { en: "Motorbikes", el: "Μοτοσυκλέτες" },
   atv: { en: "ATVs", el: "ATVs" },
+  snowmobile: { en: "Snowmobiles", el: "Χιονοκινητήρες" },
+  camper: { en: "Campers", el: "Τροχόσπιτα" },
+  van: { en: "Vans", el: "Βαν" },
+  truck: { en: "Trucks", el: "Φορτηγά" },
+  jet_ski: { en: "Jet Skis", el: "Jet Ski" },
   boat: { en: "Boats", el: "Σκάφη" },
   bicycle: { en: "Bicycles", el: "Ποδήλατα" },
   scooter: { en: "Scooters", el: "Σκούτερ" },
@@ -46,7 +52,7 @@ export function AssetTrackingWidget() {
     if (!user) return;
     supabase
       .from("vehicles")
-      .select("id, make, model, year, vehicle_type")
+      .select("id, make, model, year, vehicle_type, purchase_price")
       .eq("user_id", user.id)
       .eq("is_sold", false)
       .then(({ data }) => {
@@ -60,16 +66,14 @@ export function AssetTrackingWidget() {
     initRef.current = true;
 
     const vehicleTypes = [...new Set(vehicles.map((v) => v.vehicle_type))];
-    const existingNames = new Set(
-      categories.filter((c) => c.is_vehicle_category).map((c) => c.name)
-    );
 
-    const missing = vehicleTypes.filter(
-      (vt) => !existingNames.has(VEHICLE_TYPE_LABELS[vt]?.en || vt)
-    );
+    const missing = vehicleTypes.filter((vt) => {
+      const label = VEHICLE_TYPE_LABELS[vt]?.en || vt;
+      return !categories.some((c) => c.is_vehicle_category && (c.vehicle_type_key === vt || c.name === label));
+    });
 
     if (missing.length > 0) {
-      Promise.all(missing.map((vt) => addCategory(VEHICLE_TYPE_LABELS[vt]?.en || vt, true)));
+      Promise.all(missing.map((vt) => addCategory(VEHICLE_TYPE_LABELS[vt]?.en || vt, true, vt)));
     }
   }, [loading, vehicles, categories]);
 
@@ -106,12 +110,12 @@ export function AssetTrackingWidget() {
   const lang = language as "en" | "el";
 
   const renderVehicleCategory = (cat: AssetCategory) => {
-    const vType = Object.keys(VEHICLE_TYPE_LABELS).find(
+    const vType = cat.vehicle_type_key || Object.keys(VEHICLE_TYPE_LABELS).find(
       (k) => VEHICLE_TYPE_LABELS[k].en === cat.name
     );
     const vehs = vType ? vehiclesByType[vType] || [] : [];
     const catAssets = assets.filter((a) => a.category_id === cat.id);
-    const catLabel = vType ? VEHICLE_TYPE_LABELS[vType][lang] : cat.name;
+    const catLabel = vType ? (VEHICLE_TYPE_LABELS[vType]?.[lang] || cat.name) : cat.name;
 
     let categoryTotal = 0;
     catAssets.forEach((a) => (categoryTotal += Number(a.asset_value) || 0));
@@ -126,7 +130,7 @@ export function AssetTrackingWidget() {
         <div className="space-y-1">
           {vehs.map((v) => {
             const existing = catAssets.find((a) => a.vehicle_id === v.id);
-            const value = existing ? Number(existing.asset_value) : 0;
+            const value = existing ? Number(existing.asset_value) : (v.purchase_price ? Number(v.purchase_price) : 0);
             return (
               <div key={v.id} className="flex items-center justify-between px-3 py-1 hover:bg-muted/30 rounded-sm transition-colors">
                 <span className="text-xs truncate mr-2">
