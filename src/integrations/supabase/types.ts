@@ -889,6 +889,7 @@ export type Database = {
           name: string
           sort_order: number | null
           user_id: string
+          vehicle_type_key: string | null
         }
         Insert: {
           created_at?: string | null
@@ -897,6 +898,7 @@ export type Database = {
           name: string
           sort_order?: number | null
           user_id: string
+          vehicle_type_key?: string | null
         }
         Update: {
           created_at?: string | null
@@ -905,6 +907,7 @@ export type Database = {
           name?: string
           sort_order?: number | null
           user_id?: string
+          vehicle_type_key?: string | null
         }
         Relationships: []
       }

@@ -1,0 +1,1 @@
+ALTER TABLE public.user_asset_categories ADD COLUMN vehicle_type_key text DEFAULT NULL;
