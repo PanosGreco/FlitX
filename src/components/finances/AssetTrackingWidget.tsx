@@ -52,7 +52,7 @@ export function AssetTrackingWidget() {
     if (!user) return;
     supabase
       .from("vehicles")
-      .select("id, make, model, year, vehicle_type")
+      .select("id, make, model, year, vehicle_type, purchase_price")
       .eq("user_id", user.id)
       .eq("is_sold", false)
       .then(({ data }) => {
