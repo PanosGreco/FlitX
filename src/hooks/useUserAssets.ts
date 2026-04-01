@@ -8,6 +8,7 @@ export interface AssetCategory {
   name: string;
   sort_order: number;
   is_vehicle_category: boolean;
+  vehicle_type_key: string | null;
   created_at: string;
 }
 
