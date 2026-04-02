@@ -912,3 +912,44 @@ function TransactionItem({ id, title, amount, date, type, lang, onDelete }: {
     </div>
   );
 }
+
+function KpiCard({ label, value, format, icon, accentColor, lang }: {
+  label: string;
+  value: number;
+  format: 'number' | 'currency';
+  icon: 'calendar' | 'trendingUp' | 'trendingDown';
+  accentColor?: 'green' | 'red';
+  lang: string;
+}) {
+  const formattedValue = format === 'currency'
+    ? `€${value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : value.toLocaleString('de-DE');
+
+  const IconComponent = icon === 'calendar' ? CalendarIcon
+    : icon === 'trendingUp' ? TrendingUp
+    : TrendingDown;
+
+  const accentStyles = accentColor === 'green'
+    ? 'text-green-600'
+    : accentColor === 'red'
+    ? 'text-red-600'
+    : 'text-primary';
+
+  return (
+    <Card className="border-dashed border-muted-foreground/20">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+            <h3 className={cn("text-xl font-bold mt-0.5", accentStyles)}>
+              {formattedValue}
+            </h3>
+          </div>
+          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+            <IconComponent className="h-5 w-5 text-muted-foreground" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

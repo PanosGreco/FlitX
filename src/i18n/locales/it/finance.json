@@ -87,5 +87,8 @@
   "netProfitPerBooking": "Profitto Netto per Prenotazione",
   "variableCostFormula": "Manutenzione / Prenotazioni",
   "growth": "Crescita",
-  "new": "NUOVO"
+  "new": "NUOVO",
+  "totalBookings": "Prenotazioni Totali",
+  "avgIncomePerBooking": "Entrata Media / Prenotazione",
+  "avgCostPerBooking": "Costo Medio / Prenotazione"
 }

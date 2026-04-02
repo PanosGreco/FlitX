@@ -87,5 +87,8 @@
   "netProfitPerBooking": "Bénéfice Net par Réservation",
   "variableCostFormula": "Maintenance / Réservations",
   "growth": "Croissance",
-  "new": "NOUVEAU"
+  "new": "NOUVEAU",
+  "totalBookings": "Total Réservations",
+  "avgIncomePerBooking": "Revenu Moy. / Réservation",
+  "avgCostPerBooking": "Coût Moy. / Réservation"
 }

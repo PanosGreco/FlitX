@@ -87,5 +87,8 @@
   "netProfitPerBooking": "Beneficio Neto por Reserva",
   "variableCostFormula": "Mantenimiento / Reservas",
   "growth": "Crecimiento",
-  "new": "NUEVO"
+  "new": "NUEVO",
+  "totalBookings": "Reservas Totales",
+  "avgIncomePerBooking": "Ingreso Prom. / Reserva",
+  "avgCostPerBooking": "Costo Prom. / Reserva"
 }

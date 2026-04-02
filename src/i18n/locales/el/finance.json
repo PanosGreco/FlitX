@@ -247,5 +247,8 @@
   "netProfitPerBooking": "Καθαρό Κέρδος ανά Κράτηση",
   "variableCostFormula": "Συντήρηση / Κρατήσεις",
   "growth": "Μεταβολή",
-  "new": "ΝΕΟ"
+  "new": "ΝΕΟ",
+  "totalBookings": "Συνολικές Κρατήσεις",
+  "avgIncomePerBooking": "Μ.Ο. Εσόδων / Κράτηση",
+  "avgCostPerBooking": "Μ.Ο. Κόστους / Κράτηση"
 }

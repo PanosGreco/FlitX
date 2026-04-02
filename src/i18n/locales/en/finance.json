@@ -247,5 +247,8 @@
   "netProfitPerBooking": "Net Profit per Booking",
   "variableCostFormula": "Maintenance / Bookings",
   "growth": "Growth",
-  "new": "NEW"
+  "new": "NEW",
+  "totalBookings": "Total Bookings",
+  "avgIncomePerBooking": "Avg Income / Booking",
+  "avgCostPerBooking": "Avg Cost / Booking"
 }

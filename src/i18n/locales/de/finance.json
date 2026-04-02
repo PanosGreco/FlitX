@@ -87,5 +87,8 @@
   "netProfitPerBooking": "Nettogewinn pro Buchung",
   "variableCostFormula": "Wartung / Buchungen",
   "growth": "Wachstum",
-  "new": "NEU"
+  "new": "NEU",
+  "totalBookings": "Gesamtbuchungen",
+  "avgIncomePerBooking": "Ø Einnahmen / Buchung",
+  "avgCostPerBooking": "Ø Kosten / Buchung"
 }
