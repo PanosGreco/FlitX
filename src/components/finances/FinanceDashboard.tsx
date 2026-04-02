@@ -182,6 +182,35 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     return filterByCalendarTimeframe(financialRecords, timeframe, customRange);
   }, [financialRecords, timeframe, customRange]);
 
+  // KPI calculations
+  const periodBookings = useMemo(() => {
+    if (timeframe === 'all') return bookings;
+    const { startDate, endDate } = getCalendarDateRange(timeframe, customRange);
+    return bookings.filter(b => {
+      const bookingStart = new Date(b.start_date);
+      return bookingStart >= startDate && bookingStart <= endDate;
+    });
+  }, [bookings, timeframe, customRange]);
+
+  const totalBookings = periodBookings.length;
+
+  const avgIncomePerBooking = useMemo(() => {
+    if (totalBookings === 0) return 0;
+    const bookingIncome = filteredRecords.filter(
+      r => r.type === 'income' && r.booking_id
+    );
+    const totalBookingIncome = bookingIncome.reduce((sum, r) => sum + Number(r.amount), 0);
+    return totalBookingIncome / totalBookings;
+  }, [filteredRecords, totalBookings]);
+
+  const avgCostPerBooking = useMemo(() => {
+    if (totalBookings === 0) return 0;
+    const totalExpenses = filteredRecords
+      .filter(r => r.type === 'expense')
+      .reduce((sum, r) => sum + Number(r.amount), 0);
+    return totalExpenses / totalBookings;
+  }, [filteredRecords, totalBookings]);
+
   // Transactions list - ALWAYS shows ALL transactions, independent of date filters
   // Sorted by exact creation timestamp (most recent first)
   const allTransactions = useMemo(() => {
