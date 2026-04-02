@@ -90,5 +90,7 @@
   "new": "NOUVEAU",
   "totalBookings": "Total Réservations",
   "avgIncomePerBooking": "Revenu Moy. / Réservation",
-  "avgCostPerBooking": "Coût Moy. / Réservation"
+  "avgCostPerBooking": "Coût Moy. / Réservation",
+  "avgRentalPeriod": "Durée Moy. Location",
+  "days": "jours"
 }

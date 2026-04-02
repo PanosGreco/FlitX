@@ -90,5 +90,7 @@
   "new": "NUOVO",
   "totalBookings": "Prenotazioni Totali",
   "avgIncomePerBooking": "Entrata Media / Prenotazione",
-  "avgCostPerBooking": "Costo Medio / Prenotazione"
+  "avgCostPerBooking": "Costo Medio / Prenotazione",
+  "avgRentalPeriod": "Durata Media Noleggio",
+  "days": "giorni"
 }

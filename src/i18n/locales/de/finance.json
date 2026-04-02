@@ -90,5 +90,7 @@
   "new": "NEU",
   "totalBookings": "Gesamtbuchungen",
   "avgIncomePerBooking": "Ø Einnahmen / Buchung",
-  "avgCostPerBooking": "Ø Kosten / Buchung"
+  "avgCostPerBooking": "Ø Kosten / Buchung",
+  "avgRentalPeriod": "Ø Mietdauer",
+  "days": "Tage"
 }

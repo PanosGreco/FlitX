@@ -932,13 +932,15 @@ function TransactionItem({ id, title, amount, date, type, lang, onDelete }: {
   );
 }
 
-function KpiCard({ label, value, format, icon, accentColor, lang }: {
+function KpiCard({ label, value, format, icon, accentColor, lang, secondaryLabel, secondaryValue }: {
   label: string;
   value: number;
   format: 'number' | 'currency';
   icon: 'calendar' | 'trendingUp' | 'trendingDown';
   accentColor?: 'green' | 'red';
   lang: string;
+  secondaryLabel?: string;
+  secondaryValue?: string;
 }) {
   const formattedValue = format === 'currency'
     ? `€${value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -952,20 +954,39 @@ function KpiCard({ label, value, format, icon, accentColor, lang }: {
     ? 'text-green-600'
     : accentColor === 'red'
     ? 'text-red-600'
-    : 'text-primary';
+    : 'text-foreground';
+
+  const iconBgStyles = accentColor === 'green'
+    ? 'bg-green-50 text-green-600'
+    : accentColor === 'red'
+    ? 'bg-red-50 text-red-600'
+    : 'bg-slate-100 text-slate-600';
 
   return (
-    <Card className="border-dashed border-muted-foreground/20">
+    <Card className="rounded-2xl shadow-sm border border-border/60">
       <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
             <h3 className={cn("text-xl font-bold mt-0.5", accentStyles)}>
               {formattedValue}
             </h3>
+            {secondaryLabel && secondaryValue && (
+              <div className="mt-2 pt-2 border-t border-border/40">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-muted-foreground">{secondaryLabel}</span>
+                  <span className="text-xs font-semibold text-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
+                    {secondaryValue}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-            <IconComponent className="h-5 w-5 text-muted-foreground" />
+          <div className={cn(
+            "flex items-center justify-center w-8 h-8 rounded-lg ml-3 flex-shrink-0",
+            iconBgStyles
+          )}>
+            <IconComponent className="h-4 w-4" />
           </div>
         </div>
       </CardContent>

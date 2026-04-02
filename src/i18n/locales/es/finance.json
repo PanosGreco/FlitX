@@ -90,5 +90,7 @@
   "new": "NUEVO",
   "totalBookings": "Reservas Totales",
   "avgIncomePerBooking": "Ingreso Prom. / Reserva",
-  "avgCostPerBooking": "Costo Prom. / Reserva"
+  "avgCostPerBooking": "Costo Prom. / Reserva",
+  "avgRentalPeriod": "Duración Media Alquiler",
+  "days": "días"
 }

@@ -250,5 +250,7 @@
   "new": "ΝΕΟ",
   "totalBookings": "Συνολικές Κρατήσεις",
   "avgIncomePerBooking": "Μ.Ο. Εσόδων / Κράτηση",
-  "avgCostPerBooking": "Μ.Ο. Κόστους / Κράτηση"
+  "avgCostPerBooking": "Μ.Ο. Κόστους / Κράτηση",
+  "avgRentalPeriod": "Μ.Ο. Διάρκειας Ενοικίασης",
+  "days": "ημέρες"
 }
