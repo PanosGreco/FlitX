@@ -68,6 +68,14 @@ interface Vehicle {
   is_sold?: boolean;
 }
 
+interface RentalBooking {
+  id: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+  total_amount: number | null;
+}
+
 interface FinanceDashboardProps {
   onAddRecord?: () => void;
   financialRecords?: FinancialRecord[];
