@@ -104,6 +104,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   useEffect(() => {
     if (user) {
       fetchVehicles();
+      fetchBookings();
       fetchProfile();
       // Fire-and-forget: trigger recurring transaction processing on mount
       supabase.functions.invoke('process-recurring-transactions', {
