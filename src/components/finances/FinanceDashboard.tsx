@@ -136,6 +136,21 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     }
   };
 
+  const fetchBookings = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('rental_bookings')
+        .select('id, start_date, end_date, status, total_amount')
+        .order('start_date', { ascending: false });
+      if (!error && data) {
+        setBookings(data);
+      }
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+    }
+  };
+
   const fetchProfile = async () => {
     if (!user) return;
     try {
