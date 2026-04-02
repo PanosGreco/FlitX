@@ -194,6 +194,17 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
 
   const totalBookings = periodBookings.length;
 
+  const avgRentalDays = useMemo(() => {
+    if (periodBookings.length === 0) return 0;
+    const totalDays = periodBookings.reduce((sum, booking) => {
+      const start = new Date(booking.start_date);
+      const end = new Date(booking.end_date);
+      const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+      return sum + days;
+    }, 0);
+    return Math.round((totalDays / periodBookings.length) * 10) / 10;
+  }, [periodBookings]);
+
   const avgIncomePerBooking = useMemo(() => {
     if (totalBookings === 0) return 0;
     const bookingIncome = filteredRecords.filter(
