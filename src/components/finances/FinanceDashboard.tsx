@@ -36,6 +36,7 @@ import { getMaintenanceTypeLabel } from "@/constants/maintenanceTypes";
 import { 
   TimeframeType, 
   filterByCalendarTimeframe,
+  getCalendarDateRange,
   TIMEFRAME_LABELS,
   DateRange
 } from "@/utils/dateRangeUtils";
