@@ -90,6 +90,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   const [customEndDate, setCustomEndDate] = useState("");
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [bookings, setBookings] = useState<RentalBooking[]>([]);
   const [deleteTransactionId, setDeleteTransactionId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRecurringOpen, setIsRecurringOpen] = useState(false);
