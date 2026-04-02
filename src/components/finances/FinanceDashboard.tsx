@@ -36,6 +36,7 @@ import { getMaintenanceTypeLabel } from "@/constants/maintenanceTypes";
 import { 
   TimeframeType, 
   filterByCalendarTimeframe,
+  getCalendarDateRange,
   TIMEFRAME_LABELS,
   DateRange
 } from "@/utils/dateRangeUtils";
@@ -67,6 +68,14 @@ interface Vehicle {
   is_sold?: boolean;
 }
 
+interface RentalBooking {
+  id: string;
+  start_date: string;
+  end_date: string;
+  status: string;
+  total_amount: number | null;
+}
+
 interface FinanceDashboardProps {
   onAddRecord?: () => void;
   financialRecords?: FinancialRecord[];
@@ -81,6 +90,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   const [customEndDate, setCustomEndDate] = useState("");
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [bookings, setBookings] = useState<RentalBooking[]>([]);
   const [deleteTransactionId, setDeleteTransactionId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRecurringOpen, setIsRecurringOpen] = useState(false);
@@ -94,6 +104,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   useEffect(() => {
     if (user) {
       fetchVehicles();
+      fetchBookings();
       fetchProfile();
       // Fire-and-forget: trigger recurring transaction processing on mount
       supabase.functions.invoke('process-recurring-transactions', {
@@ -122,6 +133,21 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       }
     } catch (error) {
       console.error("Error fetching vehicles:", error);
+    }
+  };
+
+  const fetchBookings = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('rental_bookings')
+        .select('id, start_date, end_date, status, total_amount')
+        .order('start_date', { ascending: false });
+      if (!error && data) {
+        setBookings(data);
+      }
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
     }
   };
 
@@ -155,6 +181,35 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   const filteredRecords = useMemo(() => {
     return filterByCalendarTimeframe(financialRecords, timeframe, customRange);
   }, [financialRecords, timeframe, customRange]);
+
+  // KPI calculations
+  const periodBookings = useMemo(() => {
+    if (timeframe === 'all') return bookings;
+    const { startDate, endDate } = getCalendarDateRange(timeframe, customRange);
+    return bookings.filter(b => {
+      const bookingStart = new Date(b.start_date);
+      return bookingStart >= startDate && bookingStart <= endDate;
+    });
+  }, [bookings, timeframe, customRange]);
+
+  const totalBookings = periodBookings.length;
+
+  const avgIncomePerBooking = useMemo(() => {
+    if (totalBookings === 0) return 0;
+    const bookingIncome = filteredRecords.filter(
+      r => r.type === 'income' && r.booking_id
+    );
+    const totalBookingIncome = bookingIncome.reduce((sum, r) => sum + Number(r.amount), 0);
+    return totalBookingIncome / totalBookings;
+  }, [filteredRecords, totalBookings]);
+
+  const avgCostPerBooking = useMemo(() => {
+    if (totalBookings === 0) return 0;
+    const totalExpenses = filteredRecords
+      .filter(r => r.type === 'expense')
+      .reduce((sum, r) => sum + Number(r.amount), 0);
+    return totalExpenses / totalBookings;
+  }, [filteredRecords, totalBookings]);
 
   // Transactions list - ALWAYS shows ALL transactions, independent of date filters
   // Sorted by exact creation timestamp (most recent first)
@@ -596,6 +651,13 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           variant="profit"
         />
       </div>
+
+      {/* Secondary KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <KpiCard label={t('totalBookings')} value={totalBookings} format="number" icon="calendar" lang={language} />
+        <KpiCard label={t('avgIncomePerBooking')} value={avgIncomePerBooking} format="currency" icon="trendingUp" accentColor="green" lang={language} />
+        <KpiCard label={t('avgCostPerBooking')} value={avgCostPerBooking} format="currency" icon="trendingDown" accentColor="red" lang={language} />
+      </div>
       
       {/* Charts - Now using real backend data with timeframe sync */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -848,5 +910,46 @@ function TransactionItem({ id, title, amount, date, type, lang, onDelete }: {
         </Button>
       </div>
     </div>
+  );
+}
+
+function KpiCard({ label, value, format, icon, accentColor, lang }: {
+  label: string;
+  value: number;
+  format: 'number' | 'currency';
+  icon: 'calendar' | 'trendingUp' | 'trendingDown';
+  accentColor?: 'green' | 'red';
+  lang: string;
+}) {
+  const formattedValue = format === 'currency'
+    ? `€${value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : value.toLocaleString('de-DE');
+
+  const IconComponent = icon === 'calendar' ? CalendarIcon
+    : icon === 'trendingUp' ? TrendingUp
+    : TrendingDown;
+
+  const accentStyles = accentColor === 'green'
+    ? 'text-green-600'
+    : accentColor === 'red'
+    ? 'text-red-600'
+    : 'text-primary';
+
+  return (
+    <Card className="border-dashed border-muted-foreground/20">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
+            <h3 className={cn("text-xl font-bold mt-0.5", accentStyles)}>
+              {formattedValue}
+            </h3>
+          </div>
+          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+            <IconComponent className="h-5 w-5 text-muted-foreground" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
