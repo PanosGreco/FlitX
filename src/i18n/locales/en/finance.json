@@ -250,5 +250,7 @@
   "new": "NEW",
   "totalBookings": "Total Bookings",
   "avgIncomePerBooking": "Avg Income / Booking",
-  "avgCostPerBooking": "Avg Cost / Booking"
+  "avgCostPerBooking": "Avg Cost / Booking",
+  "avgRentalPeriod": "Avg Rental Period",
+  "days": "days"
 }

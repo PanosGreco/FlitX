@@ -194,6 +194,17 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
 
   const totalBookings = periodBookings.length;
 
+  const avgRentalDays = useMemo(() => {
+    if (periodBookings.length === 0) return 0;
+    const totalDays = periodBookings.reduce((sum, booking) => {
+      const start = new Date(booking.start_date);
+      const end = new Date(booking.end_date);
+      const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+      return sum + days;
+    }, 0);
+    return Math.round((totalDays / periodBookings.length) * 10) / 10;
+  }, [periodBookings]);
+
   const avgIncomePerBooking = useMemo(() => {
     if (totalBookings === 0) return 0;
     const bookingIncome = filteredRecords.filter(
@@ -654,7 +665,15 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
 
       {/* Secondary KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <KpiCard label={t('totalBookings')} value={totalBookings} format="number" icon="calendar" lang={language} />
+        <KpiCard
+          label={t('totalBookings')}
+          value={totalBookings}
+          format="number"
+          icon="calendar"
+          lang={language}
+          secondaryLabel={t('avgRentalPeriod')}
+          secondaryValue={totalBookings > 0 ? `~${avgRentalDays} ${t('days')}` : '—'}
+        />
         <KpiCard label={t('avgIncomePerBooking')} value={avgIncomePerBooking} format="currency" icon="trendingUp" accentColor="green" lang={language} />
         <KpiCard label={t('avgCostPerBooking')} value={avgCostPerBooking} format="currency" icon="trendingDown" accentColor="red" lang={language} />
       </div>
@@ -913,13 +932,15 @@ function TransactionItem({ id, title, amount, date, type, lang, onDelete }: {
   );
 }
 
-function KpiCard({ label, value, format, icon, accentColor, lang }: {
+function KpiCard({ label, value, format, icon, accentColor, lang, secondaryLabel, secondaryValue }: {
   label: string;
   value: number;
   format: 'number' | 'currency';
   icon: 'calendar' | 'trendingUp' | 'trendingDown';
   accentColor?: 'green' | 'red';
   lang: string;
+  secondaryLabel?: string;
+  secondaryValue?: string;
 }) {
   const formattedValue = format === 'currency'
     ? `€${value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -933,20 +954,39 @@ function KpiCard({ label, value, format, icon, accentColor, lang }: {
     ? 'text-green-600'
     : accentColor === 'red'
     ? 'text-red-600'
-    : 'text-primary';
+    : 'text-foreground';
+
+  const iconBgStyles = accentColor === 'green'
+    ? 'bg-green-50 text-green-600'
+    : accentColor === 'red'
+    ? 'bg-red-50 text-red-600'
+    : 'bg-slate-100 text-slate-600';
 
   return (
-    <Card className="border-dashed border-muted-foreground/20">
+    <Card className="rounded-2xl shadow-sm border border-border/60">
       <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-start justify-between">
+          <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
             <h3 className={cn("text-xl font-bold mt-0.5", accentStyles)}>
               {formattedValue}
             </h3>
+            {secondaryLabel && secondaryValue && (
+              <div className="mt-2 pt-2 border-t border-border/40">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-muted-foreground">{secondaryLabel}</span>
+                  <span className="text-xs font-semibold text-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
+                    {secondaryValue}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
-          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
-            <IconComponent className="h-5 w-5 text-muted-foreground" />
+          <div className={cn(
+            "flex items-center justify-center w-8 h-8 rounded-lg ml-3 flex-shrink-0",
+            iconBgStyles
+          )}>
+            <IconComponent className="h-4 w-4" />
           </div>
         </div>
       </CardContent>
