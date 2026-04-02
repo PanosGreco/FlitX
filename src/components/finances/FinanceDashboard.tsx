@@ -665,7 +665,15 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
 
       {/* Secondary KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <KpiCard label={t('totalBookings')} value={totalBookings} format="number" icon="calendar" lang={language} />
+        <KpiCard
+          label={t('totalBookings')}
+          value={totalBookings}
+          format="number"
+          icon="calendar"
+          lang={language}
+          secondaryLabel={t('avgRentalPeriod')}
+          secondaryValue={totalBookings > 0 ? `~${avgRentalDays} ${t('days')}` : '—'}
+        />
         <KpiCard label={t('avgIncomePerBooking')} value={avgIncomePerBooking} format="currency" icon="trendingUp" accentColor="green" lang={language} />
         <KpiCard label={t('avgCostPerBooking')} value={avgCostPerBooking} format="currency" icon="trendingDown" accentColor="red" lang={language} />
       </div>
