@@ -93,5 +93,12 @@
   "avgCostPerBooking": "Costo Prom. / Reserva",
   "avgRentalPeriod": "Duración Media Alquiler",
   "days": "días",
-  "fromLastPeriod": "vs período ant."
+  "fromLastPeriod": "vs período ant.",
+  "marketingVsRevenue": "Marketing vs Ingresos",
+  "marketingSpend": "Gastos de Marketing",
+  "bookingRevenue": "Ingresos por Reservas",
+  "monthly": "Mensual",
+  "yearly": "Anual",
+  "insufficientMarketingData": "Datos insuficientes para tendencias de marketing",
+  "insufficientMarketingDataHint": "Añade gastos de marketing y reservas en varios períodos"
 }

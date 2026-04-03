@@ -93,5 +93,12 @@
   "avgCostPerBooking": "Costo Medio / Prenotazione",
   "avgRentalPeriod": "Durata Media Noleggio",
   "days": "giorni",
-  "fromLastPeriod": "vs periodo prec."
+  "fromLastPeriod": "vs periodo prec.",
+  "marketingVsRevenue": "Marketing vs Ricavi",
+  "marketingSpend": "Spese Marketing",
+  "bookingRevenue": "Ricavi Prenotazioni",
+  "monthly": "Mensile",
+  "yearly": "Annuale",
+  "insufficientMarketingData": "Dati insufficienti per le tendenze marketing",
+  "insufficientMarketingDataHint": "Aggiungi spese marketing e prenotazioni su più periodi"
 }

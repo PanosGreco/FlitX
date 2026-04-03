@@ -93,5 +93,12 @@
   "avgCostPerBooking": "Coût Moy. / Réservation",
   "avgRentalPeriod": "Durée Moy. Location",
   "days": "jours",
-  "fromLastPeriod": "vs période préc."
+  "fromLastPeriod": "vs période préc.",
+  "marketingVsRevenue": "Marketing vs Revenus",
+  "marketingSpend": "Dépenses Marketing",
+  "bookingRevenue": "Revenus Réservations",
+  "monthly": "Mensuel",
+  "yearly": "Annuel",
+  "insufficientMarketingData": "Données insuffisantes pour les tendances marketing",
+  "insufficientMarketingDataHint": "Ajoutez des dépenses marketing et des réservations sur plusieurs périodes"
 }
