@@ -682,8 +682,8 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         <KpiCard label={t('avgCostPerBooking')} value={avgCostPerBooking} format="currency" icon="trendingDown" accentColor="red" lang={language} />
       </div>
       
-      {/* Charts - Now using real backend data with timeframe sync */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Charts - 3 columns on large screens */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{t('incomeVsExpenses')}</CardTitle>
@@ -692,13 +692,20 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
             <BarChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} />
           </CardContent>
         </Card>
-        
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{t('trendOverTime')}</CardTitle>
           </CardHeader>
           <CardContent className="pt-0 pb-3">
             <LineChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{t('marketingVsRevenue')}</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0 pb-3">
+            <MarketingScatterPlot financialRecords={financialRecords} lang={language} />
           </CardContent>
         </Card>
       </div>
