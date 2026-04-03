@@ -92,5 +92,6 @@
   "avgIncomePerBooking": "Revenu Moy. / Réservation",
   "avgCostPerBooking": "Coût Moy. / Réservation",
   "avgRentalPeriod": "Durée Moy. Location",
-  "days": "jours"
+  "days": "jours",
+  "fromLastPeriod": "vs période préc."
 }

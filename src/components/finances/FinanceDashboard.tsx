@@ -639,6 +639,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           prefix="€" 
           lang={language}
           variant="income"
+          t={t}
         />
         
         <SummaryCard 
@@ -650,6 +651,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           trendReversed
           lang={language}
           variant="expense"
+          t={t}
         />
         
         <SummaryCard 
@@ -660,6 +662,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           prefix="€"
           lang={language}
           variant="profit"
+          t={t}
         />
       </div>
 
@@ -830,7 +833,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   );
 }
 
-function SummaryCard({ title, value, change, trend, prefix = "", trendReversed = false, lang, variant }: {
+function SummaryCard({ title, value, change, trend, prefix = "", trendReversed = false, lang, variant, t }: {
   title: string;
   value: number;
   change: number;
@@ -839,40 +842,39 @@ function SummaryCard({ title, value, change, trend, prefix = "", trendReversed =
   trendReversed?: boolean;
   lang: string;
   variant?: 'income' | 'expense' | 'profit';
+  t: (key: string) => string;
 }) {
   const trendIsPositive = trend === "up";
   const displayedTrend = trendReversed ? !trendIsPositive : trendIsPositive;
-  
+
   const variantStyles = {
-    income: "bg-[hsla(142,71%,45%,0.12)] border-[hsla(142,71%,45%,0.2)]",
-    expense: "bg-[hsla(0,84%,60%,0.12)] border-[hsla(0,84%,60%,0.2)]",
-    profit: "bg-[hsla(217,91%,60%,0.12)] border-[hsla(217,91%,60%,0.2)]",
+    income: "border-l-4 border-l-green-500",
+    expense: "border-l-4 border-l-red-500",
+    profit: "border-l-4 border-l-blue-500",
   };
-  
+
   return (
     <Card className={cn(
-      "rounded-2xl shadow-sm",
+      "rounded-xl shadow-sm bg-card",
       variant && variantStyles[variant]
     )}>
       <CardContent className="p-4">
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{title}</p>
-            <h3 className="text-2xl font-bold mt-0.5">
-              {prefix}{value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </h3>
-          </div>
-          
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{title}</p>
+        <h3 className="text-2xl font-bold mt-1">
+          {prefix}{value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </h3>
+        <div className="mt-2 pt-2 border-t border-border/30">
           <div className={cn(
-            "flex items-center text-xs font-medium px-2 py-0.5 rounded-full",
-            displayedTrend ? "text-green-700 bg-green-100" : "text-red-700 bg-red-100"
+            "inline-flex items-center gap-1 text-xs font-medium",
+            displayedTrend ? "text-green-600" : "text-red-600"
           )}>
             {displayedTrend ? (
-              <TrendingUp className="h-4 w-4 mr-1" />
+              <TrendingUp className="h-3 w-3" />
             ) : (
-              <TrendingDown className="h-4 w-4 mr-1" />
+              <TrendingDown className="h-3 w-3" />
             )}
-            {Math.abs(change)}%
+            <span>{Math.abs(change)}%</span>
+            <span className="text-muted-foreground font-normal ml-0.5">{t('fromLastPeriod')}</span>
           </div>
         </div>
       </CardContent>
@@ -950,29 +952,35 @@ function KpiCard({ label, value, format, icon, accentColor, lang, secondaryLabel
     : icon === 'trendingUp' ? TrendingUp
     : TrendingDown;
 
-  const accentStyles = accentColor === 'green'
+  const borderColor = accentColor === 'green'
+    ? 'border-l-green-500'
+    : accentColor === 'red'
+    ? 'border-l-red-500'
+    : 'border-l-slate-400';
+
+  const valueColor = accentColor === 'green'
     ? 'text-green-600'
     : accentColor === 'red'
     ? 'text-red-600'
     : 'text-foreground';
 
-  const iconBgStyles = accentColor === 'green'
+  const iconBg = accentColor === 'green'
     ? 'bg-green-50 text-green-600'
     : accentColor === 'red'
     ? 'bg-red-50 text-red-600'
     : 'bg-slate-100 text-slate-600';
 
   return (
-    <Card className="rounded-2xl shadow-sm border border-border/60">
+    <Card className={cn("rounded-xl shadow-sm border-l-4", borderColor)}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
-            <h3 className={cn("text-xl font-bold mt-0.5", accentStyles)}>
+            <h3 className={cn("text-xl font-bold mt-0.5", valueColor)}>
               {formattedValue}
             </h3>
             {secondaryLabel && secondaryValue && (
-              <div className="mt-2 pt-2 border-t border-border/40">
+              <div className="mt-2 pt-2 border-t border-border/30">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[11px] text-muted-foreground">{secondaryLabel}</span>
                   <span className="text-xs font-semibold text-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
@@ -984,7 +992,7 @@ function KpiCard({ label, value, format, icon, accentColor, lang, secondaryLabel
           </div>
           <div className={cn(
             "flex items-center justify-center w-8 h-8 rounded-lg ml-3 flex-shrink-0",
-            iconBgStyles
+            iconBg
           )}>
             <IconComponent className="h-4 w-4" />
           </div>
