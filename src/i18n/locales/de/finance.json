@@ -92,5 +92,6 @@
   "avgIncomePerBooking": "Ø Einnahmen / Buchung",
   "avgCostPerBooking": "Ø Kosten / Buchung",
   "avgRentalPeriod": "Ø Mietdauer",
-  "days": "Tage"
+  "days": "Tage",
+  "fromLastPeriod": "ggü. Vorperiode"
 }

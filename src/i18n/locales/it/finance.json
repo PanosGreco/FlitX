@@ -92,5 +92,6 @@
   "avgIncomePerBooking": "Entrata Media / Prenotazione",
   "avgCostPerBooking": "Costo Medio / Prenotazione",
   "avgRentalPeriod": "Durata Media Noleggio",
-  "days": "giorni"
+  "days": "giorni",
+  "fromLastPeriod": "vs periodo prec."
 }

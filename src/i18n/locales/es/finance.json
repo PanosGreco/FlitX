@@ -92,5 +92,6 @@
   "avgIncomePerBooking": "Ingreso Prom. / Reserva",
   "avgCostPerBooking": "Costo Prom. / Reserva",
   "avgRentalPeriod": "Duración Media Alquiler",
-  "days": "días"
+  "days": "días",
+  "fromLastPeriod": "vs período ant."
 }

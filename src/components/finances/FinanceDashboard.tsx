@@ -952,29 +952,35 @@ function KpiCard({ label, value, format, icon, accentColor, lang, secondaryLabel
     : icon === 'trendingUp' ? TrendingUp
     : TrendingDown;
 
-  const accentStyles = accentColor === 'green'
+  const borderColor = accentColor === 'green'
+    ? 'border-l-green-500'
+    : accentColor === 'red'
+    ? 'border-l-red-500'
+    : 'border-l-slate-400';
+
+  const valueColor = accentColor === 'green'
     ? 'text-green-600'
     : accentColor === 'red'
     ? 'text-red-600'
     : 'text-foreground';
 
-  const iconBgStyles = accentColor === 'green'
+  const iconBg = accentColor === 'green'
     ? 'bg-green-50 text-green-600'
     : accentColor === 'red'
     ? 'bg-red-50 text-red-600'
     : 'bg-slate-100 text-slate-600';
 
   return (
-    <Card className="rounded-2xl shadow-sm border border-border/60">
+    <Card className={cn("rounded-xl shadow-sm border-l-4", borderColor)}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
-            <h3 className={cn("text-xl font-bold mt-0.5", accentStyles)}>
+            <h3 className={cn("text-xl font-bold mt-0.5", valueColor)}>
               {formattedValue}
             </h3>
             {secondaryLabel && secondaryValue && (
-              <div className="mt-2 pt-2 border-t border-border/40">
+              <div className="mt-2 pt-2 border-t border-border/30">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[11px] text-muted-foreground">{secondaryLabel}</span>
                   <span className="text-xs font-semibold text-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
@@ -986,7 +992,7 @@ function KpiCard({ label, value, format, icon, accentColor, lang, secondaryLabel
           </div>
           <div className={cn(
             "flex items-center justify-center w-8 h-8 rounded-lg ml-3 flex-shrink-0",
-            iconBgStyles
+            iconBg
           )}>
             <IconComponent className="h-4 w-4" />
           </div>
