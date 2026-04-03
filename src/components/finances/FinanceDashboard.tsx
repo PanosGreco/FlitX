@@ -41,6 +41,7 @@ import {
   DateRange
 } from "@/utils/dateRangeUtils";
 import { RecurringTransactionsModal } from "./RecurringTransactionsModal";
+import { MarketingScatterPlot } from "@/components/finances/MarketingScatterPlot";
 
 interface FinancialRecord {
   id: string;
