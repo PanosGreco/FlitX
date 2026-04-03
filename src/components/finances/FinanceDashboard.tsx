@@ -833,7 +833,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   );
 }
 
-function SummaryCard({ title, value, change, trend, prefix = "", trendReversed = false, lang, variant }: {
+function SummaryCard({ title, value, change, trend, prefix = "", trendReversed = false, lang, variant, t }: {
   title: string;
   value: number;
   change: number;
@@ -842,40 +842,39 @@ function SummaryCard({ title, value, change, trend, prefix = "", trendReversed =
   trendReversed?: boolean;
   lang: string;
   variant?: 'income' | 'expense' | 'profit';
+  t: (key: string) => string;
 }) {
   const trendIsPositive = trend === "up";
   const displayedTrend = trendReversed ? !trendIsPositive : trendIsPositive;
-  
+
   const variantStyles = {
-    income: "bg-[hsla(142,71%,45%,0.12)] border-[hsla(142,71%,45%,0.2)]",
-    expense: "bg-[hsla(0,84%,60%,0.12)] border-[hsla(0,84%,60%,0.2)]",
-    profit: "bg-[hsla(217,91%,60%,0.12)] border-[hsla(217,91%,60%,0.2)]",
+    income: "border-l-4 border-l-green-500",
+    expense: "border-l-4 border-l-red-500",
+    profit: "border-l-4 border-l-blue-500",
   };
-  
+
   return (
     <Card className={cn(
-      "rounded-2xl shadow-sm",
+      "rounded-xl shadow-sm bg-card",
       variant && variantStyles[variant]
     )}>
       <CardContent className="p-4">
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{title}</p>
-            <h3 className="text-2xl font-bold mt-0.5">
-              {prefix}{value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </h3>
-          </div>
-          
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{title}</p>
+        <h3 className="text-2xl font-bold mt-1">
+          {prefix}{value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </h3>
+        <div className="mt-2 pt-2 border-t border-border/30">
           <div className={cn(
-            "flex items-center text-xs font-medium px-2 py-0.5 rounded-full",
-            displayedTrend ? "text-green-700 bg-green-100" : "text-red-700 bg-red-100"
+            "inline-flex items-center gap-1 text-xs font-medium",
+            displayedTrend ? "text-green-600" : "text-red-600"
           )}>
             {displayedTrend ? (
-              <TrendingUp className="h-4 w-4 mr-1" />
+              <TrendingUp className="h-3 w-3" />
             ) : (
-              <TrendingDown className="h-4 w-4 mr-1" />
+              <TrendingDown className="h-3 w-3" />
             )}
-            {Math.abs(change)}%
+            <span>{Math.abs(change)}%</span>
+            <span className="text-muted-foreground font-normal ml-0.5">{t('fromLastPeriod')}</span>
           </div>
         </div>
       </CardContent>
