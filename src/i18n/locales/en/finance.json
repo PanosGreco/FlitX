@@ -253,5 +253,12 @@
   "avgCostPerBooking": "Avg Cost / Booking",
   "avgRentalPeriod": "Avg Rental Period",
   "days": "days",
-  "fromLastPeriod": "from last period"
+  "fromLastPeriod": "from last period",
+  "marketingVsRevenue": "Marketing vs Revenue",
+  "marketingSpend": "Marketing Spend",
+  "bookingRevenue": "Booking Revenue",
+  "monthly": "Monthly",
+  "yearly": "Yearly",
+  "insufficientMarketingData": "Not enough data to show marketing trends",
+  "insufficientMarketingDataHint": "Add marketing expenses and booking data across multiple periods to populate this chart"
 }

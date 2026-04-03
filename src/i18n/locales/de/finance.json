@@ -93,5 +93,12 @@
   "avgCostPerBooking": "Ø Kosten / Buchung",
   "avgRentalPeriod": "Ø Mietdauer",
   "days": "Tage",
-  "fromLastPeriod": "ggü. Vorperiode"
+  "fromLastPeriod": "ggü. Vorperiode",
+  "marketingVsRevenue": "Marketing vs Umsatz",
+  "marketingSpend": "Marketingausgaben",
+  "bookingRevenue": "Buchungsumsatz",
+  "monthly": "Monatlich",
+  "yearly": "Jährlich",
+  "insufficientMarketingData": "Nicht genügend Daten für Marketing-Trends",
+  "insufficientMarketingDataHint": "Fügen Sie Marketingausgaben und Buchungsdaten über mehrere Zeiträume hinzu"
 }

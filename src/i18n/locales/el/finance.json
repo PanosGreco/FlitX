@@ -253,5 +253,12 @@
   "avgCostPerBooking": "Μ.Ο. Κόστους / Κράτηση",
   "avgRentalPeriod": "Μ.Ο. Διάρκειας Ενοικίασης",
   "days": "ημέρες",
-  "fromLastPeriod": "από προηγ. περίοδο"
+  "fromLastPeriod": "από προηγ. περίοδο",
+  "marketingVsRevenue": "Marketing vs Έσοδα",
+  "marketingSpend": "Δαπάνες Marketing",
+  "bookingRevenue": "Έσοδα Κρατήσεων",
+  "monthly": "Μηνιαία",
+  "yearly": "Ετήσια",
+  "insufficientMarketingData": "Ανεπαρκή δεδομένα για τάσεις marketing",
+  "insufficientMarketingDataHint": "Προσθέστε δαπάνες marketing και κρατήσεις σε πολλαπλές περιόδους για να εμφανιστεί το γράφημα"
 }
