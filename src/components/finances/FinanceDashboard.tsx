@@ -639,6 +639,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           prefix="€" 
           lang={language}
           variant="income"
+          t={t}
         />
         
         <SummaryCard 
@@ -650,6 +651,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           trendReversed
           lang={language}
           variant="expense"
+          t={t}
         />
         
         <SummaryCard 
@@ -660,6 +662,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           prefix="€"
           lang={language}
           variant="profit"
+          t={t}
         />
       </div>
 
