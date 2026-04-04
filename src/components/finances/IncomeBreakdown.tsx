@@ -214,11 +214,13 @@ export function IncomeBreakdown({
       if (!sourceData[categoryKey]) {
         sourceData[categoryKey] = {
           total: 0,
+          count: 0,
           months: {},
           displayLabel
         };
       }
       sourceData[categoryKey].total += Number(record.amount);
+      sourceData[categoryKey].count += 1;
       sourceData[categoryKey].months[month] = (sourceData[categoryKey].months[month] || 0) + Number(record.amount);
     });
 
