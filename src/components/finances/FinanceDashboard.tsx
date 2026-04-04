@@ -732,7 +732,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       </div>
       
       {/* Charts - 3 columns on large screens */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{t('incomeVsExpenses')}</CardTitle>
