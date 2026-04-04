@@ -212,12 +212,14 @@ export function ExpenseBreakdown({
       if (!categoryData[aggregationKey]) {
         categoryData[aggregationKey] = {
           total: 0,
+          count: 0,
           months: {},
           fuelTypes: new Set(),
           years: new Set()
         };
       }
       categoryData[aggregationKey].total += Number(record.amount);
+      categoryData[aggregationKey].count += 1;
       categoryData[aggregationKey].months[month] = (categoryData[aggregationKey].months[month] || 0) + Number(record.amount);
       if (record.vehicle_fuel_type) categoryData[aggregationKey].fuelTypes.add(record.vehicle_fuel_type);
       if (record.vehicle_year) categoryData[aggregationKey].years.add(record.vehicle_year);
