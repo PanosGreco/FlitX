@@ -200,6 +200,7 @@ export function ExpenseBreakdown({
   const expensesByCategory = useMemo(() => {
     const categoryData: Record<string, {
       total: number;
+      count: number;
       months: Record<number, number>;
       fuelTypes: Set<string>;
       years: Set<number>;
