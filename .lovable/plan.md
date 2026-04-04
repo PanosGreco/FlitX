@@ -1,57 +1,39 @@
 
 
-# Plan: Add Secondary KPI Metric Cards (Total Bookings, Avg Income/Booking, Avg Cost/Booking)
+# Plan: Scatter Plot Refinements + Growth Indicator Fix
 
-## Overview
-Add a row of three secondary metric cards below the primary Income/Expense/Net Income summary cards. These show booking-centric KPIs filtered by the selected timeframe.
+## 1. MarketingScatterPlot.tsx — Visual Refinements
 
-## Changes
+**1a. Restructure controls layout** — Move Monthly/Yearly toggle to top-right, period chips below right-aligned:
+- Replace single flex row with `space-y-2 mb-3` container
+- Toggle in `flex justify-end` wrapper
+- Chips in `flex justify-end overflow-x-auto` wrapper with gradient fade on left edge for scroll hint
 
-### 1. `src/components/finances/FinanceDashboard.tsx`
+**1b. Multi-colored dots** — Add `DOT_COLORS` palette (12 colors) at top of component. Update `<Cell>` to use `DOT_COLORS[index % length]`. Add a color legend below the chart mapping each dot color to its period label.
 
-**Data fetching:**
-- Add `RentalBooking` interface (`id`, `start_date`, `end_date`, `status`, `total_amount`)
-- Add `bookings` state
-- Add `fetchBookings` function querying `rental_bookings` table
-- Call `fetchBookings()` in the existing `useEffect` alongside `fetchVehicles()`
+**1c. Axis labels** — Add `label` prop to both `<XAxis>` (marketingSpend, insideBottom) and `<YAxis>` (bookingRevenue, angle -90, insideLeft). Increase bottom/left margins to accommodate labels.
 
-**KPI calculations (useMemo):**
-- Import `getCalendarDateRange` from `@/utils/dateRangeUtils`
-- `periodBookings`: filter bookings by `start_date` within selected timeframe
-- `totalBookings`: count of period bookings
-- `avgIncomePerBooking`: sum of `filteredRecords` where `type === 'income' && booking_id` divided by `totalBookings`
-- `avgCostPerBooking`: sum of all expenses in `filteredRecords` divided by `totalBookings`
+**1d. Scroll gradient hint** — Add a relative wrapper around the chips row with a `pointer-events-none` gradient overlay on the left edge using pseudo-element or an absolute-positioned div.
 
-**UI — new card row (after line 598, before charts):**
-```jsx
-<div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-  <KpiCard label={t('totalBookings')} value={totalBookings} format="number" icon="calendar" lang={language} />
-  <KpiCard label={t('avgIncomePerBooking')} value={avgIncomePerBooking} format="currency" icon="trendingUp" accentColor="green" lang={language} />
-  <KpiCard label={t('avgCostPerBooking')} value={avgCostPerBooking} format="currency" icon="trendingDown" accentColor="red" lang={language} />
-</div>
-```
+## 2. FinanceDashboard.tsx — Fix Growth Indicators
 
-**New `KpiCard` component** (at bottom of file):
-- Dashed border (`border-dashed border-muted-foreground/20`) — visually secondary
-- Smaller value text (`text-xl`)
-- Icon in a circular muted container on the right
-- Colored value text (green for income, red for cost, primary for bookings)
-- No trend badge
+**Replace** the `calculateSummaryData()` function (lines 499-515) and `const summaryData = calculateSummaryData()` (line 517) with a single `useMemo` that:
+- Computes current period totals from `filteredRecords` (same as now)
+- Computes previous period by determining the equivalent prior date range based on `timeframe` (week/month/year/custom)
+- Filters `financialRecords` (unfiltered) for the previous period
+- Calculates percentage change: `((current - prev) / prev) * 100`, with 0% fallback for zero denominators
+- For "all" timeframe: returns 0% (no comparison possible)
 
-### 2. Translation files (6 locales)
+**New imports needed**: `startOfWeek`, `startOfMonth`, `startOfYear`, `subWeeks`, `subMonths`, `subYears` from `date-fns`
 
-Add three keys to each `finance.json`:
+## 3. Translation Keys
 
-| Key | EN | EL | DE | FR | IT | ES |
-|---|---|---|---|---|---|---|
-| `totalBookings` | Total Bookings | Συνολικές Κρατήσεις | Gesamtbuchungen | Total Réservations | Prenotazioni Totali | Reservas Totales |
-| `avgIncomePerBooking` | Avg Income / Booking | Μ.Ο. Εσόδων / Κράτηση | Ø Einnahmen / Buchung | Revenu Moy. / Réservation | Entrata Media / Prenotazione | Ingreso Prom. / Reserva |
-| `avgCostPerBooking` | Avg Cost / Booking | Μ.Ο. Κόστους / Κράτηση | Ø Kosten / Buchung | Coût Moy. / Réservation | Costo Medio / Prenotazione | Costo Prom. / Reserva |
+Verify `marketingSpend` and `bookingRevenue` exist in all 6 locales (already added in previous step — just confirm, no changes expected).
 
 ## Files Modified
-1. `src/components/finances/FinanceDashboard.tsx` — fetch bookings, compute KPIs, add KpiCard row + component
-2. `src/i18n/locales/{en,el,de,fr,it,es}/finance.json` — add 3 keys each
+1. `src/components/finances/MarketingScatterPlot.tsx` — layout, colors, axis labels, legend, scroll hint
+2. `src/components/finances/FinanceDashboard.tsx` — replace `calculateSummaryData` with `useMemo`, add date-fns imports
 
 ## Not Modified
-- Summary cards, charts, breakdowns, assets, transactions, delete logic, recurring modal — all untouched
+- Charts, breakdowns, assets, transactions, KpiCard, delete logic, recurring modal — all untouched
 
