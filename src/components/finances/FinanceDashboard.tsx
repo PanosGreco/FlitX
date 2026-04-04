@@ -11,7 +11,7 @@ import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "react-i18next";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, startOfWeek, startOfMonth, startOfYear, subWeeks, subMonths, subYears } from "date-fns";
 import { getDateFnsLocale } from "@/utils/localeMap";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -496,25 +496,74 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     }).filter(Boolean) as { id: string; name: string; avgProfitPerDay: number }[];
   }, [financialRecords, vehicles]);
 
-  const calculateSummaryData = () => {
-    const incomeRecords = filteredRecords.filter(record => record.type === "income");
-    const expenseRecords = filteredRecords.filter(record => record.type === "expense");
-    
-    const totalIncome = incomeRecords.reduce((sum, record) => sum + Number(record.amount), 0);
-    const totalExpenses = expenseRecords.reduce((sum, record) => sum + Number(record.amount), 0);
+  const summaryData = useMemo(() => {
+    const totalIncome = filteredRecords.filter(r => r.type === 'income').reduce((sum, r) => sum + Number(r.amount), 0);
+    const totalExpenses = filteredRecords.filter(r => r.type === 'expense').reduce((sum, r) => sum + Number(r.amount), 0);
     const netProfit = totalIncome - totalExpenses;
-    
-    return {
-      totalIncome,
-      totalExpenses,
-      netProfit,
-      incomeChange: 0,
-      expenseChange: 0,
-      profitChange: 0
-    };
-  };
 
-  const summaryData = calculateSummaryData();
+    let incomeChange = 0;
+    let expenseChange = 0;
+    let profitChange = 0;
+
+    if (timeframe !== 'all') {
+      const now = new Date();
+      let prevStart: Date;
+      let prevEnd: Date;
+
+      switch (timeframe) {
+        case 'week': {
+          const currentWeekStart = startOfWeek(now, { weekStartsOn: 1 });
+          prevStart = subWeeks(currentWeekStart, 1);
+          prevEnd = new Date(currentWeekStart.getTime() - 1);
+          break;
+        }
+        case 'month': {
+          const currentMonthStart = startOfMonth(now);
+          prevStart = subMonths(currentMonthStart, 1);
+          prevEnd = new Date(currentMonthStart.getTime() - 1);
+          break;
+        }
+        case 'year': {
+          const currentYearStart = startOfYear(now);
+          prevStart = subYears(currentYearStart, 1);
+          prevEnd = new Date(currentYearStart.getTime() - 1);
+          break;
+        }
+        case 'custom': {
+          if (customRange) {
+            const rangeMs = customRange.endDate.getTime() - customRange.startDate.getTime();
+            prevEnd = new Date(customRange.startDate.getTime() - 1);
+            prevStart = new Date(customRange.startDate.getTime() - rangeMs);
+          } else {
+            const currentMonthStart = startOfMonth(now);
+            prevStart = subMonths(currentMonthStart, 1);
+            prevEnd = new Date(currentMonthStart.getTime() - 1);
+          }
+          break;
+        }
+        default: {
+          const currentMonthStart = startOfMonth(now);
+          prevStart = subMonths(currentMonthStart, 1);
+          prevEnd = new Date(currentMonthStart.getTime() - 1);
+        }
+      }
+
+      const prevRecords = financialRecords.filter(r => {
+        const d = new Date(r.date);
+        return d >= prevStart && d <= prevEnd;
+      });
+
+      const prevIncome = prevRecords.filter(r => r.type === 'income').reduce((sum, r) => sum + Number(r.amount), 0);
+      const prevExpenses = prevRecords.filter(r => r.type === 'expense').reduce((sum, r) => sum + Number(r.amount), 0);
+      const prevProfit = prevIncome - prevExpenses;
+
+      incomeChange = prevIncome > 0 ? Math.round(((totalIncome - prevIncome) / prevIncome) * 100) : 0;
+      expenseChange = prevExpenses > 0 ? Math.round(((totalExpenses - prevExpenses) / prevExpenses) * 100) : 0;
+      profitChange = prevProfit !== 0 ? Math.round(((netProfit - prevProfit) / Math.abs(prevProfit)) * 100) : 0;
+    }
+
+    return { totalIncome, totalExpenses, netProfit, incomeChange, expenseChange, profitChange };
+  }, [filteredRecords, financialRecords, timeframe, customRange]);
   
   const formatDate = (dateString: string) => {
     try {
