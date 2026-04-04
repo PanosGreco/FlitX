@@ -281,11 +281,14 @@ export function ExpenseBreakdown({
         key,
         label,
         total: data.total,
+        count: data.count,
         growth,
         isNew,
       };
     }).sort((a, b) => b.total - a.total);
   }, [filteredRecords, lang, allRecords, timeframe, customRange]);
+
+  const grandTotalExpense = useMemo(() => expensesByCategory.reduce((s, i) => s + i.total, 0), [expensesByCategory]);
 
   // Prepare pie chart data with parent-based colors and <5% grouping
   const pieData = useMemo(() => {
