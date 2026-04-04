@@ -180,6 +180,7 @@ export function IncomeBreakdown({
   const incomeBySource = useMemo(() => {
     const sourceData: Record<string, {
       total: number;
+      count: number;
       months: Record<number, number>;
       displayLabel: string;
     }> = {};
