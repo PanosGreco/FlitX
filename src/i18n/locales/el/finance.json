@@ -260,5 +260,8 @@
   "monthly": "Μηνιαία",
   "yearly": "Ετήσια",
   "insufficientMarketingData": "Ανεπαρκή δεδομένα για τάσεις marketing",
-  "insufficientMarketingDataHint": "Προσθέστε δαπάνες marketing και κρατήσεις σε πολλαπλές περιόδους για να εμφανιστεί το γράφημα"
+  "insufficientMarketingDataHint": "Προσθέστε δαπάνες marketing και κρατήσεις σε πολλαπλές περιόδους για να εμφανιστεί το γράφημα",
+  "percentOfTotal": "% Συνόλου",
+  "count": "Πλήθος",
+  "avg": "Μ.Ο."
 }

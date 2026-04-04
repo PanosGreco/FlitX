@@ -100,5 +100,8 @@
   "monthly": "Mensile",
   "yearly": "Annuale",
   "insufficientMarketingData": "Dati insufficienti per le tendenze marketing",
-  "insufficientMarketingDataHint": "Aggiungi spese marketing e prenotazioni su più periodi"
+  "insufficientMarketingDataHint": "Aggiungi spese marketing e prenotazioni su più periodi",
+  "percentOfTotal": "% del Totale",
+  "count": "Conteggio",
+  "avg": "Media"
 }

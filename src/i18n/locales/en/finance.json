@@ -260,5 +260,8 @@
   "monthly": "Monthly",
   "yearly": "Yearly",
   "insufficientMarketingData": "Not enough data to show marketing trends",
-  "insufficientMarketingDataHint": "Add marketing expenses and booking data across multiple periods to populate this chart"
+  "insufficientMarketingDataHint": "Add marketing expenses and booking data across multiple periods to populate this chart",
+  "percentOfTotal": "% of Total",
+  "count": "Count",
+  "avg": "Avg"
 }

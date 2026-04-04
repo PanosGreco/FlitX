@@ -200,6 +200,7 @@ export function ExpenseBreakdown({
   const expensesByCategory = useMemo(() => {
     const categoryData: Record<string, {
       total: number;
+      count: number;
       months: Record<number, number>;
       fuelTypes: Set<string>;
       years: Set<number>;
@@ -211,12 +212,14 @@ export function ExpenseBreakdown({
       if (!categoryData[aggregationKey]) {
         categoryData[aggregationKey] = {
           total: 0,
+          count: 0,
           months: {},
           fuelTypes: new Set(),
           years: new Set()
         };
       }
       categoryData[aggregationKey].total += Number(record.amount);
+      categoryData[aggregationKey].count += 1;
       categoryData[aggregationKey].months[month] = (categoryData[aggregationKey].months[month] || 0) + Number(record.amount);
       if (record.vehicle_fuel_type) categoryData[aggregationKey].fuelTypes.add(record.vehicle_fuel_type);
       if (record.vehicle_year) categoryData[aggregationKey].years.add(record.vehicle_year);
@@ -278,11 +281,14 @@ export function ExpenseBreakdown({
         key,
         label,
         total: data.total,
+        count: data.count,
         growth,
         isNew,
       };
     }).sort((a, b) => b.total - a.total);
   }, [filteredRecords, lang, allRecords, timeframe, customRange]);
+
+  const grandTotalExpense = useMemo(() => expensesByCategory.reduce((s, i) => s + i.total, 0), [expensesByCategory]);
 
   // Prepare pie chart data with parent-based colors and <5% grouping
   const pieData = useMemo(() => {
@@ -384,19 +390,32 @@ export function ExpenseBreakdown({
             <Table className="table-fixed">
               <TableHeader>
                 <TableRow className="bg-slate-800 hover:bg-slate-800">
-                  <TableHead className="text-primary-foreground font-semibold w-[45%] px-2 py-1.5 text-xs">
+                  <TableHead className="text-primary-foreground font-semibold w-[28%] px-2 py-1.5 text-xs">
                     {t('finance:category')}
                   </TableHead>
-                  <TableHead className="text-right text-primary-foreground font-semibold w-[30%] px-1 py-1.5 text-xs">
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[18%] px-1 py-1.5 text-xs">
                     {t('finance:total')}
                   </TableHead>
-                  <TableHead className="text-right text-primary-foreground font-semibold w-[25%] px-1 py-1.5 text-xs">
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[12%] px-1 py-1.5 text-xs">
+                    {t('finance:percentOfTotal')}
+                  </TableHead>
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[10%] px-1 py-1.5 text-xs">
+                    {t('finance:count')}
+                  </TableHead>
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[12%] px-1 py-1.5 text-xs">
+                    {t('finance:avg')}
+                  </TableHead>
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[20%] px-1 py-1.5 text-xs">
                     {t('finance:growth')}
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {expensesByCategory.map((item, index) => <TableRow key={item.key} className="hover:bg-muted/50">
+                {expensesByCategory.map((item, index) => {
+                  const pct = grandTotalExpense > 0 ? Math.round((item.total / grandTotalExpense) * 100) : 0;
+                  const avg = item.count > 0 ? Math.round(item.total / item.count) : 0;
+                  return (
+                  <TableRow key={item.key} className="hover:bg-muted/50">
                     <TableCell className="px-2 py-1">
                       <div className="flex items-center gap-1">
                         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
@@ -411,6 +430,15 @@ export function ExpenseBreakdown({
                       {currencySymbol}{item.total.toLocaleString('el-GR', {
                     minimumFractionDigits: 0
                   })}
+                    </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground px-1 py-1">
+                      {pct}%
+                    </TableCell>
+                    <TableCell className="text-right text-xs px-1 py-1">
+                      {item.count}
+                    </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground px-1 py-1">
+                      {item.count > 0 ? `${currencySymbol}${avg.toLocaleString('el-GR')}` : '—'}
                     </TableCell>
                     <TableCell className="text-right text-xs px-1 py-1">
                       <div className="flex items-center justify-end gap-0.5">
@@ -432,7 +460,9 @@ export function ExpenseBreakdown({
                         )}
                       </div>
                     </TableCell>
-                  </TableRow>)}
+                  </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
