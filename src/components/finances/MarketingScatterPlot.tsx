@@ -182,12 +182,6 @@ export function MarketingScatterPlot({ financialRecords, lang }: MarketingScatte
                   tick={{ fontSize: 10 }}
                   tickLine={false}
                   axisLine={false}
-                  label={{
-                    value: t('marketingSpend'),
-                    position: 'insideBottom',
-                    offset: -5,
-                    style: { fontSize: 10, fill: 'hsl(var(--muted-foreground))' }
-                  }}
                 />
                 <YAxis
                   type="number"
