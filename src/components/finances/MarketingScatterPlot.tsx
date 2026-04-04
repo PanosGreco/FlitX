@@ -168,7 +168,7 @@ export function MarketingScatterPlot({ financialRecords, lang }: MarketingScatte
         <>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <RechartsScatterChart margin={{ top: 10, right: 10, bottom: 25, left: 15 }}>
+              <RechartsScatterChart margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   opacity={0.4}
