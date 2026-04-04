@@ -166,7 +166,7 @@ export function MarketingScatterPlot({ financialRecords, lang }: MarketingScatte
       {/* Chart or empty state */}
       {scatterData.length >= 2 ? (
         <>
-          <div className="h-64">
+          <div className="h-52">
             <ResponsiveContainer width="100%" height="100%">
               <RechartsScatterChart margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
                 <CartesianGrid
