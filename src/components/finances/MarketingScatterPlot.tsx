@@ -168,7 +168,7 @@ export function MarketingScatterPlot({ financialRecords, lang }: MarketingScatte
         <>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <RechartsScatterChart margin={{ top: 10, right: 10, bottom: 25, left: 15 }}>
+              <RechartsScatterChart margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   opacity={0.4}
@@ -182,12 +182,6 @@ export function MarketingScatterPlot({ financialRecords, lang }: MarketingScatte
                   tick={{ fontSize: 10 }}
                   tickLine={false}
                   axisLine={false}
-                  label={{
-                    value: t('marketingSpend'),
-                    position: 'insideBottom',
-                    offset: -5,
-                    style: { fontSize: 10, fill: 'hsl(var(--muted-foreground))' }
-                  }}
                 />
                 <YAxis
                   type="number"
@@ -197,13 +191,6 @@ export function MarketingScatterPlot({ financialRecords, lang }: MarketingScatte
                   tick={{ fontSize: 10 }}
                   tickLine={false}
                   axisLine={false}
-                  label={{
-                    value: t('bookingRevenue'),
-                    angle: -90,
-                    position: 'insideLeft',
-                    offset: 10,
-                    style: { fontSize: 10, fill: 'hsl(var(--muted-foreground))' }
-                  }}
                 />
                 <ZAxis range={[60, 60]} />
                 <Tooltip
@@ -236,18 +223,6 @@ export function MarketingScatterPlot({ financialRecords, lang }: MarketingScatte
                 </Scatter>
               </RechartsScatterChart>
             </ResponsiveContainer>
-          </div>
-          {/* Color legend */}
-          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 justify-center">
-            {scatterData.map((entry, index) => (
-              <div key={entry.period} className="flex items-center gap-1">
-                <div
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: DOT_COLORS[index % DOT_COLORS.length] }}
-                />
-                <span className="text-[10px] text-muted-foreground">{entry.label}</span>
-              </div>
-            ))}
           </div>
         </>
       ) : (
