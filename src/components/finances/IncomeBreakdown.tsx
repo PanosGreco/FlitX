@@ -254,11 +254,14 @@ export function IncomeBreakdown({
         key,
         label: data.displayLabel,
         total: data.total,
+        count: data.count,
         growth,
         isNew,
       };
     }).sort((a, b) => b.total - a.total);
   }, [filteredRecords, lang, allRecords, timeframe, customRange]);
+
+  const grandTotalIncome = useMemo(() => incomeBySource.reduce((s, i) => s + i.total, 0), [incomeBySource]);
 
   // Prepare pie chart data with <5% grouping
   const pieData = useMemo(() => {
