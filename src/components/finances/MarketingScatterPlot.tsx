@@ -224,18 +224,6 @@ export function MarketingScatterPlot({ financialRecords, lang }: MarketingScatte
               </RechartsScatterChart>
             </ResponsiveContainer>
           </div>
-          {/* Color legend */}
-          <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 justify-center">
-            {scatterData.map((entry, index) => (
-              <div key={entry.period} className="flex items-center gap-1">
-                <div
-                  className="w-2 h-2 rounded-full flex-shrink-0"
-                  style={{ backgroundColor: DOT_COLORS[index % DOT_COLORS.length] }}
-                />
-                <span className="text-[10px] text-muted-foreground">{entry.label}</span>
-              </div>
-            ))}
-          </div>
         </>
       ) : (
         <div className="h-64 flex items-center justify-center">
