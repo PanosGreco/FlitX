@@ -361,22 +361,35 @@ export function IncomeBreakdown({
         {/* Left: Source Table (compact - 5 columns) */}
         <div className="lg:col-span-5">
           <div className="border rounded-lg overflow-hidden">
-            <Table className="table-fixed">
+             <Table className="table-fixed">
               <TableHeader>
                 <TableRow className="bg-slate-800 hover:bg-slate-800">
-                  <TableHead className="text-primary-foreground font-semibold w-[45%] px-2 py-1.5 text-xs">
+                  <TableHead className="text-primary-foreground font-semibold w-[28%] px-2 py-1.5 text-xs">
                     {t('source')}
                   </TableHead>
-                  <TableHead className="text-right text-primary-foreground font-semibold w-[30%] px-1 py-1.5 text-xs">
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[18%] px-1 py-1.5 text-xs">
                     {t('total')}
                   </TableHead>
-                  <TableHead className="text-right text-primary-foreground font-semibold w-[25%] px-1 py-1.5 text-xs">
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[12%] px-1 py-1.5 text-xs">
+                    {t('percentOfTotal')}
+                  </TableHead>
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[10%] px-1 py-1.5 text-xs">
+                    {t('count')}
+                  </TableHead>
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[12%] px-1 py-1.5 text-xs">
+                    {t('avg')}
+                  </TableHead>
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[20%] px-1 py-1.5 text-xs">
                     {t('growth')}
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {incomeBySource.map((item, index) => <TableRow key={item.key} className="hover:bg-muted/50">
+                {incomeBySource.map((item, index) => {
+                  const pct = grandTotalIncome > 0 ? Math.round((item.total / grandTotalIncome) * 100) : 0;
+                  const avg = item.count > 0 ? Math.round(item.total / item.count) : 0;
+                  return (
+                  <TableRow key={item.key} className="hover:bg-muted/50">
                     <TableCell className="px-2 py-1">
                       <div className="flex items-center gap-1">
                         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
@@ -391,6 +404,15 @@ export function IncomeBreakdown({
                       {currencySymbol}{item.total.toLocaleString('el-GR', {
                     minimumFractionDigits: 0
                   })}
+                    </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground px-1 py-1">
+                      {pct}%
+                    </TableCell>
+                    <TableCell className="text-right text-xs px-1 py-1">
+                      {item.count}
+                    </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground px-1 py-1">
+                      {item.count > 0 ? `${currencySymbol}${avg.toLocaleString('el-GR')}` : '—'}
                     </TableCell>
                     <TableCell className="text-right text-xs px-1 py-1">
                       <div className="flex items-center justify-end gap-0.5">
@@ -412,7 +434,9 @@ export function IncomeBreakdown({
                         )}
                       </div>
                     </TableCell>
-                  </TableRow>)}
+                  </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

@@ -100,5 +100,8 @@
   "monthly": "Monatlich",
   "yearly": "Jährlich",
   "insufficientMarketingData": "Nicht genügend Daten für Marketing-Trends",
-  "insufficientMarketingDataHint": "Fügen Sie Marketingausgaben und Buchungsdaten über mehrere Zeiträume hinzu"
+  "insufficientMarketingDataHint": "Fügen Sie Marketingausgaben und Buchungsdaten über mehrere Zeiträume hinzu",
+  "percentOfTotal": "% Gesamt",
+  "count": "Anzahl",
+  "avg": "Ø"
 }
