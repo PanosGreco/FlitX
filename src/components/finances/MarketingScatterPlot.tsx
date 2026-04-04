@@ -191,13 +191,6 @@ export function MarketingScatterPlot({ financialRecords, lang }: MarketingScatte
                   tick={{ fontSize: 10 }}
                   tickLine={false}
                   axisLine={false}
-                  label={{
-                    value: t('bookingRevenue'),
-                    angle: -90,
-                    position: 'insideLeft',
-                    offset: 10,
-                    style: { fontSize: 10, fill: 'hsl(var(--muted-foreground))' }
-                  }}
                 />
                 <ZAxis range={[60, 60]} />
                 <Tooltip
