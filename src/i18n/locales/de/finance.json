@@ -103,5 +103,7 @@
   "insufficientMarketingDataHint": "Fügen Sie Marketingausgaben und Buchungsdaten über mehrere Zeiträume hinzu",
   "percentOfTotal": "% Gesamt",
   "count": "Anzahl",
-  "avg": "Ø"
+  "viewFullTable": "Vollständige Tabelle anzeigen",
+  "sources": "Quellen",
+  "categories": "Kategorien"
 }

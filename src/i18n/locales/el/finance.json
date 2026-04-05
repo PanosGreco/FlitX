@@ -263,5 +263,7 @@
   "insufficientMarketingDataHint": "Προσθέστε δαπάνες marketing και κρατήσεις σε πολλαπλές περιόδους για να εμφανιστεί το γράφημα",
   "percentOfTotal": "% Συνόλου",
   "count": "Πλήθος",
-  "avg": "Μ.Ο."
+  "viewFullTable": "Προβολή πλήρους πίνακα",
+  "sources": "πηγές",
+  "categories": "κατηγορίες"
 }

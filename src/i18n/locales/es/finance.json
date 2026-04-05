@@ -103,5 +103,7 @@
   "insufficientMarketingDataHint": "Añade gastos de marketing y reservas en varios períodos",
   "percentOfTotal": "% del Total",
   "count": "Cantidad",
-  "avg": "Prom."
+  "viewFullTable": "Ver tabla completa",
+  "sources": "fuentes",
+  "categories": "categorías"
 }

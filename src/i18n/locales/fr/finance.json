@@ -103,5 +103,7 @@
   "insufficientMarketingDataHint": "Ajoutez des dépenses marketing et des réservations sur plusieurs périodes",
   "percentOfTotal": "% du Total",
   "count": "Nombre",
-  "avg": "Moy."
+  "viewFullTable": "Voir le tableau complet",
+  "sources": "sources",
+  "categories": "catégories"
 }

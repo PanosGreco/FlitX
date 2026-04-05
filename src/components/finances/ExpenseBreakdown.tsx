@@ -1,8 +1,9 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { TrendingDown, TrendingUp, Car, Ship } from "lucide-react";
+import { TrendingDown, TrendingUp, Car, Ship, ChevronDown } from "lucide-react";
 import { getMonth, startOfWeek, startOfMonth, startOfYear, subWeeks, subMonths, subYears, endOfDay } from "date-fns";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { getMaintenanceTypeLabel } from "@/constants/maintenanceTypes";
@@ -174,6 +175,8 @@ const calcAvgMonthlyGrowth = (records: FinancialRecord[], categoryKey: string): 
   return Math.round(momChanges.reduce((sum, c) => sum + c, 0) / momChanges.length);
 };
 
+const MAX_VISIBLE_ROWS = 15;
+
 export function ExpenseBreakdown({
   financialRecords,
   allRecords,
@@ -186,6 +189,7 @@ export function ExpenseBreakdown({
   const isBoats = isBoatBusiness();
   const { t } = useTranslation(['finance', 'fleet']);
   const currencySymbol = '€';
+  const [showFullTable, setShowFullTable] = useState(false);
 
   const getCatLabel = (cat: string): string => {
     const key = EXPENSE_CATEGORY_KEYS[cat];
@@ -360,6 +364,30 @@ export function ExpenseBreakdown({
     return [...vehicleProfitRanking].sort((a, b) => a.avgProfitPerDay - b.avgProfitPerDay).slice(0, 5);
   }, [vehicleProfitRanking]);
 
+  const visibleItems = expensesByCategory.slice(0, MAX_VISIBLE_ROWS);
+  const hasMoreItems = expensesByCategory.length > MAX_VISIBLE_ROWS;
+
+  const renderGrowthCell = (item: { growth: number | null; isNew: boolean }) => (
+    <div className="flex items-center justify-end gap-0.5">
+      {item.isNew ? (
+        <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">{t('finance:new')}</span>
+      ) : item.growth !== null ? (
+        <>
+          {item.growth >= 0 ? (
+            <TrendingUp className="h-3 w-3 text-green-600" />
+          ) : (
+            <TrendingDown className="h-3 w-3 text-red-600" />
+          )}
+          <span className={cn("text-xs font-medium", item.growth >= 0 ? "text-green-600" : "text-red-600")}>
+            {item.growth >= 0 ? "+" : ""}{item.growth}%
+          </span>
+        </>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      )}
+    </div>
+  );
+
   if (filteredRecords.length === 0) {
     return <Card className="p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-3">
@@ -384,39 +412,32 @@ export function ExpenseBreakdown({
 
       {/* Unified Layout: Compact Table Left, Category Breakdown + Pie Right */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-        {/* Left: Category Table (compact - 5 columns) */}
+        {/* Left: Category Table (compact - 4 columns) */}
         <div className="lg:col-span-5">
           <div className="border rounded-lg overflow-hidden">
             <Table className="table-fixed">
               <TableHeader>
                 <TableRow className="bg-slate-800 hover:bg-slate-800">
-                  <TableHead className="text-primary-foreground font-semibold w-[28%] px-2 py-1.5 text-xs">
+                  <TableHead className="text-primary-foreground font-semibold w-[40%] px-3 py-2 text-xs uppercase tracking-wide">
                     {t('finance:category')}
                   </TableHead>
-                  <TableHead className="text-right text-primary-foreground font-semibold w-[18%] px-1 py-1.5 text-xs">
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[22%] px-3 py-2 text-xs uppercase tracking-wide">
                     {t('finance:total')}
                   </TableHead>
-                  <TableHead className="text-right text-primary-foreground font-semibold w-[12%] px-1 py-1.5 text-xs">
-                    {t('finance:percentOfTotal')}
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[16%] px-3 py-2 text-xs uppercase tracking-wide border-l border-white/10">
+                    %
                   </TableHead>
-                  <TableHead className="text-right text-primary-foreground font-semibold w-[10%] px-1 py-1.5 text-xs">
-                    {t('finance:count')}
-                  </TableHead>
-                  <TableHead className="text-right text-primary-foreground font-semibold w-[12%] px-1 py-1.5 text-xs">
-                    {t('finance:avg')}
-                  </TableHead>
-                  <TableHead className="text-right text-primary-foreground font-semibold w-[20%] px-1 py-1.5 text-xs">
+                  <TableHead className="text-right text-primary-foreground font-semibold w-[22%] px-3 py-2 text-xs uppercase tracking-wide border-l border-white/10">
                     {t('finance:growth')}
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {expensesByCategory.map((item, index) => {
+                {visibleItems.map((item, index) => {
                   const pct = grandTotalExpense > 0 ? Math.round((item.total / grandTotalExpense) * 100) : 0;
-                  const avg = item.count > 0 ? Math.round(item.total / item.count) : 0;
                   return (
                   <TableRow key={item.key} className="hover:bg-muted/50">
-                    <TableCell className="px-2 py-1">
+                    <TableCell className="px-3 py-1.5">
                       <div className="flex items-center gap-1">
                         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
                       backgroundColor: getCategoryColor(item.key, index)
@@ -426,39 +447,16 @@ export function ExpenseBreakdown({
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-medium text-red-600 text-xs px-1 py-1">
+                    <TableCell className="text-right font-medium text-red-600 text-xs px-3 py-1.5">
                       {currencySymbol}{item.total.toLocaleString('el-GR', {
                     minimumFractionDigits: 0
                   })}
                     </TableCell>
-                    <TableCell className="text-right text-xs text-muted-foreground px-1 py-1">
+                    <TableCell className="text-right text-xs text-muted-foreground px-3 py-1.5 border-l border-border/30">
                       {pct}%
                     </TableCell>
-                    <TableCell className="text-right text-xs px-1 py-1">
-                      {item.count}
-                    </TableCell>
-                    <TableCell className="text-right text-xs text-muted-foreground px-1 py-1">
-                      {item.count > 0 ? `${currencySymbol}${avg.toLocaleString('el-GR')}` : '—'}
-                    </TableCell>
-                    <TableCell className="text-right text-xs px-1 py-1">
-                      <div className="flex items-center justify-end gap-0.5">
-                        {item.isNew ? (
-                          <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded-full">{t('finance:new')}</span>
-                        ) : item.growth !== null ? (
-                          <>
-                            {item.growth >= 0 ? (
-                              <TrendingUp className="h-3 w-3 text-green-600" />
-                            ) : (
-                              <TrendingDown className="h-3 w-3 text-red-600" />
-                            )}
-                            <span className={cn("text-xs font-medium", item.growth >= 0 ? "text-green-600" : "text-red-600")}>
-                              {item.growth >= 0 ? "+" : ""}{item.growth}%
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </div>
+                    <TableCell className="text-right text-xs px-3 py-1.5 border-l border-border/30">
+                      {renderGrowthCell(item)}
                     </TableCell>
                   </TableRow>
                   );
@@ -466,6 +464,15 @@ export function ExpenseBreakdown({
               </TableBody>
             </Table>
           </div>
+          {hasMoreItems && (
+            <button
+              onClick={() => setShowFullTable(true)}
+              className="w-full flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors border-t border-border/50"
+            >
+              <ChevronDown className="h-3.5 w-3.5" />
+              <span>{t('finance:viewFullTable')} ({expensesByCategory.length} {t('finance:categories')})</span>
+            </button>
+          )}
         </div>
 
         {/* Middle: Vehicle Category Breakdown (2 columns) - INDEPENDENT HEIGHT */}
@@ -572,5 +579,71 @@ export function ExpenseBreakdown({
             </div>}
         </div>
       </div>
+
+      {/* Full Table Dialog */}
+      <Dialog open={showFullTable} onOpenChange={setShowFullTable}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <TrendingDown className="h-4 w-4 text-red-600" />
+              {t('finance:expenseBreakdown')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="border rounded-lg overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-800 hover:bg-slate-800">
+                  <TableHead className="text-primary-foreground font-semibold px-3 py-2 text-xs uppercase tracking-wide">
+                    {t('finance:category')}
+                  </TableHead>
+                  <TableHead className="text-right text-primary-foreground font-semibold px-3 py-2 text-xs uppercase tracking-wide">
+                    {t('finance:total')}
+                  </TableHead>
+                  <TableHead className="text-right text-primary-foreground font-semibold px-3 py-2 text-xs uppercase tracking-wide border-l border-white/10">
+                    {t('finance:percentOfTotal')}
+                  </TableHead>
+                  <TableHead className="text-right text-primary-foreground font-semibold px-3 py-2 text-xs uppercase tracking-wide border-l border-white/10">
+                    {t('finance:count')}
+                  </TableHead>
+                  <TableHead className="text-right text-primary-foreground font-semibold px-3 py-2 text-xs uppercase tracking-wide border-l border-white/10">
+                    {t('finance:growth')}
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {expensesByCategory.map((item, index) => {
+                  const pct = grandTotalExpense > 0 ? Math.round((item.total / grandTotalExpense) * 100) : 0;
+                  return (
+                  <TableRow key={item.key} className="hover:bg-muted/50">
+                    <TableCell className="px-3 py-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
+                      backgroundColor: getCategoryColor(item.key, index)
+                    }} />
+                        <span className="text-xs">
+                          {item.label}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-red-600 text-xs px-3 py-1.5">
+                      {currencySymbol}{item.total.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
+                    </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground px-3 py-1.5 border-l border-border/30">
+                      {pct}%
+                    </TableCell>
+                    <TableCell className="text-right text-xs px-3 py-1.5 border-l border-border/30">
+                      {item.count}
+                    </TableCell>
+                    <TableCell className="text-right text-xs px-3 py-1.5 border-l border-border/30">
+                      {renderGrowthCell(item)}
+                    </TableCell>
+                  </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>;
 }
