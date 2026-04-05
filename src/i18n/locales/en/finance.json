@@ -263,5 +263,7 @@
   "insufficientMarketingDataHint": "Add marketing expenses and booking data across multiple periods to populate this chart",
   "percentOfTotal": "% of Total",
   "count": "Count",
-  "avg": "Avg"
+  "viewFullTable": "View full table",
+  "sources": "sources",
+  "categories": "categories"
 }

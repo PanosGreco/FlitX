@@ -103,5 +103,7 @@
   "insufficientMarketingDataHint": "Aggiungi spese marketing e prenotazioni su più periodi",
   "percentOfTotal": "% del Totale",
   "count": "Conteggio",
-  "avg": "Media"
+  "viewFullTable": "Visualizza tabella completa",
+  "sources": "fonti",
+  "categories": "categorie"
 }
