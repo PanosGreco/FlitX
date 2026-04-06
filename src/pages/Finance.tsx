@@ -578,6 +578,10 @@ const Finance = () => {
                         setTaxIsCustom(false);
                         setCustomTaxType('');
                       }
+                      if (val !== 'marketing') {
+                        setMarketingIsCustom(false);
+                        setCustomMarketingType('');
+                      }
                     }
                   }} disabled={isLanguageLoading}>
                     <SelectTrigger>
