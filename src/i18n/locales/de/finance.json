@@ -105,5 +105,10 @@
   "count": "Anzahl",
   "viewFullTable": "Vollständige Tabelle anzeigen",
   "sources": "Quellen",
-  "categories": "Kategorien"
+  "categories": "Kategorien",
+  "marketingChannelOptional": "Marketing-Kanal (optional)",
+  "selectMarketingChannel": "Kanal auswählen...",
+  "savedChannels": "Gespeicherte Kanäle",
+  "newMarketingChannel": "Neuer Kanalname",
+  "enterNewChannel": "z.B. Google Ads, Facebook..."
 }
