@@ -803,14 +803,78 @@ const Finance = () => {
 
               {recordType === "expense" && expenseCategory === 'marketing' && (
                 <div className="space-y-2">
-                  <Label htmlFor="expenseSubcat">
-                    {t('finance:marketingSpecification')}
+                  <Label>
+                    {t('finance:marketingChannelOptional')}
                   </Label>
-                  <Input 
-                    id="expenseSubcat"
-                    placeholder={t('finance:specifySource')}
-                    value={expenseSubcategory}
-                    onChange={(e) => setExpenseSubcategory(e.target.value)}
+                  <Select 
+                    value={marketingIsCustom ? '__new_mkt__' : (expenseSubcategory || '__none__')} 
+                    onValueChange={(val) => {
+                      if (val.startsWith('__custom_mkt__:')) {
+                        const custom = val.replace('__custom_mkt__:', '');
+                        setMarketingIsCustom(false);
+                        setCustomMarketingType('');
+                        setExpenseSubcategory(custom);
+                      } else if (val === '__new_mkt__') {
+                        setMarketingIsCustom(true);
+                        setExpenseSubcategory('');
+                        setCustomMarketingType('');
+                      } else if (val === '__none__') {
+                        setMarketingIsCustom(false);
+                        setExpenseSubcategory('');
+                        setCustomMarketingType('');
+                      } else {
+                        setMarketingIsCustom(false);
+                        setCustomMarketingType('');
+                        setExpenseSubcategory(val);
+                      }
+                    }}
+                    disabled={isLanguageLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('finance:selectMarketingChannel')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="__none__">
+                          {t('finance:noSpec')}
+                        </SelectItem>
+                        <SelectItem value="__new_mkt__" className="bg-muted/50 rounded-sm">
+                          {t('finance:addNewCustom')}
+                        </SelectItem>
+                      </SelectGroup>
+                      {marketingSubcategories.length > 0 && (
+                        <>
+                          <SelectSeparator />
+                          <SelectGroup>
+                            <SelectLabel className="text-xs text-muted-foreground font-medium">
+                              {t('finance:savedChannels')}
+                            </SelectLabel>
+                            {marketingSubcategories.map(cat => (
+                              <SelectItem key={cat} value={`__custom_mkt__:${cat}`}>
+                                {cat}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {recordType === "expense" && expenseCategory === 'marketing' && marketingIsCustom && (
+                <div className="space-y-2">
+                  <Label>
+                    {t('finance:newMarketingChannel')} *
+                  </Label>
+                  <Input
+                    placeholder={t('finance:enterNewChannel')}
+                    value={customMarketingType}
+                    onChange={(e) => {
+                      setCustomMarketingType(e.target.value);
+                      setExpenseSubcategory(e.target.value);
+                    }}
+                    required
                     disabled={isLanguageLoading}
                   />
                 </div>
