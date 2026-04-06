@@ -36,6 +36,7 @@ import { useMaintenanceCategories } from "@/hooks/useMaintenanceCategories";
 import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { useVehiclePartsCategories } from "@/hooks/useVehiclePartsCategories";
 import { useTaxesFeesCategories } from "@/hooks/useTaxesFeesCategories";
+import { useMarketingCategories } from "@/hooks/useMarketingCategories";
 import { useVatSettings } from "@/hooks/useVatSettings";
 import { VatControl } from "@/components/finances/VatControl";
 import { useTranslation } from "react-i18next";
