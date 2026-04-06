@@ -654,31 +654,38 @@ export function ExpenseBreakdown({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {expensesByCategory.map((item, index) => {
+                {expensesWithParentTotals.map((item, index) => {
+                  const isParentTotal = item.key.startsWith('__total_');
                   const pct = grandTotalExpense > 0 ? Math.round((item.total / grandTotalExpense) * 100) : 0;
                   return (
-                  <TableRow key={item.key} className="hover:bg-muted/50">
+                  <TableRow key={item.key} className={cn("hover:bg-muted/50", isParentTotal && "bg-muted/30 border-t border-border/50")}>
                     <TableCell className="px-3 py-1.5">
                       <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
-                      backgroundColor: getCategoryColor(item.key, index)
-                    }} />
-                        <span className="text-xs">
+                        {!isParentTotal && (
+                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
+                            backgroundColor: getCategoryColor(item.key, index)
+                          }} />
+                        )}
+                        <span className={cn("text-xs", isParentTotal && "font-bold pl-2")}>
                           {item.label}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-medium text-red-600 text-xs px-3 py-1.5">
+                    <TableCell className={cn("text-right font-medium text-red-600 text-xs px-3 py-1.5", isParentTotal && "font-bold")}>
                       {currencySymbol}{item.total.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
                     </TableCell>
                     <TableCell className="text-right text-xs text-muted-foreground px-3 py-1.5 border-l border-border/30">
                       {pct}%
                     </TableCell>
                     <TableCell className="text-right text-xs px-3 py-1.5 border-l border-border/30">
-                      {item.count}
+                      {isParentTotal ? '—' : item.count}
                     </TableCell>
                     <TableCell className="text-right text-xs px-3 py-1.5 border-l border-border/30">
-                      {renderGrowthCell(item)}
+                      {isParentTotal ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        renderGrowthCell(item)
+                      )}
                     </TableCell>
                   </TableRow>
                   );
