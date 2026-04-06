@@ -400,8 +400,8 @@ export function ExpenseBreakdown({
     return [...vehicleProfitRanking].sort((a, b) => a.avgProfitPerDay - b.avgProfitPerDay).slice(0, 5);
   }, [vehicleProfitRanking]);
 
-  const visibleItems = expensesByCategory.slice(0, MAX_VISIBLE_ROWS);
-  const hasMoreItems = expensesByCategory.length > MAX_VISIBLE_ROWS;
+  const visibleItems = expensesWithParentTotals.slice(0, MAX_VISIBLE_ROWS);
+  const hasMoreItems = expensesWithParentTotals.length > MAX_VISIBLE_ROWS;
 
   const renderGrowthCell = (item: { growth: number | null; isNew: boolean }) => (
     <div className="flex items-center justify-end gap-0.5">
