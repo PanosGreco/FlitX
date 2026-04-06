@@ -265,5 +265,10 @@
   "count": "Πλήθος",
   "viewFullTable": "Προβολή πλήρους πίνακα",
   "sources": "πηγές",
-  "categories": "κατηγορίες"
+  "categories": "κατηγορίες",
+  "marketingChannelOptional": "Κανάλι Marketing (προαιρετικό)",
+  "selectMarketingChannel": "Επιλέξτε κανάλι...",
+  "savedChannels": "Αποθηκευμένα Κανάλια",
+  "newMarketingChannel": "Νέο Κανάλι",
+  "enterNewChannel": "π.χ. Google Ads, Facebook..."
 }
