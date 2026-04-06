@@ -105,5 +105,10 @@
   "count": "Conteggio",
   "viewFullTable": "Visualizza tabella completa",
   "sources": "fonti",
-  "categories": "categorie"
+  "categories": "categorie",
+  "marketingChannelOptional": "Canale Marketing (opzionale)",
+  "selectMarketingChannel": "Seleziona canale...",
+  "savedChannels": "Canali Salvati",
+  "newMarketingChannel": "Nuovo Canale",
+  "enterNewChannel": "es. Google Ads, Facebook..."
 }

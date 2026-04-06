@@ -36,6 +36,7 @@ import { useMaintenanceCategories } from "@/hooks/useMaintenanceCategories";
 import { useExpenseCategories } from "@/hooks/useExpenseCategories";
 import { useVehiclePartsCategories } from "@/hooks/useVehiclePartsCategories";
 import { useTaxesFeesCategories } from "@/hooks/useTaxesFeesCategories";
+import { useMarketingCategories } from "@/hooks/useMarketingCategories";
 import { useVatSettings } from "@/hooks/useVatSettings";
 import { VatControl } from "@/components/finances/VatControl";
 import { useTranslation } from "react-i18next";
@@ -57,6 +58,8 @@ const Finance = () => {
   const [customVehiclePart, setCustomVehiclePart] = useState("");
   const [taxIsCustom, setTaxIsCustom] = useState(false);
   const [customTaxType, setCustomTaxType] = useState("");
+  const [marketingIsCustom, setMarketingIsCustom] = useState(false);
+  const [customMarketingType, setCustomMarketingType] = useState("");
   const [incomeSourceType, setIncomeSourceType] = useState("walk_in");
   const [incomeSourceSpecification, setIncomeSourceSpecification] = useState("");
   const [amount, setAmount] = useState("");
@@ -73,6 +76,7 @@ const Finance = () => {
   const { userExpenseCategories, refetchExpenseCategories } = useExpenseCategories();
   const { vehiclePartsSubcategories, refetchVehiclePartsCategories } = useVehiclePartsCategories();
   const { taxSubcategories, refetchTaxCategories } = useTaxesFeesCategories();
+  const { marketingSubcategories, refetchMarketingCategories } = useMarketingCategories();
   const { toast } = useToast();
   const { language, isLanguageLoading } = useLanguage();
   const isBoats = isBoatBusiness();
@@ -166,6 +170,8 @@ const Finance = () => {
     setCustomVehiclePart("");
     setTaxIsCustom(false);
     setCustomTaxType("");
+    setMarketingIsCustom(false);
+    setCustomMarketingType("");
     setIncomeSourceType("walk_in");
     setIncomeSourceSpecification("");
     setAmount("");
@@ -423,6 +429,7 @@ const Finance = () => {
         refetchExpenseCategories();
         refetchVehiclePartsCategories();
         refetchTaxCategories();
+        refetchMarketingCategories();
       }
     } catch (error) {
       console.error("Exception adding financial record:", error);
@@ -571,6 +578,10 @@ const Finance = () => {
                       if (val !== 'tax') {
                         setTaxIsCustom(false);
                         setCustomTaxType('');
+                      }
+                      if (val !== 'marketing') {
+                        setMarketingIsCustom(false);
+                        setCustomMarketingType('');
                       }
                     }
                   }} disabled={isLanguageLoading}>
@@ -793,14 +804,78 @@ const Finance = () => {
 
               {recordType === "expense" && expenseCategory === 'marketing' && (
                 <div className="space-y-2">
-                  <Label htmlFor="expenseSubcat">
-                    {t('finance:marketingSpecification')}
+                  <Label>
+                    {t('finance:marketingChannelOptional')}
                   </Label>
-                  <Input 
-                    id="expenseSubcat"
-                    placeholder={t('finance:specifySource')}
-                    value={expenseSubcategory}
-                    onChange={(e) => setExpenseSubcategory(e.target.value)}
+                  <Select 
+                    value={marketingIsCustom ? '__new_mkt__' : (expenseSubcategory || '__none__')} 
+                    onValueChange={(val) => {
+                      if (val.startsWith('__custom_mkt__:')) {
+                        const custom = val.replace('__custom_mkt__:', '');
+                        setMarketingIsCustom(false);
+                        setCustomMarketingType('');
+                        setExpenseSubcategory(custom);
+                      } else if (val === '__new_mkt__') {
+                        setMarketingIsCustom(true);
+                        setExpenseSubcategory('');
+                        setCustomMarketingType('');
+                      } else if (val === '__none__') {
+                        setMarketingIsCustom(false);
+                        setExpenseSubcategory('');
+                        setCustomMarketingType('');
+                      } else {
+                        setMarketingIsCustom(false);
+                        setCustomMarketingType('');
+                        setExpenseSubcategory(val);
+                      }
+                    }}
+                    disabled={isLanguageLoading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('finance:selectMarketingChannel')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectItem value="__none__">
+                          {t('finance:noSpec')}
+                        </SelectItem>
+                        <SelectItem value="__new_mkt__" className="bg-muted/50 rounded-sm">
+                          {t('finance:addNewCustom')}
+                        </SelectItem>
+                      </SelectGroup>
+                      {marketingSubcategories.length > 0 && (
+                        <>
+                          <SelectSeparator />
+                          <SelectGroup>
+                            <SelectLabel className="text-xs text-muted-foreground font-medium">
+                              {t('finance:savedChannels')}
+                            </SelectLabel>
+                            {marketingSubcategories.map(cat => (
+                              <SelectItem key={cat} value={`__custom_mkt__:${cat}`}>
+                                {cat}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {recordType === "expense" && expenseCategory === 'marketing' && marketingIsCustom && (
+                <div className="space-y-2">
+                  <Label>
+                    {t('finance:newMarketingChannel')} *
+                  </Label>
+                  <Input
+                    placeholder={t('finance:enterNewChannel')}
+                    value={customMarketingType}
+                    onChange={(e) => {
+                      setCustomMarketingType(e.target.value);
+                      setExpenseSubcategory(e.target.value);
+                    }}
+                    required
                     disabled={isLanguageLoading}
                   />
                 </div>

@@ -294,6 +294,42 @@ export function ExpenseBreakdown({
 
   const grandTotalExpense = useMemo(() => expensesByCategory.reduce((s, i) => s + i.total, 0), [expensesByCategory]);
 
+  // Insert parent total rows for categories with 2+ subcategories
+  const expensesWithParentTotals = useMemo(() => {
+    const parentCounts = new Map<string, { total: number; count: number }>();
+    
+    expensesByCategory.forEach(item => {
+      const parent = getParentCategory(item.key);
+      if (item.key !== parent && item.key.startsWith(parent + '_')) {
+        const existing = parentCounts.get(parent) || { total: 0, count: 0 };
+        parentCounts.set(parent, { total: existing.total + item.total, count: existing.count + 1 });
+      }
+    });
+
+    const result: typeof expensesByCategory = [];
+    const insertedParents = new Set<string>();
+
+    expensesByCategory.forEach(item => {
+      const parent = getParentCategory(item.key);
+      const parentData = parentCounts.get(parent);
+      
+      if (parentData && parentData.count >= 2 && !insertedParents.has(parent) && item.key !== parent && item.key.startsWith(parent + '_')) {
+        insertedParents.add(parent);
+        result.push({
+          key: `__total_${parent}`,
+          label: `${getCatLabel(parent)} (${t('finance:total')})`,
+          total: parentData.total,
+          count: 0,
+          growth: null,
+          isNew: false,
+        });
+      }
+      result.push(item);
+    });
+
+    return result;
+  }, [expensesByCategory, t]);
+
   // Prepare pie chart data with parent-based colors and <5% grouping
   const pieData = useMemo(() => {
     const total = expensesByCategory.reduce((sum, item) => sum + item.total, 0);
@@ -364,8 +400,8 @@ export function ExpenseBreakdown({
     return [...vehicleProfitRanking].sort((a, b) => a.avgProfitPerDay - b.avgProfitPerDay).slice(0, 5);
   }, [vehicleProfitRanking]);
 
-  const visibleItems = expensesByCategory.slice(0, MAX_VISIBLE_ROWS);
-  const hasMoreItems = expensesByCategory.length > MAX_VISIBLE_ROWS;
+  const visibleItems = expensesWithParentTotals.slice(0, MAX_VISIBLE_ROWS);
+  const hasMoreItems = expensesWithParentTotals.length > MAX_VISIBLE_ROWS;
 
   const renderGrowthCell = (item: { growth: number | null; isNew: boolean }) => (
     <div className="flex items-center justify-end gap-0.5">
@@ -434,20 +470,23 @@ export function ExpenseBreakdown({
               </TableHeader>
               <TableBody>
                 {visibleItems.map((item, index) => {
+                  const isParentTotal = item.key.startsWith('__total_');
                   const pct = grandTotalExpense > 0 ? Math.round((item.total / grandTotalExpense) * 100) : 0;
                   return (
-                  <TableRow key={item.key} className="hover:bg-muted/50">
+                  <TableRow key={item.key} className={cn("hover:bg-muted/50", isParentTotal && "bg-muted/30 border-t border-border/50")}>
                     <TableCell className="px-3 py-1.5">
                       <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
-                      backgroundColor: getCategoryColor(item.key, index)
-                    }} />
-                        <span className="truncate text-xs">
+                        {!isParentTotal && (
+                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
+                            backgroundColor: getCategoryColor(item.key, index)
+                          }} />
+                        )}
+                        <span className={cn("truncate text-xs", isParentTotal && "font-bold pl-2")}>
                           {item.label}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-medium text-red-600 text-xs px-3 py-1.5">
+                    <TableCell className={cn("text-right font-medium text-red-600 text-xs px-3 py-1.5", isParentTotal && "font-bold")}>
                       {currencySymbol}{item.total.toLocaleString('el-GR', {
                     minimumFractionDigits: 0
                   })}
@@ -456,7 +495,11 @@ export function ExpenseBreakdown({
                       {pct}%
                     </TableCell>
                     <TableCell className="text-right text-xs px-3 py-1.5 border-l border-border/30">
-                      {renderGrowthCell(item)}
+                      {isParentTotal ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        renderGrowthCell(item)
+                      )}
                     </TableCell>
                   </TableRow>
                   );
@@ -470,7 +513,7 @@ export function ExpenseBreakdown({
               className="w-full flex items-center justify-center gap-2 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors border-t border-border/50"
             >
               <ChevronDown className="h-3.5 w-3.5" />
-              <span>{t('finance:viewFullTable')} ({expensesByCategory.length} {t('finance:categories')})</span>
+              <span>{t('finance:viewFullTable')} ({expensesWithParentTotals.length} {t('finance:categories')})</span>
             </button>
           )}
         </div>
@@ -611,31 +654,38 @@ export function ExpenseBreakdown({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {expensesByCategory.map((item, index) => {
+                {expensesWithParentTotals.map((item, index) => {
+                  const isParentTotal = item.key.startsWith('__total_');
                   const pct = grandTotalExpense > 0 ? Math.round((item.total / grandTotalExpense) * 100) : 0;
                   return (
-                  <TableRow key={item.key} className="hover:bg-muted/50">
+                  <TableRow key={item.key} className={cn("hover:bg-muted/50", isParentTotal && "bg-muted/30 border-t border-border/50")}>
                     <TableCell className="px-3 py-1.5">
                       <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
-                      backgroundColor: getCategoryColor(item.key, index)
-                    }} />
-                        <span className="text-xs">
+                        {!isParentTotal && (
+                          <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
+                            backgroundColor: getCategoryColor(item.key, index)
+                          }} />
+                        )}
+                        <span className={cn("text-xs", isParentTotal && "font-bold pl-2")}>
                           {item.label}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right font-medium text-red-600 text-xs px-3 py-1.5">
+                    <TableCell className={cn("text-right font-medium text-red-600 text-xs px-3 py-1.5", isParentTotal && "font-bold")}>
                       {currencySymbol}{item.total.toLocaleString('el-GR', { minimumFractionDigits: 0 })}
                     </TableCell>
                     <TableCell className="text-right text-xs text-muted-foreground px-3 py-1.5 border-l border-border/30">
                       {pct}%
                     </TableCell>
                     <TableCell className="text-right text-xs px-3 py-1.5 border-l border-border/30">
-                      {item.count}
+                      {isParentTotal ? '—' : item.count}
                     </TableCell>
                     <TableCell className="text-right text-xs px-3 py-1.5 border-l border-border/30">
-                      {renderGrowthCell(item)}
+                      {isParentTotal ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        renderGrowthCell(item)
+                      )}
                     </TableCell>
                   </TableRow>
                   );
