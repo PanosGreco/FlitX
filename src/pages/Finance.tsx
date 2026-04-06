@@ -170,6 +170,8 @@ const Finance = () => {
     setCustomVehiclePart("");
     setTaxIsCustom(false);
     setCustomTaxType("");
+    setMarketingIsCustom(false);
+    setCustomMarketingType("");
     setIncomeSourceType("walk_in");
     setIncomeSourceSpecification("");
     setAmount("");
