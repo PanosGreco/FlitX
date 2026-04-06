@@ -58,6 +58,8 @@ const Finance = () => {
   const [customVehiclePart, setCustomVehiclePart] = useState("");
   const [taxIsCustom, setTaxIsCustom] = useState(false);
   const [customTaxType, setCustomTaxType] = useState("");
+  const [marketingIsCustom, setMarketingIsCustom] = useState(false);
+  const [customMarketingType, setCustomMarketingType] = useState("");
   const [incomeSourceType, setIncomeSourceType] = useState("walk_in");
   const [incomeSourceSpecification, setIncomeSourceSpecification] = useState("");
   const [amount, setAmount] = useState("");
