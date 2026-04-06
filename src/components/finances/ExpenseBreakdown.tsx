@@ -294,6 +294,42 @@ export function ExpenseBreakdown({
 
   const grandTotalExpense = useMemo(() => expensesByCategory.reduce((s, i) => s + i.total, 0), [expensesByCategory]);
 
+  // Insert parent total rows for categories with 2+ subcategories
+  const expensesWithParentTotals = useMemo(() => {
+    const parentCounts = new Map<string, { total: number; count: number }>();
+    
+    expensesByCategory.forEach(item => {
+      const parent = getParentCategory(item.key);
+      if (item.key !== parent && item.key.startsWith(parent + '_')) {
+        const existing = parentCounts.get(parent) || { total: 0, count: 0 };
+        parentCounts.set(parent, { total: existing.total + item.total, count: existing.count + 1 });
+      }
+    });
+
+    const result: typeof expensesByCategory = [];
+    const insertedParents = new Set<string>();
+
+    expensesByCategory.forEach(item => {
+      const parent = getParentCategory(item.key);
+      const parentData = parentCounts.get(parent);
+      
+      if (parentData && parentData.count >= 2 && !insertedParents.has(parent) && item.key !== parent && item.key.startsWith(parent + '_')) {
+        insertedParents.add(parent);
+        result.push({
+          key: `__total_${parent}`,
+          label: `${getCatLabel(parent)} (${t('finance:total')})`,
+          total: parentData.total,
+          count: 0,
+          growth: null,
+          isNew: false,
+        });
+      }
+      result.push(item);
+    });
+
+    return result;
+  }, [expensesByCategory, t]);
+
   // Prepare pie chart data with parent-based colors and <5% grouping
   const pieData = useMemo(() => {
     const total = expensesByCategory.reduce((sum, item) => sum + item.total, 0);
