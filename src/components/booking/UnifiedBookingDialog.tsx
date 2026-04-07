@@ -764,7 +764,14 @@ export function UnifiedBookingDialog({
               <RadioGroup value={pricingMode} onValueChange={(v) => setPricingMode(v as 'fixed' | 'adjusted' | 'custom')} className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="fixed" id="fixed" />
-                  <Label htmlFor="fixed" className="font-normal cursor-pointer">{t('fleet:booking_vehicleRate')} (€{vehicleDailyRate}/{t('fleet:booking_day')})</Label>
+                  <Label htmlFor="fixed" className="font-normal cursor-pointer">
+                    {t('fleet:booking_vehicleRate')} (€{vehicleDailyRate}/{t('fleet:booking_day')})
+                    {seasonAdjustment && (
+                      <span className="text-amber-600 text-xs ml-1">
+                        — {activeSeasonName} (base: €{baseRate})
+                      </span>
+                    )}
+                  </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="adjusted" id="adjusted" />
