@@ -682,6 +682,99 @@ export type Database = {
           },
         ]
       }
+      price_season_rules: {
+        Row: {
+          adjustment_type: string
+          adjustment_value: number
+          created_at: string
+          id: string
+          scope: string
+          season_id: string
+          user_id: string
+          vehicle_category: string | null
+          vehicle_id: string | null
+        }
+        Insert: {
+          adjustment_type: string
+          adjustment_value: number
+          created_at?: string
+          id?: string
+          scope?: string
+          season_id: string
+          user_id: string
+          vehicle_category?: string | null
+          vehicle_id?: string | null
+        }
+        Update: {
+          adjustment_type?: string
+          adjustment_value?: number
+          created_at?: string
+          id?: string
+          scope?: string
+          season_id?: string
+          user_id?: string
+          vehicle_category?: string | null
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "price_season_rules_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "price_seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "price_season_rules_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_seasons: {
+        Row: {
+          created_at: string
+          end_day: number
+          end_month: number
+          id: string
+          is_active: boolean
+          mode: string
+          name: string
+          start_day: number
+          start_month: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_day: number
+          end_month: number
+          id?: string
+          is_active?: boolean
+          mode?: string
+          name: string
+          start_day: number
+          start_month: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_day?: number
+          end_month?: number
+          id?: string
+          is_active?: boolean
+          mode?: string
+          name?: string
+          start_day?: number
+          start_month?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
