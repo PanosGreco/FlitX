@@ -7,6 +7,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { ComputedStatus } from "@/hooks/useVehicleStatus";
 import { getVehicleCategoryLabel } from "@/constants/vehicleTypes";
 import { getTransmissionTypeLabel } from "@/constants/transmissionTypes";
+import { getEffectiveRate, type PriceSeason, type PriceSeasonRule } from "@/utils/priceSeasons";
 
 const getFuelTypeLabel = (fuelType: string, t: (key: string) => string) => {
   const key = `fleet:fuel_${fuelType}`;
@@ -38,11 +39,22 @@ export interface VehicleData {
 interface VehicleCardProps {
   vehicle: VehicleData;
   computedStatus?: ComputedStatus;
+  activeSeasons?: PriceSeason[];
+  allRules?: PriceSeasonRule[];
 }
 
-export function VehicleCard({ vehicle, computedStatus }: VehicleCardProps) {
+export function VehicleCard({ vehicle, computedStatus, activeSeasons, allRules }: VehicleCardProps) {
   const { t } = useTranslation(['common', 'fleet']);
   const { language } = useLanguage();
+
+  const { effectiveRate, adjustment, seasonName } = getEffectiveRate(
+    vehicle.dailyRate,
+    vehicle.id,
+    vehicle.type,
+    activeSeasons || [],
+    allRules || []
+  );
+  const hasSeasonalAdjustment = adjustment !== null;
 
   const displayStatus = computedStatus || vehicle.status;
   const statusColors = {
@@ -106,10 +118,26 @@ export function VehicleCard({ vehicle, computedStatus }: VehicleCardProps) {
             <div className="text-xs text-flitx-gray-400">
               {vehicle.mileage.toLocaleString()} {t('km')}
             </div>
-            <div className="flex items-center text-flitx-blue font-semibold">
-              <Calendar className="w-4 h-4 mr-1" />
-              <span>€{vehicle.dailyRate}/{t('day')}</span>
-            </div>
+            {hasSeasonalAdjustment ? (
+              <div className="flex flex-col items-end">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs text-muted-foreground line-through">
+                    €{vehicle.dailyRate}
+                  </span>
+                  <span className="text-flitx-blue font-semibold">
+                    €{Math.round(effectiveRate)}/{t('day')}
+                  </span>
+                </div>
+                <span className="text-[10px] text-amber-600 font-medium">
+                  {seasonName}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center text-flitx-blue font-semibold">
+                <Calendar className="w-4 h-4 mr-1" />
+                <span>€{vehicle.dailyRate}/{t('day')}</span>
+              </div>
+            )}
           </div>
         )}
       </div>

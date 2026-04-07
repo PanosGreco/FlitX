@@ -1,13 +1,17 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { VehicleCard, VehicleData } from "./VehicleCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { PlusCircle, Search, Filter, Loader2 } from "lucide-react";
+import { PlusCircle, Search, Filter, Loader2, CalendarRange } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useFleetStatuses } from "@/hooks/useVehicleStatus";
 import { VehicleFilterPanel, VehicleFilters } from "./VehicleFilterPanel";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { PriceSeasonsDialog } from "./PriceSeasonsDialog";
+import { getActiveSeasonsForDate, type PriceSeason, type PriceSeasonRule } from "@/utils/priceSeasons";
 
 interface VehicleGridProps {
   vehicles: VehicleData[];
@@ -16,8 +20,10 @@ interface VehicleGridProps {
 }
 
 export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: VehicleGridProps) {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isPriceSeasonsOpen, setIsPriceSeasonsOpen] = useState(false);
   const [filters, setFilters] = useState<VehicleFilters>({
     yearSort: null,
     fuelTypes: [],
@@ -29,6 +35,26 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
   const { t, language, isLanguageLoading } = useLanguage();
   
   usePageTitle("fleet");
+
+  // Price seasons state
+  const [allSeasons, setAllSeasons] = useState<PriceSeason[]>([]);
+  const [allRules, setAllRules] = useState<PriceSeasonRule[]>([]);
+
+  const fetchSeasons = async () => {
+    if (!user) return;
+    const [seasonsRes, rulesRes] = await Promise.all([
+      supabase.from('price_seasons').select('*').eq('user_id', user.id),
+      supabase.from('price_season_rules').select('*').eq('user_id', user.id),
+    ]);
+    if (!seasonsRes.error) setAllSeasons((seasonsRes.data || []) as unknown as PriceSeason[]);
+    if (!rulesRes.error) setAllRules((rulesRes.data || []) as unknown as PriceSeasonRule[]);
+  };
+
+  useEffect(() => {
+    fetchSeasons();
+  }, [user]);
+
+  const activeSeasons = useMemo(() => getActiveSeasonsForDate(allSeasons, new Date()), [allSeasons]);
 
   // Get all vehicle IDs for status computation
   const vehicleIds = useMemo(() => vehicles.map(v => v.id), [vehicles]);
@@ -125,13 +151,16 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">{t('fleet')}</h1>
         
-        <Button 
-          onClick={onAddVehicle}
-          disabled={isLanguageLoading}
-        >
-          <PlusCircle className="w-4 h-4 mr-2" />
-          {t('addVehicle')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setIsPriceSeasonsOpen(true)} disabled={isLanguageLoading}>
+            <CalendarRange className="w-4 h-4 mr-2" />
+            {t('fleet:priceSeasons')}
+          </Button>
+          <Button onClick={onAddVehicle} disabled={isLanguageLoading}>
+            <PlusCircle className="w-4 h-4 mr-2" />
+            {t('addVehicle')}
+          </Button>
+        </div>
       </div>
       
       <div className="flex items-center gap-2">
@@ -186,6 +215,8 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
                 key={vehicle.id} 
                 vehicle={vehicle} 
                 computedStatus={computedStatuses.get(vehicle.id)}
+                activeSeasons={activeSeasons}
+                allRules={allRules}
               />
             ))
           ) : (
@@ -199,6 +230,14 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
           )}
         </div>
       )}
+
+      <PriceSeasonsDialog
+        isOpen={isPriceSeasonsOpen}
+        onClose={() => setIsPriceSeasonsOpen(false)}
+        availableCategories={availableCategories}
+        vehicles={vehicles.map(v => ({ id: v.id, make: v.make, model: v.model, year: v.year, license_plate: v.licensePlate, type: v.type }))}
+        onSeasonsChanged={fetchSeasons}
+      />
     </div>
   );
 }
