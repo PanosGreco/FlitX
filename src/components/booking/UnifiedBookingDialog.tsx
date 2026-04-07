@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import { validateFileSize, compressImage } from "@/utils/imageUtils";
 import { useVatSettings } from "@/hooks/useVatSettings";
 import { VatControl } from "@/components/finances/VatControl";
+import { getActiveSeasonsForDate, getEffectiveRate, type PriceSeason, type PriceSeasonRule } from "@/utils/priceSeasons";
 import type { DateRange } from "react-day-picker";
 
 interface Vehicle {
@@ -134,6 +135,8 @@ export function UnifiedBookingDialog({
   const [allBookings, setAllBookings] = useState<ExistingBooking[]>([]);
   const [allMaintenanceBlocks, setAllMaintenanceBlocks] = useState<MaintenanceBlock[]>([]);
   const [conflictError, setConflictError] = useState<string | null>(null);
+  const [priceSeasons, setPriceSeasons] = useState<PriceSeason[]>([]);
+  const [priceSeasonRules, setPriceSeasonRules] = useState<PriceSeasonRule[]>([]);
   
   // Vehicle search & filter state
   const [vehicleSearch, setVehicleSearch] = useState("");
@@ -214,14 +217,18 @@ export function UnifiedBookingDialog({
   const fetchAllData = async () => {
     if (!user) return;
     try {
-      const [vehiclesResult, bookingsResult, maintenanceResult] = await Promise.all([
+      const [vehiclesResult, bookingsResult, maintenanceResult, seasonsResult, rulesResult] = await Promise.all([
         supabase.from('vehicles').select('id, make, model, year, license_plate, daily_rate, fuel_type, transmission_type, vehicle_type, type, status, is_sold').eq('user_id', user.id),
         supabase.from('rental_bookings').select('id, vehicle_id, start_date, end_date, customer_name').eq('user_id', user.id).in('status', ['confirmed', 'active', 'pending']),
-        supabase.from('maintenance_blocks').select('id, vehicle_id, start_date, end_date, description').eq('user_id', user.id)
+        supabase.from('maintenance_blocks').select('id, vehicle_id, start_date, end_date, description').eq('user_id', user.id),
+        supabase.from('price_seasons').select('*').eq('user_id', user.id),
+        supabase.from('price_season_rules').select('*').eq('user_id', user.id),
       ]);
       if (!vehiclesResult.error) setVehicles((vehiclesResult.data || []).filter((v: any) => !v.is_sold));
       if (!bookingsResult.error) setAllBookings(bookingsResult.data || []);
       if (!maintenanceResult.error) setAllMaintenanceBlocks(maintenanceResult.data || []);
+      if (!seasonsResult.error) setPriceSeasons((seasonsResult.data || []) as unknown as PriceSeason[]);
+      if (!rulesResult.error) setPriceSeasonRules((rulesResult.data || []) as unknown as PriceSeasonRule[]);
     } catch (error) {
       console.error('Error fetching data:', error);
     }
@@ -304,7 +311,20 @@ export function UnifiedBookingDialog({
   };
 
   const selectedVehicle = vehicles.find(v => v.id === selectedVehicleId);
-  const vehicleDailyRate = selectedVehicle?.daily_rate || 0;
+  const baseRate = selectedVehicle?.daily_rate || 0;
+  
+  // Apply seasonal pricing using the booking's start date
+  const bookingDate = startDate || new Date();
+  const activeBookingSeasons = useMemo(() => getActiveSeasonsForDate(priceSeasons, bookingDate), [priceSeasons, bookingDate]);
+  const { effectiveRate: seasonalRate, adjustment: seasonAdjustment, seasonName: activeSeasonName } = getEffectiveRate(
+    baseRate,
+    selectedVehicleId,
+    selectedVehicle?.type || '',
+    activeBookingSeasons,
+    priceSeasonRules
+  );
+  
+  const vehicleDailyRate = seasonalRate;
   const rentalDays = calculateRentalDays();
   const effectiveRate = pricingMode === 'fixed' ? vehicleDailyRate : adjustedRate;
   const baseAmount = rentalDays * effectiveRate;
