@@ -1,39 +1,44 @@
 
 
-# Plan: Scatter Plot Refinements + Growth Indicator Fix
+# Implementation Plan: Price Seasons — Fleet-Wide Seasonal Price Adjustments
 
-## 1. MarketingScatterPlot.tsx — Visual Refinements
+## Step 1: Database Migration
+Create two tables with RLS:
+- **`price_seasons`**: id, user_id, name, start_month, start_day, end_month, end_day, mode (automatic/manual), is_active, created_at, updated_at
+- **`price_season_rules`**: id, season_id (FK CASCADE), user_id, scope (category/vehicle), vehicle_category, vehicle_id (FK CASCADE to vehicles), adjustment_type (percentage/fixed/absolute), adjustment_value, created_at
+- RLS: `auth.uid() = user_id` for ALL on both tables
 
-**1a. Restructure controls layout** — Move Monthly/Yearly toggle to top-right, period chips below right-aligned:
-- Replace single flex row with `space-y-2 mb-3` container
-- Toggle in `flex justify-end` wrapper
-- Chips in `flex justify-end overflow-x-auto` wrapper with gradient fade on left edge for scroll hint
+## Step 2: Create `src/utils/priceSeasons.ts`
+Pure utility with:
+- `isDateInSeason()` — cross-year aware month/day comparison
+- `getActiveSeasonsForDate()` — filters by is_active + mode
+- `getEffectiveRate()` — vehicle override > category rule > base rate
+- `applyAdjustment()` — percentage/fixed/absolute math
 
-**1b. Multi-colored dots** — Add `DOT_COLORS` palette (12 colors) at top of component. Update `<Cell>` to use `DOT_COLORS[index % length]`. Add a color legend below the chart mapping each dot color to its period label.
+## Step 3: Create `src/components/fleet/PriceSeasonsDialog.tsx`
+Management dialog with:
+- List view: season cards with name, date range, mode badge, status, rule summaries, Edit/Activate/Delete
+- 4-step create/edit wizard: Name & Mode → Date Range (month+day dropdowns) → Category Adjustments → Vehicle Overrides (optional)
+- CRUD operations against price_seasons and price_season_rules
 
-**1c. Axis labels** — Add `label` prop to both `<XAxis>` (marketingSpend, insideBottom) and `<YAxis>` (bookingRevenue, angle -90, insideLeft). Increase bottom/left margins to accommodate labels.
+## Step 4: Modify `src/components/fleet/VehicleGrid.tsx`
+- Add "Price Seasons" outline button with CalendarRange icon
+- Fetch price_seasons and price_season_rules on mount
+- Pass activeSeasons and allRules to VehicleCard
 
-**1d. Scroll gradient hint** — Add a relative wrapper around the chips row with a `pointer-events-none` gradient overlay on the left edge using pseudo-element or an absolute-positioned div.
+## Step 5: Modify `src/components/fleet/VehicleCard.tsx`
+- Add optional activeSeasons/allRules props
+- Compute effectiveRate via getEffectiveRate()
+- Show strikethrough base rate + adjusted rate + amber season name when active
 
-## 2. FinanceDashboard.tsx — Fix Growth Indicators
+## Step 6: Modify `src/components/booking/UnifiedBookingDialog.tsx`
+- Fetch seasons/rules in fetchAllData()
+- Replace vehicleDailyRate (line 307) with seasonal rate using `getActiveSeasonsForDate(seasons, startDate)` — **using startDate (booking pickup date)**, not new Date()
+- Show amber annotation on fixed pricing label when seasonal rate applies
 
-**Replace** the `calculateSummaryData()` function (lines 499-515) and `const summaryData = calculateSummaryData()` (line 517) with a single `useMemo` that:
-- Computes current period totals from `filteredRecords` (same as now)
-- Computes previous period by determining the equivalent prior date range based on `timeframe` (week/month/year/custom)
-- Filters `financialRecords` (unfiltered) for the previous period
-- Calculates percentage change: `((current - prev) / prev) * 100`, with 0% fallback for zero denominators
-- For "all" timeframe: returns 0% (no comparison possible)
-
-**New imports needed**: `startOfWeek`, `startOfMonth`, `startOfYear`, `subWeeks`, `subMonths`, `subYears` from `date-fns`
-
-## 3. Translation Keys
-
-Verify `marketingSpend` and `bookingRevenue` exist in all 6 locales (already added in previous step — just confirm, no changes expected).
-
-## Files Modified
-1. `src/components/finances/MarketingScatterPlot.tsx` — layout, colors, axis labels, legend, scroll hint
-2. `src/components/finances/FinanceDashboard.tsx` — replace `calculateSummaryData` with `useMemo`, add date-fns imports
+## Step 7: Add translations to all 6 locale fleet.json files
+~30 keys for season management UI (EN, EL, DE, FR, IT, ES)
 
 ## Not Modified
-- Charts, breakdowns, assets, transactions, KpiCard, delete logic, recurring modal — all untouched
+- vehicles.daily_rate, handleSaveBooking, createDailyTasks, Finance pages, depreciation utils, AI edge functions
 
