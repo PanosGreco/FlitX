@@ -745,7 +745,11 @@ export function UnifiedBookingDialog({
                 <div className="text-sm min-w-0">
                   <span className="font-medium">{selectedVehicle.make} {selectedVehicle.model}</span>
                   {selectedVehicle.license_plate && <span className="text-muted-foreground"> · {selectedVehicle.license_plate}</span>}
-                  <span className="text-muted-foreground"> · €{selectedVehicle.daily_rate}/{t('fleet:booking_day')}</span>
+                  {seasonAdjustment ? (
+                    <span className="text-muted-foreground"> · <span className="line-through">€{baseRate}</span> <span className="text-amber-600 font-medium">€{Math.round(vehicleDailyRate)}/{t('fleet:booking_day')}</span></span>
+                  ) : (
+                    <span className="text-muted-foreground"> · €{selectedVehicle.daily_rate}/{t('fleet:booking_day')}</span>
+                  )}
                 </div>
               </div>
             )}
