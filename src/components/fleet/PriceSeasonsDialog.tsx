@@ -440,14 +440,15 @@ export function PriceSeasonsDialog({ isOpen, onClose, availableCategories, vehic
                 </Select>
                 <Input
                   type="number"
-                  value={globalAdjValue}
-                  onChange={e => setGlobalAdjValue(Number(e.target.value))}
+                  value={globalAdjValue === 0 ? '' : globalAdjValue}
+                  onChange={e => setGlobalAdjValue(e.target.value === '' ? 0 : Number(e.target.value))}
+                  placeholder="0"
                   className="w-24"
                 />
                 <span className="text-sm text-muted-foreground">{globalAdjType === 'percentage' ? '%' : '€'}</span>
               </div>
             ) : (
-              <ScrollArea className="max-h-[200px]">
+              <ScrollArea className="h-[320px] pr-3 border rounded-lg p-2">
                 <div className="space-y-2">
                   {categoryAdjustments.map((adj, idx) => (
                     <div key={adj.category} className="flex items-center gap-2 p-2 rounded-lg border">
@@ -477,12 +478,13 @@ export function PriceSeasonsDialog({ isOpen, onClose, availableCategories, vehic
                       </Select>
                       <Input
                         type="number"
-                        value={adj.value}
+                        value={adj.value === 0 ? '' : adj.value}
                         onChange={e => {
                           const updated = [...categoryAdjustments];
-                          updated[idx].value = Number(e.target.value);
+                          updated[idx].value = e.target.value === '' ? 0 : Number(e.target.value);
                           setCategoryAdjustments(updated);
                         }}
+                        placeholder="0"
                         className="w-20"
                         disabled={!adj.enabled}
                       />
@@ -529,12 +531,13 @@ export function PriceSeasonsDialog({ isOpen, onClose, availableCategories, vehic
                       </Select>
                       <Input
                         type="number"
-                        value={ov.value}
+                        value={ov.value === 0 ? '' : ov.value}
                         onChange={e => {
                           const updated = [...vehicleOverrides];
-                          updated[idx].value = Number(e.target.value);
+                          updated[idx].value = e.target.value === '' ? 0 : Number(e.target.value);
                           setVehicleOverrides(updated);
                         }}
+                        placeholder="0"
                         className="w-20"
                       />
                       <Button variant="ghost" size="icon" onClick={() => setVehicleOverrides(vehicleOverrides.filter((_, i) => i !== idx))}>
