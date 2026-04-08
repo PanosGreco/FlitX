@@ -733,22 +733,8 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       
       {/* Charts - 3 columns on large screens */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{t('incomeVsExpenses')}</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 pb-3">
-            <BarChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{t('trendOverTime')}</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0 pb-3">
-            <LineChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} />
-          </CardContent>
-        </Card>
+        <BarChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} customRange={customRange} title={t('incomeVsExpenses')} />
+        <LineChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} customRange={customRange} title={t('trendOverTime')} />
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{t('marketingVsRevenue')}</CardTitle>
