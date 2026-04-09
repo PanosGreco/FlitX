@@ -538,7 +538,24 @@ export function UnifiedBookingDialog({
         }
       }
 
-      toast.success(t('fleet:booking_createdSuccess', { amount: totalAmount.toFixed(2) }));
+      // Save customer contact info to booking_contacts
+      if (customerEmail || customerPhone || customerBirthDate || customerCity || customerCountry) {
+        const { error: contactError } = await supabase.from('booking_contacts').insert({
+          booking_id: booking.id,
+          user_id: user.id,
+          customer_email: customerEmail || null,
+          customer_phone: customerPhone || null,
+          customer_birth_date: customerBirthDate || null,
+          customer_city: customerCity || null,
+          customer_country: customerCountry || null,
+          customer_country_code: customerCountryCode || null,
+        });
+        if (contactError) {
+          console.error('Contact save error:', contactError);
+          toast.warning('Customer details partially saved');
+        }
+      }
+
       resetForm();
       onSuccess();
       onClose();
@@ -555,6 +572,8 @@ export function UnifiedBookingDialog({
     setPickupTime(""); setReturnTime("");
     setPickupLocation(""); setDropoffLocation("");
     setSelectedVehicleId(""); setCustomerName(""); setNotes("");
+    setCustomerEmail(""); setCustomerPhone(""); setCustomerBirthDate("");
+    setCustomerCity(""); setCustomerCountry(""); setCustomerCountryCode("");
     setContractPhoto(null); setContractPhotoPreview(null);
     setPricingMode('fixed'); setAdjustedRate(0); setCustomTotalPrice(0);
     setInsuranceType(""); setInsuranceAmount(0); setDynamicCosts([]);
@@ -589,10 +608,76 @@ export function UnifiedBookingDialog({
             />
           </div>
 
-          {/* Customer Name */}
-          <div>
-            <Label>{t('fleet:booking_customerName')} *</Label>
-            <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder={t('fleet:booking_fullName')} />
+          {/* Customer Information */}
+          <div className="space-y-3 p-3 bg-muted/30 rounded-lg border border-border/50">
+            <Label className="text-sm font-semibold text-foreground">{t('fleet:booking_customerInfo')}</Label>
+
+            {/* Row 1: Customer Name (required) */}
+            <div>
+              <Label>{t('fleet:booking_customerName')} *</Label>
+              <Input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder={t('fleet:booking_fullName')} />
+            </div>
+
+            {/* Row 2: Email + Phone */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <div className="flex items-center">
+                  <Label>{t('fleet:booking_email')}</Label>
+                  <InfoTooltip content={t('fleet:booking_tooltipEmail')} />
+                </div>
+                <Input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="customer@example.com" />
+              </div>
+              <div>
+                <div className="flex items-center">
+                  <Label>{t('fleet:booking_phone')}</Label>
+                  <InfoTooltip content={t('fleet:booking_tooltipPhone')} />
+                </div>
+                <Input type="tel" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="+30 123 456 7890" />
+              </div>
+            </div>
+
+            {/* Row 3: Birth Date + Country */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <div className="flex items-center">
+                  <Label>{t('fleet:booking_birthDate')}</Label>
+                  {customerAge !== null && (
+                    <span className="ml-1.5 text-xs text-muted-foreground">({t('fleet:booking_age')}: {customerAge})</span>
+                  )}
+                  <InfoTooltip content={t('fleet:booking_tooltipBirthDate')} />
+                </div>
+                <Input type="date" value={customerBirthDate} onChange={(e) => setCustomerBirthDate(e.target.value)} max={new Date().toISOString().split('T')[0]} />
+              </div>
+              <div>
+                <div className="flex items-center">
+                  <Label>{t('fleet:booking_country')}</Label>
+                  <InfoTooltip content={t('fleet:booking_tooltipLocation')} />
+                </div>
+                <CountryCombobox
+                  value={customerCountryCode}
+                  onChange={(code, name) => {
+                    setCustomerCountryCode(code);
+                    setCustomerCountry(name);
+                    setCustomerCity('');
+                  }}
+                  placeholder={t('fleet:booking_selectCountry')}
+                />
+              </div>
+            </div>
+
+            {/* Row 4: City */}
+            <div>
+              <Label>{t('fleet:booking_city')}</Label>
+              <CityCombobox
+                countryCode={customerCountryCode}
+                value={customerCity}
+                onChange={setCustomerCity}
+                disabled={!customerCountryCode}
+                placeholder={t('fleet:booking_city')}
+                disabledPlaceholder={t('fleet:booking_selectCountryFirst')}
+                searchPlaceholder={t('fleet:booking_searchCity')}
+              />
+            </div>
           </div>
 
           {/* C1: Inline Date Range Calendar */}
