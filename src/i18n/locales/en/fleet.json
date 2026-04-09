@@ -444,5 +444,19 @@
   "noSeasonsDesc": "Create your first season to adjust prices during peak or off-peak periods.",
   "crossYearNote": "This season spans across New Year",
   "step": "Step",
-  "of": "of"
+  "of": "of",
+  "booking_customerInfo": "Customer Information",
+  "booking_email": "Email",
+  "booking_phone": "Phone",
+  "booking_birthDate": "Birth Date",
+  "booking_age": "Age",
+  "booking_country": "Country",
+  "booking_city": "City",
+  "booking_selectCountry": "Select country...",
+  "booking_selectCountryFirst": "Select a country first",
+  "booking_searchCity": "Type to search...",
+  "booking_tooltipEmail": "Optional. This field supports future booking confirmation emails and customer communication tools.",
+  "booking_tooltipPhone": "Optional. Used for customer contact during pickup/drop-off coordination and future booking communication tools.",
+  "booking_tooltipBirthDate": "Optional. Used in Analytics and AI-driven insights to detect patterns between customer age, insurance plan selection, and damage cost trends.",
+  "booking_tooltipLocation": "Optional. Used in Analytics and AI suggestions to understand where customers are coming from geographically."
 }

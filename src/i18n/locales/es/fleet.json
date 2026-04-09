@@ -445,5 +445,19 @@
   "noSeasonsDesc": "Crea tu primera temporada para ajustar precios.",
   "crossYearNote": "Esta temporada abarca dos años",
   "step": "Paso",
-  "of": "de"
+  "of": "de",
+  "booking_customerInfo": "Información del Cliente",
+  "booking_email": "Correo electrónico",
+  "booking_phone": "Teléfono",
+  "booking_birthDate": "Fecha de nacimiento",
+  "booking_age": "Edad",
+  "booking_country": "País",
+  "booking_city": "Ciudad",
+  "booking_selectCountry": "Seleccionar país...",
+  "booking_selectCountryFirst": "Selecciona primero un país",
+  "booking_searchCity": "Escribe para buscar...",
+  "booking_tooltipEmail": "Opcional. Para futuras confirmaciones de reserva y herramientas de comunicación con el cliente.",
+  "booking_tooltipPhone": "Opcional. Usado para contacto con el cliente durante la recogida/devolución.",
+  "booking_tooltipBirthDate": "Opcional. Usado en Analytics para detectar patrones de edad, seguros y daños.",
+  "booking_tooltipLocation": "Opcional. Usado en Analytics para entender la procedencia geográfica de los clientes."
 }

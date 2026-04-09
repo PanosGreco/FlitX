@@ -444,5 +444,19 @@
   "noSeasonsDesc": "Δημιουργήστε την πρώτη εποχή για να προσαρμόσετε τιμές.",
   "crossYearNote": "Αυτή η εποχή εκτείνεται σε δύο χρονιές",
   "step": "Βήμα",
-  "of": "από"
+  "of": "από",
+  "booking_customerInfo": "Στοιχεία Πελάτη",
+  "booking_email": "Email",
+  "booking_phone": "Τηλέφωνο",
+  "booking_birthDate": "Ημ. Γέννησης",
+  "booking_age": "Ηλικία",
+  "booking_country": "Χώρα",
+  "booking_city": "Πόλη",
+  "booking_selectCountry": "Επιλέξτε χώρα...",
+  "booking_selectCountryFirst": "Επιλέξτε πρώτα χώρα",
+  "booking_searchCity": "Πληκτρολογήστε για αναζήτηση...",
+  "booking_tooltipEmail": "Προαιρετικό. Υποστηρίζει μελλοντικά email επιβεβαίωσης κράτησης και εργαλεία επικοινωνίας.",
+  "booking_tooltipPhone": "Προαιρετικό. Χρησιμοποιείται για επικοινωνία κατά την παραλαβή/παράδοση.",
+  "booking_tooltipBirthDate": "Προαιρετικό. Χρησιμοποιείται στα Analytics για ανάλυση μοτίβων ηλικίας, ασφάλισης και ζημιών.",
+  "booking_tooltipLocation": "Προαιρετικό. Χρησιμοποιείται στα Analytics για γεωγραφική ανάλυση πελατών."
 }
