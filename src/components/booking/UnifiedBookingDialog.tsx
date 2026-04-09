@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { format, differenceInDays, differenceInHours, isBefore, isAfter, parseISO, startOfDay } from "date-fns";
 import { Camera, Upload, X, MapPin, Clock, Plus, Trash2, Search, Filter, AlertTriangle, Fuel, Shield, ChevronDown } from "lucide-react";
+import { InfoTooltip } from "@/components/booking/InfoTooltip";
+import { CountryCombobox } from "@/components/booking/CountryCombobox";
+import { CityCombobox } from "@/components/booking/CityCombobox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -103,6 +106,12 @@ export function UnifiedBookingDialog({
   const [dropoffLocation, setDropoffLocation] = useState("");
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>(preselectedVehicleId || "");
   const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerBirthDate, setCustomerBirthDate] = useState("");
+  const [customerCity, setCustomerCity] = useState("");
+  const [customerCountry, setCustomerCountry] = useState("");
+  const [customerCountryCode, setCustomerCountryCode] = useState("");
   const [notes, setNotes] = useState("");
   const [incomeSourceType, setIncomeSourceType] = useState("walk_in");
   const [incomeSourceSpecification, setIncomeSourceSpecification] = useState("");
