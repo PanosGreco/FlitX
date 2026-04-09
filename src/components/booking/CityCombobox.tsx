@@ -26,8 +26,16 @@ export function CityCombobox({ countryCode, value, onChange, disabled, placehold
     return City.getCitiesOfCountry(countryCode) || [];
   }, [countryCode]);
 
+  const hasCityData = countryCode && allCities.length > 0;
+
+  const filtered = useMemo(() => {
+    if (!search.trim() || !hasCityData) return [];
+    const q = search.toLowerCase();
+    return allCities.filter(c => c.name.toLowerCase().includes(q)).slice(0, 50);
+  }, [search, allCities, hasCityData]);
+
   // Fallback to plain input if country has no city data
-  if (countryCode && allCities.length === 0) {
+  if (countryCode && !hasCityData) {
     return (
       <Input
         value={value}
@@ -37,12 +45,6 @@ export function CityCombobox({ countryCode, value, onChange, disabled, placehold
       />
     );
   }
-
-  const filtered = useMemo(() => {
-    if (!search.trim()) return [];
-    const q = search.toLowerCase();
-    return allCities.filter(c => c.name.toLowerCase().includes(q)).slice(0, 50);
-  }, [search, allCities]);
 
   if (disabled) {
     return (
