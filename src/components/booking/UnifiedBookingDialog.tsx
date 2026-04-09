@@ -333,6 +333,19 @@ export function UnifiedBookingDialog({
     priceSeasonRules
   );
   
+  const customerAge = useMemo(() => {
+    if (!customerBirthDate) return null;
+    const birth = new Date(customerBirthDate);
+    if (isNaN(birth.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age >= 0 && age <= 120 ? age : null;
+  }, [customerBirthDate]);
+
   const vehicleDailyRate = seasonalRate;
   const rentalDays = calculateRentalDays();
   const effectiveRate = pricingMode === 'fixed' ? vehicleDailyRate : adjustedRate;
