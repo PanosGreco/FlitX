@@ -242,6 +242,10 @@ export type Database = {
         Row: {
           booking_id: string
           created_at: string
+          customer_birth_date: string | null
+          customer_city: string | null
+          customer_country: string | null
+          customer_country_code: string | null
           customer_email: string | null
           customer_phone: string | null
           id: string
@@ -251,6 +255,10 @@ export type Database = {
         Insert: {
           booking_id: string
           created_at?: string
+          customer_birth_date?: string | null
+          customer_city?: string | null
+          customer_country?: string | null
+          customer_country_code?: string | null
           customer_email?: string | null
           customer_phone?: string | null
           id?: string
@@ -260,6 +268,10 @@ export type Database = {
         Update: {
           booking_id?: string
           created_at?: string
+          customer_birth_date?: string | null
+          customer_city?: string | null
+          customer_country?: string | null
+          customer_country_code?: string | null
           customer_email?: string | null
           customer_phone?: string | null
           id?: string
