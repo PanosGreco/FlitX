@@ -47,11 +47,11 @@ UnifiedBookingDialog
   │      description: "Income Tax (VAT X%) - auto"
   │      source_section: 'vat_auto'
   │
-  ├─ INSERT into daily_tasks (pickup task)
-  │    task_type: 'pickup'
+  ├─ INSERT into daily_tasks (delivery task)
+  │    task_type: 'delivery'
   │
-  └─ INSERT into daily_tasks (dropoff task)
-       task_type: 'dropoff'
+  └─ INSERT into daily_tasks (return task)
+       task_type: 'return'
 ```
 
 **Propagation to UI:**
@@ -66,10 +66,44 @@ Supabase Realtime channel on financial_records
                  │
                  ├─ filteredRecords recomputed (useMemo)
                  ├─ Summary cards update (totalIncome, totalExpenses, netProfit)
+                 ├─ Growth indicators recompute (period-over-period)
+                 ├─ Secondary KPI cards update (totalBookings, avgIncome, avgCost)
                  ├─ BarChart re-renders with new bucket data
                  ├─ LineChart re-renders cumulative trend
                  ├─ IncomeBreakdown re-aggregates by source
                  └─ Transaction list shows new record at top
+```
+
+---
+
+## 1a. Summary Card Growth Computation
+
+**Trigger:** Any change to `filteredRecords`, `financialRecords`, `timeframe`, or `customRange`.
+
+**Flow:**
+```
+summaryData useMemo
+  │
+  ├─ Compute current period totals:
+  │    totalIncome = sum of income in filteredRecords
+  │    totalExpenses = sum of expenses in filteredRecords
+  │    netProfit = totalIncome - totalExpenses
+  │
+  ├─ Compute previous period range:
+  │    week   → previous calendar week (Mon–Sun)
+  │    month  → previous calendar month
+  │    year   → previous calendar year
+  │    custom → equal-length window immediately before customRange.startDate
+  │    all    → skip (no prior period, growth = 0)
+  │
+  ├─ Filter ALL financialRecords into previous period:
+  │    prevIncome, prevExpenses, prevProfit
+  │
+  └─ Calculate percentage changes:
+       incomeChange  = ((totalIncome - prevIncome) / prevIncome) * 100
+       expenseChange = ((totalExpenses - prevExpenses) / prevExpenses) * 100
+       profitChange  = ((netProfit - prevProfit) / |prevProfit|) * 100
+       (returns 0 if previous period total is 0)
 ```
 
 ---
@@ -236,7 +270,91 @@ FinanceDashboard: handleDeleteTransaction()
 
 ---
 
-## 6. Data Flow to AI Assistant
+## 6. Chart Data Flow
+
+### Granularity State
+
+Each chart (BarChart, LineChart) maintains its own local `granularity` state:
+
+```
+Chart component mount
+  │
+  ├─ useState initializes granularity via getDefaultGranularity(timeframe, customRange)
+  │
+  ├─ useEffect resets granularity when timeframe or customRange changes:
+  │    setGranularity(getDefaultGranularity(timeframe, customRange))
+  │
+  ├─ User clicks granularity toggle → setGranularity(selectedOption)
+  │
+  └─ useMemo recomputes chartData whenever financialRecords, timeframe, lang,
+     granularity, or customRange changes
+```
+
+### Time Bucket Generation
+
+```
+getTimeBuckets(timeframe, lang, records, granularity, customRange)
+  │
+  ├─ Determine date range:
+  │    week   → current week start to today
+  │    month  → current month start to today
+  │    year   → current year start to today
+  │    all    → min(record dates) to max(record dates)  ← ends at last record, not today
+  │    custom → customRange.startDate to customRange.endDate  ← respects user-picked range
+  │
+  ├─ Generate intervals based on resolved granularity:
+  │    daily   → eachDayOfInterval
+  │    weekly  → eachWeekOfInterval (weekStartsOn: 1)
+  │    monthly → eachMonthOfInterval
+  │    yearly  → eachYearOfInterval
+  │
+  └─ Each bucket includes: key (date string), label (formatted), date, bucketType
+```
+
+### Aggregation
+
+```
+aggregateByTimeBuckets(records, ...)
+  │
+  ├─ For each bucket: filter records by bucketType-aware date range
+  │    daily   → same day
+  │    weekly  → startOfWeek to endOfWeek
+  │    monthly → startOfMonth to endOfMonth
+  │    yearly  → startOfYear to endOfYear
+  │
+  └─ Sum income and expenses per bucket → { name, income, expenses }
+
+aggregateCumulative(records, ...)
+  │
+  └─ For each bucket: sum ALL records up to bucket end date
+       → { name, income, expenses, netIncome }
+```
+
+---
+
+## 7. Breakdown Table Growth Computation
+
+Both `IncomeBreakdown` and `ExpenseBreakdown` compute per-category growth:
+
+```
+For each category/source:
+  │
+  ├─ Standard timeframes (week/month/year/custom):
+  │    prevRange = getPreviousPeriodRange(timeframe, customRange)
+  │    prevTotal = sum of records in prevRange matching this category key
+  │    growth = ((currentTotal - prevTotal) / prevTotal) * 100
+  │    If prevTotal = 0 and currentTotal > 0 → "New" badge instead of percentage
+  │
+  └─ "All Time" timeframe:
+       calcAvgMonthlyGrowth():
+         Group matching records by YYYY-MM
+         Compute month-over-month change for each consecutive pair
+         Return average of all MoM changes
+```
+
+---
+
+## 8. Data Flow to AI Assistant
 
 **Trigger:** User clicks "Financial Analysis" or "Pricing Optimizer" in AI Assistant
 

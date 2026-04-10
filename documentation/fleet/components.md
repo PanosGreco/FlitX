@@ -250,8 +250,9 @@ VehicleDetail.tsx (page — single vehicle)
 
 **Data sources**:
 - `rental_bookings` filtered by `vehicle_id`
-- `booking_contacts` for email/phone
 - `booking_additional_info` + `additional_info_categories` for metadata
+
+**Note**: `RentalBookingsList` does NOT currently query `booking_contacts`. Customer email/phone are not displayed in the bookings list. Customer name comes from `rental_bookings.customer_name`.
 
 **Features**:
 - Search by customer name
@@ -295,6 +296,30 @@ VehicleDetail.tsx (page — single vehicle)
 - INSERT to `maintenance_blocks` → blocks dates in CalendarView
 
 ### `UnifiedBookingDialog.tsx`
-- Shared across Fleet and Home sections
-- Full booking form with additional costs, contacts, info categories
-- Can be embedded (`embedded=true` prop for Home's CreateDialog) or standalone
+
+Shared across Fleet and Home sections. Full booking form with additional costs, contacts, info categories. Can be embedded (`embedded=true` prop for Home's CreateDialog) or standalone.
+
+#### Customer Information Section
+
+The booking form includes a "Customer Information" container (`bg-muted/30` muted style) with the following fields:
+
+| Field | Required | Type | Notes |
+|---|---|---|---|
+| Customer Name | Yes | Text input | Stored in `rental_bookings.customer_name` |
+| Email | No | Email input | Stored in `booking_contacts.customer_email` |
+| Phone | No | Tel input | Stored in `booking_contacts.customer_phone` |
+| Birth Date | No | Date input | Stored in `booking_contacts.customer_birth_date`; age displayed dynamically next to the field, computed via `useMemo` from the date — never stored in the database |
+| Country | No | Searchable combobox | Stored in `booking_contacts.customer_country` + `customer_country_code` |
+| City | No | Searchable combobox | Stored in `booking_contacts.customer_city`; filtered by selected country |
+
+**Layout**: Row 1 = Name (full width), Row 2 = Email + Phone (2-col on md+), Row 3 = Birth Date + Country (2-col on md+), Row 4 = City (full width).
+
+Each optional field has an `InfoTooltip` icon explaining its purpose.
+
+#### Reusable Booking Sub-Components
+
+| Component | File | Purpose |
+|---|---|---|
+| `InfoTooltip` | `src/components/booking/InfoTooltip.tsx` | Renders a small `(i)` icon with a shadcn Tooltip showing a help message for form fields |
+| `CountryCombobox` | `src/components/booking/CountryCombobox.tsx` | Searchable dropdown for country selection, data from `Country.getAllCountries()` via the `country-state-city` npm package (offline, no API calls) |
+| `CityCombobox` | `src/components/booking/CityCombobox.tsx` | Searchable dropdown for city selection, data from `City.getCitiesOfCountry()`, limited to 50 results; falls back to plain text `Input` if no country is selected |

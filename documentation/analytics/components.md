@@ -15,15 +15,25 @@ Finance.tsx (page — /finances route)
 │   ├── Profile Header (avatar, company name)
 │   ├── Timeframe Selector (week/month/year/all/custom)
 │   ├── Summary Cards ×3 (Income / Expenses / Net Income)
-│   ├── BarChart (Income vs Expenses by time bucket)
-│   ├── LineChart (Cumulative trend over time)
+│   │   └── Left-border color accents + bottom growth indicators
+│   ├── Secondary KPI Cards ×3
+│   │   ├── Total Bookings (with Avg Rental Period sub-metric)
+│   │   ├── Avg Income per Booking
+│   │   └── Avg Cost per Booking
+│   ├── Charts Row (3-column grid on lg+)
+│   │   ├── BarChart (Income vs Expenses by time bucket)
+│   │   │   └── Granularity toggle (Daily/Weekly/Monthly/Yearly)
+│   │   ├── LineChart (Cumulative trend over time)
+│   │   │   └── Granularity toggle (Daily/Weekly/Monthly/Yearly)
+│   │   └── MarketingScatterPlot (Marketing spend vs Revenue correlation)
+│   │       └── Independent month/year filtering
 │   ├── IncomeBreakdown.tsx
-│   │   ├── Source table (walk_in, collaboration, other, additional costs)
+│   │   ├── Source table (%, Growth columns; 15-row limit + expansion)
 │   │   ├── Vehicle category breakdown table
 │   │   ├── Income pie chart (with <5% grouping)
 │   │   └── Top 5 most profitable vehicles (avg profit/day)
 │   ├── ExpenseBreakdown.tsx
-│   │   ├── Category + subcategory expansion table
+│   │   ├── Category + subcategory expansion table (%, Growth columns; 15-row limit + expansion)
 │   │   ├── Vehicle category breakdown table
 │   │   ├── Expense pie chart (with <5% grouping and parent-based colors)
 │   │   └── Top 5 least profitable vehicles (avg profit/day)
@@ -71,7 +81,7 @@ Finance.tsx (page — /finances route)
 
 ## FinanceDashboard.tsx (Main Dashboard)
 
-**File:** `src/components/finances/FinanceDashboard.tsx` (~849 lines)
+**File:** `src/components/finances/FinanceDashboard.tsx` (~1046 lines)
 
 **Props:**
 ```typescript
@@ -85,7 +95,8 @@ interface FinanceDashboardProps {
 
 **Responsibilities:**
 - **Filter state:** Owns `timeframe` and `customRange`, computes `filteredRecords` via `useMemo`
-- **Summary cards:** Computes `totalIncome`, `totalExpenses`, `netProfit` from `filteredRecords`
+- **Summary cards:** Computes `totalIncome`, `totalExpenses`, `netProfit` from `filteredRecords`, plus real period-over-period growth percentages
+- **Secondary KPI cards:** Computes `totalBookings`, `avgRentalDays`, `avgIncomePerBooking`, `avgCostPerBooking` from timeframe-filtered bookings
 - **Vehicle profit ranking:** Computes `vehicleProfitRanking` (avg profit/day) from ALL records (not filtered)
 - **Transaction list:** Uses `allTransactions` (ALL records, sorted by `created_at` desc) — independent of timeframe
 - **Delete cascade:** `handleDeleteTransaction()` handles all delete scenarios
@@ -99,13 +110,133 @@ interface FinanceDashboardProps {
 
 ---
 
+## Summary Cards (SummaryCard component)
+
+**Defined inline** in `FinanceDashboard.tsx` as a private component.
+
+**Design:**
+- **Left-border color accents**: Each card has a 4px colored left border — green for Income, red for Expenses, blue for Net Income (via `border-l-4` + `border-l-green-500`/`border-l-red-500`/`border-l-blue-500`)
+- **Bottom growth indicators**: Below the main value, a `border-t` separator shows the period-over-period growth percentage with a TrendingUp/TrendingDown icon and a "from last period" label
+- **Growth computation**: Real period-over-period changes computed in `summaryData` via `useMemo`. For each timeframe, the previous comparable period is calculated (e.g., this week vs last week, this month vs last month). The growth formula is: `((current - previous) / previous) * 100`. For "All Time" timeframe, growth is always 0 (no prior period).
+- **Trend reversal**: Expenses use `trendReversed=true` — an increase in expenses shows a red indicator (bad), while a decrease shows green (good)
+
+---
+
+## Secondary KPI Cards (KpiCard component)
+
+**Defined inline** in `FinanceDashboard.tsx` as a private component.
+
+Three cards in a 3-column grid below the Summary Cards:
+
+| Card | Value | Format | Accent | Secondary Metric |
+|---|---|---|---|---|
+| Total Bookings | Count of bookings in timeframe | number | slate (neutral) | Avg Rental Period (e.g., "~3.5 days") |
+| Avg Income per Booking | Sum of income with `booking_id` ÷ total bookings | currency (€) | green | — |
+| Avg Cost per Booking | Total expenses ÷ total bookings | currency (€) | red | — |
+
+**Design:**
+- 4px colored left border matching the accent color (green/red/slate)
+- Context-colored icon background (e.g., green-50 bg + green-600 icon for income)
+- `text-xl` font for the main value
+- Optional secondary metric displayed below a `border-t` separator as a small badge
+
+**Data flow:**
+- `periodBookings` is computed via `useMemo` by filtering `bookings` array to the current timeframe date range
+- `avgRentalDays` computes inclusive day count per booking (end - start + 1), then averages across all period bookings
+- `avgIncomePerBooking` sums only income records that have a `booking_id` (excluding manual income)
+
+---
+
+## MarketingScatterPlot
+
+**File:** `src/components/finances/MarketingScatterPlot.tsx`
+
+**Purpose:** Visualizes the correlation between marketing spend and revenue on a scatter plot, helping users identify ROI patterns.
+
+**Data:** Uses `financial_records` — marketing expenses (`category='marketing'`) and income records, aggregated by month.
+
+**Features:**
+- Independent month/year filter selector (not tied to the dashboard timeframe)
+- Multi-colored dots representing different time periods
+- Sits in the charts row alongside BarChart and LineChart (3-column grid on `lg+`)
+
+**Wrapper:** The Card + CardHeader for MarketingScatterPlot is in `FinanceDashboard.tsx` (unlike BarChart/LineChart which have their Card wrapper built in).
+
+---
+
+## charts.tsx
+
+**File:** `src/components/finances/charts.tsx` (~621 lines)
+
+**Exports:** `BarChart`, `LineChart`, `PieChart`
+
+### BarChart
+
+- **Data:** `aggregateByTimeBuckets()` — income and expenses per time bucket
+- **Bucket logic:** Granularity-dependent (daily/weekly/monthly/yearly)
+- **Card wrapper:** Built into the BarChart component (includes CardHeader with title and optional granularity toggle)
+- **Granularity toggle:** Displayed in the card header's top-right corner. Local `granularity` state resets to default via `useEffect` when `timeframe` or `customRange` changes.
+  - Toggle visibility rules:
+    - **Hidden** (no toggle): This Week, This Year, short Custom ranges (≤14 days)
+    - **Daily / Weekly**: This Month, Custom 15–62 days
+    - **Monthly / Yearly**: All Time, Custom >730 days
+    - Custom 63–730 days: hidden (no meaningful toggle pair)
+- **X-axis label thinning:** All data points are always rendered (no data sampling). X-axis labels are thinned via the Recharts `interval` prop based on data length (see Performance docs for formula).
+- **Colors:** Income = `#22c55e` (green), Expenses = `#ef4444` (red)
+
+### LineChart
+
+- **Data:** `aggregateCumulative()` — running totals up to each bucket's end date
+- **Card wrapper:** Built into the LineChart component (same pattern as BarChart)
+- **Granularity toggle:** Same visibility rules and reset behavior as BarChart
+- **Lines:** Income (green), Expenses (red), Net Income (`#3b82f6` blue)
+- **Rendering:** No dots, 2.5px stroke, monotone interpolation, no animation
+- **Behavior:** Lines stay flat (horizontal) during periods with no new records
+
+### PieChart
+
+- **Data:** `aggregateByCategory()` — expense distribution by category
+- **Grouping:** Categories <5% merged into "Other (<5%)"
+
+### Time Bucket Generation (`getTimeBuckets`)
+
+| Timeframe | Default Granularity | Label Format |
+|---|---|---|
+| Week | Daily | `d MMM` |
+| Month | Daily | `d MMM` |
+| Year | Monthly | `MMM` (single year) or `MMM yy` |
+| All | Monthly | `MMM` or `MMM yy` |
+| Custom ≤62d | Daily | `d MMM` |
+| Custom >62d | Monthly | `MMM` or `MMM yy` |
+
+### Bug Fixes (Recent)
+
+1. **Bar visibility**: Previously hid 2/3 of days on "This Month" by data-filtering. Now shows all bars, thins only X-axis labels.
+2. **"All Time" trailing months**: Previously extended to today even when the last record was older. Now ends at the last record date.
+3. **Bucket type detection**: Previously used fragile string-length detection. Now reads `bucketType` field directly.
+4. **Custom Range dates**: Previously used min/max of record dates. Now respects user-picked `customRange` start/end dates.
+
+---
+
 ## IncomeBreakdown.tsx
 
-**File:** `src/components/finances/IncomeBreakdown.tsx` (~438 lines)
+**File:** `src/components/finances/IncomeBreakdown.tsx` (~623 lines)
 
-**Props:** `financialRecords` (pre-filtered), `vehicles`, `lang`, `timeframe`, `vehicleProfitRanking`
+**Props:** `financialRecords` (pre-filtered), `allRecords` (all records for growth calc), `vehicles`, `lang`, `timeframe`, `vehicleProfitRanking`, `customRange`
 
 **Layout:** 12-column grid — Source table (5 cols) | Vehicle category (2 cols) | Pie + Top vehicles (5 cols)
+
+**Income source table columns:**
+
+| Column | Description |
+|---|---|
+| Source | Income source label with color dot |
+| Total | Formatted amount in € |
+| % | Percentage of total income (`Math.round(item.total / grandTotal * 100)`) |
+| Growth | Period-over-period growth percentage with TrendingUp/TrendingDown icon; "New" badge for sources with no prior-period data |
+
+- **Row limit:** Maximum 15 visible rows (`MAX_VISIBLE_ROWS`). If more rows exist, a "View Full Table" button expands to show all sources in a Dialog.
+- **Growth calculation:** For standard timeframes, compares current period total against the equivalent prior period (e.g., this month vs last month). For "All Time", calculates average month-over-month growth rate via `calcAvgMonthlyGrowth()`.
 
 **Income source aggregation logic:**
 - Records are grouped by a composite key:
@@ -113,7 +244,6 @@ interface FinanceDashboardProps {
   - `collaboration` + specification → "Collaboration (Partner Name)"
   - `other` + specification → specification as standalone label
   - `additional` category → parsed from description pattern: `"Insurance - Full Coverage (Additional Cost)"`
-- Each group shows: total amount, top 2 months with percentage
 
 **Vehicle category breakdown:**
 - Groups income by `vehicle.type` (SUV, Sedan, etc.)
@@ -133,9 +263,11 @@ interface FinanceDashboardProps {
 
 ## ExpenseBreakdown.tsx
 
-**File:** `src/components/finances/ExpenseBreakdown.tsx` (~489 lines)
+**File:** `src/components/finances/ExpenseBreakdown.tsx` (~699 lines)
 
 **Layout:** Identical 12-column grid as IncomeBreakdown
+
+**Expense table columns:** Same structure as IncomeBreakdown — Category, Total, %, Growth — with 15-row limit and View Full Table expansion dialog.
 
 **Category aggregation:**
 - Categories with subcategories expand: `maintenance_Oil Change`, `other_Rent`, `tax_Income Tax`
@@ -196,39 +328,3 @@ interface FinanceDashboardProps {
 **Persistence:** VAT rate stored in `localStorage` via `useVatSettings()` hook (key: `fleetx_vat_rate`, default: 10%)
 
 **Behavior:** When enabled during income entry, an automatic tax expense record is created with `amount * (vatRate / 100)`
-
----
-
-## charts.tsx
-
-**File:** `src/components/finances/charts.tsx` (~537 lines)
-
-**Exports:** `BarChart`, `LineChart`, `PieChart`
-
-### BarChart
-- **Data:** `aggregateByTimeBuckets()` — income and expenses per time bucket
-- **Bucket logic:** Daily for week/month, monthly for year/all, adaptive for custom
-- **Sampling:** For month view with >15 days, shows every 3rd day; for all/custom with >20 points, samples every Nth point
-- **Colors:** Income = `#22c55e` (green), Expenses = `#ef4444` (red)
-
-### LineChart
-- **Data:** `aggregateCumulative()` — running totals up to each bucket's end date
-- **Lines:** Income (green), Expenses (red), Net Income (`#3b82f6` blue)
-- **Rendering:** No dots, 2.5px stroke, monotone interpolation, no animation
-- **Behavior:** Lines stay flat (horizontal) during periods with no new records
-
-### PieChart
-- **Data:** `aggregateByCategory()` — expense distribution by category
-- **Grouping:** Categories <5% merged into "Other (<5%)"
-
-### Time Bucket Generation (`getTimeBuckets`)
-
-| Timeframe | Bucket Type | Label Format |
-|---|---|---|
-| Week | Daily | `EEE` (Mon, Tue...) |
-| Month | Daily | `d` (1, 2, 3...) |
-| Year | Monthly | `MMM` (Jan, Feb...) |
-| All | Monthly | `MMM yy` (Jan 25...) |
-| Custom ≤31d | Daily | `d MMM` |
-| Custom 32-120d | Weekly | `d MMM` |
-| Custom >120d | Monthly | `MMM yy` |

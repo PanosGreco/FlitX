@@ -39,7 +39,26 @@ UnifiedBookingDialog
   │         ├── contract_path = booking.contract_photo_path
   │         └── title = customer_name (or vehicle name)
   │
-  ├── 4. INSERT booking_contacts (if email/phone provided)
+  ├── 4. INSERT booking_contacts (conditional):
+  │     │
+  │     │   Only executed if ANY of the following optional customer fields are filled:
+  │     │   customer_email, customer_phone, customer_birth_date, customer_city, or customer_country.
+  │     │   If all five are empty, this step is skipped entirely.
+  │     │
+  │     │   Columns written:
+  │     │   ├── booking_id — links to the parent rental_bookings row
+  │     │   ├── user_id — the authenticated user
+  │     │   ├── customer_email — optional, nullable
+  │     │   ├── customer_phone — optional, nullable
+  │     │   ├── customer_birth_date — optional, nullable (DATE type)
+  │     │   ├── customer_city — optional, nullable
+  │     │   ├── customer_country — optional, nullable
+  │     │   └── customer_country_code — optional, nullable (ISO code)
+  │     │
+  │     │   Note: customer_name is NOT in booking_contacts — it remains
+  │     │   in rental_bookings.customer_name as a required field.
+  │     │
+  │     └── On failure: warning toast shown, booking is NOT rolled back.
   │
   └── 5. INSERT booking_additional_info × N (per info category)
 ```
