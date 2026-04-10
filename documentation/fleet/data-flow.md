@@ -41,27 +41,46 @@ CalendarView                UnifiedBookingDialog           Database
 Date selection          →   Form fills with           →   1. rental_bookings INSERT
 (click start date,          vehicle + dates               2. financial_records INSERT
  click end date)            User enters:                     (rental income)
-                            - customer name               3. financial_records INSERT × N
-                            - pickup/return times            (additional costs)
-                            - pickup/dropoff locations    4. financial_records INSERT
-                            - total amount                   (VAT expense, if enabled)
-                            - fuel level                  5. daily_tasks INSERT × 2
-                            - notes                          (delivery + return)
-                            - additional costs            6. booking_contacts INSERT
-                            - additional info                (if email/phone provided)
-                            - contract photo              7. booking_additional_info
-                            - payment status                 INSERT × N (per category)
+                            - customer name (required)    3. financial_records INSERT × N
+                            - email (optional)               (additional costs)
+                            - phone (optional)            4. financial_records INSERT
+                            - birth date (optional)          (VAT expense, if enabled)
+                            - country (optional)          5. daily_tasks INSERT × 2
+                            - city (optional)                (delivery + return)
+                            - pickup/return times         6. booking_contacts INSERT
+                            - pickup/dropoff locations       (conditional — see below)
+                            - total amount                7. booking_additional_info
+                            - fuel level                     INSERT × N (per category)
+                            - notes                       8. booking_additional_costs
+                            - additional costs               INSERT × N (per cost)
+                            - additional info
+                            - contract photo
+                            - payment status
+                            - income source
 ```
 
 ### Detailed Insert Sequence
 
 1. **`rental_bookings`**: Core booking record with vehicle_id, customer_name, dates, amount, status
-2. **`financial_records`** (income): `type='income'`, `category='rental_income'`, `income_source_type` based on booking origin, `vehicle_id` linked, `booking_id` linked
-3. **`financial_records`** (additional costs): One record per additional cost item, `category` from `additional_cost_categories`, `booking_id` linked
-4. **`financial_records`** (VAT): If VAT enabled via `useVatSettings()`, `type='expense'`, `category='vat'`, `amount = totalIncome * (vatRate / 100)`
+2. **`financial_records`** (income): `type='income'`, `category='rental'`, `income_source_type` based on booking origin, `vehicle_id` linked, `booking_id` linked
+3. **`financial_records`** (additional costs): One record per additional cost item, `category='additional'`, `booking_id` linked
+4. **`financial_records`** (VAT): If VAT enabled via `useVatSettings()`, `type='expense'`, `category='tax'`, `expense_subcategory='Income Tax'`, `amount = totalAmount * (vatRate / 100)`
 5. **`daily_tasks`**: Two tasks created — `task_type='delivery'` on `start_date` with `pickup_time`, `task_type='return'` on `end_date` with `return_time`
-6. **`booking_contacts`**: Email and phone stored separately for privacy/querying
+6. **`booking_contacts`**: **Conditional INSERT** — only executed if ANY of the following optional fields are filled: `customer_email`, `customer_phone`, `customer_birth_date`, `customer_city`, or `customer_country`. If all five are empty, this step is skipped entirely. The full list of columns written:
+   - `booking_id` — links to the parent `rental_bookings` row
+   - `user_id` — the authenticated user
+   - `customer_email` — optional, nullable
+   - `customer_phone` — optional, nullable
+   - `customer_birth_date` — optional, nullable (DATE type)
+   - `customer_city` — optional, nullable
+   - `customer_country` — optional, nullable
+   - `customer_country_code` — optional, nullable (ISO country code from `country-state-city` package)
+   
+   **Important**: `customer_name` is NOT stored in `booking_contacts` — it remains in `rental_bookings.customer_name` as a required field.
+
+   If the `booking_contacts` INSERT fails, a warning toast is shown ("Customer details partially saved") but the booking itself is NOT rolled back.
 7. **`booking_additional_info`**: Per-category metadata (e.g., driver license category, ID number)
+8. **`booking_additional_costs`**: Per-cost item with category linkage via `additional_cost_categories`
 
 ### UI Refresh Chain
 ```

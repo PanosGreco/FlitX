@@ -29,6 +29,7 @@ Vehicles are fetched twice (once by `Finance.tsx`, once by `FinanceDashboard.tsx
 | `filteredRecords` | O(n) filter | `financialRecords`, `timeframe`, `customRange` |
 | `allTransactions` | O(n log n) sort | `financialRecords` |
 | `vehicleProfitRanking` | O(n + v) aggregate + map | `financialRecords`, `vehicles` |
+| `summaryData` (with growth) | O(n) filter × 2 (current + previous period) | `filteredRecords`, `financialRecords`, `timeframe`, `customRange` |
 | `IncomeBreakdown` aggregation | O(n) per source/category | `filteredRecords` |
 | `ExpenseBreakdown` aggregation | O(n) per category/subcategory | `filteredRecords` |
 
@@ -45,21 +46,24 @@ All use `useMemo` to avoid recalculation on unrelated re-renders.
 
 For typical use cases (<5000 records, <365 buckets), this is <2M operations — well within browser capabilities.
 
-### Sampling for Dense Charts
-```typescript
-// Month view: show every 3rd day if >15 data points
-if (timeframe === 'month' && data.length > 15) {
-  return data.filter((_, i) => i % 3 === 0 || i === data.length - 1);
-}
+### X-Axis Label Thinning
 
-// All time / custom: sample to ~15 points if >20
-if (data.length > 20) {
-  const step = Math.ceil(data.length / 15);
-  return data.filter((_, i) => i % step === 0 || i === data.length - 1);
+All data points are always rendered — no data is hidden or sampled. Instead, X-axis labels are thinned via the Recharts `interval` prop to prevent overcrowding:
+
+```typescript
+function getXAxisInterval(length: number): number {
+  if (length <= 15) return 0;          // Show all labels
+  if (length <= 30) return 1;          // Show every 2nd label
+  if (length <= 60) return Math.ceil(length / 15) - 1;  // ~15 labels
+  return Math.ceil(length / 12) - 1;   // ~12 labels
 }
 ```
 
-This prevents chart overcrowding without losing boundary data points.
+**Key behaviors:**
+- Every data point is rendered as a bar or line point — nothing is hidden
+- Only the text labels on the X-axis are thinned based on data length
+- Tooltips always show the full label on hover for every data point, regardless of `interval`
+- This approach resolved a previous bug where the Bar Chart was hiding 2/3 of days on "This Month" view by data-filtering (the old `data.filter((_, i) => i % 3 === 0)` code was removed)
 
 ---
 
