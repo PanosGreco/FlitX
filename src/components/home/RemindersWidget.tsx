@@ -17,6 +17,8 @@ interface WeeklyReminderItem {
   notes: string | null;
   time: string | null;
   is_completed: boolean;
+  due_date: string;
+  isOverdue: boolean;
 }
 
 export function RemindersWidget() {
@@ -35,7 +37,7 @@ export function RemindersWidget() {
         .from('vehicle_reminders')
         .select(`id, title, description, due_date, due_time, is_completed, vehicle_id, vehicles (make, model)`)
         .eq('user_id', user.id)
-        .eq('due_date', today);
+        .or(`and(due_date.lte.${today},is_completed.eq.false),and(due_date.eq.${today},is_completed.eq.true)`);
       if (vehicleError) {
         console.error('Error fetching vehicle reminders:', vehicleError);
         setLoading(false);
@@ -47,11 +49,14 @@ export function RemindersWidget() {
         title: reminder.title,
         notes: reminder.description,
         time: reminder.due_time ? reminder.due_time.substring(0, 5) : null,
-        is_completed: reminder.is_completed || false
+        is_completed: reminder.is_completed || false,
+        due_date: reminder.due_date,
+        isOverdue: reminder.due_date < today && !reminder.is_completed,
       }));
       const sortedReminders = mappedReminders.sort((a, b) => {
+        if (a.isOverdue !== b.isOverdue) return a.isOverdue ? -1 : 1;
         if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
-        return 0;
+        return a.due_date.localeCompare(b.due_date);
       });
       setReminders(sortedReminders);
     } catch (error) {
@@ -85,17 +90,24 @@ export function RemindersWidget() {
       {loading ? (
         <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-slate-300" /></div>
       ) : reminders.length === 0 ? (
-        <div className="py-4">
-          <p className="text-sm text-slate-500 leading-relaxed">{t('home:remindersAppearHere')}</p>
-          <p className="text-sm text-slate-500 leading-relaxed mt-2">{t('home:manageRemindersDesc')}</p>
+        <div className="py-6 text-center">
+          <p className="text-sm font-medium text-slate-500">{t('home:noRemindersToday')}</p>
+          <p className="text-xs text-slate-400 mt-1">{t('home:addRemindersFromFleet')}</p>
         </div>
       ) : (
         <div className="max-h-[200px] overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
           {reminders.slice(0, 5).map(reminder => (
-            <div key={reminder.id} className={cn("flex items-start gap-3 py-2 transition-opacity", reminder.is_completed && "opacity-50")}>
+              <div key={reminder.id} className={cn("flex items-start gap-3 py-2 transition-opacity", reminder.is_completed && "opacity-50", reminder.isOverdue && "border-l-2 border-orange-300 pl-2")}>
               <Checkbox checked={reminder.is_completed} onCheckedChange={checked => handleToggleComplete(reminder, checked as boolean)} className="h-4 w-4 mt-0.5 rounded border-slate-300 data-[state=checked]:bg-teal-500 data-[state=checked]:border-teal-500" />
               <div className="flex-1 min-w-0">
-                <span className={cn("block text-sm text-slate-700 font-medium", reminder.is_completed && "line-through")}>{reminder.vehicleName} – {reminder.title}</span>
+                <span className={cn("block text-sm text-slate-700 font-medium", reminder.is_completed && "line-through")}>
+                  {reminder.vehicleName} – {reminder.title}
+                  {reminder.isOverdue && (
+                    <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-orange-100 text-orange-600">
+                      {t('home:overdue')}
+                    </span>
+                  )}
+                </span>
                 {reminder.notes && <span className="block text-xs text-slate-500 truncate mt-0.5">{reminder.notes}</span>}
               </div>
               {reminder.time && (
