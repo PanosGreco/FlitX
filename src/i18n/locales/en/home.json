@@ -38,5 +38,9 @@
   "paidInFull": "Paid in Full",
   "balanceDue": "Balance Due",
   "paid": "Paid",
-  "due": "Due"
+  "due": "Due",
+  "overdue": "Overdue",
+  "noRemindersToday": "You're all caught up.",
+  "addRemindersFromFleet": "Add reminders from the Fleet section.",
+  "backToToday": "Back to Today"
 }

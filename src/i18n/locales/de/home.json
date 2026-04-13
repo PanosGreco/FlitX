@@ -38,5 +38,9 @@
   "paidInFull": "Vollständig bezahlt",
   "balanceDue": "Restbetrag",
   "paid": "Bezahlt",
-  "due": "Fällig"
+  "due": "Fällig",
+  "overdue": "Überfällig",
+  "noRemindersToday": "Alles erledigt.",
+  "addRemindersFromFleet": "Erinnerungen im Flottenbereich hinzufügen.",
+  "backToToday": "Zurück zu Heute"
 }

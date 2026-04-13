@@ -38,5 +38,9 @@
   "paidInFull": "Pagato",
   "balanceDue": "Saldo Dovuto",
   "paid": "Pagato",
-  "due": "Dovuto"
+  "due": "Dovuto",
+  "overdue": "Scaduto",
+  "noRemindersToday": "Tutto in ordine.",
+  "addRemindersFromFleet": "Aggiungi promemoria dalla sezione Flotta.",
+  "backToToday": "Torna a Oggi"
 }

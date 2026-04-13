@@ -38,5 +38,9 @@
   "paidInFull": "Payé intégralement",
   "balanceDue": "Solde dû",
   "paid": "Payé",
-  "due": "Dû"
+  "due": "Dû",
+  "overdue": "En retard",
+  "noRemindersToday": "Tout est à jour.",
+  "addRemindersFromFleet": "Ajoutez des rappels depuis la section Flotte.",
+  "backToToday": "Retour à Aujourd'hui"
 }

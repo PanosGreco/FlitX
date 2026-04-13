@@ -1,9 +1,12 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { format, addDays, subDays, startOfWeek, isSameDay, getWeek } from "date-fns";
-import { ChevronLeft, ChevronRight, Loader2, Plus, MapPin, Clock, Car, User, FileText, Tag, Fuel, CreditCard, Info } from "lucide-react";
+import { format, addDays, subDays, startOfWeek, isSameDay, getWeek, setYear } from "date-fns";
+import { ChevronLeft, ChevronRight, Loader2, Plus, MapPin, Clock, Car, User, FileText, Tag, Fuel, CreditCard, Info, CalendarDays } from "lucide-react";
 import { formatTime24h } from "@/utils/dateFormatUtils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { ContractPreview } from "@/components/home/ContractPreview";
@@ -56,6 +59,9 @@ export function TimelineCalendar({
     weekStartsOn: 1
   }));
   const [selectedTask, setSelectedTask] = useState<CalendarTask | null>(null);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [pickerDate, setPickerDate] = useState<Date | undefined>(new Date());
+  const [pickerMonth, setPickerMonth] = useState<Date>(new Date());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const gridContainerRef = useRef<HTMLDivElement>(null);
   const [measuredRowTops, setMeasuredRowTops] = useState<number[]>([]);
@@ -67,6 +73,31 @@ export function TimelineCalendar({
   const weekNumber = getWeek(weekStart, {
     weekStartsOn: 1
   });
+
+  const currentYear = new Date().getFullYear();
+  const yearOptions = useMemo(() => Array.from({ length: 11 }, (_, i) => currentYear - 5 + i), [currentYear]);
+
+  const handlePickerSelect = (date: Date | undefined) => {
+    if (!date) return;
+    setPickerDate(date);
+    setWeekStart(startOfWeek(date, { weekStartsOn: 1 }));
+    onDateSelect(date);
+    setIsPickerOpen(false);
+  };
+
+  const handleYearChange = (year: string) => {
+    const newMonth = setYear(pickerMonth, parseInt(year, 10));
+    setPickerMonth(newMonth);
+  };
+
+  const handleBackToToday = () => {
+    const today = new Date();
+    setWeekStart(startOfWeek(today, { weekStartsOn: 1 }));
+    setPickerDate(today);
+    setPickerMonth(today);
+    onDateSelect(today);
+    setIsPickerOpen(false);
+  };
 
   // Auto-scroll to current time on initial load
   useEffect(() => {
@@ -165,7 +196,7 @@ export function TimelineCalendar({
   return <div className="h-full flex flex-col">
       {/* Header Row - Navigation, Title, Week Badge, Create Button */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {/* Navigation Arrows */}
           <div className="flex items-center gap-1">
             <button className="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 transition-colors" onClick={() => setWeekStart(subDays(weekStart, 7))}>
@@ -174,6 +205,46 @@ export function TimelineCalendar({
             <button className="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 transition-colors" onClick={() => setWeekStart(addDays(weekStart, 7))}>
               <ChevronRight className="h-5 w-5" />
             </button>
+
+            {/* Mini Date Picker */}
+            <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
+              <PopoverTrigger asChild>
+                <button className="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 transition-colors" aria-label="Jump to date">
+                  <CalendarDays className="h-5 w-5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-3" align="start">
+                <div className="space-y-3">
+                  {/* Year Selector */}
+                  <Select value={pickerMonth.getFullYear().toString()} onValueChange={handleYearChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {yearOptions.map((year) => (
+                        <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* Calendar */}
+                  <Calendar
+                    mode="single"
+                    selected={pickerDate}
+                    onSelect={handlePickerSelect}
+                    month={pickerMonth}
+                    onMonthChange={setPickerMonth}
+                    weekStartsOn={1}
+                    className="rounded-md border-0 pointer-events-auto"
+                  />
+
+                  {/* Back to Today */}
+                  <Button variant="outline" size="sm" className="w-full" onClick={handleBackToToday}>
+                    {t('home:backToToday')}
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Date Range Title */}
@@ -182,7 +253,7 @@ export function TimelineCalendar({
           </h2>
 
           {/* Week Badge */}
-          <span className="px-3 py-1 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-full shadow-sm">
+          <span className="px-3 py-1 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-full shadow-sm">
             {t('home:week')} {weekNumber}
           </span>
         </div>
