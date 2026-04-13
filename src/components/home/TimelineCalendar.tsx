@@ -196,7 +196,7 @@ export function TimelineCalendar({
   return <div className="h-full flex flex-col">
       {/* Header Row - Navigation, Title, Week Badge, Create Button */}
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           {/* Navigation Arrows */}
           <div className="flex items-center gap-1">
             <button className="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 transition-colors" onClick={() => setWeekStart(subDays(weekStart, 7))}>
@@ -205,6 +205,46 @@ export function TimelineCalendar({
             <button className="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 transition-colors" onClick={() => setWeekStart(addDays(weekStart, 7))}>
               <ChevronRight className="h-5 w-5" />
             </button>
+
+            {/* Mini Date Picker */}
+            <Popover open={isPickerOpen} onOpenChange={setIsPickerOpen}>
+              <PopoverTrigger asChild>
+                <button className="p-1.5 hover:bg-slate-100 rounded-md text-slate-500 transition-colors" aria-label="Jump to date">
+                  <CalendarDays className="h-5 w-5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-3" align="start">
+                <div className="space-y-3">
+                  {/* Year Selector */}
+                  <Select value={pickerMonth.getFullYear().toString()} onValueChange={handleYearChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {yearOptions.map((year) => (
+                        <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  {/* Calendar */}
+                  <Calendar
+                    mode="single"
+                    selected={pickerDate}
+                    onSelect={handlePickerSelect}
+                    month={pickerMonth}
+                    onMonthChange={setPickerMonth}
+                    weekStartsOn={1}
+                    className="rounded-md border-0 pointer-events-auto"
+                  />
+
+                  {/* Back to Today */}
+                  <Button variant="outline" size="sm" className="w-full" onClick={handleBackToToday}>
+                    {t('home:backToToday')}
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Date Range Title */}
@@ -213,7 +253,7 @@ export function TimelineCalendar({
           </h2>
 
           {/* Week Badge */}
-          <span className="px-3 py-1 text-sm font-medium text-slate-600 bg-white border border-slate-200 rounded-full shadow-sm">
+          <span className="px-3 py-1 text-sm font-medium text-slate-600 bg-slate-50 border border-slate-200 rounded-full shadow-sm">
             {t('home:week')} {weekNumber}
           </span>
         </div>
