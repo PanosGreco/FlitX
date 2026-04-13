@@ -1,9 +1,12 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { format, addDays, subDays, startOfWeek, isSameDay, getWeek } from "date-fns";
-import { ChevronLeft, ChevronRight, Loader2, Plus, MapPin, Clock, Car, User, FileText, Tag, Fuel, CreditCard, Info } from "lucide-react";
+import { format, addDays, subDays, startOfWeek, isSameDay, getWeek, setYear } from "date-fns";
+import { ChevronLeft, ChevronRight, Loader2, Plus, MapPin, Clock, Car, User, FileText, Tag, Fuel, CreditCard, Info, CalendarDays } from "lucide-react";
 import { formatTime24h } from "@/utils/dateFormatUtils";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
 import { ContractPreview } from "@/components/home/ContractPreview";
@@ -56,6 +59,9 @@ export function TimelineCalendar({
     weekStartsOn: 1
   }));
   const [selectedTask, setSelectedTask] = useState<CalendarTask | null>(null);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [pickerDate, setPickerDate] = useState<Date | undefined>(new Date());
+  const [pickerMonth, setPickerMonth] = useState<Date>(new Date());
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const gridContainerRef = useRef<HTMLDivElement>(null);
   const [measuredRowTops, setMeasuredRowTops] = useState<number[]>([]);
@@ -67,6 +73,31 @@ export function TimelineCalendar({
   const weekNumber = getWeek(weekStart, {
     weekStartsOn: 1
   });
+
+  const currentYear = new Date().getFullYear();
+  const yearOptions = useMemo(() => Array.from({ length: 11 }, (_, i) => currentYear - 5 + i), [currentYear]);
+
+  const handlePickerSelect = (date: Date | undefined) => {
+    if (!date) return;
+    setPickerDate(date);
+    setWeekStart(startOfWeek(date, { weekStartsOn: 1 }));
+    onDateSelect(date);
+    setIsPickerOpen(false);
+  };
+
+  const handleYearChange = (year: string) => {
+    const newMonth = setYear(pickerMonth, parseInt(year, 10));
+    setPickerMonth(newMonth);
+  };
+
+  const handleBackToToday = () => {
+    const today = new Date();
+    setWeekStart(startOfWeek(today, { weekStartsOn: 1 }));
+    setPickerDate(today);
+    setPickerMonth(today);
+    onDateSelect(today);
+    setIsPickerOpen(false);
+  };
 
   // Auto-scroll to current time on initial load
   useEffect(() => {
