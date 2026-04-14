@@ -34,6 +34,16 @@ import { VatControl } from "@/components/finances/VatControl";
 import { getActiveSeasonsForDate, getEffectiveRate, type PriceSeason, type PriceSeasonRule } from "@/utils/priceSeasons";
 import type { DateRange } from "react-day-picker";
 
+const CUSTOMER_TYPE_OPTIONS = [
+  { value: "Unknown", labelKey: "fleet:customerType_unknown" },
+  { value: "Family", labelKey: "fleet:customerType_family" },
+  { value: "Couple", labelKey: "fleet:customerType_couple" },
+  { value: "Friend Group", labelKey: "fleet:customerType_friendGroup" },
+  { value: "Business Trip", labelKey: "fleet:customerType_businessTrip" },
+  { value: "Solo Traveler", labelKey: "fleet:customerType_soloTraveler" },
+  { value: "Tour/Agency", labelKey: "fleet:customerType_tourAgency" },
+] as const;
+
 interface Vehicle {
   id: string;
   make: string;
@@ -112,6 +122,7 @@ export function UnifiedBookingDialog({
   const [customerCity, setCustomerCity] = useState("");
   const [customerCountry, setCustomerCountry] = useState("");
   const [customerCountryCode, setCustomerCountryCode] = useState("");
+  const [customerType, setCustomerType] = useState<string>("Unknown");
   const [notes, setNotes] = useState("");
   const [incomeSourceType, setIncomeSourceType] = useState("walk_in");
   const [incomeSourceSpecification, setIncomeSourceSpecification] = useState("");
@@ -403,6 +414,62 @@ export function UnifiedBookingDialog({
     setDynamicCosts(prev => [...prev, { id: crypto.randomUUID(), name, amount, isNew: true }]);
   };
 
+  const upsertCustomer = async (params: {
+    name: string; email: string; phone: string; birthDate: string;
+    city: string; country: string; countryCode: string;
+  }): Promise<string | null> => {
+    if (!user) return null;
+    const trimmedName = params.name.trim();
+    const trimmedEmail = params.email.trim().toLowerCase();
+    if (!trimmedName) return null;
+
+    let query = supabase.from('customers').select('id').eq('user_id', user.id);
+    if (trimmedEmail) {
+      query = query.ilike('name', trimmedName).ilike('email', trimmedEmail);
+    } else {
+      query = query.ilike('name', trimmedName).is('email', null);
+    }
+    const { data: existing, error: lookupError } = await query.limit(1).maybeSingle();
+    if (lookupError) console.error('Customer lookup error:', lookupError);
+
+    if (existing?.id) {
+      const updatePayload: Record<string, string | null> = {};
+      if (params.phone.trim()) updatePayload.phone = params.phone.trim();
+      if (params.birthDate) updatePayload.birth_date = params.birthDate;
+      if (params.city.trim()) updatePayload.city = params.city.trim();
+      if (params.country.trim()) updatePayload.country = params.country.trim();
+      if (params.countryCode.trim()) updatePayload.country_code = params.countryCode.trim();
+      if (Object.keys(updatePayload).length > 0) {
+        await supabase.from('customers').update(updatePayload).eq('id', existing.id);
+      }
+      return existing.id;
+    }
+
+    const { data: maxRow } = await supabase.from('customers').select('customer_number')
+      .eq('user_id', user.id).order('customer_number', { ascending: false }).limit(1).maybeSingle();
+    let nextNum = 1;
+    if (maxRow?.customer_number && /^C-\d+$/.test(maxRow.customer_number)) {
+      nextNum = parseInt(maxRow.customer_number.substring(2), 10) + 1;
+    }
+    const newCustomerNumber = `C-${String(nextNum).padStart(4, '0')}`;
+
+    const { data: created, error: insertError } = await supabase.from('customers').insert({
+      user_id: user.id, customer_number: newCustomerNumber, name: trimmedName,
+      email: trimmedEmail || null, phone: params.phone.trim() || null,
+      birth_date: params.birthDate || null, city: params.city.trim() || null,
+      country: params.country.trim() || null, country_code: params.countryCode.trim() || null,
+    }).select('id').single();
+    if (insertError) { console.error('Customer create error:', insertError); return null; }
+    return created?.id || null;
+  };
+
+  const resolveInsuranceTypeId = async (typeName: string): Promise<string | null> => {
+    if (!user || !typeName || !typeName.trim()) return null;
+    const { data } = await supabase.from('insurance_types').select('id')
+      .eq('user_id', user.id).eq('name_original', typeName.trim()).maybeSingle();
+    return data?.id || null;
+  };
+
   const handleSaveBooking = async () => {
     if (!user || !startDate || !endDate || !selectedVehicleId || !customerName.trim()) {
       toast.error(t('fleet:booking_fillAllFields'));
@@ -427,6 +494,14 @@ export function UnifiedBookingDialog({
       let contractPhotoPath = null;
       if (contractPhoto) contractPhotoPath = await uploadContractPhoto(contractPhoto, user.id);
 
+      // CRM: resolve customer and insurance type
+      const customerId = await upsertCustomer({
+        name: customerName, email: customerEmail, phone: customerPhone,
+        birthDate: customerBirthDate, city: customerCity,
+        country: customerCountry, countryCode: customerCountryCode,
+      });
+      const insuranceTypeId = await resolveInsuranceTypeId(insuranceType);
+
       const vehicleName = selectedVehicle ? `${selectedVehicle.make} ${selectedVehicle.model}` : '';
       const bookingData: any = {
         vehicle_id: selectedVehicleId, user_id: user.id,
@@ -437,10 +512,13 @@ export function UnifiedBookingDialog({
         total_amount: totalAmount, status: 'confirmed' as const,
         contract_photo_path: contractPhotoPath, fuel_level: fuelLevel || null,
         payment_status: paymentStatus,
-        balance_due_amount: paymentStatus === 'balance_due' ? balanceDueAmount : null
+        balance_due_amount: paymentStatus === 'balance_due' ? balanceDueAmount : null,
+        customer_id: customerId,
+        customer_type: customerType,
+        insurance_type_id: insuranceTypeId,
       };
 
-      const { data: booking, error: bookingError } = await supabase.from('rental_bookings').insert(bookingData).select().single();
+      const { data: booking, error: bookingError } = await supabase.from('rental_bookings').insert(bookingData).select('id, booking_number').single();
       if (bookingError) throw bookingError;
 
       await createDailyTasks(user.id, booking.id, contractPhotoPath);
@@ -556,6 +634,7 @@ export function UnifiedBookingDialog({
         }
       }
 
+      toast.success(t('fleet:booking_createdWithNumber', { number: booking.booking_number }));
       resetForm();
       onSuccess();
       onClose();
@@ -677,6 +756,26 @@ export function UnifiedBookingDialog({
                 disabledPlaceholder={t('fleet:booking_selectCountryFirst')}
                 searchPlaceholder={t('fleet:booking_searchCity')}
               />
+            </div>
+
+            {/* Row 5: Customer Type */}
+            <div className="space-y-1.5">
+              <Label htmlFor="customer-type" className="text-sm font-medium flex items-center gap-1">
+                {t('fleet:customerType')}
+                <InfoTooltip content={t('fleet:booking_tooltipCustomerType')} />
+              </Label>
+              <Select value={customerType} onValueChange={setCustomerType}>
+                <SelectTrigger id="customer-type" className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CUSTOMER_TYPE_OPTIONS.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {t(option.labelKey)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
