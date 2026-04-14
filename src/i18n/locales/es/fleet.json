@@ -459,5 +459,16 @@
   "booking_tooltipEmail": "Opcional. Para futuras confirmaciones de reserva y herramientas de comunicación con el cliente.",
   "booking_tooltipPhone": "Opcional. Usado para contacto con el cliente durante la recogida/devolución.",
   "booking_tooltipBirthDate": "Opcional. Usado en Analytics para detectar patrones de edad, seguros y daños.",
-  "booking_tooltipLocation": "Opcional. Usado en Analytics para entender la procedencia geográfica de los clientes."
+  "booking_tooltipLocation": "Opcional. Usado en Analytics para entender la procedencia geográfica de los clientes.",
+  "customerType": "Tipo de cliente",
+  "customerType_unknown": "Desconocido",
+  "customerType_family": "Familia",
+  "customerType_couple": "Pareja",
+  "customerType_friendGroup": "Grupo de amigos",
+  "customerType_businessTrip": "Viaje de negocios",
+  "customerType_soloTraveler": "Viajero solo",
+  "customerType_tourAgency": "Tour / Agencia",
+  "booking_tooltipCustomerType": "Cómo reserva este cliente para este viaje. El mismo cliente puede tener diferentes tipos en diferentes reservas. Usado en el análisis CRM.",
+  "booking_createdWithNumber": "Reserva {{number}} creada con éxito",
+  "searchCustomerOrBookingNumber": "Buscar por nombre de cliente o número de reserva"
 }
