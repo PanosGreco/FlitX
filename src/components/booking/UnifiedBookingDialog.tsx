@@ -653,6 +653,7 @@ export function UnifiedBookingDialog({
     setSelectedVehicleId(""); setCustomerName(""); setNotes("");
     setCustomerEmail(""); setCustomerPhone(""); setCustomerBirthDate("");
     setCustomerCity(""); setCustomerCountry(""); setCustomerCountryCode("");
+    setCustomerType("Unknown");
     setContractPhoto(null); setContractPhotoPreview(null);
     setPricingMode('fixed'); setAdjustedRate(0); setCustomTotalPrice(0);
     setInsuranceType(""); setInsuranceAmount(0); setDynamicCosts([]);
