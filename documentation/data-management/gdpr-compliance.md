@@ -95,10 +95,12 @@ The following tables are **NOT currently deleted** during account deletion:
 | `additional_info_categories` | Custom info category names | **Low** — structural data |
 | `insurance_types` | Custom insurance type names | **Low** — structural data |
 | `user_reminders` | General reminders | **Medium** — contains user-created content |
+| `customers` | Unified customer records (PII: name, email, phone, birth date, location) | **High** — contains customer PII |
+| `accidents` | Accident/damage incidents with cost breakdown | **Medium** — contains financial and incident data |
 
-**Note**: Tables with foreign keys to `rental_bookings` (booking_additional_costs, booking_additional_info) may fail silently since parent bookings ARE deleted — but orphaned records could remain if FK constraints don't cascade. Tables without FK dependencies (ai_chat_*, user_notes, recurring_transactions) will definitely persist as orphaned data.
+**Note**: Tables with foreign keys to `rental_bookings` (booking_additional_costs, booking_additional_info) may fail silently since parent bookings ARE deleted — but orphaned records could remain if FK constraints don't cascade. Tables without FK dependencies (ai_chat_*, user_notes, recurring_transactions, customers) will definitely persist as orphaned data.
 
-**Required fix**: Add deletion of all 13 missing tables in the correct dependency order before the existing deletion sequence.
+**Required fix**: Add deletion of all 15 missing tables (13 original + customers + accidents) in the correct dependency order before the existing deletion sequence.
 
 ### 4. Data Minimization (Article 5(1)(c))
 

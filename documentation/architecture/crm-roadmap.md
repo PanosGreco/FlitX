@@ -201,3 +201,36 @@ The future CRM migration will add:
 - **GDPR-compliant data retention policies** — Automated deletion of customer data after configurable retention periods, with customer data export capabilities
 
 See the migration-plan.html file for the full post-migration security roadmap.
+
+---
+
+## 5. Phase 2 Status — CRM Database Foundation
+
+**Executed on:** 2026-04-14
+
+The CRM database foundation has been implemented via migration. This phase delivered:
+
+1. **`customers` table** — Unified customer records with `customer_number` (format `C-XXXX`), PII fields (email, phone, birth_date, city, country, country_code), and pre-computed aggregates (`total_lifetime_value`, `total_bookings_count`, `total_accidents_count`, `total_accidents_amount`). RLS enforced with `auth.uid() = user_id`.
+
+2. **`accidents` table** — Damage incidents tied to bookings, with cost breakdown (`total_damage_cost`, `amount_paid_by_insurance`, `amount_paid_by_user`, `payer_type`). Denormalized `customer_id` and `vehicle_id` kept in sync via trigger.
+
+3. **New columns on `rental_bookings`**:
+   - `customer_id` (FK → customers, ON DELETE SET NULL)
+   - `booking_number` (NOT NULL, unique per user, format `#XXXXX`, auto-generated on insert)
+   - `customer_type` (CHECK constraint: Family, Couple, Friend Group, Business Trip, Solo Traveler, Tour/Agency, Unknown)
+   - `insurance_type_id` (FK → insurance_types, ON DELETE SET NULL)
+
+4. **Triggers**:
+   - `trg_auto_booking_number` — auto-generates sequential booking numbers on new inserts
+   - `trg_sync_accident_denorm` — copies `customer_id` and `vehicle_id` from the booking to the accident
+   - `trg_recompute_customer_accidents` — recomputes customer accident totals on accident changes
+   - `trg_recompute_customer_bookings` — recomputes customer booking totals on booking changes
+
+5. **Data migration** — All existing bookings were assigned sequential `booking_number` values. Existing bookings were grouped by `(user_id, LOWER(customer_name), LOWER(email))` to create unified customer records. All bookings were linked to their corresponding customer via `customer_id`. Insurance type IDs were back-filled where matching records existed.
+
+### What Comes Next
+
+- **Phase 3**: Update the booking form UI to set `customer_type`, display `booking_number`, and link `insurance_type_id`
+- **Phase 4**: Build the CRM page with customer table UI
+- **Phase 5**: Build the Accident Record system UI
+- **Phase 6**: Build analytics charts above the CRM table
