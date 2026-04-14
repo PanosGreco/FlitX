@@ -92,6 +92,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   const [showAllTransactions, setShowAllTransactions] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [bookings, setBookings] = useState<RentalBooking[]>([]);
+  const [bookingNumbersMap, setBookingNumbersMap] = useState<Map<string, string>>(new Map());
   const [deleteTransactionId, setDeleteTransactionId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRecurringOpen, setIsRecurringOpen] = useState(false);
@@ -231,6 +232,20 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     );
   }, [financialRecords]);
 
+  // Fetch booking numbers for all referenced booking_ids
+  useEffect(() => {
+    const bookingIds = [...new Set(
+      financialRecords.map(r => r.booking_id).filter((id): id is string => !!id)
+    )];
+    if (bookingIds.length === 0) { setBookingNumbersMap(new Map()); return; }
+    supabase.from('rental_bookings').select('id, booking_number').in('id', bookingIds)
+      .then(({ data }) => {
+        const map = new Map<string, string>();
+        (data || []).forEach(b => { if (b.booking_number) map.set(b.id, b.booking_number); });
+        setBookingNumbersMap(map);
+      });
+  }, [financialRecords]);
+
   const visibleTransactions = showAllTransactions 
     ? allTransactions 
     : allTransactions.slice(0, 5);
@@ -334,8 +349,11 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         return `${prefix} – ${categoryLabel} (${record.expense_subcategory})`;
       }
       
-      return `${prefix} – ${categoryLabel}`;
+      title = `${prefix} – ${categoryLabel}`;
     }
+
+    const bookingNumber = record.booking_id ? bookingNumbersMap.get(record.booking_id) : null;
+    return bookingNumber ? `${title} ${bookingNumber}` : title;
   };
 
   // Handle delete transaction with full cascade
