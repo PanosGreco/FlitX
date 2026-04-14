@@ -458,5 +458,16 @@
   "booking_tooltipEmail": "Προαιρετικό. Υποστηρίζει μελλοντικά email επιβεβαίωσης κράτησης και εργαλεία επικοινωνίας.",
   "booking_tooltipPhone": "Προαιρετικό. Χρησιμοποιείται για επικοινωνία κατά την παραλαβή/παράδοση.",
   "booking_tooltipBirthDate": "Προαιρετικό. Χρησιμοποιείται στα Analytics για ανάλυση μοτίβων ηλικίας, ασφάλισης και ζημιών.",
-  "booking_tooltipLocation": "Προαιρετικό. Χρησιμοποιείται στα Analytics για γεωγραφική ανάλυση πελατών."
+  "booking_tooltipLocation": "Προαιρετικό. Χρησιμοποιείται στα Analytics για γεωγραφική ανάλυση πελατών.",
+  "customerType": "Τύπος Πελάτη",
+  "customerType_unknown": "Άγνωστο",
+  "customerType_family": "Οικογένεια",
+  "customerType_couple": "Ζευγάρι",
+  "customerType_friendGroup": "Παρέα Φίλων",
+  "customerType_businessTrip": "Επαγγελματικό Ταξίδι",
+  "customerType_soloTraveler": "Μοναχικός Ταξιδιώτης",
+  "customerType_tourAgency": "Πρακτορείο / Tour",
+  "booking_tooltipCustomerType": "Πώς κάνει κράτηση ο πελάτης για αυτό το ταξίδι. Ο ίδιος πελάτης μπορεί να έχει διαφορετικούς τύπους σε διαφορετικές κρατήσεις. Χρησιμοποιείται στο CRM.",
+  "booking_createdWithNumber": "Η κράτηση {{number}} δημιουργήθηκε επιτυχώς",
+  "searchCustomerOrBookingNumber": "Αναζήτηση κατά όνομα πελάτη ή αριθμό κράτησης"
 }

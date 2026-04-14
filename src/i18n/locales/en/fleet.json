@@ -458,5 +458,16 @@
   "booking_tooltipEmail": "Optional. This field supports future booking confirmation emails and customer communication tools.",
   "booking_tooltipPhone": "Optional. Used for customer contact during pickup/drop-off coordination and future booking communication tools.",
   "booking_tooltipBirthDate": "Optional. Used in Analytics and AI-driven insights to detect patterns between customer age, insurance plan selection, and damage cost trends.",
-  "booking_tooltipLocation": "Optional. Used in Analytics and AI suggestions to understand where customers are coming from geographically."
+  "booking_tooltipLocation": "Optional. Used in Analytics and AI suggestions to understand where customers are coming from geographically.",
+  "customerType": "Customer Type",
+  "customerType_unknown": "Unknown",
+  "customerType_family": "Family",
+  "customerType_couple": "Couple",
+  "customerType_friendGroup": "Friend Group",
+  "customerType_businessTrip": "Business Trip",
+  "customerType_soloTraveler": "Solo Traveler",
+  "customerType_tourAgency": "Tour / Agency",
+  "booking_tooltipCustomerType": "How this customer is booking for this trip. Same customer can have different types across bookings. Used in CRM analytics.",
+  "booking_createdWithNumber": "Booking {{number}} created successfully",
+  "searchCustomerOrBookingNumber": "Search by customer name or booking number"
 }
