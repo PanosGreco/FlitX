@@ -14,6 +14,79 @@ export type Database = {
   }
   public: {
     Tables: {
+      accidents: {
+        Row: {
+          accident_date: string
+          amount_paid_by_insurance: number
+          amount_paid_by_user: number
+          booking_id: string
+          created_at: string
+          customer_id: string | null
+          description: string | null
+          id: string
+          notes: string | null
+          payer_type: string
+          total_damage_cost: number
+          updated_at: string
+          user_id: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          accident_date?: string
+          amount_paid_by_insurance?: number
+          amount_paid_by_user?: number
+          booking_id: string
+          created_at?: string
+          customer_id?: string | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          payer_type?: string
+          total_damage_cost?: number
+          updated_at?: string
+          user_id: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          accident_date?: string
+          amount_paid_by_insurance?: number
+          amount_paid_by_user?: number
+          booking_id?: string
+          created_at?: string
+          customer_id?: string | null
+          description?: string | null
+          id?: string
+          notes?: string | null
+          payer_type?: string
+          total_damage_cost?: number
+          updated_at?: string
+          user_id?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accidents_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "rental_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accidents_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accidents_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       additional_cost_categories: {
         Row: {
           created_at: string
@@ -421,6 +494,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      customers: {
+        Row: {
+          birth_date: string | null
+          city: string | null
+          country: string | null
+          country_code: string | null
+          created_at: string
+          customer_number: string
+          email: string | null
+          first_booking_date: string | null
+          id: string
+          last_booking_date: string | null
+          name: string
+          phone: string | null
+          total_accidents_amount: number
+          total_accidents_count: number
+          total_bookings_count: number
+          total_lifetime_value: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          birth_date?: string | null
+          city?: string | null
+          country?: string | null
+          country_code?: string | null
+          created_at?: string
+          customer_number: string
+          email?: string | null
+          first_booking_date?: string | null
+          id?: string
+          last_booking_date?: string | null
+          name: string
+          phone?: string | null
+          total_accidents_amount?: number
+          total_accidents_count?: number
+          total_bookings_count?: number
+          total_lifetime_value?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          birth_date?: string | null
+          city?: string | null
+          country?: string | null
+          country_code?: string | null
+          created_at?: string
+          customer_number?: string
+          email?: string | null
+          first_booking_date?: string | null
+          id?: string
+          last_booking_date?: string | null
+          name?: string
+          phone?: string | null
+          total_accidents_amount?: number
+          total_accidents_count?: number
+          total_bookings_count?: number
+          total_lifetime_value?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       daily_tasks: {
         Row: {
@@ -915,13 +1051,17 @@ export type Database = {
       rental_bookings: {
         Row: {
           balance_due_amount: number | null
+          booking_number: string
           contract_photo_path: string | null
           created_at: string
+          customer_id: string | null
           customer_name: string
+          customer_type: string | null
           dropoff_location: string | null
           end_date: string
           fuel_level: string | null
           id: string
+          insurance_type_id: string | null
           notes: string | null
           payment_status: string | null
           pickup_location: string | null
@@ -936,13 +1076,17 @@ export type Database = {
         }
         Insert: {
           balance_due_amount?: number | null
+          booking_number: string
           contract_photo_path?: string | null
           created_at?: string
+          customer_id?: string | null
           customer_name: string
+          customer_type?: string | null
           dropoff_location?: string | null
           end_date: string
           fuel_level?: string | null
           id?: string
+          insurance_type_id?: string | null
           notes?: string | null
           payment_status?: string | null
           pickup_location?: string | null
@@ -957,13 +1101,17 @@ export type Database = {
         }
         Update: {
           balance_due_amount?: number | null
+          booking_number?: string
           contract_photo_path?: string | null
           created_at?: string
+          customer_id?: string | null
           customer_name?: string
+          customer_type?: string | null
           dropoff_location?: string | null
           end_date?: string
           fuel_level?: string | null
           id?: string
+          insurance_type_id?: string | null
           notes?: string | null
           payment_status?: string | null
           pickup_location?: string | null
@@ -977,6 +1125,20 @@ export type Database = {
           vehicle_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "rental_bookings_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rental_bookings_insurance_type_id_fkey"
+            columns: ["insurance_type_id"]
+            isOneToOne: false
+            referencedRelation: "insurance_types"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "rental_bookings_vehicle_id_fkey"
             columns: ["vehicle_id"]
