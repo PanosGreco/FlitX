@@ -1,106 +1,43 @@
 
 
-# Plan: Documentation Synchronization + Architecture Folder
+# Plan: CRM Phase 1 — Database Foundation
 
-## Discrepancies Found
+## Summary
+Create one migration file with the `customers` table, `accidents` table, new columns on `rental_bookings`, back-fill triggers, and historical data migration. Update two documentation files. No code changes.
 
-1. **FOUND UNLISTED DISCREPANCY**: `documentation/fleet/components.md` line 253 claims `RentalBookingsList` data sources include `booking_contacts for email/phone`, but the actual code does NOT query `booking_contacts` — it only fetches `rental_bookings`, `booking_additional_info`, and `additional_info_categories`. Will update docs to match code.
+## Migration SQL
 
-2. **FOUND UNLISTED DISCREPANCY**: `documentation/analytics/data-flow.md` lines 51-53 say `task_type: 'pickup'` and `'dropoff'`, but the actual code uses `'delivery'` and `'return'`. Will fix in docs.
+The migration will contain exactly the SQL from the prompt, in order:
 
-3. **FOUND UNLISTED DISCREPANCY**: `documentation/fleet/data-flow.md` section 2 step 6 claims `booking_contacts: Email and phone stored separately for privacy/querying` — prior to the recent Customer Information feature, this INSERT never actually happened (the code was missing). The docs described phantom behavior. Now the insert exists but with expanded fields. Will update.
+1. **Part A** — `CREATE TABLE public.customers` with RLS (4 policies), `updated_at` trigger, indexes, comments
+2. **Part B** — `ALTER TABLE public.rental_bookings` adding `customer_id`, `booking_number`, `customer_type`, `insurance_type_id` with indexes, comments, and CHECK constraint on `customer_type`
+3. **Part C** — `CREATE TABLE public.accidents` with RLS (4 policies), `updated_at` trigger, indexes, comments, CHECK constraints on `payer_type` and `amounts_sum_check`
+4. **Part D** — Three trigger functions: `sync_accident_denorm_fields`, `recompute_customer_accident_totals`, `recompute_customer_booking_totals`
+5. **Part E** — Back-fill: assign `booking_number` to existing bookings, add UNIQUE + NOT NULL constraints, auto-generate trigger, create `customers` from grouped booking data, back-fill `customer_id` and `insurance_type_id` on bookings
 
-4. **FOUND UNLISTED DISCREPANCY**: `documentation/analytics/components.md` line 211 says BarChart uses "Sampling: For month view with >15 days, shows every 3rd day" — this sampling was removed in the recent chart bug fixes. Will update.
+**Note on CHECK constraints**: The `amounts_sum_check` and `valid_payer_type` constraints are purely arithmetic/value checks (not time-dependent), so CHECK constraints are appropriate here per the guidelines.
 
-## Files to Modify (6 existing)
+**Note on `auth.users` FK**: The `customers.user_id` and `accidents.user_id` both reference `auth.users(id) ON DELETE CASCADE`. This is acceptable because these are ownership references, not profile data references — and the prompt explicitly specifies this.
 
-### FILE 1: `/documentation/fleet/data-flow.md`
-- Update Section 2 ASCII diagram: add customer info fields to "User enters:" block (email, phone, birth date, country, city)
-- Update step 6 description: conditional INSERT into `booking_contacts` when any of email/phone/birth_date/city/country is filled; list all 8 columns written
-- Add note that `customer_name` stays in `rental_bookings`
-- Fix step numbering (booking_additional_info becomes step 7, booking_additional_costs step 8)
+## Documentation Updates
 
-### FILE 2: `/documentation/fleet/components.md`
-- Add "Customer Information" subsection under UnifiedBookingDialog describing the 6 fields, age computation, and 3 new components (InfoTooltip, CountryCombobox, CityCombobox)
-- Fix RentalBookingsList data sources: remove `booking_contacts` claim, note it only fetches `rental_bookings` + `booking_additional_info` + `additional_info_categories`
+1. **`documentation/architecture/crm-roadmap.md`** — Append a new section at the bottom: "## 5. Phase 2 Status" noting that the CRM database foundation (customers table, accidents table, booking numbers, data migration) was executed on 2026-04-14.
 
-### FILE 3: `/documentation/daily-program/data-flow.md`
-- Update step 4: match wording from fleet/data-flow.md for booking_contacts conditional insert with all fields
+2. **`documentation/data-management/gdpr-compliance.md`** — Add `customers` and `accidents` to the "Tables Missing from Account Deletion" table with appropriate risk levels (High for customers due to PII, Medium for accidents).
 
-### FILE 4: `/documentation/analytics/components.md`
-- Add Secondary KPI Cards (Total Bookings, Avg Income/Booking, Avg Cost/Booking) + KpiCard component
-- Add MarketingScatterPlot to hierarchy tree and describe it
-- Update SummaryCard: left-border accents, real growth indicators
-- Update BarChart/LineChart: granularity toggle, Card wrapper moved inside, toggle visibility rules
-- Update IncomeBreakdown/ExpenseBreakdown: % of Total, Count, Growth columns replacing Top Month; 15-row limit + expansion dialog
-- Fix task_type values in data-flow (pickup→delivery, dropoff→return)
+## Files
 
-### FILE 5: `/documentation/analytics/data-flow.md`
-- Add period-over-period growth computation for SummaryCards
-- Add granularity state flow for charts (local state, reset on timeframe change)
-- Note customRange now respected for Custom timeframe
-- Fix task_type values (pickup→delivery, dropoff→return)
+| Action | File |
+|--------|------|
+| Create | `supabase/migrations/[timestamp]_crm_foundation.sql` |
+| Modify | `documentation/architecture/crm-roadmap.md` |
+| Modify | `documentation/data-management/gdpr-compliance.md` |
 
-### FILE 6: `/documentation/analytics/performance.md`
-- Replace "Sampling for Dense Charts" section: remove old `data.filter` code, describe new approach (all data points kept, X-axis labels thinned via `interval` prop, formula documented)
+No `.tsx`, `.ts`, or other source files will be touched.
 
-## Files to Create (4 new in `/documentation/architecture/`)
+## Potential Concerns
 
-### FILE A: `README.md`
-- Intro paragraph + index of 3 files with one-line descriptions
-- Note: written for readers without database experience
-
-### FILE B: `database-overview.md`
-- Section 1: Filing cabinet analogy (table = cabinet, row = folder, column = label)
-- Section 2: Primary keys (UUIDs, uniqueness rule)
-- Section 3: Foreign keys (pointer concept, single source of truth, example: rental_bookings.vehicle_id → vehicles.id)
-- Section 4: Why this matters (no duplicated data)
-- Section 5: ON DELETE CASCADE (verified from migrations: CASCADE on vehicle_maintenance, vehicle_reminders, rental_bookings→vehicles, booking_contacts→rental_bookings, etc.; SET NULL on financial_records→vehicles/bookings, damage_reports→bookings)
-- Section 6: RLS explanation (database-level enforcement, auth.uid() = user_id)
-
-### FILE C: `data-relationships.md`
-- Section 1: Full ER diagram (Mermaid + ASCII) showing all tables and FK connections verified from migrations
-- Section 2: Three focused diagrams (Booking ecosystem, Vehicle ecosystem, Financial ecosystem) — each in Mermaid + ASCII
-- Section 3: Glossary of terms
-
-Sample Mermaid for the full ER diagram:
-
-```mermaid
-erDiagram
-    auth_users ||--o| profiles : "user_id"
-    auth_users ||--o| user_roles : "user_id"
-    auth_users ||--o{ vehicles : "user_id"
-    vehicles ||--o{ rental_bookings : "vehicle_id CASCADE"
-    vehicles ||--o{ vehicle_maintenance : "vehicle_id CASCADE"
-    vehicles ||--o{ vehicle_reminders : "vehicle_id CASCADE"
-    vehicles ||--o{ damage_reports : "vehicle_id CASCADE"
-    vehicles ||--o{ vehicle_documents : "vehicle_id CASCADE"
-    vehicles ||--o{ vehicle_images : "vehicle_id CASCADE"
-    vehicles ||--o| camper_features : "vehicle_id CASCADE"
-    vehicles ||--o{ maintenance_blocks : "vehicle_id CASCADE"
-    vehicles ||--o{ financial_records : "vehicle_id SET NULL"
-    vehicles ||--o{ recurring_transactions : "vehicle_id SET NULL"
-    vehicles ||--o{ price_season_rules : "vehicle_id CASCADE"
-    rental_bookings ||--o| booking_contacts : "booking_id CASCADE"
-    rental_bookings ||--o{ booking_additional_info : "booking_id CASCADE"
-    rental_bookings ||--o{ booking_additional_costs : "booking_id CASCADE"
-    rental_bookings ||--o{ financial_records : "booking_id SET NULL"
-    rental_bookings ||--o{ damage_reports : "booking_id SET NULL"
-    price_seasons ||--o{ price_season_rules : "season_id CASCADE"
-    additional_info_categories ||--o{ booking_additional_info : "category_id CASCADE"
-    additional_cost_categories ||--o{ booking_additional_costs : "category_id SET NULL"
-    user_asset_categories ||--o{ user_assets : "category_id CASCADE"
-    ai_chat_conversations ||--o{ ai_chat_messages : "conversation_id CASCADE"
-    user_reminders }o--o| vehicles : "vehicle_id SET NULL"
-```
-
-### FILE D: `crm-roadmap.md`
-- Section 1: Current state (booking_contacts 1-to-1 with rental_bookings, all columns listed, customer_name in rental_bookings)
-- Section 2: Future state (planned customers table, customer_id FK on rental_bookings, Mermaid + ASCII diagram)
-- Section 3: Migration path (4-step process: create table, group by name+email, add FK, populate)
-- Section 4: Security posture (current AES-256/TLS/RLS, planned pgcrypto/WAF/audit/GDPR)
-
-## Clarifications
-
-No questions — all source files have been read and verified. The 10 files (6 updates + 4 creates) are the complete scope. No code files will be touched.
+- The back-fill query in Step E5 uses correlated subqueries which may be slow on large datasets, but is correct and runs once.
+- The `booking_number` NOT NULL + UNIQUE constraint is added *after* back-fill, which is the correct order.
+- The `recompute_customer_booking_totals` trigger fires on `rental_bookings` INSERT/UPDATE/DELETE — the back-fill UPDATE in E6 will trigger it, but since customers are freshly created with correct aggregates, the recomputation will produce the same values (harmless).
 
