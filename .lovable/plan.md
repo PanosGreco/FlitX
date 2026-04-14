@@ -1,43 +1,49 @@
 
 
-# Plan: CRM Phase 1 — Database Foundation
+# Plan: CRM Phase 2 — Booking Form Integration + Booking Number Display
 
 ## Summary
-Create one migration file with the `customers` table, `accidents` table, new columns on `rental_bookings`, back-fill triggers, and historical data migration. Update two documentation files. No code changes.
+Connect the booking form to the CRM data model (customer upsert, customer type, insurance FK, booking number display) across 3 components + 6 translation files. No database changes.
 
-## Migration SQL
+## Files to modify (9 total)
 
-The migration will contain exactly the SQL from the prompt, in order:
+| File | Changes |
+|------|---------|
+| `src/components/booking/UnifiedBookingDialog.tsx` | Add `customerType` state + dropdown, `upsertCustomer` helper, `resolveInsuranceTypeId` helper, wire into `handleSaveBooking`, show booking number in success toast |
+| `src/components/fleet/RentalBookingsList.tsx` | Add `booking_number` to interface + SELECT, display as pill badge, extend search filter |
+| `src/components/finances/FinanceDashboard.tsx` | Add `bookingNumbersMap` state, fetch booking numbers after records load, append to `getTransactionTitle` output |
+| `src/i18n/locales/{en,el,de,fr,it,es}/fleet.json` | Add 11 new keys (customerType options, tooltip, createdWithNumber, searchCustomerOrBookingNumber) |
 
-1. **Part A** — `CREATE TABLE public.customers` with RLS (4 policies), `updated_at` trigger, indexes, comments
-2. **Part B** — `ALTER TABLE public.rental_bookings` adding `customer_id`, `booking_number`, `customer_type`, `insurance_type_id` with indexes, comments, and CHECK constraint on `customer_type`
-3. **Part C** — `CREATE TABLE public.accidents` with RLS (4 policies), `updated_at` trigger, indexes, comments, CHECK constraints on `payer_type` and `amounts_sum_check`
-4. **Part D** — Three trigger functions: `sync_accident_denorm_fields`, `recompute_customer_accident_totals`, `recompute_customer_booking_totals`
-5. **Part E** — Back-fill: assign `booking_number` to existing bookings, add UNIQUE + NOT NULL constraints, auto-generate trigger, create `customers` from grouped booking data, back-fill `customer_id` and `insurance_type_id` on bookings
+## Detailed approach
 
-**Note on CHECK constraints**: The `amounts_sum_check` and `valid_payer_type` constraints are purely arithmetic/value checks (not time-dependent), so CHECK constraints are appropriate here per the guidelines.
+### UnifiedBookingDialog.tsx
+- **State**: Add `customerType` (default `"Unknown"`) at line ~114, after `customerCountryCode`
+- **Reset**: Add `setCustomerType("Unknown")` in `resetForm()` at line ~576
+- **Constants**: Add `CUSTOMER_TYPE_OPTIONS` array before component definition
+- **UI**: Add Customer Type Select dropdown as Row 5 in the Customer Information section (after City field)
+- **`upsertCustomer` helper**: Conservative match on `(user_id, LOWER(name), LOWER(email))`. If found, update non-empty PII fields. If not found, generate next `C-XXXX` number and insert. Returns `customer_id`
+- **`resolveInsuranceTypeId` helper**: Looks up `insurance_types.id` by `name_original` match for current user
+- **Save flow** (lines 406-567): Before the `rental_bookings` insert, call `upsertCustomer` and `resolveInsuranceTypeId`. Add `customer_id`, `customer_type`, `insurance_type_id` to the insert payload. Change `.select()` to `.select('id, booking_number')`. Update success toast to include booking number
+- **booking_contacts insert**: Left completely untouched (lines 541-557)
 
-**Note on `auth.users` FK**: The `customers.user_id` and `accidents.user_id` both reference `auth.users(id) ON DELETE CASCADE`. This is acceptable because these are ownership references, not profile data references — and the prompt explicitly specifies this.
+### RentalBookingsList.tsx
+- Add `booking_number?: string | null` to `RentalBooking` interface
+- Add `booking_number` to the `.select(...)` query
+- Display pill badge `<span className="px-2 py-0.5 text-xs font-mono font-medium text-slate-600 bg-slate-100 rounded-md">` next to customer name
+- Extend `filteredBookings` useMemo to also match `booking_number`
+- Change search placeholder to `t('fleet:searchCustomerOrBookingNumber')`
 
-## Documentation Updates
+### FinanceDashboard.tsx
+- Add `bookingNumbersMap` state (`Map<string, string>`)
+- After `financialRecords` are fetched, extract unique `booking_id`s and batch-fetch `booking_number` from `rental_bookings`
+- In `getTransactionTitle`: compute final title as before, then append ` ${bookingNumber}` if the record has a `booking_id` with a mapped number
 
-1. **`documentation/architecture/crm-roadmap.md`** — Append a new section at the bottom: "## 5. Phase 2 Status" noting that the CRM database foundation (customers table, accidents table, booking numbers, data migration) was executed on 2026-04-14.
+### Translations
+All 11 keys added to all 6 locales as specified in the prompt. Merged into existing JSON, no overwrites.
 
-2. **`documentation/data-management/gdpr-compliance.md`** — Add `customers` and `accidents` to the "Tables Missing from Account Deletion" table with appropriate risk levels (High for customers due to PII, Medium for accidents).
-
-## Files
-
-| Action | File |
-|--------|------|
-| Create | `supabase/migrations/[timestamp]_crm_foundation.sql` |
-| Modify | `documentation/architecture/crm-roadmap.md` |
-| Modify | `documentation/data-management/gdpr-compliance.md` |
-
-No `.tsx`, `.ts`, or other source files will be touched.
-
-## Potential Concerns
-
-- The back-fill query in Step E5 uses correlated subqueries which may be slow on large datasets, but is correct and runs once.
-- The `booking_number` NOT NULL + UNIQUE constraint is added *after* back-fill, which is the correct order.
-- The `recompute_customer_booking_totals` trigger fires on `rental_bookings` INSERT/UPDATE/DELETE — the back-fill UPDATE in E6 will trigger it, but since customers are freshly created with correct aggregates, the recomputation will produce the same values (harmless).
+## What stays untouched
+- `booking_contacts` insert logic (unchanged)
+- All Home components, Calendar, sidebar, navigation
+- No database migrations
+- No manual edits to `types.ts`
 
