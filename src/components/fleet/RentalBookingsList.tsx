@@ -13,6 +13,7 @@ import { formatDateEuropean, formatTime24h } from "@/utils/dateFormatUtils";
 
 interface RentalBooking {
   id: string;
+  booking_number: string | null;
   start_date: string;
   end_date: string;
   pickup_time: string | null;
@@ -47,8 +48,11 @@ export function RentalBookingsList({ vehicleId, onBookingDeleted }: RentalBookin
 
   const filteredBookings = useMemo(() => {
     if (!searchQuery.trim()) return bookings;
-    const query = searchQuery.toLowerCase();
-    return bookings.filter((booking) => booking.customer_name.toLowerCase().includes(query));
+    const q = searchQuery.toLowerCase().trim();
+    return bookings.filter((booking) =>
+      booking.customer_name.toLowerCase().includes(q) ||
+      (booking.booking_number && booking.booking_number.toLowerCase().includes(q))
+    );
   }, [bookings, searchQuery]);
 
   useEffect(() => { fetchBookings(); }, [vehicleId]);
@@ -163,7 +167,7 @@ export function RentalBookingsList({ vehicleId, onBookingDeleted }: RentalBookin
     <div className="space-y-4">
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={t('fleet:searchCustomerName')} className="pl-9" />
+        <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={t('fleet:searchCustomerOrBookingNumber')} className="pl-9" />
       </div>
 
       {filteredBookings.length === 0 && searchQuery && <div className="text-center py-4 text-muted-foreground">
@@ -178,6 +182,11 @@ export function RentalBookingsList({ vehicleId, onBookingDeleted }: RentalBookin
               <div className="flex items-center gap-2">
                 <User className="h-4 w-4 text-gray-500" />
                 <span className="font-medium text-lg">{booking.customer_name}</span>
+                {booking.booking_number && (
+                  <span className="px-2 py-0.5 text-xs font-mono font-medium text-slate-600 bg-slate-100 rounded-md">
+                    {booking.booking_number}
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-2">
                 {booking.contract_photo_path && <Button variant="ghost" size="sm" onClick={() => handleViewPhoto(booking.contract_photo_path!, booking.id)} className="text-blue-600 hover:text-blue-800 h-8 w-8 p-0">
