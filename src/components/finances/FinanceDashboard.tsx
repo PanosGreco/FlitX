@@ -261,23 +261,26 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   const getTransactionTitle = (record: FinancialRecord): string => {
     const isIncome = record.type === 'income';
     const prefix = isIncome ? t('incomeRecord') : t('expenseRecord');
+    const appendBookingNumber = (base: string): string => {
+      const bn = record.booking_id ? bookingNumbersMap.get(record.booking_id) : null;
+      return bn ? `${base} ${bn}` : base;
+    };
     
     // Vehicle Sale records
     if (record.category === 'vehicle_sale') {
       const vehicleName = getVehicleName(record.vehicle_id);
       if (isIncome) {
-        return `${t('profitFromSale')}${vehicleName ? ` – ${vehicleName}` : ''}`;
+        return appendBookingNumber(`${t('profitFromSale')}${vehicleName ? ` – ${vehicleName}` : ''}`);
       } else {
-        return `${t('lossFromSale')}${vehicleName ? ` – ${vehicleName}` : ''}`;
+        return appendBookingNumber(`${t('lossFromSale')}${vehicleName ? ` – ${vehicleName}` : ''}`);
       }
     }
 
     if (isIncome) {
-      // Income titles
       if (record.category === 'rental') {
-        return `${prefix} – ${record.description || 'Rental'}`;
+        return appendBookingNumber(`${prefix} – ${record.description || 'Rental'}`);
       } else if (record.category === 'additional') {
-        return `${prefix} – ${record.description || 'Additional Income'}`;
+        return appendBookingNumber(`${prefix} – ${record.description || 'Additional Income'}`);
       } else {
         const sourceType = record.income_source_type;
         const sourceLabels: Record<string, string> = {
@@ -289,14 +292,13 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         const spec = record.income_source_specification;
         if (spec) {
           if (sourceType === 'other') {
-            return `${prefix} – ${spec}`;
+            return appendBookingNumber(`${prefix} – ${spec}`);
           }
-          return `${prefix} – ${sourceLabel} · ${spec}`;
+          return appendBookingNumber(`${prefix} – ${sourceLabel} · ${spec}`);
         }
-        return `${prefix} – ${record.description || sourceLabel || 'Manual Income'}`;
+        return appendBookingNumber(`${prefix} – ${record.description || sourceLabel || 'Manual Income'}`);
       }
     } else {
-      // Expense titles
       const categoryLabels: Record<string, string> = {
         fuel: t('fuel'),
         maintenance: t('vehicleMaintenance'),
@@ -314,7 +316,6 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       
       const categoryLabel = categoryLabels[record.category] || record.category;
       
-      // For maintenance, show structured: Category · Subcategory · Vehicle
       if (record.category === 'maintenance' && record.expense_subcategory) {
         const subcatLabel = getMaintenanceTypeLabel(record.expense_subcategory, language);
         const displaySubcat = subcatLabel === record.expense_subcategory 
@@ -323,37 +324,31 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         const vehicleName = getVehicleName(record.vehicle_id);
         const parts = [prefix, categoryLabel, displaySubcat];
         if (vehicleName) parts.push(vehicleName);
-        return parts.join(' · ');
+        return appendBookingNumber(parts.join(' · '));
       }
       
-      // For vehicle parts, show structured: Category · Subcategory · Vehicle
       if (record.category === 'vehicle_parts') {
         const vehicleName = getVehicleName(record.vehicle_id);
         const parts = [prefix, categoryLabel];
         if (record.expense_subcategory) parts.push(record.expense_subcategory);
         if (vehicleName) parts.push(vehicleName);
-        return parts.join(' · ');
+        return appendBookingNumber(parts.join(' · '));
       }
       
-      // For other expenses with subcategory - show as standalone
       if (record.category === 'other' && record.expense_subcategory) {
-        return `${prefix} – ${record.expense_subcategory}`;
+        return appendBookingNumber(`${prefix} – ${record.expense_subcategory}`);
       }
       
-      // For tax expenses with subcategory - show structured
       if (record.category === 'tax' && record.expense_subcategory) {
-        return `${prefix} · ${categoryLabel} · ${record.expense_subcategory}`;
+        return appendBookingNumber(`${prefix} · ${categoryLabel} · ${record.expense_subcategory}`);
       }
       
       if (record.expense_subcategory) {
-        return `${prefix} – ${categoryLabel} (${record.expense_subcategory})`;
+        return appendBookingNumber(`${prefix} – ${categoryLabel} (${record.expense_subcategory})`);
       }
       
-      title = `${prefix} – ${categoryLabel}`;
+      return appendBookingNumber(`${prefix} – ${categoryLabel}`);
     }
-
-    const bookingNumber = record.booking_id ? bookingNumbersMap.get(record.booking_id) : null;
-    return bookingNumber ? `${title} ${bookingNumber}` : title;
   };
 
   // Handle delete transaction with full cascade
