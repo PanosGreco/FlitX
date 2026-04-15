@@ -12,6 +12,7 @@ import enAi from './locales/en/ai.json';
 import enHome from './locales/en/home.json';
 import enTracking from './locales/en/tracking.json';
 import enDailyProgram from './locales/en/dailyProgram.json';
+import enCrm from './locales/en/crm.json';
 
 // EL
 import elCommon from './locales/el/common.json';
@@ -23,6 +24,7 @@ import elAi from './locales/el/ai.json';
 import elHome from './locales/el/home.json';
 import elTracking from './locales/el/tracking.json';
 import elDailyProgram from './locales/el/dailyProgram.json';
+import elCrm from './locales/el/crm.json';
 
 // IT
 import itCommon from './locales/it/common.json';
@@ -34,6 +36,7 @@ import itDailyProgram from './locales/it/dailyProgram.json';
 import itAuth from './locales/it/auth.json';
 import itProfile from './locales/it/profile.json';
 import itTracking from './locales/it/tracking.json';
+import itCrm from './locales/it/crm.json';
 
 // ES
 import esCommon from './locales/es/common.json';
@@ -45,6 +48,7 @@ import esDailyProgram from './locales/es/dailyProgram.json';
 import esAuth from './locales/es/auth.json';
 import esProfile from './locales/es/profile.json';
 import esTracking from './locales/es/tracking.json';
+import esCrm from './locales/es/crm.json';
 
 // DE
 import deCommon from './locales/de/common.json';
@@ -56,6 +60,7 @@ import deDailyProgram from './locales/de/dailyProgram.json';
 import deAuth from './locales/de/auth.json';
 import deProfile from './locales/de/profile.json';
 import deTracking from './locales/de/tracking.json';
+import deCrm from './locales/de/crm.json';
 
 // FR
 import frCommon from './locales/fr/common.json';
@@ -67,6 +72,7 @@ import frDailyProgram from './locales/fr/dailyProgram.json';
 import frAuth from './locales/fr/auth.json';
 import frProfile from './locales/fr/profile.json';
 import frTracking from './locales/fr/tracking.json';
+import frCrm from './locales/fr/crm.json';
 
 export const SUPPORTED_LANGUAGES = ['en', 'el', 'it', 'es', 'de', 'fr'] as const;
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
@@ -89,15 +95,15 @@ export const COUNTRY_LANGUAGE_MAP: Record<string, SupportedLanguage> = {
 };
 
 const resources = {
-  en: { common: enCommon, fleet: enFleet, finance: enFinance, profile: enProfile, auth: enAuth, ai: enAi, home: enHome, tracking: enTracking, dailyProgram: enDailyProgram },
-  el: { common: elCommon, fleet: elFleet, finance: elFinance, profile: elProfile, auth: elAuth, ai: elAi, home: elHome, tracking: elTracking, dailyProgram: elDailyProgram },
-  it: { common: itCommon, ai: itAi, fleet: itFleet, finance: itFinance, home: itHome, dailyProgram: itDailyProgram, auth: itAuth, profile: itProfile, tracking: itTracking },
-  es: { common: esCommon, ai: esAi, fleet: esFleet, finance: esFinance, home: esHome, dailyProgram: esDailyProgram, auth: esAuth, profile: esProfile, tracking: esTracking },
-  de: { common: deCommon, ai: deAi, fleet: deFleet, finance: deFinance, home: deHome, dailyProgram: deDailyProgram, auth: deAuth, profile: deProfile, tracking: deTracking },
-  fr: { common: frCommon, ai: frAi, fleet: frFleet, finance: frFinance, home: frHome, dailyProgram: frDailyProgram, auth: frAuth, profile: frProfile, tracking: frTracking },
+  en: { common: enCommon, fleet: enFleet, finance: enFinance, profile: enProfile, auth: enAuth, ai: enAi, home: enHome, tracking: enTracking, dailyProgram: enDailyProgram, crm: enCrm },
+  el: { common: elCommon, fleet: elFleet, finance: elFinance, profile: elProfile, auth: elAuth, ai: elAi, home: elHome, tracking: elTracking, dailyProgram: elDailyProgram, crm: elCrm },
+  it: { common: itCommon, ai: itAi, fleet: itFleet, finance: itFinance, home: itHome, dailyProgram: itDailyProgram, auth: itAuth, profile: itProfile, tracking: itTracking, crm: itCrm },
+  es: { common: esCommon, ai: esAi, fleet: esFleet, finance: esFinance, home: esHome, dailyProgram: esDailyProgram, auth: esAuth, profile: esProfile, tracking: esTracking, crm: esCrm },
+  de: { common: deCommon, ai: deAi, fleet: deFleet, finance: deFinance, home: deHome, dailyProgram: deDailyProgram, auth: deAuth, profile: deProfile, tracking: deTracking, crm: deCrm },
+  fr: { common: frCommon, ai: frAi, fleet: frFleet, finance: frFinance, home: frHome, dailyProgram: frDailyProgram, auth: frAuth, profile: frProfile, tracking: frTracking, crm: frCrm },
 };
 
-export const ALL_NAMESPACES = ['common', 'fleet', 'finance', 'profile', 'auth', 'ai', 'home', 'tracking', 'dailyProgram'] as const;
+export const ALL_NAMESPACES = ['common', 'fleet', 'finance', 'profile', 'auth', 'ai', 'home', 'tracking', 'dailyProgram', 'crm'] as const;
 
 i18n
   .use(LanguageDetector)
