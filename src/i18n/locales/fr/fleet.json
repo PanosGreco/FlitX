@@ -470,5 +470,7 @@
   "customerType_tourAgency": "Tour / Agence",
   "booking_tooltipCustomerType": "Comment ce client réserve pour ce voyage. Le même client peut avoir différents types selon les réservations. Utilisé dans l'analyse CRM.",
   "booking_createdWithNumber": "Réservation {{number}} créée avec succès",
-  "searchCustomerOrBookingNumber": "Rechercher par nom de client ou numéro de réservation"
+  "searchCustomerOrBookingNumber": "Rechercher par nom de client ou numéro de réservation",
+  "booking_customerLookupFailed": "Impossible de vérifier le client existant. Réservation enregistrée sans lien client.",
+  "booking_customerCreateFailed": "Impossible de créer la fiche client. Réservation enregistrée sans lien client."
 }

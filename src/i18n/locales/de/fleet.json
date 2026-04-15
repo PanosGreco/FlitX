@@ -470,5 +470,7 @@
   "customerType_tourAgency": "Tour / Agentur",
   "booking_tooltipCustomerType": "Wie dieser Kunde für diese Reise bucht. Derselbe Kunde kann bei verschiedenen Buchungen unterschiedliche Typen haben. Wird in der CRM-Analyse verwendet.",
   "booking_createdWithNumber": "Buchung {{number}} erfolgreich erstellt",
-  "searchCustomerOrBookingNumber": "Suche nach Kundenname oder Buchungsnummer"
+  "searchCustomerOrBookingNumber": "Suche nach Kundenname oder Buchungsnummer",
+  "booking_customerLookupFailed": "Bestehender Kunde konnte nicht geprüft werden. Buchung ohne Kundenverknüpfung gespeichert.",
+  "booking_customerCreateFailed": "Kundendatensatz konnte nicht erstellt werden. Buchung ohne Kundenverknüpfung gespeichert."
 }
