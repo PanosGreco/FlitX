@@ -469,5 +469,7 @@
   "customerType_tourAgency": "Tour / Agency",
   "booking_tooltipCustomerType": "How this customer is booking for this trip. Same customer can have different types across bookings. Used in CRM analytics.",
   "booking_createdWithNumber": "Booking {{number}} created successfully",
-  "searchCustomerOrBookingNumber": "Search by customer name or booking number"
+  "searchCustomerOrBookingNumber": "Search by customer name or booking number",
+  "booking_customerLookupFailed": "Could not check for existing customer. Booking saved without customer link.",
+  "booking_customerCreateFailed": "Could not create customer record. Booking saved without customer link."
 }

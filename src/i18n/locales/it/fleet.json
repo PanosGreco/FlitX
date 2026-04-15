@@ -470,5 +470,7 @@
   "customerType_tourAgency": "Tour / Agenzia",
   "booking_tooltipCustomerType": "Come questo cliente prenota per questo viaggio. Lo stesso cliente può avere tipi diversi in prenotazioni diverse. Usato nell'analisi CRM.",
   "booking_createdWithNumber": "Prenotazione {{number}} creata con successo",
-  "searchCustomerOrBookingNumber": "Cerca per nome cliente o numero prenotazione"
+  "searchCustomerOrBookingNumber": "Cerca per nome cliente o numero prenotazione",
+  "booking_customerLookupFailed": "Impossibile verificare il cliente esistente. Prenotazione salvata senza collegamento cliente.",
+  "booking_customerCreateFailed": "Impossibile creare il record cliente. Prenotazione salvata senza collegamento cliente."
 }

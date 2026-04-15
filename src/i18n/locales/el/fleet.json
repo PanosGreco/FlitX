@@ -469,5 +469,7 @@
   "customerType_tourAgency": "Πρακτορείο / Tour",
   "booking_tooltipCustomerType": "Πώς κάνει κράτηση ο πελάτης για αυτό το ταξίδι. Ο ίδιος πελάτης μπορεί να έχει διαφορετικούς τύπους σε διαφορετικές κρατήσεις. Χρησιμοποιείται στο CRM.",
   "booking_createdWithNumber": "Η κράτηση {{number}} δημιουργήθηκε επιτυχώς",
-  "searchCustomerOrBookingNumber": "Αναζήτηση κατά όνομα πελάτη ή αριθμό κράτησης"
+  "searchCustomerOrBookingNumber": "Αναζήτηση κατά όνομα πελάτη ή αριθμό κράτησης",
+  "booking_customerLookupFailed": "Αδυναμία ελέγχου υπάρχοντος πελάτη. Η κράτηση αποθηκεύτηκε χωρίς σύνδεση πελάτη.",
+  "booking_customerCreateFailed": "Αδυναμία δημιουργίας εγγραφής πελάτη. Η κράτηση αποθηκεύτηκε χωρίς σύνδεση πελάτη."
 }

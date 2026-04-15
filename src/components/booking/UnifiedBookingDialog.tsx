@@ -423,16 +423,30 @@ export function UnifiedBookingDialog({
     const trimmedEmail = params.email.trim().toLowerCase();
     if (!trimmedName) return null;
 
-    let query = supabase.from('customers').select('id').eq('user_id', user.id);
-    if (trimmedEmail) {
-      query = query.ilike('name', trimmedName).ilike('email', trimmedEmail);
-    } else {
-      query = query.ilike('name', trimmedName).is('email', null);
-    }
-    const { data: existing, error: lookupError } = await query.limit(1).maybeSingle();
-    if (lookupError) console.error('Customer lookup error:', lookupError);
+    const { data: candidates, error: lookupError } = await supabase
+      .from('customers')
+      .select('id, name, email')
+      .eq('user_id', user.id)
+      .limit(50);
 
-    if (existing?.id) {
+    if (lookupError) {
+      console.error('[upsertCustomer] Customer lookup failed:', lookupError);
+      toast.error(t('fleet:booking_customerLookupFailed'));
+      return null;
+    }
+
+    const matched = (candidates || []).find(c => {
+      const nameMatch = (c.name || '').trim().toLowerCase() === trimmedName.toLowerCase();
+      const dbEmail = (c.email || '').trim().toLowerCase();
+      if (trimmedEmail) {
+        return nameMatch && dbEmail === trimmedEmail;
+      } else {
+        return nameMatch && dbEmail === '';
+      }
+    });
+
+    if (matched?.id) {
+      console.log('[upsertCustomer] Matched existing customer:', matched.id);
       const updatePayload: Record<string, string | null> = {};
       if (params.phone.trim()) updatePayload.phone = params.phone.trim();
       if (params.birthDate) updatePayload.birth_date = params.birthDate;
@@ -440,26 +454,45 @@ export function UnifiedBookingDialog({
       if (params.country.trim()) updatePayload.country = params.country.trim();
       if (params.countryCode.trim()) updatePayload.country_code = params.countryCode.trim();
       if (Object.keys(updatePayload).length > 0) {
-        await supabase.from('customers').update(updatePayload).eq('id', existing.id);
+        const { error: updateError } = await supabase
+          .from('customers').update(updatePayload).eq('id', matched.id);
+        if (updateError) console.error('[upsertCustomer] Update failed:', updateError);
       }
-      return existing.id;
+      return matched.id;
     }
 
-    const { data: maxRow } = await supabase.from('customers').select('customer_number')
-      .eq('user_id', user.id).order('customer_number', { ascending: false }).limit(1).maybeSingle();
+    const { data: maxRow, error: maxError } = await supabase
+      .from('customers').select('customer_number')
+      .eq('user_id', user.id)
+      .order('customer_number', { ascending: false })
+      .limit(1);
+
+    if (maxError) {
+      console.error('[upsertCustomer] Max number lookup failed:', maxError);
+      return null;
+    }
+
     let nextNum = 1;
-    if (maxRow?.customer_number && /^C-\d+$/.test(maxRow.customer_number)) {
-      nextNum = parseInt(maxRow.customer_number.substring(2), 10) + 1;
+    const lastNumber = maxRow?.[0]?.customer_number;
+    if (lastNumber && /^C-\d+$/.test(lastNumber)) {
+      nextNum = parseInt(lastNumber.substring(2), 10) + 1;
     }
     const newCustomerNumber = `C-${String(nextNum).padStart(4, '0')}`;
 
-    const { data: created, error: insertError } = await supabase.from('customers').insert({
-      user_id: user.id, customer_number: newCustomerNumber, name: trimmedName,
-      email: trimmedEmail || null, phone: params.phone.trim() || null,
-      birth_date: params.birthDate || null, city: params.city.trim() || null,
-      country: params.country.trim() || null, country_code: params.countryCode.trim() || null,
-    }).select('id').single();
-    if (insertError) { console.error('Customer create error:', insertError); return null; }
+    const { data: created, error: insertError } = await supabase
+      .from('customers').insert({
+        user_id: user.id, customer_number: newCustomerNumber, name: trimmedName,
+        email: trimmedEmail || null, phone: params.phone.trim() || null,
+        birth_date: params.birthDate || null, city: params.city.trim() || null,
+        country: params.country.trim() || null, country_code: params.countryCode.trim() || null,
+      }).select('id').single();
+
+    if (insertError) {
+      console.error('[upsertCustomer] Insert failed:', insertError);
+      toast.error(t('fleet:booking_customerCreateFailed'));
+      return null;
+    }
+    console.log('[upsertCustomer] Created new customer:', created?.id);
     return created?.id || null;
   };
 
