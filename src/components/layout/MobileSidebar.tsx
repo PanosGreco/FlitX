@@ -8,7 +8,8 @@ import {
   User, 
   Calendar,
   X,
-  Sparkles
+  Sparkles,
+  Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -27,6 +28,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { titleKey: "finances", href: "/finances", icon: BarChart3 },
+  { titleKey: "crm", href: "/crm", icon: Users },
   { titleKey: "home", href: "/", icon: Calendar },
   { titleKey: "aiAssistant", href: "/ai-assistant", icon: Sparkles },
   { titleKey: "dailyProgram", href: "/daily-program", icon: Calendar },

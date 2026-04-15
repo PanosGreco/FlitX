@@ -6,7 +6,8 @@ import {
   Map, 
   User, 
   Calendar,
-  Sparkles
+  Sparkles,
+  Users
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -18,6 +19,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { titleKey: "finances", href: "/finances", icon: BarChart3 },
+  { titleKey: "crm", href: "/crm", icon: Users },
   { titleKey: "home", href: "/", icon: Calendar },
   { titleKey: "aiAssistant", href: "/ai-assistant", icon: Sparkles },
   { titleKey: "dailyProgram", href: "/daily-program", icon: Calendar },
