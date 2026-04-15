@@ -12,6 +12,7 @@ import enAi from './locales/en/ai.json';
 import enHome from './locales/en/home.json';
 import enTracking from './locales/en/tracking.json';
 import enDailyProgram from './locales/en/dailyProgram.json';
+import enCrm from './locales/en/crm.json';
 
 // EL
 import elCommon from './locales/el/common.json';
@@ -23,6 +24,7 @@ import elAi from './locales/el/ai.json';
 import elHome from './locales/el/home.json';
 import elTracking from './locales/el/tracking.json';
 import elDailyProgram from './locales/el/dailyProgram.json';
+import elCrm from './locales/el/crm.json';
 
 // IT
 import itCommon from './locales/it/common.json';
@@ -34,6 +36,7 @@ import itDailyProgram from './locales/it/dailyProgram.json';
 import itAuth from './locales/it/auth.json';
 import itProfile from './locales/it/profile.json';
 import itTracking from './locales/it/tracking.json';
+import itCrm from './locales/it/crm.json';
 
 // ES
 import esCommon from './locales/es/common.json';
@@ -45,6 +48,7 @@ import esDailyProgram from './locales/es/dailyProgram.json';
 import esAuth from './locales/es/auth.json';
 import esProfile from './locales/es/profile.json';
 import esTracking from './locales/es/tracking.json';
+import esCrm from './locales/es/crm.json';
 
 // DE
 import deCommon from './locales/de/common.json';
@@ -56,6 +60,7 @@ import deDailyProgram from './locales/de/dailyProgram.json';
 import deAuth from './locales/de/auth.json';
 import deProfile from './locales/de/profile.json';
 import deTracking from './locales/de/tracking.json';
+import deCrm from './locales/de/crm.json';
 
 // FR
 import frCommon from './locales/fr/common.json';
@@ -67,6 +72,7 @@ import frDailyProgram from './locales/fr/dailyProgram.json';
 import frAuth from './locales/fr/auth.json';
 import frProfile from './locales/fr/profile.json';
 import frTracking from './locales/fr/tracking.json';
+import frCrm from './locales/fr/crm.json';
 
 export const SUPPORTED_LANGUAGES = ['en', 'el', 'it', 'es', 'de', 'fr'] as const;
 export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
