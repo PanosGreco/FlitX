@@ -7,7 +7,7 @@ import { CRMFilterBar, type CRMFilters } from '@/components/crm/CRMFilterBar';
 import { AddAccidentDialog } from '@/components/crm/AddAccidentDialog';
 import { AccidentHistory } from '@/components/crm/AccidentHistory';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 export default function CRM() {
   const { t } = useTranslation(['crm', 'common']);
@@ -88,8 +88,8 @@ export default function CRM() {
             <h1 className="text-2xl font-bold text-foreground">{t('crm:title')}</h1>
             <p className="text-sm text-muted-foreground mt-1">{t('crm:subtitle')}</p>
           </div>
-          <Button onClick={() => setIsAccidentDialogOpen(true)} className="bg-orange-500 hover:bg-orange-600 text-white shrink-0">
-            <AlertTriangle className="h-4 w-4 mr-2" />
+          <Button onClick={() => setIsAccidentDialogOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground shrink-0">
+            <Plus className="h-4 w-4 mr-2" />
             {t('crm:addAccidentRecord')}
           </Button>
         </div>

@@ -17,8 +17,9 @@ export type Database = {
       accidents: {
         Row: {
           accident_date: string
+          amount_paid_by_business: number
+          amount_paid_by_customer: number
           amount_paid_by_insurance: number
-          amount_paid_by_user: number
           booking_id: string
           created_at: string
           customer_id: string | null
@@ -33,8 +34,9 @@ export type Database = {
         }
         Insert: {
           accident_date?: string
+          amount_paid_by_business?: number
+          amount_paid_by_customer?: number
           amount_paid_by_insurance?: number
-          amount_paid_by_user?: number
           booking_id: string
           created_at?: string
           customer_id?: string | null
@@ -49,8 +51,9 @@ export type Database = {
         }
         Update: {
           accident_date?: string
+          amount_paid_by_business?: number
+          amount_paid_by_customer?: number
           amount_paid_by_insurance?: number
-          amount_paid_by_user?: number
           booking_id?: string
           created_at?: string
           customer_id?: string | null

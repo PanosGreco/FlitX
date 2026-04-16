@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, Search, AlertTriangle, Loader2 } from 'lucide-react';
+import { CalendarIcon, AlertTriangle, Loader2 } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -37,7 +37,7 @@ interface BookingOption {
   vehicle_label: string;
 }
 
-type PayerType = 'insurance' | 'user' | 'split';
+type PayerType = 'insurance' | 'customer' | 'business' | 'split';
 
 export function AddAccidentDialog({ isOpen, onClose, onSuccess }: AddAccidentDialogProps) {
   const { t } = useTranslation('crm');
@@ -51,7 +51,8 @@ export function AddAccidentDialog({ isOpen, onClose, onSuccess }: AddAccidentDia
   const [totalDamageCost, setTotalDamageCost] = useState<number>(0);
   const [payerType, setPayerType] = useState<PayerType>('split');
   const [amountPaidByInsurance, setAmountPaidByInsurance] = useState(0);
-  const [amountPaidByUser, setAmountPaidByUser] = useState(0);
+  const [amountPaidByCustomer, setAmountPaidByCustomer] = useState(0);
+  const [amountPaidByBusiness, setAmountPaidByBusiness] = useState(0);
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -83,25 +84,33 @@ export function AddAccidentDialog({ isOpen, onClose, onSuccess }: AddAccidentDia
     })();
   }, [isOpen, user]);
 
-  // Auto-fill amounts when payerType or totalDamageCost changes
+  // Auto-fill amounts when payerType or totalDamageCost changes (non-split modes)
   useEffect(() => {
     if (payerType === 'insurance') {
       setAmountPaidByInsurance(totalDamageCost);
-      setAmountPaidByUser(0);
-    } else if (payerType === 'user') {
+      setAmountPaidByCustomer(0);
+      setAmountPaidByBusiness(0);
+    } else if (payerType === 'customer') {
       setAmountPaidByInsurance(0);
-      setAmountPaidByUser(totalDamageCost);
+      setAmountPaidByCustomer(totalDamageCost);
+      setAmountPaidByBusiness(0);
+    } else if (payerType === 'business') {
+      setAmountPaidByInsurance(0);
+      setAmountPaidByCustomer(0);
+      setAmountPaidByBusiness(totalDamageCost);
     }
   }, [payerType, totalDamageCost]);
 
-  const handleInsuranceAmountChange = (val: number) => {
-    setAmountPaidByInsurance(val);
-    setAmountPaidByUser(Math.max(0, totalDamageCost - val));
-  };
-
-  const handleUserAmountChange = (val: number) => {
-    setAmountPaidByUser(val);
-    setAmountPaidByInsurance(Math.max(0, totalDamageCost - val));
+  const handleSplitChange = (field: 'insurance' | 'customer' | 'business', value: number) => {
+    if (field === 'insurance') {
+      setAmountPaidByInsurance(value);
+      setAmountPaidByBusiness(Math.max(0, totalDamageCost - value - amountPaidByCustomer));
+    } else if (field === 'customer') {
+      setAmountPaidByCustomer(value);
+      setAmountPaidByBusiness(Math.max(0, totalDamageCost - amountPaidByInsurance - value));
+    } else {
+      setAmountPaidByBusiness(value);
+    }
   };
 
   const resetForm = useCallback(() => {
@@ -111,7 +120,8 @@ export function AddAccidentDialog({ isOpen, onClose, onSuccess }: AddAccidentDia
     setTotalDamageCost(0);
     setPayerType('split');
     setAmountPaidByInsurance(0);
-    setAmountPaidByUser(0);
+    setAmountPaidByCustomer(0);
+    setAmountPaidByBusiness(0);
     setNotes('');
   }, []);
 
@@ -121,12 +131,22 @@ export function AddAccidentDialog({ isOpen, onClose, onSuccess }: AddAccidentDia
       return;
     }
 
-    const computedInsurance = payerType === 'insurance' ? totalDamageCost
-      : payerType === 'user' ? 0 : amountPaidByInsurance;
-    const computedUser = payerType === 'user' ? totalDamageCost
-      : payerType === 'insurance' ? 0 : amountPaidByUser;
+    let computedInsurance = 0;
+    let computedCustomer = 0;
+    let computedBusiness = 0;
+    if (payerType === 'insurance') {
+      computedInsurance = totalDamageCost;
+    } else if (payerType === 'customer') {
+      computedCustomer = totalDamageCost;
+    } else if (payerType === 'business') {
+      computedBusiness = totalDamageCost;
+    } else {
+      computedInsurance = amountPaidByInsurance;
+      computedCustomer = amountPaidByCustomer;
+      computedBusiness = amountPaidByBusiness;
+    }
 
-    if (Math.abs((computedInsurance + computedUser) - totalDamageCost) > 0.01) {
+    if (Math.abs((computedInsurance + computedCustomer + computedBusiness) - totalDamageCost) > 0.01) {
       toast.error(t('accident_amountsMustMatch'));
       return;
     }
@@ -140,7 +160,8 @@ export function AddAccidentDialog({ isOpen, onClose, onSuccess }: AddAccidentDia
         description: description.trim(),
         total_damage_cost: totalDamageCost,
         amount_paid_by_insurance: computedInsurance,
-        amount_paid_by_user: computedUser,
+        amount_paid_by_customer: computedCustomer,
+        amount_paid_by_business: computedBusiness,
         payer_type: payerType,
         notes: notes.trim() || null,
       });
@@ -165,11 +186,11 @@ export function AddAccidentDialog({ isOpen, onClose, onSuccess }: AddAccidentDia
   };
 
   const amountsMismatch = payerType === 'split' && totalDamageCost > 0 &&
-    Math.abs((amountPaidByInsurance + amountPaidByUser) - totalDamageCost) > 0.01;
+    Math.abs((amountPaidByInsurance + amountPaidByCustomer + amountPaidByBusiness) - totalDamageCost) > 0.01;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) { resetForm(); onClose(); } }}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-orange-500" />
@@ -179,21 +200,21 @@ export function AddAccidentDialog({ isOpen, onClose, onSuccess }: AddAccidentDia
 
         <div className="space-y-4 py-2">
           {/* Booking selector */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 min-w-0">
             <Label>{t('accident_selectBooking')} *</Label>
             <Popover open={bookingPopoverOpen} onOpenChange={setBookingPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full justify-start text-left font-normal h-auto min-h-10">
+                <Button variant="outline" role="combobox" className="w-full justify-start text-left font-normal h-auto min-h-10 overflow-hidden">
                   {selectedBooking ? (
-                    <span className="truncate text-sm">
+                    <span className="truncate text-sm block w-full">
                       {selectedBooking.booking_number} — {selectedBooking.customer_name} — {selectedBooking.vehicle_label} ({formatBookingDate(selectedBooking.start_date)} → {formatBookingDate(selectedBooking.end_date)})
                     </span>
                   ) : (
-                    <span className="text-muted-foreground text-sm">{t('accident_selectBooking')}</span>
+                    <span className="text-muted-foreground text-sm truncate">{t('accident_selectBooking')}</span>
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[460px] p-0 pointer-events-auto" align="start">
+              <PopoverContent className="w-[var(--radix-popover-trigger-width)] max-w-[95vw] p-0 pointer-events-auto" align="start">
                 <Command>
                   <CommandInput placeholder={t('accident_searchBooking')} />
                   <CommandList>
@@ -276,8 +297,12 @@ export function AddAccidentDialog({ isOpen, onClose, onSuccess }: AddAccidentDia
                 <Label htmlFor="payer-insurance" className="font-normal cursor-pointer">{t('accident_paidByInsurance')}</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="user" id="payer-user" />
-                <Label htmlFor="payer-user" className="font-normal cursor-pointer">{t('accident_paidByUser')}</Label>
+                <RadioGroupItem value="customer" id="payer-customer" />
+                <Label htmlFor="payer-customer" className="font-normal cursor-pointer">{t('accident_paidByCustomer')}</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="business" id="payer-business" />
+                <Label htmlFor="payer-business" className="font-normal cursor-pointer">{t('accident_paidByBusiness')}</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="split" id="payer-split" />
@@ -286,39 +311,53 @@ export function AddAccidentDialog({ isOpen, onClose, onSuccess }: AddAccidentDia
             </RadioGroup>
           </div>
 
-          {/* Split amounts */}
+          {/* Split amounts (3-way) */}
           {payerType === 'split' && (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1.5 min-w-0">
                 <Label className="text-xs">{t('accident_insurancePaid')}</Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">€</span>
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">€</span>
                   <Input
                     type="number"
                     min={0}
                     step="0.01"
-                    className="pl-7"
+                    className="pl-6"
                     value={amountPaidByInsurance || ''}
-                    onChange={(e) => handleInsuranceAmountChange(Number(e.target.value) || 0)}
+                    onChange={(e) => handleSplitChange('insurance', Number(e.target.value) || 0)}
                   />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">{t('accident_userPaid')}</Label>
+              <div className="space-y-1.5 min-w-0">
+                <Label className="text-xs">{t('accident_customerPaid')}</Label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">€</span>
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">€</span>
                   <Input
                     type="number"
                     min={0}
                     step="0.01"
-                    className="pl-7"
-                    value={amountPaidByUser || ''}
-                    onChange={(e) => handleUserAmountChange(Number(e.target.value) || 0)}
+                    className="pl-6"
+                    value={amountPaidByCustomer || ''}
+                    onChange={(e) => handleSplitChange('customer', Number(e.target.value) || 0)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5 min-w-0">
+                <Label className="text-xs">{t('accident_businessPaid')}</Label>
+                <div className="relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">€</span>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    className="pl-6"
+                    value={amountPaidByBusiness || ''}
+                    onChange={(e) => handleSplitChange('business', Number(e.target.value) || 0)}
                   />
                 </div>
               </div>
               {amountsMismatch && (
-                <p className="col-span-2 text-xs text-destructive">{t('accident_amountsMustMatch')}</p>
+                <p className="col-span-3 text-xs text-destructive">{t('accident_amountsMustMatch')}</p>
               )}
             </div>
           )}
@@ -342,7 +381,7 @@ export function AddAccidentDialog({ isOpen, onClose, onSuccess }: AddAccidentDia
           <Button
             onClick={handleSave}
             disabled={isLoading || !selectedBookingId || !description.trim() || totalDamageCost <= 0}
-            className="bg-orange-500 hover:bg-orange-600 text-white"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             {isLoading ? (
               <><Loader2 className="mr-2 h-4 w-4 animate-spin" />{t('accident_saving')}</>

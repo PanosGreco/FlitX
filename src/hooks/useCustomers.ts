@@ -17,6 +17,7 @@ export interface CustomerRow {
   last_booking_date: string | null;
   total_accidents_count: number;
   total_accidents_amount: number;
+  total_damage_cost_sum: number;
   email: string | null;
   phone: string | null;
 }
@@ -45,6 +46,8 @@ export function useCustomers() {
       const customerIds = (customersData || []).map(c => c.id);
 
       let typesByCustomer: Map<string, Set<string>> = new Map();
+      let damageCostByCustomer: Map<string, number> = new Map();
+
       if (customerIds.length > 0) {
         const { data: bookingsData, error: bookError } = await supabase
           .from('rental_bookings')
@@ -61,6 +64,21 @@ export function useCustomers() {
               typesByCustomer.set(b.customer_id, new Set());
             }
             typesByCustomer.get(b.customer_id)!.add(b.customer_type);
+          }
+        }
+
+        const { data: accidentsData, error: accError } = await supabase
+          .from('accidents')
+          .select('customer_id, total_damage_cost')
+          .in('customer_id', customerIds);
+
+        if (accError) {
+          console.error('[useCustomers] Accidents fetch failed:', accError);
+        } else {
+          for (const a of accidentsData || []) {
+            if (!a.customer_id) continue;
+            const current = damageCostByCustomer.get(a.customer_id) || 0;
+            damageCostByCustomer.set(a.customer_id, current + Number(a.total_damage_cost));
           }
         }
       }
@@ -83,6 +101,7 @@ export function useCustomers() {
           last_booking_date: c.last_booking_date,
           total_accidents_count: c.total_accidents_count || 0,
           total_accidents_amount: Number(c.total_accidents_amount || 0),
+          total_damage_cost_sum: damageCostByCustomer.get(c.id) || 0,
           email: c.email,
           phone: c.phone,
         };
