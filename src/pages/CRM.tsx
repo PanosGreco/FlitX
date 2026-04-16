@@ -4,10 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { useCustomers } from '@/hooks/useCustomers';
 import { CustomerTable } from '@/components/crm/CustomerTable';
 import { CRMFilterBar, type CRMFilters } from '@/components/crm/CRMFilterBar';
+import { AddAccidentDialog } from '@/components/crm/AddAccidentDialog';
+import { AccidentHistory } from '@/components/crm/AccidentHistory';
+import { Button } from '@/components/ui/button';
+import { AlertTriangle } from 'lucide-react';
 
 export default function CRM() {
   const { t } = useTranslation(['crm', 'common']);
-  const { customers, loading } = useCustomers();
+  const { customers, loading, refresh } = useCustomers();
 
   const [filters, setFilters] = useState<CRMFilters>({
     searchQuery: '',
@@ -18,6 +22,14 @@ export default function CRM() {
     lastBookingFrom: null,
     lastBookingTo: null,
   });
+
+  const [isAccidentDialogOpen, setIsAccidentDialogOpen] = useState(false);
+  const [accidentRefreshKey, setAccidentRefreshKey] = useState(0);
+
+  const handleAccidentSuccess = () => {
+    refresh();
+    setAccidentRefreshKey(prev => prev + 1);
+  };
 
   const amountMax = useMemo(() => {
     if (customers.length === 0) return 1000;
@@ -71,9 +83,15 @@ export default function CRM() {
   return (
     <AppLayout>
       <div className="p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{t('crm:title')}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{t('crm:subtitle')}</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">{t('crm:title')}</h1>
+            <p className="text-sm text-muted-foreground mt-1">{t('crm:subtitle')}</p>
+          </div>
+          <Button onClick={() => setIsAccidentDialogOpen(true)} className="bg-orange-500 hover:bg-orange-600 text-white shrink-0">
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            {t('crm:addAccidentRecord')}
+          </Button>
         </div>
 
         <CRMFilterBar
@@ -90,6 +108,14 @@ export default function CRM() {
           customers={filteredCustomers}
           loading={loading}
           totalCustomers={customers.length}
+        />
+
+        <AccidentHistory refreshKey={accidentRefreshKey} />
+
+        <AddAccidentDialog
+          isOpen={isAccidentDialogOpen}
+          onClose={() => setIsAccidentDialogOpen(false)}
+          onSuccess={handleAccidentSuccess}
         />
       </div>
     </AppLayout>
