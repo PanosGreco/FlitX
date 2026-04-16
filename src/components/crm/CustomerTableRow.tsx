@@ -92,16 +92,16 @@ export function CustomerTableRow({ customer }: CustomerTableRowProps) {
           <div className="flex flex-col items-end">
             <span className="text-emerald-600 font-medium">€0</span>
             <span className="text-[10px] text-slate-400">
-              (€{customer.total_damage_cost_sum.toLocaleString()} {t('accidentTotal')})
+              (€{(customer.total_damage_cost_sum ?? 0).toLocaleString()} {t('accidentTotal')})
             </span>
           </div>
         ) : (
           <div className="flex flex-col items-end">
             <span className="text-orange-600 font-medium">
-              €{customer.total_accidents_amount.toLocaleString()}
+              €{(customer.total_accidents_amount ?? 0).toLocaleString()}
             </span>
             <span className="text-[10px] text-slate-400">
-              (€{customer.total_damage_cost_sum.toLocaleString()} {t('accidentTotal')})
+              (€{(customer.total_damage_cost_sum ?? 0).toLocaleString()} {t('accidentTotal')})
             </span>
           </div>
         )}
