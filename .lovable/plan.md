@@ -1,70 +1,48 @@
 
 
-# Plan: CRM Phase 3 — Customer Table Page
+# Plan: CRM Phase 4 — Accident Record System
 
 ## Summary
-Create the CRM page at `/crm` with a customer data table, filters, search, sorting, and pagination. 12 new files + modifications to 10 existing files. No database changes.
+Add accident recording UI to the CRM page: a dialog to create accidents linked to bookings, and a collapsible history section. No database changes — the `accidents` table and triggers already exist.
 
-## New Files (12)
+## New Files (2)
 
 | File | Purpose |
 |------|---------|
-| `src/pages/CRM.tsx` | Page component with filter state, derived computations, layout |
-| `src/components/crm/CustomerTable.tsx` | Table with sorting, pagination, empty/loading states |
-| `src/components/crm/CustomerTableRow.tsx` | Single row: 11 columns, action dropdown |
-| `src/components/crm/CRMFilterBar.tsx` | Search input + 4 filter pill popovers (Amount, Type, Location, Date) |
-| `src/components/crm/CustomerTypeTag.tsx` | Colored pill for customer type display |
-| `src/hooks/useCustomers.ts` | Fetches customers + booking types, computes age from birth_date |
-| `src/i18n/locales/{en,el,de,fr,it,es}/crm.json` | 6 translation files with ~45 keys each |
+| `src/components/crm/AddAccidentDialog.tsx` | Dialog with booking selector, date, description, damage cost, payer type (insurance/user/split) with auto-calculating split amounts, notes |
+| `src/components/crm/AccidentHistory.tsx` | Collapsible section below customer table showing recent accidents with booking/customer/vehicle references and amount breakdowns |
 
-## Modified Files (10)
+## Modified Files (7)
 
 | File | Change |
 |------|--------|
-| `src/App.tsx` | Add `import CRM` + route `/crm` (line ~37) |
-| `src/i18n/index.ts` | Add `crm` imports for all 6 languages, add to resources + `ALL_NAMESPACES` |
-| `src/components/layout/DesktopSidebar.tsx` | Add `Users` import, add nav item between finances and home |
-| `src/components/layout/MobileSidebar.tsx` | Same nav item addition |
-| `src/components/layout/BottomNavigation.tsx` | Same nav item addition |
-| `src/i18n/locales/{en,el,de,fr,it,es}/common.json` | Add `"crm": "CRM"` key |
+| `src/pages/CRM.tsx` | Destructure `refresh` from `useCustomers`; add accident dialog state + button (orange, AlertTriangle icon) in header; add AccidentHistory below table; add handleAccidentSuccess handler |
+| `src/i18n/locales/{en,el,de,fr,it,es}/crm.json` | Add ~30 accident-related keys each (merge, no overwrites) |
 
 ## Technical Details
 
-### Data Hook (`useCustomers.ts`)
-- Fetches all customers for `user.id` from `customers` table
-- Fetches `customer_type` from `rental_bookings` for those customer IDs to build distinct types per customer
-- Computes `age` from `birth_date` using `differenceInYears`
-- Returns `{ customers, loading, refresh }`
+### AddAccidentDialog
+- Booking selector: fetches 100 most recent bookings via `rental_bookings` joined with `vehicles(make, model)`, displayed as `#00042 — Name — Vehicle (dates)`, filterable client-side
+- Date picker: shadcn Calendar in Popover, default today, `pointer-events-auto`
+- Payer type radio group: `insurance` / `user` / `split` — auto-fills amounts when switching; split mode shows two linked number inputs that auto-calculate complement
+- Save: inserts into `accidents` table; `customer_id` and `vehicle_id` auto-filled by existing DB trigger `sync_accident_denorm_fields`; customer aggregates recomputed by `recompute_customer_accident_totals` trigger
+- On success: calls `onSuccess()` which triggers customer refresh + accident history refresh
 
-### Filter Bar (`CRMFilterBar.tsx`)
-- Search input + 4 Popover-based filter pills
-- Amount Range: dual `Input` fields (min/max) inside popover
-- Customer Type: 7 checkboxes with `CustomerTypeTag` labels
-- Location: two Select dropdowns (country from customer data, city filtered by country)
-- Last Booking: two Calendar pickers (from/to)
-- Active pills get primary fill + white text
-- "Clear all filters" link when any filter is active
-- Shows filtered/total count below
+### AccidentHistory
+- Fetches 20 most recent accidents with joined booking/customer/vehicle data
+- Uses shadcn `Collapsible`, collapsed by default
+- Each row shows: date, booking ref, description (line-clamp-2), amount breakdown (total, insurance in teal, customer in orange), payer badge
+- Shows first 10 with "Show all" expand if more
+- Empty state when no accidents
 
-### Customer Table (`CustomerTable.tsx`)
-- 11 columns: ID, Name, Age, Location, Total Amount, Bookings, Type, Last Booking, Accidents, Accident €, Actions
-- Sorting on 8 columns, default `total_bookings_count` desc
-- Pagination footer: total count, rows-per-page select (10/25/50/100), page nav
-- Loading: 5 skeleton rows
-- Empty states: no-customers vs no-results (differentiated by `totalCustomers` prop)
-- Uses shadcn `Table` components, `bg-white rounded-xl shadow-sm border`
-
-### Navigation
-- `Users` icon from lucide-react
-- Position: between "finances" and "home" in all 3 nav components
-- `titleKey: "crm"` maps to `common.json` key
-
-### i18n Registration
-- `src/i18n/index.ts`: add 6 `import` statements for `crm.json`, add `crm: xxCrm` to each language in `resources`, add `'crm'` to `ALL_NAMESPACES`
+### CRM.tsx Changes
+- Line 10: destructure `refresh` from `useCustomers()`
+- Add `isAccidentDialogOpen` and `accidentRefreshKey` state
+- Header becomes flex row with title left, orange button right
+- After `<CustomerTable>`: add `<AccidentHistory>` and `<AddAccidentDialog>`
 
 ## What stays untouched
-- `UnifiedBookingDialog.tsx`, `RentalBookingsList.tsx`, `FinanceDashboard.tsx`
-- All Home/Fleet/Calendar components
+- CustomerTable, CustomerTableRow, CRMFilterBar, CustomerTypeTag, useCustomers
 - No database migrations
-- No manual edits to `types.ts`
+- No non-CRM files
 
