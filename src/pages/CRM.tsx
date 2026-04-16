@@ -1,10 +1,9 @@
 import { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { useTranslation } from 'react-i18next';
-import { useCustomers, type CustomerRow } from '@/hooks/useCustomers';
+import { useCustomers } from '@/hooks/useCustomers';
 import { CustomerTable } from '@/components/crm/CustomerTable';
 import { CRMFilterBar, type CRMFilters } from '@/components/crm/CRMFilterBar';
-import { toast } from 'sonner';
 
 export default function CRM() {
   const { t } = useTranslation(['crm', 'common']);
@@ -69,12 +68,6 @@ export default function CRM() {
     });
   }, [customers, filters]);
 
-  const handleAction = (action: 'viewBookings' | 'merge', customer: CustomerRow) => {
-    if (action === 'viewBookings') {
-      toast.info(`${customer.name} (${customer.customer_number}): ${customer.total_bookings_count} bookings`);
-    }
-  };
-
   return (
     <AppLayout>
       <div className="p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6">
@@ -97,7 +90,6 @@ export default function CRM() {
           customers={filteredCustomers}
           loading={loading}
           totalCustomers={customers.length}
-          onAction={handleAction}
         />
       </div>
     </AppLayout>

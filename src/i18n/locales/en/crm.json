@@ -17,6 +17,7 @@
   "filter_to": "To",
   "col_id": "ID",
   "col_name": "Name",
+  "col_contact": "Contact",
   "col_age": "Age",
   "col_location": "Location",
   "col_totalAmount": "Total Amount",
@@ -25,10 +26,6 @@
   "col_lastBooking": "Last Booking",
   "col_accidents": "Accidents",
   "col_accidentAmount": "Accident €",
-  "col_actions": "",
-  "action_viewBookings": "View Bookings",
-  "action_mergeCustomer": "Merge with another customer",
-  "action_mergeComingSoon": "Coming in a later phase",
   "rowsPerPage": "Rows per page",
   "total": "Total",
   "page_of": "of",
@@ -47,5 +44,7 @@
   "ageNotAvailable": "—",
   "locationNotAvailable": "—",
   "lastBookingNotAvailable": "—",
-  "totalCustomers": "{{count}} customers"
+  "noContact": "—",
+  "totalCustomers": "{{count}} customers",
+  "filteredCustomers": "Showing {{filtered}} of {{total}} customers"
 }

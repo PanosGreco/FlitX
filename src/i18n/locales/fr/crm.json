@@ -17,6 +17,7 @@
   "filter_to": "Au",
   "col_id": "ID",
   "col_name": "Nom",
+  "col_contact": "Contact",
   "col_age": "Âge",
   "col_location": "Localisation",
   "col_totalAmount": "Montant Total",
@@ -25,10 +26,6 @@
   "col_lastBooking": "Dernière Réservation",
   "col_accidents": "Accidents",
   "col_accidentAmount": "Accident €",
-  "col_actions": "",
-  "action_viewBookings": "Voir les Réservations",
-  "action_mergeCustomer": "Fusionner avec un autre client",
-  "action_mergeComingSoon": "Disponible dans une phase ultérieure",
   "rowsPerPage": "Lignes par page",
   "total": "Total",
   "page_of": "de",
@@ -47,5 +44,7 @@
   "ageNotAvailable": "—",
   "locationNotAvailable": "—",
   "lastBookingNotAvailable": "—",
-  "totalCustomers": "{{count}} clients"
+  "noContact": "—",
+  "totalCustomers": "{{count}} clients",
+  "filteredCustomers": "{{filtered}} sur {{total}} clients"
 }
