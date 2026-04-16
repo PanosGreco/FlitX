@@ -14,7 +14,8 @@ interface AccidentRecord {
   description: string | null;
   total_damage_cost: number;
   amount_paid_by_insurance: number;
-  amount_paid_by_user: number;
+  amount_paid_by_customer: number;
+  amount_paid_by_business: number;
   payer_type: string;
   notes: string | null;
   booking_number: string;
@@ -39,7 +40,7 @@ export function AccidentHistory({ refreshKey }: AccidentHistoryProps) {
     (async () => {
       const { data, error } = await supabase
         .from('accidents')
-        .select('id, accident_date, description, total_damage_cost, amount_paid_by_insurance, amount_paid_by_user, payer_type, notes, booking_id, customer_id, vehicle_id, rental_bookings(booking_number, customer_name), customers(customer_number, name), vehicles(make, model)')
+        .select('id, accident_date, description, total_damage_cost, amount_paid_by_insurance, amount_paid_by_customer, amount_paid_by_business, payer_type, notes, booking_id, customer_id, vehicle_id, rental_bookings(booking_number, customer_name), customers(customer_number, name), vehicles(make, model)')
         .eq('user_id', user.id)
         .order('accident_date', { ascending: false })
         .limit(20);
@@ -55,7 +56,8 @@ export function AccidentHistory({ refreshKey }: AccidentHistoryProps) {
           description: a.description,
           total_damage_cost: Number(a.total_damage_cost),
           amount_paid_by_insurance: Number(a.amount_paid_by_insurance),
-          amount_paid_by_user: Number(a.amount_paid_by_user),
+          amount_paid_by_customer: Number(a.amount_paid_by_customer || 0),
+          amount_paid_by_business: Number(a.amount_paid_by_business),
           payer_type: a.payer_type,
           notes: a.notes,
           booking_number: a.rental_bookings?.booking_number || '—',
@@ -75,10 +77,12 @@ export function AccidentHistory({ refreshKey }: AccidentHistoryProps) {
     switch (type) {
       case 'insurance':
         return <Badge variant="outline" className="text-teal-600 border-teal-300 bg-teal-50 text-xs">{t('accidentHistory_payer_insurance')}</Badge>;
-      case 'user':
-        return <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50 text-xs">{t('accidentHistory_payer_user')}</Badge>;
+      case 'customer':
+        return <Badge variant="outline" className="text-slate-600 border-slate-300 bg-slate-50 text-xs">{t('accidentHistory_payer_customer')}</Badge>;
+      case 'business':
+        return <Badge variant="outline" className="text-orange-600 border-orange-300 bg-orange-50 text-xs">{t('accidentHistory_payer_business')}</Badge>;
       default:
-        return <Badge variant="outline" className="text-slate-600 border-slate-300 bg-slate-50 text-xs">{t('accidentHistory_payer_split')}</Badge>;
+        return <Badge variant="outline" className="text-purple-600 border-purple-300 bg-purple-50 text-xs">{t('accidentHistory_payer_split')}</Badge>;
     }
   };
 
@@ -127,7 +131,8 @@ export function AccidentHistory({ refreshKey }: AccidentHistoryProps) {
                     <div className="text-right shrink-0 space-y-0.5">
                       <p className="text-sm font-semibold text-foreground">€{a.total_damage_cost.toLocaleString()}</p>
                       <p className="text-xs text-teal-600">{t('accidentHistory_insurancePaid')}: €{a.amount_paid_by_insurance.toLocaleString()}</p>
-                      <p className="text-xs text-orange-600">{t('accidentHistory_userPaid')}: €{a.amount_paid_by_user.toLocaleString()}</p>
+                      <p className="text-xs text-slate-500">{t('accidentHistory_customerPaid')}: €{a.amount_paid_by_customer.toLocaleString()}</p>
+                      <p className="text-xs text-orange-600">{t('accidentHistory_businessPaid')}: €{a.amount_paid_by_business.toLocaleString()}</p>
                     </div>
                   </div>
                 </div>

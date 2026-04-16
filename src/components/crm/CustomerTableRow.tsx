@@ -86,10 +86,24 @@ export function CustomerTableRow({ customer }: CustomerTableRowProps) {
         )}
       </TableCell>
       <TableCell className="px-4 py-3.5 text-right">
-        {customer.total_accidents_amount > 0 ? (
-          <span className="text-orange-600 font-medium">€{customer.total_accidents_amount.toLocaleString()}</span>
-        ) : (
+        {customer.total_accidents_count === 0 ? (
           <span className="text-slate-400">—</span>
+        ) : customer.total_accidents_amount === 0 ? (
+          <div className="flex flex-col items-end">
+            <span className="text-emerald-600 font-medium">€0</span>
+            <span className="text-[10px] text-slate-400">
+              (€{customer.total_damage_cost_sum.toLocaleString()} {t('accidentTotal')})
+            </span>
+          </div>
+        ) : (
+          <div className="flex flex-col items-end">
+            <span className="text-orange-600 font-medium">
+              €{customer.total_accidents_amount.toLocaleString()}
+            </span>
+            <span className="text-[10px] text-slate-400">
+              (€{customer.total_damage_cost_sum.toLocaleString()} {t('accidentTotal')})
+            </span>
+          </div>
         )}
       </TableCell>
     </TableRow>
