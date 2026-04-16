@@ -16,7 +16,6 @@ interface CustomerTableProps {
   customers: CustomerRow[];
   loading: boolean;
   totalCustomers: number;
-  onAction: (action: 'viewBookings' | 'merge', customer: CustomerRow) => void;
 }
 
 const SORTABLE_COLUMNS: SortKey[] = [
@@ -24,7 +23,7 @@ const SORTABLE_COLUMNS: SortKey[] = [
   'total_bookings_count', 'last_booking_date', 'total_accidents_count', 'total_accidents_amount',
 ];
 
-export function CustomerTable({ customers, loading, totalCustomers, onAction }: CustomerTableProps) {
+export function CustomerTable({ customers, loading, totalCustomers }: CustomerTableProps) {
   const { t } = useTranslation('crm');
   const [sortColumn, setSortColumn] = useState<SortKey>('total_bookings_count');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -64,9 +63,10 @@ export function CustomerTable({ customers, loading, totalCustomers, onAction }: 
   const totalPages = Math.max(1, Math.ceil(sorted.length / rowsPerPage));
   const paginated = sorted.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
-  const columns: { key: SortKey | 'location' | 'customer_types' | 'actions'; label: string; align?: string }[] = [
+  const columns: { key: SortKey | 'location' | 'customer_types' | 'contact'; label: string; align?: string }[] = [
     { key: 'customer_number', label: t('col_id') },
     { key: 'name', label: t('col_name') },
+    { key: 'contact', label: t('col_contact') },
     { key: 'age', label: t('col_age'), align: 'text-right' },
     { key: 'location', label: t('col_location') },
     { key: 'total_lifetime_value', label: t('col_totalAmount'), align: 'text-right' },
@@ -75,7 +75,6 @@ export function CustomerTable({ customers, loading, totalCustomers, onAction }: 
     { key: 'last_booking_date', label: t('col_lastBooking') },
     { key: 'total_accidents_count', label: t('col_accidents'), align: 'text-right' },
     { key: 'total_accidents_amount', label: t('col_accidentAmount'), align: 'text-right' },
-    { key: 'actions', label: '' },
   ];
 
   if (loading) {
@@ -151,7 +150,7 @@ export function CustomerTable({ customers, loading, totalCustomers, onAction }: 
         </TableHeader>
         <TableBody>
           {paginated.map(customer => (
-            <CustomerTableRow key={customer.id} customer={customer} onAction={onAction} />
+            <CustomerTableRow key={customer.id} customer={customer} />
           ))}
         </TableBody>
       </Table>

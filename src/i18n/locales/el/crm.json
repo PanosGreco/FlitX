@@ -17,6 +17,7 @@
   "filter_to": "Έως",
   "col_id": "ID",
   "col_name": "Όνομα",
+  "col_contact": "Επικοινωνία",
   "col_age": "Ηλικία",
   "col_location": "Τοποθεσία",
   "col_totalAmount": "Συνολικό Ποσό",
@@ -25,10 +26,6 @@
   "col_lastBooking": "Τελευταία Κράτηση",
   "col_accidents": "Ατυχήματα",
   "col_accidentAmount": "Ατύχημα €",
-  "col_actions": "",
-  "action_viewBookings": "Προβολή Κρατήσεων",
-  "action_mergeCustomer": "Συγχώνευση με άλλον πελάτη",
-  "action_mergeComingSoon": "Διαθέσιμο σε επόμενη φάση",
   "rowsPerPage": "Γραμμές ανά σελίδα",
   "total": "Σύνολο",
   "page_of": "από",
@@ -47,5 +44,7 @@
   "ageNotAvailable": "—",
   "locationNotAvailable": "—",
   "lastBookingNotAvailable": "—",
-  "totalCustomers": "{{count}} πελάτες"
+  "noContact": "—",
+  "totalCustomers": "{{count}} πελάτες",
+  "filteredCustomers": "Εμφάνιση {{filtered}} από {{total}} πελάτες"
 }

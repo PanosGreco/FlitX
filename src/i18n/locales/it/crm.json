@@ -17,6 +17,7 @@
   "filter_to": "A",
   "col_id": "ID",
   "col_name": "Nome",
+  "col_contact": "Contatto",
   "col_age": "Età",
   "col_location": "Posizione",
   "col_totalAmount": "Importo Totale",
@@ -25,10 +26,6 @@
   "col_lastBooking": "Ultima Prenotazione",
   "col_accidents": "Incidenti",
   "col_accidentAmount": "Incidente €",
-  "col_actions": "",
-  "action_viewBookings": "Visualizza Prenotazioni",
-  "action_mergeCustomer": "Unisci con un altro cliente",
-  "action_mergeComingSoon": "Disponibile in una fase successiva",
   "rowsPerPage": "Righe per pagina",
   "total": "Totale",
   "page_of": "di",
@@ -47,5 +44,7 @@
   "ageNotAvailable": "—",
   "locationNotAvailable": "—",
   "lastBookingNotAvailable": "—",
-  "totalCustomers": "{{count}} clienti"
+  "noContact": "—",
+  "totalCustomers": "{{count}} clienti",
+  "filteredCustomers": "{{filtered}} di {{total}} clienti"
 }

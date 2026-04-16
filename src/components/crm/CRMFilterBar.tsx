@@ -235,7 +235,9 @@ export function CRMFilterBar({
 
       {/* Count */}
       <div className="text-xs text-slate-500 text-right">
-        {filteredCount} / {totalCustomers} {t('totalCustomers', { count: totalCustomers }).split(' ').slice(1).join(' ')}
+        {filteredCount === totalCustomers
+          ? t('totalCustomers', { count: totalCustomers })
+          : t('filteredCustomers', { filtered: filteredCount, total: totalCustomers })}
       </div>
     </div>
   );

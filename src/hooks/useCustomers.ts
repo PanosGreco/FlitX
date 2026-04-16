@@ -18,6 +18,7 @@ export interface CustomerRow {
   total_accidents_count: number;
   total_accidents_amount: number;
   email: string | null;
+  phone: string | null;
 }
 
 export function useCustomers() {
@@ -32,7 +33,7 @@ export function useCustomers() {
     try {
       const { data: customersData, error: custError } = await supabase
         .from('customers')
-        .select('id, customer_number, name, email, birth_date, city, country, country_code, total_lifetime_value, total_bookings_count, last_booking_date, total_accidents_count, total_accidents_amount')
+        .select('id, customer_number, name, email, phone, birth_date, city, country, country_code, total_lifetime_value, total_bookings_count, last_booking_date, total_accidents_count, total_accidents_amount')
         .eq('user_id', user.id);
 
       if (custError) {
@@ -83,6 +84,7 @@ export function useCustomers() {
           total_accidents_count: c.total_accidents_count || 0,
           total_accidents_amount: Number(c.total_accidents_amount || 0),
           email: c.email,
+          phone: c.phone,
         };
       });
 

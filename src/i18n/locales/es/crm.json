@@ -17,6 +17,7 @@
   "filter_to": "Hasta",
   "col_id": "ID",
   "col_name": "Nombre",
+  "col_contact": "Contacto",
   "col_age": "Edad",
   "col_location": "Ubicación",
   "col_totalAmount": "Monto Total",
@@ -25,10 +26,6 @@
   "col_lastBooking": "Última Reserva",
   "col_accidents": "Accidentes",
   "col_accidentAmount": "Accidente €",
-  "col_actions": "",
-  "action_viewBookings": "Ver Reservas",
-  "action_mergeCustomer": "Fusionar con otro cliente",
-  "action_mergeComingSoon": "Disponible en una fase posterior",
   "rowsPerPage": "Filas por página",
   "total": "Total",
   "page_of": "de",
@@ -47,5 +44,7 @@
   "ageNotAvailable": "—",
   "locationNotAvailable": "—",
   "lastBookingNotAvailable": "—",
-  "totalCustomers": "{{count}} clientes"
+  "noContact": "—",
+  "totalCustomers": "{{count}} clientes",
+  "filteredCustomers": "{{filtered}} de {{total}} clientes"
 }
