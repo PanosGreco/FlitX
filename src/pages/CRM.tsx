@@ -6,6 +6,10 @@ import { CustomerTable } from '@/components/crm/CustomerTable';
 import { CRMFilterBar, type CRMFilters } from '@/components/crm/CRMFilterBar';
 import { AddAccidentDialog } from '@/components/crm/AddAccidentDialog';
 import { AccidentHistory } from '@/components/crm/AccidentHistory';
+import { AccidentByAgeChart } from '@/components/crm/charts/AccidentByAgeChart';
+import { LocationDistributionChart } from '@/components/crm/charts/LocationDistributionChart';
+import { InsuranceProfitabilityChart } from '@/components/crm/charts/InsuranceProfitabilityChart';
+import { useCRMChartData } from '@/hooks/useCRMChartData';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
@@ -25,6 +29,7 @@ export default function CRM() {
 
   const [isAccidentDialogOpen, setIsAccidentDialogOpen] = useState(false);
   const [accidentRefreshKey, setAccidentRefreshKey] = useState(0);
+  const chartData = useCRMChartData();
 
   const handleAccidentSuccess = () => {
     refresh();
@@ -92,6 +97,12 @@ export default function CRM() {
             <Plus className="h-4 w-4 mr-2" />
             {t('crm:addAccidentRecord')}
           </Button>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <AccidentByAgeChart data={chartData.ageGroups} hasData={chartData.hasAccidentData} loading={chartData.loading} />
+          <LocationDistributionChart countries={chartData.countries} cities={chartData.cities} hasData={chartData.hasLocationData} loading={chartData.loading} />
+          <InsuranceProfitabilityChart data={chartData.insuranceProfitability} hasData={chartData.hasInsuranceData} loading={chartData.loading} />
         </div>
 
         <CRMFilterBar
