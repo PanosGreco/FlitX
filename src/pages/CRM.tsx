@@ -6,6 +6,10 @@ import { CustomerTable } from '@/components/crm/CustomerTable';
 import { CRMFilterBar, type CRMFilters } from '@/components/crm/CRMFilterBar';
 import { AddAccidentDialog } from '@/components/crm/AddAccidentDialog';
 import { AccidentHistory } from '@/components/crm/AccidentHistory';
+import { AccidentByAgeChart } from '@/components/crm/charts/AccidentByAgeChart';
+import { LocationDistributionChart } from '@/components/crm/charts/LocationDistributionChart';
+import { InsuranceProfitabilityChart } from '@/components/crm/charts/InsuranceProfitabilityChart';
+import { useCRMChartData } from '@/hooks/useCRMChartData';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 
@@ -23,8 +27,9 @@ export default function CRM() {
     lastBookingTo: null,
   });
 
-  const [isAccidentDialogOpen, setIsAccidentDialogOpen] = useState(false);
+  const [isAccidentDialogOpen, setIsAccidentDialogOpen] = useState(0);
   const [accidentRefreshKey, setAccidentRefreshKey] = useState(0);
+  const chartData = useCRMChartData();
 
   const handleAccidentSuccess = () => {
     refresh();
