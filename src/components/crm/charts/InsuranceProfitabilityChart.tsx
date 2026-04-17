@@ -36,12 +36,25 @@ export function InsuranceProfitabilityChart({ data, hasData, loading }: Props) {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col min-h-[340px]">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
-        {t('crm:chart_insuranceProfitability')}
-      </h3>
-      <p className="text-[11px] text-slate-400 mb-3">
-        {t('crm:chart_insuranceProfitabilityHint')}
-      </p>
+      <div className="flex items-start justify-between mb-3 gap-2">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          {t('crm:chart_insuranceProfitability')}
+        </h3>
+        <Popover>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="text-slate-400 hover:text-slate-600 transition-colors shrink-0"
+              aria-label="info"
+            >
+              <Info className="h-3.5 w-3.5" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent side="top" align="end" className="w-72 text-xs leading-relaxed text-slate-700">
+            {t('crm:chart_insuranceProfitabilityHint')}
+          </PopoverContent>
+        </Popover>
+      </div>
       {loading ? (
         <Skeleton className="flex-1 w-full min-h-[240px]" />
       ) : !hasData ? (
