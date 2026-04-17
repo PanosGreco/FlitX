@@ -99,6 +99,12 @@ export default function CRM() {
           </Button>
         </div>
 
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <AccidentByAgeChart data={chartData.ageGroups} hasData={chartData.hasAccidentData} loading={chartData.loading} />
+          <LocationDistributionChart countries={chartData.countries} cities={chartData.cities} hasData={chartData.hasLocationData} loading={chartData.loading} />
+          <InsuranceProfitabilityChart data={chartData.insuranceProfitability} hasData={chartData.hasInsuranceData} loading={chartData.loading} />
+        </div>
+
         <CRMFilterBar
           filters={filters}
           onFiltersChange={setFilters}
