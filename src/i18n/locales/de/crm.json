@@ -102,5 +102,7 @@
   "chart_businessLosses": "Geschäftsverluste",
   "chart_netProfit": "Netto",
   "chart_noInsuranceData": "Keine Versicherungsdaten verfügbar",
-  "chart_noInsuranceDataHint": "Fügen Sie Versicherungsarten zu Buchungen hinzu und erfassen Sie Unfälle zum Vergleich."
+  "chart_noInsuranceDataHint": "Fügen Sie Versicherungsarten zu Buchungen hinzu und erfassen Sie Unfälle zum Vergleich.",
+  "chart_insuranceProfitabilityHint": "Vergleicht Einnahmen aus Versicherungspaketen mit Geschäftsverlusten durch Unfälle je Versicherungsart.",
+  "accidentAmountExplanation": "Der farbige Betrag zeigt, was nicht von der Versicherung gedeckt wurde (vom Kunden oder Unternehmen bezahlt). Der graue Betrag in Klammern zeigt die gesamten Unfallkosten. Grünes €0 bedeutet, die Versicherung hat alles übernommen."
 }

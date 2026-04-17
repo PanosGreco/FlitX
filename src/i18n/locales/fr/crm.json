@@ -102,5 +102,7 @@
   "chart_businessLosses": "Pertes de l'entreprise",
   "chart_netProfit": "Net",
   "chart_noInsuranceData": "Aucune donnée d'assurance disponible",
-  "chart_noInsuranceDataHint": "Ajoutez des types d'assurance et enregistrez des accidents pour comparer revenus et coûts."
+  "chart_noInsuranceDataHint": "Ajoutez des types d'assurance et enregistrez des accidents pour comparer revenus et coûts.",
+  "chart_insuranceProfitabilityHint": "Compare les revenus des forfaits d'assurance aux pertes de l'entreprise liées aux accidents par type d'assurance.",
+  "accidentAmountExplanation": "Le montant coloré indique ce qui n'a pas été couvert par l'assurance (payé par le client ou l'entreprise). Le montant gris entre parenthèses indique le coût total de l'accident. €0 vert signifie que l'assurance a tout couvert."
 }
