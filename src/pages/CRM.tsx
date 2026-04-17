@@ -27,7 +27,7 @@ export default function CRM() {
     lastBookingTo: null,
   });
 
-  const [isAccidentDialogOpen, setIsAccidentDialogOpen] = useState(0);
+  const [isAccidentDialogOpen, setIsAccidentDialogOpen] = useState(false);
   const [accidentRefreshKey, setAccidentRefreshKey] = useState(0);
   const chartData = useCRMChartData();
 
