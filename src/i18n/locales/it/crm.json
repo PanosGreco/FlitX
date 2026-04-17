@@ -104,5 +104,5 @@
   "chart_noInsuranceData": "Nessun dato assicurativo disponibile",
   "chart_noInsuranceDataHint": "Aggiungi tipi di assicurazione e registra incidenti per confrontare entrate e costi.",
   "chart_insuranceProfitabilityHint": "Confronta i ricavi dai pacchetti assicurativi con le perdite aziendali da incidenti per ogni tipo di assicurazione.",
-  "accidentAmountExplanation": "L'importo colorato mostra ciò che non è stato coperto dall'assicurazione (pagato dal cliente o dall'azienda). L'importo grigio tra parentesi mostra il costo totale dell'incidente. €0 verde significa che l'assicurazione ha coperto tutto."
+  "accidentAmountExplanation": "L'importo colorato mostra ciò che non è stato coperto dall'assicurazione — pagato dal cliente noleggiatore o dalla vostra azienda. €0 verde significa che l'assicurazione ha coperto tutto (nessuna perdita). L'importo tra parentesi mostra il costo totale dell'incidente, indipendentemente da chi ha pagato."
 }
