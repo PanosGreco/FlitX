@@ -6,8 +6,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users, Eye } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users, Info } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CustomerTableRow } from './CustomerTableRow';
 import type { CustomerRow } from '@/hooks/useCustomers';
 
