@@ -102,5 +102,7 @@
   "chart_businessLosses": "Pérdidas del negocio",
   "chart_netProfit": "Neto",
   "chart_noInsuranceData": "No hay datos de seguros disponibles",
-  "chart_noInsuranceDataHint": "Agrega tipos de seguro a las reservas y registra accidentes para comparar ingresos y costos."
+  "chart_noInsuranceDataHint": "Agrega tipos de seguro a las reservas y registra accidentes para comparar ingresos y costos.",
+  "chart_insuranceProfitabilityHint": "Compara los ingresos obtenidos de paquetes de seguros con las pérdidas del negocio por accidentes para cada tipo de seguro.",
+  "accidentAmountExplanation": "El monto coloreado muestra lo que no fue cubierto por el seguro (pagado por el cliente o la empresa). El monto gris entre paréntesis muestra el costo total del accidente. €0 verde significa que el seguro cubrió todo."
 }

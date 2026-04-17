@@ -31,20 +31,20 @@ export function AccidentByAgeChart({ data, hasData, loading }: Props) {
   const { t } = useTranslation(['crm']);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col min-h-[340px]">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
         {t('crm:chart_accidentByAge')}
       </h3>
       {loading ? (
-        <Skeleton className="h-64 w-full" />
+        <Skeleton className="flex-1 w-full min-h-[260px]" />
       ) : !hasData ? (
-        <div className="h-64 flex flex-col items-center justify-center text-center px-4">
+        <div className="flex-1 min-h-[260px] flex flex-col items-center justify-center text-center px-4">
           <TrendingUp className="h-10 w-10 text-slate-300 mb-2" />
           <p className="text-sm font-medium text-slate-600">{t('crm:chart_noAccidentData')}</p>
           <p className="text-xs text-slate-400 mt-1">{t('crm:chart_noAccidentDataHint')}</p>
         </div>
       ) : (
-        <div className="h-64">
+        <div className="flex-1 min-h-[260px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />

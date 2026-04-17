@@ -6,7 +6,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users } from 'lucide-react';
+import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users, Eye } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { CustomerTableRow } from './CustomerTableRow';
 import type { CustomerRow } from '@/hooks/useCustomers';
 
@@ -79,7 +80,7 @@ export function CustomerTable({ customers, loading, totalCustomers }: CustomerTa
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="border-b border-slate-200">
@@ -129,20 +130,42 @@ export function CustomerTable({ customers, loading, totalCustomers }: CustomerTa
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="border-b border-slate-200">
             {columns.map(c => {
               const isSortable = SORTABLE_COLUMNS.includes(c.key as SortKey);
+              const isAccidentAmount = c.key === 'total_accidents_amount';
               return (
                 <TableHead
                   key={c.key}
-                  className={`px-4 py-3 text-slate-500 text-xs font-medium uppercase tracking-wide ${c.align || ''} ${isSortable ? 'cursor-pointer select-none hover:text-slate-700' : ''}`}
+                  className={`px-4 py-3 text-slate-500 text-xs font-medium uppercase tracking-wide whitespace-nowrap ${isAccidentAmount ? 'min-w-[120px]' : ''} ${c.align || ''} ${isSortable ? 'cursor-pointer select-none hover:text-slate-700' : ''}`}
                   onClick={() => isSortable && handleSort(c.key as SortKey)}
                 >
-                  {c.label}
-                  {isSortable && <SortIcon col={c.key} />}
+                  <span className="inline-flex items-center gap-1">
+                    {c.label}
+                    {isSortable && <SortIcon col={c.key} />}
+                    {isAccidentAmount && (
+                      <TooltipProvider delayDuration={150}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                              aria-label="info"
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-[280px] text-xs normal-case font-normal tracking-normal leading-relaxed">
+                            {t('accidentAmountExplanation')}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </span>
                 </TableHead>
               );
             })}
