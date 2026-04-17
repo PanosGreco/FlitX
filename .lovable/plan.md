@@ -1,48 +1,62 @@
 
 
-# Plan: CRM Phase 4 — Accident Record System
+# Plan: CRM Phase 5 — Analytics Charts
 
 ## Summary
-Add accident recording UI to the CRM page: a dialog to create accidents linked to bookings, and a collapsible history section. No database changes — the `accidents` table and triggers already exist.
+Add three analytics charts above the customer table on `/crm`: Accident Cost by Age Group (bar), Customer Location Distribution (dual pie), and Insurance Profitability (grouped bar). Data fetched via a new dedicated hook. No DB changes.
 
-## New Files (2)
+## New Files (4)
 
 | File | Purpose |
 |------|---------|
-| `src/components/crm/AddAccidentDialog.tsx` | Dialog with booking selector, date, description, damage cost, payer type (insurance/user/split) with auto-calculating split amounts, notes |
-| `src/components/crm/AccidentHistory.tsx` | Collapsible section below customer table showing recent accidents with booking/customer/vehicle references and amount breakdowns |
+| `src/hooks/useCRMChartData.ts` | Parallel-fetch accidents (joined to bookings + insurance_types), customers (birth_date, location), and insurance income from booking_additional_costs. Computes age groups, location distribution (<5% grouped to "Other"), insurance revenue vs business-paid costs |
+| `src/components/crm/charts/AccidentByAgeChart.tsx` | Recharts BarChart (orange bars), 5 age buckets (18-22, 23-30, 31-45, 46-60, 61+), shows total_damage_cost |
+| `src/components/crm/charts/LocationDistributionChart.tsx` | Two donut PieCharts side-by-side (Countries / Cities), gray "Other" slice |
+| `src/components/crm/charts/InsuranceProfitabilityChart.tsx` | Grouped BarChart: green revenue vs orange business losses per insurance type, with net profit summary row below |
 
 ## Modified Files (7)
 
 | File | Change |
 |------|--------|
-| `src/pages/CRM.tsx` | Destructure `refresh` from `useCustomers`; add accident dialog state + button (orange, AlertTriangle icon) in header; add AccidentHistory below table; add handleAccidentSuccess handler |
-| `src/i18n/locales/{en,el,de,fr,it,es}/crm.json` | Add ~30 accident-related keys each (merge, no overwrites) |
+| `src/pages/CRM.tsx` | Import chart components + `useCRMChartData`; insert 3-column responsive grid (`grid-cols-1 lg:grid-cols-3 gap-4`) between header and `CRMFilterBar` |
+| `src/i18n/locales/{en,el,de,fr,it,es}/crm.json` | Merge ~17 new chart keys per file (titles, axis labels, empty states, tooltips) |
 
 ## Technical Details
 
-### AddAccidentDialog
-- Booking selector: fetches 100 most recent bookings via `rental_bookings` joined with `vehicles(make, model)`, displayed as `#00042 — Name — Vehicle (dates)`, filterable client-side
-- Date picker: shadcn Calendar in Popover, default today, `pointer-events-auto`
-- Payer type radio group: `insurance` / `user` / `split` — auto-fills amounts when switching; split mode shows two linked number inputs that auto-calculate complement
-- Save: inserts into `accidents` table; `customer_id` and `vehicle_id` auto-filled by existing DB trigger `sync_accident_denorm_fields`; customer aggregates recomputed by `recompute_customer_accident_totals` trigger
-- On success: calls `onSuccess()` which triggers customer refresh + accident history refresh
+### Data sources
+- **Accidents**: `accidents` joined to `rental_bookings(insurance_type_id, insurance_types(name_original))` for insurance attribution
+- **Customers**: `customers.birth_date` (age via `differenceInYears`), `country`, `city`
+- **Insurance revenue**: `booking_additional_costs` filtered by `name='Insurance'`, grouped by `insurance_type` text field
 
-### AccidentHistory
-- Fetches 20 most recent accidents with joined booking/customer/vehicle data
-- Uses shadcn `Collapsible`, collapsed by default
-- Each row shows: date, booking ref, description (line-clamp-2), amount breakdown (total, insurance in teal, customer in orange), payer badge
-- Shows first 10 with "Show all" expand if more
-- Empty state when no accidents
+### Chart styling (matches existing `src/components/finances/charts.tsx`)
+- Container: `bg-white rounded-xl shadow-sm border border-slate-200 p-4`
+- Header: uppercase tracking-wide xs muted-foreground
+- Chart height: `h-64` (single) / `h-52` (per pie)
+- Reuses existing COLORS palette
+- Each chart handles its own loading (Skeleton) and empty states internally
 
-### CRM.tsx Changes
-- Line 10: destructure `refresh` from `useCustomers()`
-- Add `isAccidentDialogOpen` and `accidentRefreshKey` state
-- Header becomes flex row with title left, orange button right
-- After `<CustomerTable>`: add `<AccidentHistory>` and `<AddAccidentDialog>`
+### Layout
+```
+Header (title + Add Accident button)
+↓
+[Age Chart] [Location Chart] [Insurance Chart]   ← NEW row
+↓
+Filter Bar
+Customer Table
+Accident History
+```
+
+### Insurance profitability logic
+1. Sum `amount` from `booking_additional_costs` grouped by `insurance_type` → revenue
+2. Sum `amount_paid_by_business` from accidents grouped by joined `insurance_types.name_original` → cost
+3. Union of insurance types from both maps → `netProfit = revenue - cost`
+4. Net summary row: green if ≥0, red if <0
+
+### Location <5% grouping
+Sort by count desc, accumulate slices below 5% into single "Other" entry colored `#94a3b8`.
 
 ## What stays untouched
-- CustomerTable, CustomerTableRow, CRMFilterBar, CustomerTypeTag, useCustomers
-- No database migrations
-- No non-CRM files
+- CustomerTable, CustomerTableRow, CRMFilterBar, AddAccidentDialog, AccidentHistory, useCustomers
+- Finance charts (`src/components/finances/charts.tsx`)
+- No DB migrations
 
