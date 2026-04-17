@@ -104,5 +104,5 @@
   "chart_noInsuranceData": "No insurance data available",
   "chart_noInsuranceDataHint": "Add insurance types to bookings and record accidents to compare insurance revenue vs costs.",
   "chart_insuranceProfitabilityHint": "Compares revenue earned from insurance packages vs. business losses from accidents for each insurance type.",
-  "accidentAmountExplanation": "The colored amount shows what was not covered by insurance (paid by the customer or business). The gray amount in parentheses shows the total accident cost. Green €0 means insurance covered everything."
+  "accidentAmountExplanation": "The colored amount shows what was not covered by insurance — paid by the rental customer or your business. Green €0 means insurance covered everything (no loss). The amount in parentheses shows the total accident cost, regardless of who paid."
 }

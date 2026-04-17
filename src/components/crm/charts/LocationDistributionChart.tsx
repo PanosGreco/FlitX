@@ -30,17 +30,17 @@ function PieSection({ title, data, t }: { title: string; data: LocationData[]; t
     <div className="flex flex-col items-center min-w-0">
       <p className="text-[11px] font-medium text-slate-500 mb-2 text-center">{title}</p>
       {data.length === 0 ? (
-        <div className="h-40 flex items-center text-xs text-slate-400">—</div>
+        <div className="h-44 flex items-center text-xs text-slate-400">—</div>
       ) : (
-        <div className="h-40 w-full">
+        <div className="h-44 w-full min-h-[180px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={data}
                 cx="50%"
-                cy="50%"
-                innerRadius={28}
-                outerRadius={52}
+                cy="42%"
+                innerRadius={24}
+                outerRadius={46}
                 paddingAngle={2}
                 dataKey="value"
                 label={({ value }) => `${value}%`}
@@ -52,7 +52,7 @@ function PieSection({ title, data, t }: { title: string; data: LocationData[]; t
                 ))}
               </Pie>
               <Tooltip content={<PieTooltip t={t} />} />
-              <Legend wrapperStyle={{ fontSize: 9 }} iconSize={7} />
+              <Legend verticalAlign="bottom" height={24} wrapperStyle={{ fontSize: 9 }} iconSize={7} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -78,7 +78,7 @@ export function LocationDistributionChart({ countries, cities, hasData, loading 
           <p className="text-xs text-slate-400 mt-1">{t('crm:chart_noLocationDataHint')}</p>
         </div>
       ) : (
-        <div className="flex-1 grid grid-cols-2 gap-2 min-h-[260px]">
+        <div className="flex-1 grid grid-cols-2 gap-6 min-h-[260px]">
           <PieSection title={t('crm:chart_countries')} data={countries} t={t} />
           <PieSection title={t('crm:chart_cities')} data={cities} t={t} />
         </div>

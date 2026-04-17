@@ -6,8 +6,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users, Eye } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Users, Info } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CustomerTableRow } from './CustomerTableRow';
 import type { CustomerRow } from '@/hooks/useCustomers';
 
@@ -83,7 +83,7 @@ export function CustomerTable({ customers, loading, totalCustomers }: CustomerTa
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="border-b border-slate-200">
+            <TableRow className="border-b border-slate-200 bg-slate-50">
               {columns.map(c => (
                 <TableHead key={c.key} className="px-4 py-3 text-slate-500 text-xs font-medium uppercase tracking-wide">
                   {c.label}
@@ -133,7 +133,7 @@ export function CustomerTable({ customers, loading, totalCustomers }: CustomerTa
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow className="border-b border-slate-200">
+          <TableRow className="border-b border-slate-200 bg-slate-50">
             {columns.map(c => {
               const isSortable = SORTABLE_COLUMNS.includes(c.key as SortKey);
               const isAccidentAmount = c.key === 'total_accidents_amount';
@@ -147,23 +147,27 @@ export function CustomerTable({ customers, loading, totalCustomers }: CustomerTa
                     {c.label}
                     {isSortable && <SortIcon col={c.key} />}
                     {isAccidentAmount && (
-                      <TooltipProvider delayDuration={150}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              onClick={(e) => e.stopPropagation()}
-                              className="inline-flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-                              aria-label="info"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-[280px] text-xs normal-case font-normal tracking-normal leading-relaxed">
-                            {t('accidentAmountExplanation')}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                            aria-label="info"
+                          >
+                            <Info className="h-3.5 w-3.5" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent
+                          side="top"
+                          align="end"
+                          className="w-72 text-xs normal-case font-normal tracking-normal leading-relaxed text-slate-700"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <p className="font-semibold text-slate-900 mb-1 normal-case">{t('col_accidentAmount')}</p>
+                          <p>{t('accidentAmountExplanation')}</p>
+                        </PopoverContent>
+                      </Popover>
                     )}
                   </span>
                 </TableHead>
