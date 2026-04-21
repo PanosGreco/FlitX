@@ -107,5 +107,13 @@
   "accidentAmountExplanation": "Le montant coloré indique ce qui n'a pas été couvert par l'assurance — payé par le client locataire ou votre entreprise. €0 vert signifie que l'assurance a tout couvert (aucune perte). Le montant entre parenthèses indique le coût total de l'accident, quel que soit le payeur.",
   "col_vehicleTypes": "Types de véhicules",
   "chart_customerDistribution": "Distribution des clients",
-  "chart_customerTypes": "Types de clients"
+  "chart_customerTypes": "Types de clients",
+  "accident_addDamageEntry": "Enregistrer aussi comme dommage véhicule",
+  "accident_addDamageEntryHint": "Crée une entrée de dommage dans la section Dommages du véhicule",
+  "accident_damageZone": "Zone de dommage",
+  "accident_damageNotes": "Notes de dommage (optionnel)",
+  "accident_damagePhoto": "Photo du dommage",
+  "accident_damageIndependentNote": "Cette entrée de dommage est indépendante — la supprimer de la section Dommages n'affectera pas ce rapport d'accident.",
+  "accident_damageCreated": "Entrée de dommage ajoutée au véhicule",
+  "accident_damageCreateFailed": "Accident enregistré, mais l'entrée de dommage n'a pas pu être créée. Vous pouvez l'ajouter manuellement."
 }
