@@ -29,17 +29,17 @@ const PieTooltip = ({ active, payload, t }: any) => {
 function PieSection({ title, data, t }: { title: string; data: LocationData[]; t: any }) {
   return (
     <div className="flex flex-col items-center min-w-0">
-      <p className="text-[11px] font-medium text-slate-500 mb-2 text-center">{title}</p>
+      <p className="text-[11px] font-medium text-slate-500 mb-3 text-center">{title}</p>
       {data.length === 0 ? (
         <div className="h-44 flex items-center text-xs text-slate-400">—</div>
       ) : (
-        <div className="h-44 w-full min-h-[180px]">
+        <div className="h-44 w-full min-h-[180px] overflow-visible">
           <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
+            <PieChart margin={{ top: 12, right: 8, bottom: 4, left: 8 }}>
               <Pie
                 data={data}
                 cx="50%"
-                cy="42%"
+                cy="55%"
                 innerRadius={20}
                 outerRadius={40}
                 paddingAngle={2}

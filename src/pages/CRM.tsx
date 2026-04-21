@@ -9,7 +9,7 @@ import { AccidentHistory } from '@/components/crm/AccidentHistory';
 import { AccidentByAgeChart } from '@/components/crm/charts/AccidentByAgeChart';
 import { LocationDistributionChart } from '@/components/crm/charts/LocationDistributionChart';
 import { InsuranceProfitabilityChart } from '@/components/crm/charts/InsuranceProfitabilityChart';
-import { CustomerTypeVsVehicleChart } from '@/components/crm/charts/CustomerTypeVsVehicleChart';
+
 import { useCRMChartData } from '@/hooks/useCRMChartData';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
