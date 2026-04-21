@@ -22,25 +22,16 @@ export interface InsuranceProfitData {
   netProfit: number;
 }
 
-export interface CustomerTypeVsVehicleData {
-  customerType: string;
-  vehicleBreakdown: Record<string, number>;
-  total: number;
-}
-
 export interface CRMChartData {
   ageGroups: AgeGroupData[];
   countries: LocationData[];
   cities: LocationData[];
   customerTypeDistribution: LocationData[];
-  customerTypeVsVehicle: CustomerTypeVsVehicleData[];
-  allVehicleTypes: string[];
   insuranceProfitability: InsuranceProfitData[];
   loading: boolean;
   hasAccidentData: boolean;
   hasLocationData: boolean;
   hasInsuranceData: boolean;
-  hasTypeVsVehicleData: boolean;
 }
 
 const AGE_RANGES = [
