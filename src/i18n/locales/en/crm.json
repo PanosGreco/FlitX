@@ -104,5 +104,12 @@
   "chart_noInsuranceData": "No insurance data available",
   "chart_noInsuranceDataHint": "Add insurance types to bookings and record accidents to compare insurance revenue vs costs.",
   "chart_insuranceProfitabilityHint": "Compares revenue earned from insurance packages vs. business losses from accidents for each insurance type.",
-  "accidentAmountExplanation": "The colored amount shows what was not covered by insurance — paid by the rental customer or your business. Green €0 means insurance covered everything (no loss). The amount in parentheses shows the total accident cost, regardless of who paid."
+  "accidentAmountExplanation": "The colored amount shows what was not covered by insurance — paid by the rental customer or your business. Green €0 means insurance covered everything (no loss). The amount in parentheses shows the total accident cost, regardless of who paid.",
+  "col_vehicleTypes": "Vehicle Types",
+  "chart_customerDistribution": "Customer Distribution",
+  "chart_customerTypes": "Customer Types",
+  "chart_customerTypeVsVehicle": "Customer Type vs Vehicle Type",
+  "chart_customerTypeVsVehicleHint": "Shows which vehicle categories each customer type books most often. Data is aggregated per booking to avoid false correlations from customers with multiple types.",
+  "chart_noTypeVsVehicleData": "No relationship data available",
+  "chart_noTypeVsVehicleDataHint": "Create bookings with customer types and different vehicle categories to see the relationship."
 }

@@ -1,6 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { CustomerTypeTag } from './CustomerTypeTag';
+import { VehicleTypeTag } from './VehicleTypeTag';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatDateEuropean } from '@/utils/dateFormatUtils';
 import type { CustomerRow } from '@/hooks/useCustomers';
 
@@ -73,6 +75,44 @@ export function CustomerTableRow({ customer }: CustomerTableRowProps) {
               ))
             : <CustomerTypeTag type="Unknown" />
           }
+        </div>
+      </TableCell>
+      <TableCell className="px-4 py-3.5">
+        <div className="flex flex-wrap items-center gap-1">
+          {customer.vehicle_types.length === 0 ? (
+            <span className="text-xs text-slate-400">—</span>
+          ) : (
+            <>
+              {customer.vehicle_types.slice(0, 2).map(vt => (
+                <VehicleTypeTag key={vt} type={vt} />
+              ))}
+              {customer.vehicle_types.length > 2 && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center px-1.5 py-0.5 text-[9px] font-semibold rounded border bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200 transition-colors"
+                    >
+                      +{customer.vehicle_types.length - 2}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    side="top"
+                    align="start"
+                    className="w-auto max-w-[260px] p-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex flex-wrap gap-1">
+                      {customer.vehicle_types.map(vt => (
+                        <VehicleTypeTag key={vt} type={vt} />
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+            </>
+          )}
         </div>
       </TableCell>
       <TableCell className="px-4 py-3.5 text-slate-700">

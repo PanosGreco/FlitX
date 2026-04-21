@@ -64,7 +64,7 @@ export function CustomerTable({ customers, loading, totalCustomers }: CustomerTa
   const totalPages = Math.max(1, Math.ceil(sorted.length / rowsPerPage));
   const paginated = sorted.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
-  const columns: { key: SortKey | 'location' | 'customer_types' | 'contact'; label: string; align?: string }[] = [
+  const columns: { key: SortKey | 'location' | 'customer_types' | 'contact' | 'vehicle_types'; label: string; align?: string }[] = [
     { key: 'customer_number', label: t('col_id') },
     { key: 'name', label: t('col_name') },
     { key: 'contact', label: t('col_contact') },
@@ -73,6 +73,7 @@ export function CustomerTable({ customers, loading, totalCustomers }: CustomerTa
     { key: 'total_lifetime_value', label: t('col_totalAmount'), align: 'text-right' },
     { key: 'total_bookings_count', label: t('col_bookings'), align: 'text-right' },
     { key: 'customer_types', label: t('col_customerType') },
+    { key: 'vehicle_types', label: t('col_vehicleTypes') },
     { key: 'last_booking_date', label: t('col_lastBooking') },
     { key: 'total_accidents_count', label: t('col_accidents'), align: 'text-right' },
     { key: 'total_accidents_amount', label: t('col_accidentAmount'), align: 'text-right' },

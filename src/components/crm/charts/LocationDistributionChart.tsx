@@ -7,6 +7,7 @@ import type { LocationData } from '@/hooks/useCRMChartData';
 interface Props {
   countries: LocationData[];
   cities: LocationData[];
+  customerTypeDistribution: LocationData[];
   hasData: boolean;
   loading: boolean;
 }
@@ -39,8 +40,8 @@ function PieSection({ title, data, t }: { title: string; data: LocationData[]; t
                 data={data}
                 cx="50%"
                 cy="42%"
-                innerRadius={24}
-                outerRadius={46}
+                innerRadius={20}
+                outerRadius={40}
                 paddingAngle={2}
                 dataKey="value"
                 label={({ value }) => `${value}%`}
@@ -61,13 +62,13 @@ function PieSection({ title, data, t }: { title: string; data: LocationData[]; t
   );
 }
 
-export function LocationDistributionChart({ countries, cities, hasData, loading }: Props) {
+export function LocationDistributionChart({ countries, cities, customerTypeDistribution, hasData, loading }: Props) {
   const { t } = useTranslation(['crm']);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-col min-h-[340px]">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-        {t('crm:chart_locationDistribution')}
+        {t('crm:chart_customerDistribution')}
       </h3>
       {loading ? (
         <Skeleton className="flex-1 w-full min-h-[260px]" />
@@ -78,9 +79,10 @@ export function LocationDistributionChart({ countries, cities, hasData, loading 
           <p className="text-xs text-slate-400 mt-1">{t('crm:chart_noLocationDataHint')}</p>
         </div>
       ) : (
-        <div className="flex-1 grid grid-cols-2 gap-6 min-h-[260px]">
+        <div className="flex-1 grid grid-cols-3 gap-4 min-h-[260px]">
           <PieSection title={t('crm:chart_countries')} data={countries} t={t} />
           <PieSection title={t('crm:chart_cities')} data={cities} t={t} />
+          <PieSection title={t('crm:chart_customerTypes')} data={customerTypeDistribution} t={t} />
         </div>
       )}
     </div>
