@@ -107,5 +107,13 @@
   "accidentAmountExplanation": "El monto coloreado muestra lo que no fue cubierto por el seguro — pagado por el cliente arrendatario o su empresa. €0 verde significa que el seguro cubrió todo (sin pérdida). El monto entre paréntesis muestra el costo total del accidente, independientemente de quién pagó.",
   "col_vehicleTypes": "Tipos de vehículo",
   "chart_customerDistribution": "Distribución de clientes",
-  "chart_customerTypes": "Tipos de clientes"
+  "chart_customerTypes": "Tipos de clientes",
+  "accident_addDamageEntry": "Registrar también como daño del vehículo",
+  "accident_addDamageEntryHint": "Crea una entrada de daño en la sección de Daños del vehículo",
+  "accident_damageZone": "Zona del daño",
+  "accident_damageNotes": "Notas del daño (opcional)",
+  "accident_damagePhoto": "Foto del daño",
+  "accident_damageIndependentNote": "Esta entrada de daño es independiente — eliminarla de la sección de Daños no afectará este informe de accidente.",
+  "accident_damageCreated": "Entrada de daño añadida al vehículo",
+  "accident_damageCreateFailed": "Accidente guardado, pero no se pudo crear la entrada de daño. Puede añadirla manualmente."
 }

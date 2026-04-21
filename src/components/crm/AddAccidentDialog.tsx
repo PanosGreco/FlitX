@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { CalendarIcon, AlertTriangle, Loader2 } from 'lucide-react';
+import { CalendarIcon, AlertTriangle, Loader2, Upload } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -15,12 +15,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Calendar } from '@/components/ui/calendar';
+import { Switch } from '@/components/ui/switch';
 import {
   Popover, PopoverContent, PopoverTrigger,
 } from '@/components/ui/popover';
 import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from '@/components/ui/command';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { validateFileSize, compressImage } from '@/utils/imageUtils';
 
 interface AddAccidentDialogProps {
   isOpen: boolean;
@@ -35,9 +40,13 @@ interface BookingOption {
   start_date: string;
   end_date: string;
   vehicle_label: string;
+  vehicle_id: string;
 }
 
 type PayerType = 'insurance' | 'customer' | 'business' | 'split';
+
+const DAMAGE_CATEGORIES = ['Front', 'Back', 'Right Side', 'Left Side', 'Interior', 'Tires'] as const;
+const DAMAGE_CATEGORY_KEYS = ['front', 'back', 'rightSide', 'leftSide', 'interior', 'tires'] as const;
 
 export function AddAccidentDialog({ isOpen, onClose, onSuccess }: AddAccidentDialogProps) {
   const { t } = useTranslation('crm');
@@ -55,6 +64,12 @@ export function AddAccidentDialog({ isOpen, onClose, onSuccess }: AddAccidentDia
   const [amountPaidByBusiness, setAmountPaidByBusiness] = useState(0);
   const [notes, setNotes] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Damage linkage state
+  const [addDamageEntry, setAddDamageEntry] = useState(false);
+  const [damageCategory, setDamageCategory] = useState<string>('');
+  const [damageNotes, setDamageNotes] = useState('');
+  const [damageFiles, setDamageFiles] = useState<FileList | null>(null);
 
   // Fetch bookings when dialog opens
   useEffect(() => {
@@ -79,6 +94,7 @@ export function AddAccidentDialog({ isOpen, onClose, onSuccess }: AddAccidentDia
           start_date: b.start_date,
           end_date: b.end_date,
           vehicle_label: b.vehicles ? `${b.vehicles.make} ${b.vehicles.model}` : '',
+          vehicle_id: b.vehicle_id,
         }))
       );
     })();
@@ -123,6 +139,10 @@ export function AddAccidentDialog({ isOpen, onClose, onSuccess }: AddAccidentDia
     setAmountPaidByCustomer(0);
     setAmountPaidByBusiness(0);
     setNotes('');
+    setAddDamageEntry(false);
+    setDamageCategory('');
+    setDamageNotes('');
+    setDamageFiles(null);
   }, []);
 
   const handleSave = async () => {
@@ -169,6 +189,79 @@ export function AddAccidentDialog({ isOpen, onClose, onSuccess }: AddAccidentDia
       if (error) throw error;
 
       toast.success(t('accident_created'));
+
+      // Optional: Create linked damage entry in vehicle's Damages section
+      if (addDamageEntry && damageCategory) {
+        try {
+          const selectedBookingForDamage = bookings.find(b => b.id === selectedBookingId);
+          const vehicleId = selectedBookingForDamage?.vehicle_id;
+
+          if (vehicleId) {
+            const uploadedUrls: string[] = [];
+
+            if (damageFiles && damageFiles.length > 0) {
+              for (let i = 0; i < damageFiles.length; i++) {
+                let file = damageFiles[i];
+
+                const sizeCheck = validateFileSize(file);
+                if (!sizeCheck.valid) {
+                  console.warn('[AddAccidentDialog] File too large, skipping:', file.name);
+                  continue;
+                }
+
+                try {
+                  file = await compressImage(file);
+                } catch (compressErr) {
+                  console.warn('[AddAccidentDialog] Compression failed, using original:', compressErr);
+                }
+
+                const rawExt = (file.name.split('.').pop() || 'jpg').replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
+                const fileName = `${vehicleId}/${Date.now()}_${i}.${rawExt}`;
+
+                const { error: uploadError } = await supabase.storage
+                  .from('damage-images')
+                  .upload(fileName, file, { contentType: file.type });
+
+                if (uploadError) {
+                  console.error('[AddAccidentDialog] Damage photo upload failed:', uploadError);
+                  continue;
+                }
+
+                const { data: urlData } = supabase.storage
+                  .from('damage-images')
+                  .getPublicUrl(fileName);
+
+                uploadedUrls.push(urlData.publicUrl);
+              }
+            }
+
+            const damageDescription = damageNotes.trim() ||
+              `${description.trim()} (from Accident Report)`;
+
+            const { error: damageError } = await supabase
+              .from('damage_reports')
+              .insert({
+                vehicle_id: vehicleId,
+                user_id: user.id,
+                location: damageCategory,
+                description: damageDescription,
+                images: uploadedUrls.length > 0 ? uploadedUrls : [],
+                severity: 'minor',
+              });
+
+            if (damageError) {
+              console.error('[AddAccidentDialog] Damage entry creation failed:', damageError);
+              toast.error(t('accident_damageCreateFailed'));
+            } else {
+              toast.success(t('accident_damageCreated'));
+            }
+          }
+        } catch (damageErr) {
+          console.error('[AddAccidentDialog] Damage linkage error:', damageErr);
+          toast.error(t('accident_damageCreateFailed'));
+        }
+      }
+
       resetForm();
       onSuccess();
       onClose();
@@ -372,6 +465,85 @@ export function AddAccidentDialog({ isOpen, onClose, onSuccess }: AddAccidentDia
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
+
+          {/* Optional: Link to Vehicle Damages */}
+          {selectedBookingId && (
+            <div className="border-t pt-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-0.5 flex-1 min-w-0">
+                  <Label className="text-sm font-medium cursor-pointer" htmlFor="add-damage-toggle">
+                    {t('accident_addDamageEntry')}
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    {t('accident_addDamageEntryHint')}
+                  </p>
+                </div>
+                <Switch
+                  id="add-damage-toggle"
+                  checked={addDamageEntry}
+                  onCheckedChange={setAddDamageEntry}
+                />
+              </div>
+
+              {addDamageEntry && (
+                <div className="space-y-3 border-l-2 border-primary/20 pl-3 ml-1">
+                  {/* Damage Category */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">{t('accident_damageZone')} *</Label>
+                    <Select value={damageCategory} onValueChange={setDamageCategory}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue placeholder="—" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {DAMAGE_CATEGORIES.map((category, idx) => (
+                          <SelectItem key={category} value={category}>
+                            {t(`fleet:damageCategories.${DAMAGE_CATEGORY_KEYS[idx]}`)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Damage Notes */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">{t('accident_damageNotes')}</Label>
+                    <Textarea
+                      rows={2}
+                      value={damageNotes}
+                      onChange={(e) => setDamageNotes(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+
+                  {/* Photo Upload */}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">{t('accident_damagePhoto')}</Label>
+                    <label className="flex items-center gap-2 cursor-pointer border border-input rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent/50 transition-colors">
+                      <Upload className="h-4 w-4" />
+                      <span>{t('fleet:chooseFiles')}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={(e) => setDamageFiles(e.target.files)}
+                        className="hidden"
+                      />
+                    </label>
+                    {damageFiles && damageFiles.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {t('fleet:filesSelected', { count: damageFiles.length })}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Info notice */}
+                  <p className="text-[10px] text-slate-400">
+                    {t('accident_damageIndependentNote')}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <DialogFooter>
@@ -380,7 +552,13 @@ export function AddAccidentDialog({ isOpen, onClose, onSuccess }: AddAccidentDia
           </Button>
           <Button
             onClick={handleSave}
-            disabled={isLoading || !selectedBookingId || !description.trim() || totalDamageCost <= 0}
+            disabled={
+              isLoading ||
+              !selectedBookingId ||
+              !description.trim() ||
+              totalDamageCost <= 0 ||
+              (addDamageEntry && !damageCategory)
+            }
             className="bg-primary hover:bg-primary/90 text-primary-foreground"
           >
             {isLoading ? (

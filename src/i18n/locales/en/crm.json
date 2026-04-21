@@ -107,5 +107,13 @@
   "accidentAmountExplanation": "The colored amount shows what was not covered by insurance — paid by the rental customer or your business. Green €0 means insurance covered everything (no loss). The amount in parentheses shows the total accident cost, regardless of who paid.",
   "col_vehicleTypes": "Vehicle Types",
   "chart_customerDistribution": "Customer Distribution",
-  "chart_customerTypes": "Customer Types"
+  "chart_customerTypes": "Customer Types",
+  "accident_addDamageEntry": "Also record as vehicle damage",
+  "accident_addDamageEntryHint": "Creates a damage entry in the vehicle's Damages section",
+  "accident_damageZone": "Damage Zone",
+  "accident_damageNotes": "Damage Notes (optional)",
+  "accident_damagePhoto": "Damage Photo",
+  "accident_damageIndependentNote": "This damage entry will be independent — deleting it from the vehicle's Damages section won't affect this accident report.",
+  "accident_damageCreated": "Damage entry added to vehicle",
+  "accident_damageCreateFailed": "Accident saved, but damage entry could not be created. You can add it manually from the vehicle's Damages section."
 }

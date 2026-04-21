@@ -107,5 +107,13 @@
   "accidentAmountExplanation": "Der farbige Betrag zeigt, was nicht von der Versicherung gedeckt wurde — bezahlt vom Mietkunden oder Ihrem Unternehmen. Grünes €0 bedeutet, die Versicherung hat alles übernommen (kein Verlust). Der Betrag in Klammern zeigt die gesamten Unfallkosten, unabhängig davon wer bezahlt hat.",
   "col_vehicleTypes": "Fahrzeugtypen",
   "chart_customerDistribution": "Kundenverteilung",
-  "chart_customerTypes": "Kundentypen"
+  "chart_customerTypes": "Kundentypen",
+  "accident_addDamageEntry": "Auch als Fahrzeugschaden erfassen",
+  "accident_addDamageEntryHint": "Erstellt einen Schadenseintrag im Schadensbereich des Fahrzeugs",
+  "accident_damageZone": "Schadenszone",
+  "accident_damageNotes": "Schadensnotizen (optional)",
+  "accident_damagePhoto": "Schadensfoto",
+  "accident_damageIndependentNote": "Dieser Schadenseintrag ist unabhängig — das Löschen aus dem Schadensbereich hat keinen Einfluss auf diesen Unfallbericht.",
+  "accident_damageCreated": "Schadenseintrag zum Fahrzeug hinzugefügt",
+  "accident_damageCreateFailed": "Unfall gespeichert, aber Schadenseintrag konnte nicht erstellt werden. Sie können ihn manuell hinzufügen."
 }

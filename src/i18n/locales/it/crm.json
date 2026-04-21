@@ -107,5 +107,13 @@
   "accidentAmountExplanation": "L'importo colorato mostra ciò che non è stato coperto dall'assicurazione — pagato dal cliente noleggiatore o dalla vostra azienda. €0 verde significa che l'assicurazione ha coperto tutto (nessuna perdita). L'importo tra parentesi mostra il costo totale dell'incidente, indipendentemente da chi ha pagato.",
   "col_vehicleTypes": "Tipi di veicolo",
   "chart_customerDistribution": "Distribuzione clienti",
-  "chart_customerTypes": "Tipi di clienti"
+  "chart_customerTypes": "Tipi di clienti",
+  "accident_addDamageEntry": "Registra anche come danno veicolo",
+  "accident_addDamageEntryHint": "Crea una voce di danno nella sezione Danni del veicolo",
+  "accident_damageZone": "Zona del danno",
+  "accident_damageNotes": "Note sul danno (opzionale)",
+  "accident_damagePhoto": "Foto del danno",
+  "accident_damageIndependentNote": "Questa voce di danno è indipendente — eliminarla dalla sezione Danni non influirà su questo rapporto incidente.",
+  "accident_damageCreated": "Voce di danno aggiunta al veicolo",
+  "accident_damageCreateFailed": "Incidente salvato, ma la voce di danno non è stata creata. Puoi aggiungerla manualmente."
 }
