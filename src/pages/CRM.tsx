@@ -112,14 +112,6 @@ export default function CRM() {
           <InsuranceProfitabilityChart data={chartData.insuranceProfitability} hasData={chartData.hasInsuranceData} loading={chartData.loading} />
         </div>
 
-        <div className="grid grid-cols-1 gap-4">
-          <CustomerTypeVsVehicleChart
-            data={chartData.customerTypeVsVehicle}
-            vehicleTypes={chartData.allVehicleTypes}
-            hasData={chartData.hasTypeVsVehicleData}
-            loading={chartData.loading}
-          />
-        </div>
 
         <CRMFilterBar
           filters={filters}
