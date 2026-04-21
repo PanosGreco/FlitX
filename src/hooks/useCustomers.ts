@@ -14,6 +14,7 @@ export interface CustomerRow {
   total_lifetime_value: number;
   total_bookings_count: number;
   customer_types: string[];
+  vehicle_types: string[];
   last_booking_date: string | null;
   total_accidents_count: number;
   total_accidents_amount: number;
@@ -46,24 +47,33 @@ export function useCustomers() {
       const customerIds = (customersData || []).map(c => c.id);
 
       let typesByCustomer: Map<string, Set<string>> = new Map();
+      let vehicleTypesByCustomer: Map<string, Set<string>> = new Map();
       let damageCostByCustomer: Map<string, number> = new Map();
 
       if (customerIds.length > 0) {
         const { data: bookingsData, error: bookError } = await supabase
           .from('rental_bookings')
-          .select('customer_id, customer_type')
-          .in('customer_id', customerIds)
-          .not('customer_type', 'is', null);
+          .select('customer_id, customer_type, vehicle_id, vehicles(type)')
+          .in('customer_id', customerIds);
 
         if (bookError) {
           console.error('[useCustomers] Bookings fetch for types failed:', bookError);
         } else {
           for (const b of bookingsData || []) {
-            if (!b.customer_id || !b.customer_type) continue;
-            if (!typesByCustomer.has(b.customer_id)) {
-              typesByCustomer.set(b.customer_id, new Set());
+            if (!b.customer_id) continue;
+            if (b.customer_type) {
+              if (!typesByCustomer.has(b.customer_id)) {
+                typesByCustomer.set(b.customer_id, new Set());
+              }
+              typesByCustomer.get(b.customer_id)!.add(b.customer_type);
             }
-            typesByCustomer.get(b.customer_id)!.add(b.customer_type);
+            const vt = (b.vehicles as any)?.type;
+            if (vt) {
+              if (!vehicleTypesByCustomer.has(b.customer_id)) {
+                vehicleTypesByCustomer.set(b.customer_id, new Set());
+              }
+              vehicleTypesByCustomer.get(b.customer_id)!.add(vt);
+            }
           }
         }
 
@@ -86,7 +96,6 @@ export function useCustomers() {
       const today = new Date();
       const rows: CustomerRow[] = (customersData || []).map(c => {
         const age = c.birth_date ? differenceInYears(today, new Date(c.birth_date)) : null;
-        const types = Array.from(typesByCustomer.get(c.id) || []);
         return {
           id: c.id,
           customer_number: c.customer_number,
@@ -97,7 +106,8 @@ export function useCustomers() {
           country_code: c.country_code,
           total_lifetime_value: Number(c.total_lifetime_value || 0),
           total_bookings_count: c.total_bookings_count || 0,
-          customer_types: types,
+          customer_types: Array.from(typesByCustomer.get(c.id) || []),
+          vehicle_types: Array.from(vehicleTypesByCustomer.get(c.id) || []).sort(),
           last_booking_date: c.last_booking_date,
           total_accidents_count: c.total_accidents_count || 0,
           total_accidents_amount: Number(c.total_accidents_amount || 0),

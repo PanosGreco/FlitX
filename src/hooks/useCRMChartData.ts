@@ -22,15 +22,25 @@ export interface InsuranceProfitData {
   netProfit: number;
 }
 
+export interface CustomerTypeVsVehicleData {
+  customerType: string;
+  vehicleBreakdown: Record<string, number>;
+  total: number;
+}
+
 export interface CRMChartData {
   ageGroups: AgeGroupData[];
   countries: LocationData[];
   cities: LocationData[];
+  customerTypeDistribution: LocationData[];
+  customerTypeVsVehicle: CustomerTypeVsVehicleData[];
+  allVehicleTypes: string[];
   insuranceProfitability: InsuranceProfitData[];
   loading: boolean;
   hasAccidentData: boolean;
   hasLocationData: boolean;
   hasInsuranceData: boolean;
+  hasTypeVsVehicleData: boolean;
 }
 
 const AGE_RANGES = [
@@ -47,12 +57,13 @@ export function useCRMChartData(): CRMChartData {
   const [accidents, setAccidents] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [insuranceCosts, setInsuranceCosts] = useState<any[]>([]);
+  const [bookingsWithTypes, setBookingsWithTypes] = useState<any[]>([]);
 
   const fetchData = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const [accidentsRes, customersRes, insuranceCostsRes] = await Promise.all([
+      const [accidentsRes, customersRes, insuranceCostsRes, bookingsRes] = await Promise.all([
         supabase
           .from('accidents')
           .select('id, total_damage_cost, amount_paid_by_business, customer_id, booking_id, rental_bookings(insurance_type_id, insurance_types(name_original))')
@@ -66,11 +77,16 @@ export function useCRMChartData(): CRMChartData {
           .select('amount, insurance_type, booking_id')
           .eq('user_id', user.id)
           .eq('name', 'Insurance'),
+        supabase
+          .from('rental_bookings')
+          .select('customer_type, vehicle_id, vehicles(type)')
+          .eq('user_id', user.id),
       ]);
 
       if (!accidentsRes.error) setAccidents(accidentsRes.data || []);
       if (!customersRes.error) setCustomers(customersRes.data || []);
       if (!insuranceCostsRes.error) setInsuranceCosts(insuranceCostsRes.data || []);
+      if (!bookingsRes.error) setBookingsWithTypes(bookingsRes.data || []);
     } catch (err) {
       console.error('[useCRMChartData] Fetch error:', err);
     } finally {
@@ -107,6 +123,27 @@ export function useCRMChartData(): CRMChartData {
     }));
   }, [accidents, customers]);
 
+  const toLocationData = (map: Record<string, number>, total: number): LocationData[] => {
+    if (total === 0) return [];
+    const entries = Object.entries(map)
+      .map(([name, count]) => ({ name, count, value: Math.round((count / total) * 100) }))
+      .sort((a, b) => b.count - a.count);
+
+    const mainEntries: LocationData[] = [];
+    let otherCount = 0;
+    let otherPct = 0;
+
+    for (const e of entries) {
+      if (e.value >= 5) mainEntries.push(e);
+      else { otherCount += e.count; otherPct += e.value; }
+    }
+
+    if (otherCount > 0) {
+      mainEntries.push({ name: 'Other', count: otherCount, value: otherPct || 1 });
+    }
+    return mainEntries;
+  };
+
   const { countries, cities } = useMemo(() => {
     const countryMap: Record<string, number> = {};
     const cityMap: Record<string, number> = {};
@@ -124,32 +161,45 @@ export function useCRMChartData(): CRMChartData {
       }
     }
 
-    const toLocationData = (map: Record<string, number>, total: number): LocationData[] => {
-      if (total === 0) return [];
-      const entries = Object.entries(map)
-        .map(([name, count]) => ({ name, count, value: Math.round((count / total) * 100) }))
-        .sort((a, b) => b.count - a.count);
-
-      const mainEntries: LocationData[] = [];
-      let otherCount = 0;
-      let otherPct = 0;
-
-      for (const e of entries) {
-        if (e.value >= 5) mainEntries.push(e);
-        else { otherCount += e.count; otherPct += e.value; }
-      }
-
-      if (otherCount > 0) {
-        mainEntries.push({ name: 'Other', count: otherCount, value: otherPct || 1 });
-      }
-      return mainEntries;
-    };
-
     return {
       countries: toLocationData(countryMap, totalWithCountry),
       cities: toLocationData(cityMap, totalWithCity),
     };
   }, [customers]);
+
+  const customerTypeDistribution = useMemo((): LocationData[] => {
+    const map: Record<string, number> = {};
+    let total = 0;
+    for (const b of bookingsWithTypes) {
+      if (b.customer_type) {
+        map[b.customer_type] = (map[b.customer_type] || 0) + 1;
+        total++;
+      }
+    }
+    return toLocationData(map, total);
+  }, [bookingsWithTypes]);
+
+  const { customerTypeVsVehicle, allVehicleTypes } = useMemo(() => {
+    const matrix: Record<string, Record<string, number>> = {};
+    const vehicleSet = new Set<string>();
+
+    for (const b of bookingsWithTypes) {
+      if (!b.customer_type) continue;
+      const vt = (b.vehicles as any)?.type;
+      if (!vt) continue;
+      vehicleSet.add(vt);
+      if (!matrix[b.customer_type]) matrix[b.customer_type] = {};
+      matrix[b.customer_type][vt] = (matrix[b.customer_type][vt] || 0) + 1;
+    }
+
+    const data: CustomerTypeVsVehicleData[] = Object.entries(matrix).map(([customerType, breakdown]) => ({
+      customerType,
+      vehicleBreakdown: breakdown,
+      total: Object.values(breakdown).reduce((s, n) => s + n, 0),
+    })).sort((a, b) => b.total - a.total);
+
+    return { customerTypeVsVehicle: data, allVehicleTypes: Array.from(vehicleSet).sort() };
+  }, [bookingsWithTypes]);
 
   const insuranceProfitability = useMemo((): InsuranceProfitData[] => {
     const revenueByType: Record<string, number> = {};
@@ -186,10 +236,14 @@ export function useCRMChartData(): CRMChartData {
     ageGroups,
     countries,
     cities,
+    customerTypeDistribution,
+    customerTypeVsVehicle,
+    allVehicleTypes,
     insuranceProfitability,
     loading,
     hasAccidentData: accidents.length > 0,
-    hasLocationData: customers.some((c: any) => c.country || c.city),
+    hasLocationData: customers.some((c: any) => c.country || c.city) || customerTypeDistribution.length > 0,
     hasInsuranceData: insuranceCosts.length > 0 || accidents.some((a: any) => a.rental_bookings?.insurance_types?.name_original),
+    hasTypeVsVehicleData: customerTypeVsVehicle.length > 0,
   };
 }
