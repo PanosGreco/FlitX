@@ -170,28 +170,6 @@ export function useCRMChartData(): CRMChartData {
     return toLocationData(map, total);
   }, [bookingsWithTypes]);
 
-  const { customerTypeVsVehicle, allVehicleTypes } = useMemo(() => {
-    const matrix: Record<string, Record<string, number>> = {};
-    const vehicleSet = new Set<string>();
-
-    for (const b of bookingsWithTypes) {
-      if (!b.customer_type) continue;
-      const vt = (b.vehicles as any)?.type;
-      if (!vt) continue;
-      vehicleSet.add(vt);
-      if (!matrix[b.customer_type]) matrix[b.customer_type] = {};
-      matrix[b.customer_type][vt] = (matrix[b.customer_type][vt] || 0) + 1;
-    }
-
-    const data: CustomerTypeVsVehicleData[] = Object.entries(matrix).map(([customerType, breakdown]) => ({
-      customerType,
-      vehicleBreakdown: breakdown,
-      total: Object.values(breakdown).reduce((s, n) => s + n, 0),
-    })).sort((a, b) => b.total - a.total);
-
-    return { customerTypeVsVehicle: data, allVehicleTypes: Array.from(vehicleSet).sort() };
-  }, [bookingsWithTypes]);
-
   const insuranceProfitability = useMemo((): InsuranceProfitData[] => {
     const revenueByType: Record<string, number> = {};
     for (const cost of insuranceCosts) {
@@ -228,13 +206,10 @@ export function useCRMChartData(): CRMChartData {
     countries,
     cities,
     customerTypeDistribution,
-    customerTypeVsVehicle,
-    allVehicleTypes,
     insuranceProfitability,
     loading,
     hasAccidentData: accidents.length > 0,
     hasLocationData: customers.some((c: any) => c.country || c.city) || customerTypeDistribution.length > 0,
     hasInsuranceData: insuranceCosts.length > 0 || accidents.some((a: any) => a.rental_bookings?.insurance_types?.name_original),
-    hasTypeVsVehicleData: customerTypeVsVehicle.length > 0,
   };
 }
