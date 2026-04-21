@@ -9,7 +9,7 @@ import { AccidentHistory } from '@/components/crm/AccidentHistory';
 import { AccidentByAgeChart } from '@/components/crm/charts/AccidentByAgeChart';
 import { LocationDistributionChart } from '@/components/crm/charts/LocationDistributionChart';
 import { InsuranceProfitabilityChart } from '@/components/crm/charts/InsuranceProfitabilityChart';
-import { CustomerTypeVsVehicleChart } from '@/components/crm/charts/CustomerTypeVsVehicleChart';
+
 import { useCRMChartData } from '@/hooks/useCRMChartData';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
@@ -112,14 +112,6 @@ export default function CRM() {
           <InsuranceProfitabilityChart data={chartData.insuranceProfitability} hasData={chartData.hasInsuranceData} loading={chartData.loading} />
         </div>
 
-        <div className="grid grid-cols-1 gap-4">
-          <CustomerTypeVsVehicleChart
-            data={chartData.customerTypeVsVehicle}
-            vehicleTypes={chartData.allVehicleTypes}
-            hasData={chartData.hasTypeVsVehicleData}
-            loading={chartData.loading}
-          />
-        </div>
 
         <CRMFilterBar
           filters={filters}

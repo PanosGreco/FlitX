@@ -107,9 +107,5 @@
   "accidentAmountExplanation": "L'importo colorato mostra ciò che non è stato coperto dall'assicurazione — pagato dal cliente noleggiatore o dalla vostra azienda. €0 verde significa che l'assicurazione ha coperto tutto (nessuna perdita). L'importo tra parentesi mostra il costo totale dell'incidente, indipendentemente da chi ha pagato.",
   "col_vehicleTypes": "Tipi di veicolo",
   "chart_customerDistribution": "Distribuzione clienti",
-  "chart_customerTypes": "Tipi di clienti",
-  "chart_customerTypeVsVehicle": "Tipo cliente vs Tipo veicolo",
-  "chart_customerTypeVsVehicleHint": "Mostra quali categorie di veicoli ogni tipo di cliente prenota più spesso. Dati aggregati per prenotazione.",
-  "chart_noTypeVsVehicleData": "Nessun dato di relazione disponibile",
-  "chart_noTypeVsVehicleDataHint": "Crea prenotazioni con tipi di clienti e diverse categorie di veicoli."
+  "chart_customerTypes": "Tipi di clienti"
 }

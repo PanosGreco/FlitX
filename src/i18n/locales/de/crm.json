@@ -107,9 +107,5 @@
   "accidentAmountExplanation": "Der farbige Betrag zeigt, was nicht von der Versicherung gedeckt wurde — bezahlt vom Mietkunden oder Ihrem Unternehmen. Grünes €0 bedeutet, die Versicherung hat alles übernommen (kein Verlust). Der Betrag in Klammern zeigt die gesamten Unfallkosten, unabhängig davon wer bezahlt hat.",
   "col_vehicleTypes": "Fahrzeugtypen",
   "chart_customerDistribution": "Kundenverteilung",
-  "chart_customerTypes": "Kundentypen",
-  "chart_customerTypeVsVehicle": "Kundentyp vs Fahrzeugtyp",
-  "chart_customerTypeVsVehicleHint": "Zeigt welche Fahrzeugkategorien jeder Kundentyp am häufigsten bucht. Daten werden pro Buchung aggregiert.",
-  "chart_noTypeVsVehicleData": "Keine Beziehungsdaten verfügbar",
-  "chart_noTypeVsVehicleDataHint": "Erstellen Sie Buchungen mit Kundentypen und verschiedenen Fahrzeugkategorien."
+  "chart_customerTypes": "Kundentypen"
 }
