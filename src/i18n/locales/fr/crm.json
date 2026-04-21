@@ -107,9 +107,5 @@
   "accidentAmountExplanation": "Le montant coloré indique ce qui n'a pas été couvert par l'assurance — payé par le client locataire ou votre entreprise. €0 vert signifie que l'assurance a tout couvert (aucune perte). Le montant entre parenthèses indique le coût total de l'accident, quel que soit le payeur.",
   "col_vehicleTypes": "Types de véhicules",
   "chart_customerDistribution": "Distribution des clients",
-  "chart_customerTypes": "Types de clients",
-  "chart_customerTypeVsVehicle": "Type de client vs Type de véhicule",
-  "chart_customerTypeVsVehicleHint": "Montre quelles catégories de véhicules chaque type de client réserve le plus souvent. Données agrégées par réservation.",
-  "chart_noTypeVsVehicleData": "Aucune donnée de relation disponible",
-  "chart_noTypeVsVehicleDataHint": "Créez des réservations avec des types de clients et différentes catégories de véhicules."
+  "chart_customerTypes": "Types de clients"
 }

@@ -107,9 +107,5 @@
   "accidentAmountExplanation": "El monto coloreado muestra lo que no fue cubierto por el seguro — pagado por el cliente arrendatario o su empresa. €0 verde significa que el seguro cubrió todo (sin pérdida). El monto entre paréntesis muestra el costo total del accidente, independientemente de quién pagó.",
   "col_vehicleTypes": "Tipos de vehículo",
   "chart_customerDistribution": "Distribución de clientes",
-  "chart_customerTypes": "Tipos de clientes",
-  "chart_customerTypeVsVehicle": "Tipo de cliente vs Tipo de vehículo",
-  "chart_customerTypeVsVehicleHint": "Muestra qué categorías de vehículos reserva más cada tipo de cliente. Datos agregados por reserva.",
-  "chart_noTypeVsVehicleData": "No hay datos de relación disponibles",
-  "chart_noTypeVsVehicleDataHint": "Crea reservas con tipos de clientes y diferentes categorías de vehículos."
+  "chart_customerTypes": "Tipos de clientes"
 }
