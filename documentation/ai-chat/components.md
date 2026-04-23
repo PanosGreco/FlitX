@@ -57,11 +57,12 @@ AIAssistant.tsx (page wrapper — AppLayout + height container)
 - **Active state**: renders `MessageList` + bottom `ChatInput`
 
 ### PresetActionButtons.tsx
-- **4 preset buttons** in 2×2 grid layout:
+- **5 preset buttons** in a responsive grid layout:
   - Marketing & Growth (TrendingUp icon)
   - Expense Optimization (PiggyBank icon)
   - Financial Analysis (BarChart3 icon)
   - Pricing Optimizer (BadgeDollarSign icon)
+  - Customer & Risk Insights (Users icon)
 - Each button fires `onSelect(presetType, translatedTitle)`
 - Titles and descriptions are i18n-translated via `useTranslation('ai')`
 - Disabled state when `disabled` prop is true
@@ -224,3 +225,19 @@ HARD PRICING RULES: [5 mandatory constraints]
 
 OUTPUT: Summary → Per-Vehicle Pricing Table → Highlights → Strategy → Monthly → CALC_DESIRED
 ```
+
+### 5. Customer & Risk Insights (`customer_risk_insights`)
+
+**Purpose**: Analyze customer demographics, accident patterns, and insurance effectiveness.
+
+**Data Used**: Full business context + `computeCRMContext()` — customer demographics, accident history, customer-type-to-vehicle-type relationships, age-group risk analysis.
+
+**Output Structure** (6 sections):
+1. Customer Demographics Overview (countries, cities, age groups)
+2. Customer Type vs Vehicle Preference patterns
+3. Accident Risk Analysis (by age, by vehicle, common causes)
+4. Insurance Effectiveness (coverage ratio, business loss rate)
+5. High-Value vs High-Risk Customers (overlap analysis)
+6. Actionable Recommendations (3-5) + Follow-up Questions (2-3)
+
+**System Prompt**: Instructs AI to deliver a data-driven 6-section report using pre-computed CRM metrics. Emphasizes using exact numbers from the context, referencing specific customer names and amounts.

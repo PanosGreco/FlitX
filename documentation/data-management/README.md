@@ -60,7 +60,7 @@ User Data (profiles)
     ├── AI Chat ←→ ai_chat_conversations, ai_chat_messages, ai_chat_usage
     │     │
     │     └── READS: vehicles, rental_bookings, financial_records, vehicle_maintenance,
-    │              recurring_transactions, damage_reports, profiles
+    │              recurring_transactions, damage_reports, profiles, customers, accidents
     │
     └── Home ←→ daily_tasks, user_notes, user_reminders, vehicle_reminders
 ```
