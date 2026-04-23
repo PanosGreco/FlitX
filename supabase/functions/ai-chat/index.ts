@@ -113,8 +113,16 @@ serve(async (req) => {
       );
     }
 
+    // Compute CRM context (always included so AI can reference CRM data in any conversation)
+    const crmContext = computeCRMContext(
+      crmCustomers.data || [],
+      crmAccidents.data || [],
+      bookings.data || [],
+      vehicles.data || []
+    );
+
     // Build system prompt with business context and data dictionary
-    const systemPrompt = buildSystemPrompt(businessContext, presetType, language, financialContext);
+    const systemPrompt = buildSystemPrompt(businessContext, presetType, language, financialContext, crmContext);
 
     // Call Lovable AI Gateway
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
