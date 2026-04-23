@@ -2,7 +2,7 @@
 
 ## Data Fetch Overhead
 
-Every message triggers 7 parallel Supabase queries (no caching):
+Every message triggers 9 parallel Supabase queries (no caching):
 
 | Query | Table | Filter | Est. Time |
 |-------|-------|--------|-----------|
@@ -13,6 +13,8 @@ Every message triggers 7 parallel Supabase queries (no caching):
 | Recurring | `recurring_transactions` | `user_id` | ~20-30ms |
 | Maintenance | `vehicle_maintenance` | `user_id` (selected columns) | ~30-50ms |
 | Damage | `damage_reports` | `user_id` (selected columns) | ~20-30ms |
+| Customers | `customers` | `user_id` (selected columns) | ~20-50ms |
+| Accidents | `accidents` | `user_id` (selected columns) | ~20-50ms |
 
 **Total**: ~200-500ms (parallel execution, dominated by largest query).
 
@@ -41,6 +43,7 @@ All queries are RLS-scoped — only user's own data returned.
 | Full base prompt (no preset) | ~8-12K | General chat |
 | Full base + marketing/expense preset | ~10-15K | Marketing & Growth, Expense Optimization |
 | Slim financial prompt | ~4K | Financial Analysis, Pricing Optimizer |
+| CRM context block | ~2-3K | Included in all conversations |
 
 ### Token Optimization
 `buildFinancialSystemPrompt()` strips non-essential sections for financial presets:
@@ -52,7 +55,7 @@ All queries are RLS-scoped — only user's own data returned.
 
 | Phase | Estimated Time |
 |-------|---------------|
-| Data fetch (7 parallel queries) | 200-500ms |
+| Data fetch (9 parallel queries) | 200-500ms |
 | Context computation | 50-100ms |
 | AI Gateway overhead | 500-1000ms |
 | First token (model thinking) | 1-3s |

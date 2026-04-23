@@ -18,17 +18,20 @@ Edge Function: ai-chat
 ├── Validate input (4000 chars max)
 ├── Check daily usage (20/day limit)
 ├── Increment usage counter
-├── 7 parallel Supabase fetches:
+├── 9 parallel Supabase fetches:
 │   ├── financial_records
 │   ├── vehicles
-│   ├── rental_bookings (selected columns only)
+│   ├── rental_bookings (now includes customer_type, customer_id, insurance_type_id)
 │   ├── profiles (single)
 │   ├── recurring_transactions
 │   ├── vehicle_maintenance (excludes sensitive fields)
-│   └── damage_reports (excludes images)
+│   ├── damage_reports (excludes images)
+│   ├── customers (demographics, lifetime value, accident totals)
+│   └── accidents (dates, descriptions, costs, payer breakdown)
 ├── buildBusinessContext(all data)
+├── computeCRMContext(customers, accidents, bookings, vehicles)
 ├── IF financial preset → computeFinancialContext(vehicles, bookings, maintenance, recurring)
-├── buildSystemPrompt(context, presetType, language, financialContext?)
+├── buildSystemPrompt(context, presetType, language, financialContext?, crmContext?)
 │   └── IF financial preset → buildFinancialSystemPrompt() [slim version]
 ├── Call Lovable AI Gateway (streaming):
 │   POST https://ai.gateway.lovable.dev/v1/chat/completions
@@ -71,6 +74,7 @@ Usage counter incremented locally
 5. Edge function detects `presetType`:
    - **`financial_analysis`** or **`pricing_optimizer`**: calls `computeFinancialContext()` → uses `buildFinancialSystemPrompt()` (slim prompt with pre-computed metrics)
    - **`marketing_growth`** or **`expense_optimization`**: uses full `buildSystemPrompt()` with preset-specific instructions appended
+   - **`customer_risk_insights`**: uses full `buildSystemPrompt()` with CRM preset instructions appended
 6. Preset-specific prompt appended to system prompt (additive, not replacement)
 7. Response streamed identically
 
@@ -148,7 +152,37 @@ Client receives conversationId:
 | `expense_optimization` | "Expense Optimization" |
 | `financial_analysis` | "Financial Analysis" |
 | `pricing_optimizer` | "Pricing Optimizer" |
+| `customer_risk_insights` | "Customer & Risk Insights" |
 | *(none — manual chat)* | First 50 chars of user message + "..." |
+
+## CRM Preset Pipeline
+
+```
+presetType = 'customer_risk_insights'
+        ↓
+computeCRMContext(customers, accidents, bookings, vehicles)
+├── Customer demographics (country, city, age distribution)
+├── Customer type distribution (from bookings)
+├── Customer type → vehicle type relationship matrix
+├── Top customers by revenue and by accident risk
+├── Accident summary (totals, payer breakdown, business loss rate)
+├── Accident cost by age group
+├── Per-vehicle accident ranking
+├── Recent accident descriptions (last 15, for pattern analysis)
+└── Returns formatted text string (~2-3K tokens)
+        ↓
+buildSystemPrompt(context, presetType, language, financialContext, crmContext)
+├── Full business context (standard)
+├── CRM context (injected for all conversations)
+├── CRM preset instructions:
+│   ├── 6-section structured report
+│   ├── Demographics → Type preferences → Risk analysis → Insurance → High-value/risk → Recommendations
+│   └── "Use pre-computed CRM data EXACTLY"
+└── Response streamed identically
+```
+
+NOTE: CRM context is injected for ALL conversations (not gated by preset),
+so the AI can answer customer/accident questions in general chat too.
 
 ## Conversation Switch Flow
 

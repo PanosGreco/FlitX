@@ -90,7 +90,7 @@ Returns a structured text string containing:
 
 ## 2. `buildBusinessContext()` — Data Aggregation
 
-Called on **every message** (all presets + general chat). Performs 7 parallel Supabase fetches and aggregates into structured object.
+Called on **every message** (all presets + general chat). Performs 9 parallel Supabase fetches and aggregates into structured object.
 
 ### Data Fetched
 | Table | Columns Selected | Purpose |
@@ -116,6 +116,33 @@ Called on **every message** (all presets + general chat). Performs 7 parallel Su
 10. **Maintenance summaries**: per-vehicle record count, total cost, types, last/next dates
 11. **Damage summaries**: per-vehicle report count, by severity, total repair cost
 12. **Data availability flags**: hasPickupTimes, hasPickupLocations, hasMaintenanceData, hasDamageData, hasRecurringData
+
+---
+
+## 5. CRM Context — `computeCRMContext()`
+
+Called unconditionally on every message (all presets + general chat). Pre-computes customer and accident metrics.
+
+### Data Fetched
+| Table | Columns Selected | Purpose |
+|-------|-----------------|---------|
+| `customers` | id, name, email, birth_date, city, country, country_code, total_lifetime_value, total_bookings_count, total_accidents_count, total_accidents_amount | Customer demographics and aggregate metrics |
+| `accidents` | id, accident_date, description, total_damage_cost, amount_paid_by_insurance/customer/business, payer_type, notes, customer_id, vehicle_id, booking_id | Accident details and cost breakdown |
+
+### Aggregations Computed
+1. **Customer demographics**: country distribution (top 10), city distribution (top 10), age distribution (5 buckets)
+2. **Customer type distribution**: booking-level count per type (Family, Couple, Business Trip, etc.)
+3. **Customer type → vehicle type matrix**: which types rent which vehicles, aggregated per booking
+4. **Top customers**: by revenue (top 5) and by accident cost to business (top 5)
+5. **Accident summary**: total damage, insurance/customer/business breakdown with percentages
+6. **Accident cost by age group**: count, total damage, and business-paid per age range
+7. **Per-vehicle accident ranking**: which vehicles are most accident-prone
+8. **Accident descriptions**: last 15 for AI pattern analysis (common causes)
+
+### Key Difference from `computeFinancialContext()`
+- `computeFinancialContext()` is only called for financial presets
+- `computeCRMContext()` is called for ALL conversations
+- This means the AI always has CRM knowledge, even in general chat
 
 ---
 

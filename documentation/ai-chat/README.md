@@ -28,12 +28,14 @@ Data Layer              → Processing Layer              → AI Layer          
 ─────────────────────    ─────────────────────────────    ──────────────────────────    ─────────────
 Supabase Tables:         buildBusinessContext()           Lovable AI Gateway            SSE Stream →
 • financial_records      computeFinancialContext()        google/gemini-3-flash-preview React UI →
-• vehicles               buildSystemPrompt()              Streaming response            Token-by-token
-• rental_bookings        buildFinancialSystemPrompt()                                   message render
-• vehicle_maintenance
+• vehicles               computeCRMContext()              Streaming response            Token-by-token
+• rental_bookings        buildSystemPrompt()                                            message render
+• vehicle_maintenance    buildFinancialSystemPrompt()
 • damage_reports
 • recurring_transactions
 • profiles
+• customers
+• accidents
 ```
 
 ## Core Design Principle
@@ -51,15 +53,18 @@ Supabase Tables:         buildBusinessContext()           Lovable AI Gateway    
 | Reservations | `rental_bookings` | start_date, end_date, total_amount, status, customer_name, times, locations |
 | Finance | `recurring_transactions` | Fixed costs, frequency, amount, category |
 | Profile | `profiles` | Name, company_name, city, country |
+| CRM | `customers` | Demographics, locations, birth dates, lifetime value, accident totals |
+| CRM | `accidents` | Accident dates, descriptions, damage costs, payer breakdown, vehicle/customer links |
 
 ## Preset Actions
 
-Four preset actions provide structured, domain-specific analysis:
+Five preset actions provide structured, domain-specific analysis:
 
 1. **Marketing & Growth** (`marketing_growth`) — Location-based marketing strategies
 2. **Expense Optimization** (`expense_optimization`) — Cost reduction recommendations
 3. **Financial Analysis** (`financial_analysis`) — Fleet economics with break-even analysis
 4. **Pricing Optimizer** (`pricing_optimizer`) — Per-vehicle pricing recommendations
+5. **Customer & Risk Insights** (`customer_risk_insights`) — Customer demographics, accident risk analysis, insurance effectiveness
 
 Financial presets (`financial_analysis`, `pricing_optimizer`) use a slim prompt via `buildFinancialSystemPrompt()` with pre-computed metrics from `computeFinancialContext()`. Non-financial presets use the full `buildSystemPrompt()`.
 

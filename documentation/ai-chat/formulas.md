@@ -145,6 +145,30 @@ monthly_amount =
 
 ---
 
+## CRM Context Metrics (from `computeCRMContext()`)
+
+### Age Distribution
+| Metric | Formula |
+|--------|---------|
+| Customer age | `floor((today - birth_date) / 365.25)` |
+| Age group | Mapped to: 18-22, 23-30, 31-45, 46-60, 61+ |
+| Revenue per age group | `sum(total_lifetime_value) for customers in group` |
+
+### Accident Metrics
+| Metric | Formula |
+|--------|---------|
+| Business loss rate | `(total_business_paid / total_damage_cost) × 100` |
+| Insurance coverage rate | `(total_insurance_paid / total_damage_cost) × 100` |
+| Age at accident | `floor((accident_date - birth_date) / 365.25)` |
+
+### Customer Rankings
+| Metric | Formula |
+|--------|---------|
+| Top by revenue | `customers.sort(total_lifetime_value DESC).slice(0, 5)` |
+| Top by risk | `customers.filter(accidents > 0).sort(total_accidents_amount DESC).slice(0, 5)` |
+
+---
+
 ## CALC_DESIRED Formula
 
 Used by both Financial Analysis and Pricing Optimizer presets:
