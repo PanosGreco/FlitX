@@ -73,17 +73,21 @@ serve(async (req) => {
       message_count: currentCount + 1
     }, { onConflict: "user_id,date" });
 
-    // Fetch business context data (ENHANCED: includes maintenance & damage data)
-    const [financials, vehicles, bookings, profile, recurringTransactions, maintenanceRecords, damageReports] = await Promise.all([
+    // Fetch business context data (ENHANCED: includes maintenance, damage & CRM data)
+    const [financials, vehicles, bookings, profile, recurringTransactions, maintenanceRecords, damageReports, crmCustomers, crmAccidents] = await Promise.all([
       supabaseClient.from("financial_records").select("*").eq("user_id", user.id),
       supabaseClient.from("vehicles").select("*").eq("user_id", user.id),
-      supabaseClient.from("rental_bookings").select("id, vehicle_id, start_date, end_date, total_amount, status, customer_name, pickup_time, return_time, pickup_location, dropoff_location, notes").eq("user_id", user.id),
+      supabaseClient.from("rental_bookings").select("id, vehicle_id, start_date, end_date, total_amount, status, customer_name, customer_type, customer_id, insurance_type_id, pickup_time, return_time, pickup_location, dropoff_location, notes").eq("user_id", user.id),
       supabaseClient.from("profiles").select("name, company_name, city, country").eq("user_id", user.id).single(),
       supabaseClient.from("recurring_transactions").select("*").eq("user_id", user.id),
       // NEW: Maintenance records (exclude sensitive fields)
       supabaseClient.from("vehicle_maintenance").select("id, vehicle_id, type, cost, date, next_date, description").eq("user_id", user.id),
       // NEW: Damage reports (explicitly EXCLUDE images column for privacy)
-      supabaseClient.from("damage_reports").select("id, vehicle_id, severity, location, reported_at, repair_cost, description").eq("user_id", user.id)
+      supabaseClient.from("damage_reports").select("id, vehicle_id, severity, location, reported_at, repair_cost, description").eq("user_id", user.id),
+      // NEW: CRM customers (demographics + aggregates)
+      supabaseClient.from("customers").select("id, name, email, birth_date, city, country, country_code, total_lifetime_value, total_bookings_count, total_accidents_count, total_accidents_amount").eq("user_id", user.id),
+      // NEW: Accidents (damage cost breakdown)
+      supabaseClient.from("accidents").select("id, accident_date, description, total_damage_cost, amount_paid_by_insurance, amount_paid_by_customer, amount_paid_by_business, payer_type, notes, customer_id, vehicle_id, booking_id").eq("user_id", user.id)
     ]);
 
     // Build business context summary with enhanced per-vehicle analytics
@@ -109,8 +113,16 @@ serve(async (req) => {
       );
     }
 
+    // Compute CRM context (always included so AI can reference CRM data in any conversation)
+    const crmContext = computeCRMContext(
+      crmCustomers.data || [],
+      crmAccidents.data || [],
+      bookings.data || [],
+      vehicles.data || []
+    );
+
     // Build system prompt with business context and data dictionary
-    const systemPrompt = buildSystemPrompt(businessContext, presetType, language, financialContext);
+    const systemPrompt = buildSystemPrompt(businessContext, presetType, language, financialContext, crmContext);
 
     // Call Lovable AI Gateway
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -1180,7 +1192,7 @@ function buildBusinessContext(
 
 // ============= ENHANCED SYSTEM PROMPT WITH DATA DICTIONARY =============
 
-function buildSystemPrompt(context: ReturnType<typeof buildBusinessContext>, presetType?: string, language?: string, financialContext?: string) {
+function buildSystemPrompt(context: ReturnType<typeof buildBusinessContext>, presetType?: string, language?: string, financialContext?: string, crmContext?: string) {
   
   // === LANGUAGE INSTRUCTION (FIRST — before all data) ===
   const LANGUAGE_NAMES: Record<string, string> = { en: 'English', el: 'Greek', it: 'Italian', es: 'Spanish', de: 'German', fr: 'French' };
@@ -1191,7 +1203,7 @@ function buildSystemPrompt(context: ReturnType<typeof buildBusinessContext>, pre
   // === FINANCIAL PRESET: USE SLIM PROMPT ===
   const isFinancialPreset = presetType === 'financial_analysis' || presetType === 'pricing_optimizer';
   if (isFinancialPreset && financialContext) {
-    return buildFinancialSystemPrompt(context, presetType!, languageInstruction, financialContext);
+    return buildFinancialSystemPrompt(context, presetType!, languageInstruction, financialContext, crmContext);
   }
   
   // === DATA DICTIONARY FOR SEMANTIC MAPPING ===
@@ -1587,6 +1599,8 @@ ${collaborationSection}
 
 ${maintenanceSection}
 ${damageSection}
+
+${crmContext || ''}
 
 ${responseGuidelines}`;
 
@@ -2211,6 +2225,52 @@ FORMATTING RULES
 - Be practical and actionable
 
 Execute immediately.
+`,
+    customer_risk_insights: `
+
+[PRESET: CUSTOMER & RISK INSIGHTS]
+
+You are analyzing the fleet operator's customer database and accident history. Your goal is to provide actionable insights about customer demographics, accident patterns, and risk management.
+
+Use the pre-computed CRM & CUSTOMER INTELLIGENCE DATA and ACCIDENT & RISK ANALYSIS sections above. Use the values EXACTLY as provided — do NOT recalculate any numbers.
+
+If CRM DATA shows "No customer records available yet", respond ONLY with a short message explaining the user needs to create bookings first to populate the customer database, and STOP.
+
+Provide your analysis in these 6 sections (STRICT ORDER, ALL REQUIRED):
+
+**1. Customer Demographics Overview**
+- Where customers come from (top countries/cities with counts and %)
+- Age distribution (5 buckets) with revenue per bucket
+- Most common customer types
+
+**2. Customer Type vs Vehicle Preference**
+- Which customer types prefer which vehicle categories?
+- Patterns or surprising combinations
+
+**3. Accident Risk Analysis**
+- Which age groups have the highest accident rates and total damage costs?
+- Most common accident causes (from descriptions)
+- Most accident-prone vehicles (highest damage first)
+
+**4. Insurance Effectiveness**
+- % of damage costs covered by insurance vs customer vs business
+- Business loss rate
+- Most common payer type
+
+**5. High-Value vs High-Risk Customers**
+- Top 5 customers by lifetime revenue (from data)
+- Top customers by accident cost to the business
+- Any overlap between high-value and high-risk
+
+**6. Actionable Recommendations**
+- 3-5 specific, data-driven actions to reduce accident costs
+- Insurance strategy suggestions
+- Customer targeting recommendations
+- End with 2-3 follow-up questions the operator might want to explore
+
+Style: Bullet points, precise numbers from the data, € amounts. Reference specific customer names, countries, age groups, and vehicles from the data.
+
+Execute immediately.
 `
   };
 
@@ -2227,7 +2287,8 @@ function buildFinancialSystemPrompt(
   context: ReturnType<typeof buildBusinessContext>,
   presetType: string,
   languageInstruction: string,
-  financialContext: string
+  financialContext: string,
+  crmContext?: string
 ): string {
   const presetInstructions = presetType === 'financial_analysis' 
     ? getFinancialAnalysisInstructions()
@@ -2245,6 +2306,8 @@ BUSINESS OVERVIEW
 • Fleet Size: ${context.fleet.count} vehicles
 
 ${financialContext}
+
+${crmContext || ''}
 
 CRITICAL RULES:
 1. The values above are PRE-COMPUTED and VERIFIED. Use them EXACTLY as given. Do NOT recalculate.
@@ -2397,4 +2460,241 @@ If user message starts with "CALC_DESIRED:" followed by a number:
 3. Return: Desired income, Required bookings, Required avg daily price, One insight.
 
 FORMATTING: Use tables, bullet points, status emojis consistently, bold key numbers. Markdown tables MUST have a blank line before them. Include ALL sections. Be concise and actionable. Execute immediately.`;
+}
+
+// ============= PRE-COMPUTED CRM CONTEXT (customers + accidents) =============
+
+function computeCRMContext(
+  customers: any[],
+  accidents: any[],
+  bookings: any[],
+  vehicles: any[]
+): string {
+  if (customers.length === 0) {
+    return 'CRM DATA: No customer records available yet. The user needs to create bookings to build their customer database.';
+  }
+
+  // ─── 1. Customer Demographics ───
+  const totalCustomers = customers.length;
+  const customersWithLocation = customers.filter((c: any) => c.country);
+  const customersWithAge = customers.filter((c: any) => c.birth_date);
+
+  const countryMap: Record<string, number> = {};
+  for (const c of customersWithLocation) {
+    countryMap[c.country] = (countryMap[c.country] || 0) + 1;
+  }
+  const topCountries = Object.entries(countryMap)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 10)
+    .map(([country, count]) => `${country}: ${count} customers (${((count / totalCustomers) * 100).toFixed(0)}%)`)
+    .join(', ');
+
+  const cityMap: Record<string, number> = {};
+  for (const c of customers) {
+    if (c.city) cityMap[c.city] = (cityMap[c.city] || 0) + 1;
+  }
+  const topCities = Object.entries(cityMap)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 10)
+    .map(([city, count]) => `${city}: ${count}`)
+    .join(', ');
+
+  const today = new Date();
+  const AGE_RANGES = [
+    { label: '18-22', min: 18, max: 22 },
+    { label: '23-30', min: 23, max: 30 },
+    { label: '31-45', min: 31, max: 45 },
+    { label: '46-60', min: 46, max: 60 },
+    { label: '61+', min: 61, max: 200 },
+  ];
+  const ageGroups: Record<string, { count: number; totalValue: number }> = {};
+  AGE_RANGES.forEach(r => { ageGroups[r.label] = { count: 0, totalValue: 0 }; });
+
+  for (const c of customersWithAge) {
+    const birth = new Date(c.birth_date);
+    const age = Math.floor((today.getTime() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+    const range = AGE_RANGES.find(r => age >= r.min && age <= r.max);
+    if (range) {
+      ageGroups[range.label].count++;
+      ageGroups[range.label].totalValue += Number(c.total_lifetime_value || 0);
+    }
+  }
+
+  const ageDistribution = AGE_RANGES
+    .map(r => `${r.label}: ${ageGroups[r.label].count} customers, €${ageGroups[r.label].totalValue.toFixed(0)} total revenue`)
+    .join(' | ');
+
+  // ─── 2. Customer Type Distribution (from bookings) ───
+  const customerTypeMap: Record<string, number> = {};
+  for (const b of bookings) {
+    if (b.customer_type) {
+      customerTypeMap[b.customer_type] = (customerTypeMap[b.customer_type] || 0) + 1;
+    }
+  }
+  const customerTypeDistribution = Object.entries(customerTypeMap)
+    .sort(([, a], [, b]) => b - a)
+    .map(([type, count]) => `${type}: ${count} bookings`)
+    .join(', ');
+
+  // ─── 3. Customer Type vs Vehicle Type ───
+  const vehicleMap = new Map(vehicles.map((v: any) => [v.id, v]));
+  const typeRelationship: Record<string, Record<string, number>> = {};
+
+  for (const b of bookings) {
+    if (!b.customer_type || !b.vehicle_id) continue;
+    const vehicle: any = vehicleMap.get(b.vehicle_id);
+    const vehicleType = vehicle?.type || 'Unknown';
+    if (!typeRelationship[b.customer_type]) typeRelationship[b.customer_type] = {};
+    typeRelationship[b.customer_type][vehicleType] = (typeRelationship[b.customer_type][vehicleType] || 0) + 1;
+  }
+
+  const typeVsVehicle = Object.entries(typeRelationship)
+    .map(([custType, vMap]) => {
+      const breakdown = Object.entries(vMap)
+        .sort(([, a], [, b]) => b - a)
+        .map(([vType, count]) => `${vType}(${count})`)
+        .join(', ');
+      return `${custType} → ${breakdown}`;
+    })
+    .join(' | ');
+
+  // ─── 4. Accident Analysis ───
+  const totalAccidents = accidents.length;
+  const totalDamageCost = accidents.reduce((sum: number, a: any) => sum + Number(a.total_damage_cost), 0);
+  const totalBusinessPaid = accidents.reduce((sum: number, a: any) => sum + Number(a.amount_paid_by_business), 0);
+  const totalInsurancePaid = accidents.reduce((sum: number, a: any) => sum + Number(a.amount_paid_by_insurance), 0);
+  const totalCustomerPaid = accidents.reduce((sum: number, a: any) => sum + Number(a.amount_paid_by_customer), 0);
+
+  const accidentsByAge: Record<string, { count: number; totalDamage: number; businessPaid: number }> = {};
+  AGE_RANGES.forEach(r => { accidentsByAge[r.label] = { count: 0, totalDamage: 0, businessPaid: 0 }; });
+
+  const customerMap = new Map(customers.map((c: any) => [c.id, c]));
+  for (const a of accidents) {
+    const customer: any = customerMap.get(a.customer_id);
+    if (!customer?.birth_date) continue;
+    const birth = new Date(customer.birth_date);
+    const ageAtAccident = Math.floor((new Date(a.accident_date).getTime() - birth.getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+    const range = AGE_RANGES.find(r => ageAtAccident >= r.min && ageAtAccident <= r.max);
+    if (range) {
+      accidentsByAge[range.label].count++;
+      accidentsByAge[range.label].totalDamage += Number(a.total_damage_cost);
+      accidentsByAge[range.label].businessPaid += Number(a.amount_paid_by_business);
+    }
+  }
+
+  const accidentAgeBreakdown = AGE_RANGES
+    .map(r => {
+      const d = accidentsByAge[r.label];
+      return `${r.label}: ${d.count} accidents, €${d.totalDamage.toFixed(0)} total damage, €${d.businessPaid.toFixed(0)} business paid`;
+    })
+    .join(' | ');
+
+  const payerCounts: Record<string, number> = {};
+  for (const a of accidents) {
+    payerCounts[a.payer_type] = (payerCounts[a.payer_type] || 0) + 1;
+  }
+  const payerDistribution = Object.entries(payerCounts)
+    .map(([type, count]) => `${type}: ${count}`)
+    .join(', ');
+
+  const accidentDescriptions = accidents
+    .slice(0, 15)
+    .map((a: any) => `[${a.accident_date}] ${a.description || '(no description)'} (€${Number(a.total_damage_cost).toFixed(0)}, ${a.payer_type})`)
+    .join('\n  ');
+
+  // ─── 5. Per-vehicle accident ranking ───
+  const accidentsByVehicle: Record<string, { count: number; totalDamage: number; vehicleName: string }> = {};
+  for (const a of accidents) {
+    if (!a.vehicle_id) continue;
+    const vehicle: any = vehicleMap.get(a.vehicle_id);
+    const name = vehicle ? `${vehicle.make} ${vehicle.model}` : 'Unknown';
+    if (!accidentsByVehicle[a.vehicle_id]) {
+      accidentsByVehicle[a.vehicle_id] = { count: 0, totalDamage: 0, vehicleName: name };
+    }
+    accidentsByVehicle[a.vehicle_id].count++;
+    accidentsByVehicle[a.vehicle_id].totalDamage += Number(a.total_damage_cost);
+  }
+  const vehicleAccidentRanking = Object.values(accidentsByVehicle)
+    .sort((a, b) => b.totalDamage - a.totalDamage)
+    .map(v => `${v.vehicleName}: ${v.count} accidents, €${v.totalDamage.toFixed(0)}`)
+    .join(', ');
+
+  // ─── 6. Top customers ───
+  const topByRevenue = [...customers]
+    .sort((a: any, b: any) => Number(b.total_lifetime_value) - Number(a.total_lifetime_value))
+    .slice(0, 5)
+    .map((c: any) => `${c.name}: €${Number(c.total_lifetime_value).toFixed(0)} (${c.total_bookings_count} bookings)`)
+    .join(', ');
+
+  const topByAccidents = [...customers]
+    .filter((c: any) => c.total_accidents_count > 0)
+    .sort((a: any, b: any) => Number(b.total_accidents_amount) - Number(a.total_accidents_amount))
+    .slice(0, 5)
+    .map((c: any) => `${c.name}: ${c.total_accidents_count} accidents, €${Number(c.total_accidents_amount).toFixed(0)} business cost`)
+    .join(', ');
+
+  return `
+═══════════════════════════════════════════════════════════
+CRM & CUSTOMER INTELLIGENCE DATA (PRE-COMPUTED — USE EXACTLY)
+═══════════════════════════════════════════════════════════
+
+CUSTOMER OVERVIEW:
+  Total Customers: ${totalCustomers}
+  Customers with Location Data: ${customersWithLocation.length}
+  Customers with Age Data: ${customersWithAge.length}
+
+CUSTOMER COUNTRY DISTRIBUTION:
+  ${topCountries || 'No country data'}
+
+CUSTOMER CITY DISTRIBUTION:
+  ${topCities || 'No city data'}
+
+CUSTOMER AGE DISTRIBUTION:
+  ${ageDistribution}
+
+CUSTOMER TYPE DISTRIBUTION (by booking count):
+  ${customerTypeDistribution || 'No customer type data'}
+
+CUSTOMER TYPE vs VEHICLE TYPE RELATIONSHIP (booking-level):
+  ${typeVsVehicle || 'No relationship data'}
+
+TOP 5 CUSTOMERS BY REVENUE:
+  ${topByRevenue || 'No revenue data'}
+
+TOP CUSTOMERS BY ACCIDENT RISK (business cost):
+  ${topByAccidents || 'No accident data'}
+
+═══════════════════════════════════════════════════════════
+ACCIDENT & RISK ANALYSIS
+═══════════════════════════════════════════════════════════
+
+ACCIDENT SUMMARY:
+  Total Accidents: ${totalAccidents}
+  Total Damage Cost: €${totalDamageCost.toFixed(0)}
+  Paid by Insurance: €${totalInsurancePaid.toFixed(0)} (${totalDamageCost > 0 ? ((totalInsurancePaid / totalDamageCost) * 100).toFixed(0) : 0}%)
+  Paid by Customer: €${totalCustomerPaid.toFixed(0)} (${totalDamageCost > 0 ? ((totalCustomerPaid / totalDamageCost) * 100).toFixed(0) : 0}%)
+  Paid by Business: €${totalBusinessPaid.toFixed(0)} (${totalDamageCost > 0 ? ((totalBusinessPaid / totalDamageCost) * 100).toFixed(0) : 0}%)
+  Business Loss Rate: ${totalDamageCost > 0 ? ((totalBusinessPaid / totalDamageCost) * 100).toFixed(1) : 0}%
+
+ACCIDENT COST BY AGE GROUP:
+  ${accidentAgeBreakdown}
+
+PAYER TYPE DISTRIBUTION:
+  ${payerDistribution || 'No payer data'}
+
+ACCIDENTS BY VEHICLE (highest damage first):
+  ${vehicleAccidentRanking || 'No vehicle accident data'}
+
+RECENT ACCIDENT DESCRIPTIONS (for pattern analysis):
+  ${accidentDescriptions || 'No accident descriptions available'}
+
+USE THIS DATA to identify:
+- Which customer demographics have highest accident rates
+- Which age groups are most risky and expensive
+- Which vehicles are most accident-prone
+- Whether insurance is covering enough of the damage costs
+- Common accident causes and patterns from descriptions
+- Customer type vs vehicle type preferences
+═══════════════════════════════════════════════════════════
+`;
 }

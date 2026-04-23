@@ -17,6 +17,10 @@
     "pricingOptimizer": {
       "title": "Ottimizzatore Prezzi",
       "description": "Ottieni raccomandazioni dinamiche sui prezzi per veicolo"
+    },
+    "customerRiskInsights": {
+      "title": "Clienti & Analisi del Rischio",
+      "description": "Analizzare demografia clienti, modelli di incidenti ed efficacia assicurativa"
     }
   },
   "notEnoughData": "Dati Insufficienti",
