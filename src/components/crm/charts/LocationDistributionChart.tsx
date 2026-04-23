@@ -1,7 +1,8 @@
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { useTranslation } from 'react-i18next';
 import { Skeleton } from '@/components/ui/skeleton';
 import { MapPin } from 'lucide-react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import type { LocationData } from '@/hooks/useCRMChartData';
 
 interface Props {
@@ -15,16 +16,69 @@ interface Props {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d', '#ffc658', '#ff7c43'];
 const OTHER_COLOR = '#94a3b8';
 
+const colorFor = (entry: LocationData, idx: number) =>
+  entry.name === 'Other' ? OTHER_COLOR : COLORS[idx % COLORS.length];
+
 const PieTooltip = ({ active, payload, t }: any) => {
   if (!active || !payload || !payload.length) return null;
   const d = payload[0].payload;
   return (
-    <div className="bg-white border border-slate-200 rounded-lg shadow-lg p-2 text-xs">
+    <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-3 py-2 text-xs">
       <div className="font-semibold text-slate-900">{d.name}</div>
-      <div className="text-slate-600">{t('crm:chart_customers', { count: d.count })} ({d.value}%)</div>
+      <div className="text-slate-600">
+        {t('crm:chart_customers', { count: d.count })} ({d.value}%)
+      </div>
     </div>
   );
 };
+
+function CompactLegend({ data }: { data: LocationData[] }) {
+  const top = data.slice(0, 5);
+  const rest = data.length - 5;
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 mt-2 px-1">
+      {top.map((entry, idx) => (
+        <div key={entry.name} className="flex items-center gap-1 min-w-0">
+          <span
+            className="w-2 h-2 rounded-full flex-shrink-0"
+            style={{ backgroundColor: colorFor(entry, idx) }}
+          />
+          <span className="text-[10px] text-slate-600 truncate max-w-[70px]">{entry.name}</span>
+        </div>
+      ))}
+      {rest > 0 && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className="text-[10px] text-primary hover:underline font-medium">
+              +{rest} more
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-56 p-2" align="center">
+            <div className="max-h-60 overflow-y-auto space-y-1">
+              {data.map((entry, idx) => (
+                <div
+                  key={entry.name}
+                  className="flex items-center justify-between gap-2 text-xs px-1 py-0.5"
+                >
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: colorFor(entry, idx) }}
+                    />
+                    <span className="truncate text-slate-700">{entry.name}</span>
+                  </div>
+                  <span className="text-slate-500 flex-shrink-0">
+                    {entry.count} ({entry.value}%)
+                  </span>
+                </div>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
+      )}
+    </div>
+  );
+}
 
 function PieSection({ title, data, t }: { title: string; data: LocationData[]; t: any }) {
   return (
@@ -33,29 +87,29 @@ function PieSection({ title, data, t }: { title: string; data: LocationData[]; t
       {data.length === 0 ? (
         <div className="h-44 flex items-center text-xs text-slate-400">—</div>
       ) : (
-        <div className="h-44 w-full min-h-[180px] overflow-visible">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart margin={{ top: 12, right: 8, bottom: 4, left: 8 }}>
-              <Pie
-                data={data}
-                cx="50%"
-                cy="55%"
-                innerRadius={20}
-                outerRadius={40}
-                paddingAngle={2}
-                dataKey="value"
-                label={({ value }) => `${value}%`}
-                labelLine={false}
-                style={{ fontSize: 10 }}
-              >
-                {data.map((entry, idx) => (
-                  <Cell key={idx} fill={entry.name === 'Other' ? OTHER_COLOR : COLORS[idx % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip content={<PieTooltip t={t} />} />
-              <Legend verticalAlign="bottom" height={24} wrapperStyle={{ fontSize: 9 }} iconSize={7} />
-            </PieChart>
-          </ResponsiveContainer>
+        <div className="flex flex-col w-full">
+          <div className="h-36 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={30}
+                  outerRadius={55}
+                  paddingAngle={2}
+                  dataKey="value"
+                  style={{ cursor: 'pointer' }}
+                >
+                  {data.map((entry, idx) => (
+                    <Cell key={idx} fill={colorFor(entry, idx)} />
+                  ))}
+                </Pie>
+                <Tooltip content={<PieTooltip t={t} />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <CompactLegend data={data} />
         </div>
       )}
     </div>
