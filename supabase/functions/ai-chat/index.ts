@@ -2225,6 +2225,52 @@ FORMATTING RULES
 - Be practical and actionable
 
 Execute immediately.
+`,
+    customer_risk_insights: `
+
+[PRESET: CUSTOMER & RISK INSIGHTS]
+
+You are analyzing the fleet operator's customer database and accident history. Your goal is to provide actionable insights about customer demographics, accident patterns, and risk management.
+
+Use the pre-computed CRM & CUSTOMER INTELLIGENCE DATA and ACCIDENT & RISK ANALYSIS sections above. Use the values EXACTLY as provided — do NOT recalculate any numbers.
+
+If CRM DATA shows "No customer records available yet", respond ONLY with a short message explaining the user needs to create bookings first to populate the customer database, and STOP.
+
+Provide your analysis in these 6 sections (STRICT ORDER, ALL REQUIRED):
+
+**1. Customer Demographics Overview**
+- Where customers come from (top countries/cities with counts and %)
+- Age distribution (5 buckets) with revenue per bucket
+- Most common customer types
+
+**2. Customer Type vs Vehicle Preference**
+- Which customer types prefer which vehicle categories?
+- Patterns or surprising combinations
+
+**3. Accident Risk Analysis**
+- Which age groups have the highest accident rates and total damage costs?
+- Most common accident causes (from descriptions)
+- Most accident-prone vehicles (highest damage first)
+
+**4. Insurance Effectiveness**
+- % of damage costs covered by insurance vs customer vs business
+- Business loss rate
+- Most common payer type
+
+**5. High-Value vs High-Risk Customers**
+- Top 5 customers by lifetime revenue (from data)
+- Top customers by accident cost to the business
+- Any overlap between high-value and high-risk
+
+**6. Actionable Recommendations**
+- 3-5 specific, data-driven actions to reduce accident costs
+- Insurance strategy suggestions
+- Customer targeting recommendations
+- End with 2-3 follow-up questions the operator might want to explore
+
+Style: Bullet points, precise numbers from the data, € amounts. Reference specific customer names, countries, age groups, and vehicles from the data.
+
+Execute immediately.
 `
   };
 
