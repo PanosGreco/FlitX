@@ -1600,6 +1600,8 @@ ${collaborationSection}
 ${maintenanceSection}
 ${damageSection}
 
+${crmContext || ''}
+
 ${responseGuidelines}`;
 
   // === PRESET-SPECIFIC PROMPTS ===
