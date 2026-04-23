@@ -2287,7 +2287,8 @@ function buildFinancialSystemPrompt(
   context: ReturnType<typeof buildBusinessContext>,
   presetType: string,
   languageInstruction: string,
-  financialContext: string
+  financialContext: string,
+  crmContext?: string
 ): string {
   const presetInstructions = presetType === 'financial_analysis' 
     ? getFinancialAnalysisInstructions()
