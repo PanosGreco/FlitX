@@ -1192,7 +1192,7 @@ function buildBusinessContext(
 
 // ============= ENHANCED SYSTEM PROMPT WITH DATA DICTIONARY =============
 
-function buildSystemPrompt(context: ReturnType<typeof buildBusinessContext>, presetType?: string, language?: string, financialContext?: string) {
+function buildSystemPrompt(context: ReturnType<typeof buildBusinessContext>, presetType?: string, language?: string, financialContext?: string, crmContext?: string) {
   
   // === LANGUAGE INSTRUCTION (FIRST — before all data) ===
   const LANGUAGE_NAMES: Record<string, string> = { en: 'English', el: 'Greek', it: 'Italian', es: 'Spanish', de: 'German', fr: 'French' };
@@ -1203,7 +1203,7 @@ function buildSystemPrompt(context: ReturnType<typeof buildBusinessContext>, pre
   // === FINANCIAL PRESET: USE SLIM PROMPT ===
   const isFinancialPreset = presetType === 'financial_analysis' || presetType === 'pricing_optimizer';
   if (isFinancialPreset && financialContext) {
-    return buildFinancialSystemPrompt(context, presetType!, languageInstruction, financialContext);
+    return buildFinancialSystemPrompt(context, presetType!, languageInstruction, financialContext, crmContext);
   }
   
   // === DATA DICTIONARY FOR SEMANTIC MAPPING ===
