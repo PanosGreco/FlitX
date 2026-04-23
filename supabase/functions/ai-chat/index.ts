@@ -2307,6 +2307,8 @@ BUSINESS OVERVIEW
 
 ${financialContext}
 
+${crmContext || ''}
+
 CRITICAL RULES:
 1. The values above are PRE-COMPUTED and VERIFIED. Use them EXACTLY as given. Do NOT recalculate.
 2. ONLY use numbers from the data above. NEVER invent or estimate values.
