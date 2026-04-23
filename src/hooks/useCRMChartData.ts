@@ -125,7 +125,7 @@ export function useCRMChartData(): CRMChartData {
     let otherPct = 0;
 
     for (const e of entries) {
-      if (e.value >= 5) mainEntries.push(e);
+      if (e.value >= 8) mainEntries.push(e);
       else { otherCount += e.count; otherPct += e.value; }
     }
 
