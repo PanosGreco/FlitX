@@ -73,17 +73,21 @@ serve(async (req) => {
       message_count: currentCount + 1
     }, { onConflict: "user_id,date" });
 
-    // Fetch business context data (ENHANCED: includes maintenance & damage data)
-    const [financials, vehicles, bookings, profile, recurringTransactions, maintenanceRecords, damageReports] = await Promise.all([
+    // Fetch business context data (ENHANCED: includes maintenance, damage & CRM data)
+    const [financials, vehicles, bookings, profile, recurringTransactions, maintenanceRecords, damageReports, crmCustomers, crmAccidents] = await Promise.all([
       supabaseClient.from("financial_records").select("*").eq("user_id", user.id),
       supabaseClient.from("vehicles").select("*").eq("user_id", user.id),
-      supabaseClient.from("rental_bookings").select("id, vehicle_id, start_date, end_date, total_amount, status, customer_name, pickup_time, return_time, pickup_location, dropoff_location, notes").eq("user_id", user.id),
+      supabaseClient.from("rental_bookings").select("id, vehicle_id, start_date, end_date, total_amount, status, customer_name, customer_type, customer_id, insurance_type_id, pickup_time, return_time, pickup_location, dropoff_location, notes").eq("user_id", user.id),
       supabaseClient.from("profiles").select("name, company_name, city, country").eq("user_id", user.id).single(),
       supabaseClient.from("recurring_transactions").select("*").eq("user_id", user.id),
       // NEW: Maintenance records (exclude sensitive fields)
       supabaseClient.from("vehicle_maintenance").select("id, vehicle_id, type, cost, date, next_date, description").eq("user_id", user.id),
       // NEW: Damage reports (explicitly EXCLUDE images column for privacy)
-      supabaseClient.from("damage_reports").select("id, vehicle_id, severity, location, reported_at, repair_cost, description").eq("user_id", user.id)
+      supabaseClient.from("damage_reports").select("id, vehicle_id, severity, location, reported_at, repair_cost, description").eq("user_id", user.id),
+      // NEW: CRM customers (demographics + aggregates)
+      supabaseClient.from("customers").select("id, name, email, birth_date, city, country, country_code, total_lifetime_value, total_bookings_count, total_accidents_count, total_accidents_amount").eq("user_id", user.id),
+      // NEW: Accidents (damage cost breakdown)
+      supabaseClient.from("accidents").select("id, accident_date, description, total_damage_cost, amount_paid_by_insurance, amount_paid_by_customer, amount_paid_by_business, payer_type, notes, customer_id, vehicle_id, booking_id").eq("user_id", user.id)
     ]);
 
     // Build business context summary with enhanced per-vehicle analytics
