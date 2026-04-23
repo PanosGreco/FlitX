@@ -1,67 +1,80 @@
 
 
-# Plan: CRM Vehicle Types + Customer Distribution + Relationship Chart
+# Plan: AI Chat — CRM Data Integration + Customer & Risk Insights Preset
 
 ## Summary
-Three additions to the CRM: vehicle types tags column in the customer table, a third pie (Customer Types) inside the renamed "Customer Distribution" chart, and a new full-width stacked bar chart showing the booking-level relationship between customer type and vehicle subcategory. No DB changes — all data derives from existing `rental_bookings` joined to `vehicles.type`.
+Add CRM data (customers + accidents) to the AI Chat's pre-computed knowledge base, and add a 5th preset button "Customer & Risk Insights". Following the existing architecture: the AI computes nothing — all metrics are pre-computed in a new `computeCRMContext()` function and injected into the system prompt.
 
-## New Files (2)
+---
 
-| File | Purpose |
-|------|---------|
-| `src/components/crm/VehicleTypeTag.tsx` | Compact tag (`px-1.5 text-[9px]`) with deterministic hash-based color from an 8-color palette (cyan, indigo, lime, rose, violet, teal, fuchsia, sky) |
-| `src/components/crm/charts/CustomerTypeVsVehicleChart.tsx` | Recharts stacked BarChart (one bar per customer type, segments per vehicle type), with Info popover and empty state |
+## Backend changes — `supabase/functions/ai-chat/index.ts`
 
-## Modified Files
+### 1. Add 2 new parallel queries
+Extend the existing `Promise.all` (line 77) with:
+- `customers`: id, name, email, birth_date, city, country, country_code, lifetime value + booking/accident totals
+- `accidents`: id, accident_date, description, damage cost breakdown, payer_type, notes, customer_id, vehicle_id, booking_id
 
-### `src/hooks/useCustomers.ts`
-- Add `vehicle_types: string[]` to `CustomerRow`.
-- Extend bookings query to `select('customer_id, customer_type, vehicle_id, vehicles(type)')` and remove the `.not('customer_type','is',null)` filter (filter inline instead, since a booking can be null on customer_type but valid on vehicle).
-- Build `vehicleTypesByCustomer: Map<string, Set<string>>` in the same loop and emit it on each row.
+### 2. Extend bookings query
+Add `customer_type`, `customer_id`, `insurance_type_id` to the bookings select (needed for customer-type vs vehicle-type analysis).
 
-### `src/hooks/useCRMChartData.ts`
-- Add 4th parallel fetch: `rental_bookings.select('customer_type, vehicle_id, vehicles(type)')` filtered by user, store in `bookingsWithTypes` state.
-- Reuse the existing `toLocationData` helper to compute `customerTypeDistribution` from booking-level customer_type counts.
-- Compute `customerTypeVsVehicle: CustomerTypeVsVehicleData[]` (matrix of customerType → {vehicleType: count}) sorted by total desc.
-- Compute `allVehicleTypes: string[]` (sorted unique set).
-- Extend `hasLocationData` to also be true when customer types exist.
-- Export all four new fields.
+### 3. New function `computeCRMContext(customers, accidents, bookings, vehicles)`
+Pre-computes a formatted text block containing:
+- Customer overview totals
+- Country distribution (top 10 with %)
+- City distribution (top 10)
+- Age distribution (5 buckets: 18–22, 23–30, 31–45, 46–60, 61+) with revenue per bucket
+- Customer type distribution from bookings
+- Customer type → vehicle type relationship matrix
+- Top 5 customers by revenue
+- Top 5 customers by accident cost
+- Accident summary (total damage, % covered by insurance/customer/business)
+- Accident cost by age group
+- Payer type distribution
+- Per-vehicle accident ranking (highest damage first)
+- Last 15 accident descriptions for pattern analysis
 
-### `src/components/crm/CustomerTable.tsx`
-- Add column `{ key: 'vehicle_types', label: t('col_vehicleTypes'), sortable: false }` between `customer_types` and `last_booking_date`.
+Empty-state guard: if `customers.length === 0`, returns a short "no CRM data yet" notice.
 
-### `src/components/crm/CustomerTableRow.tsx`
-- New `<TableCell>` rendering up to 2 `VehicleTypeTag` chips, with a `+N` Popover trigger for overflow listing all tags. `e.stopPropagation()` on trigger and content.
+### 4. Inject CRM context into system prompt
+- Add 5th param `crmContext?: string` to `buildSystemPrompt()`.
+- Compute it unconditionally after `buildBusinessContext` and pass it through.
+- Append the CRM block in BOTH the standard prompt builder and the financial-preset slim prompt (`buildFinancialSystemPrompt`) so the AI can reference customers in any conversation.
 
-### `src/components/crm/charts/LocationDistributionChart.tsx`
-- Rename header to `t('crm:chart_customerDistribution')`.
-- Grid changes from `grid-cols-2` to `grid-cols-3 gap-4`.
-- Add `customerTypeDistribution: LocationData[]` prop and render a third `PieSection`.
-- Shrink each pie (`innerRadius=20, outerRadius=40`) and legend font (`9px`) so all three fit comfortably in narrower columns.
+### 5. Customer & Risk Insights preset prompt
+Add a new branch in the preset-prompt section (alongside the existing 4) that activates when `presetType === 'customer_risk_insights'`. The branch instructs the model to deliver a 6-section structured report:
+1. Customer demographics overview
+2. Customer type vs vehicle preference patterns
+3. Accident risk analysis by age + vehicle
+4. Insurance effectiveness (coverage ratio)
+5. High-value vs high-risk customers (overlap check)
+6. 3–5 actionable recommendations + 2–3 follow-up questions
 
-### `src/pages/CRM.tsx`
-- Pass `customerTypeDistribution` to `LocationDistributionChart`.
-- Add a second chart row below the existing 3-col grid: `<CustomerTypeVsVehicleChart>` taking full width (`grid-cols-1`), receiving `data`, `vehicleTypes`, `hasData`, `loading` from the hook.
+Strict rule: "Use pre-computed CRM data EXACTLY — do not recalculate."
 
-### `src/i18n/locales/{en,el,de,fr,it,es}/crm.json`
-- Add 7 new keys: `col_vehicleTypes`, `chart_customerDistribution`, `chart_customerTypes`, `chart_customerTypeVsVehicle`, `chart_customerTypeVsVehicleHint`, `chart_noTypeVsVehicleData`, `chart_noTypeVsVehicleDataHint`.
-- Keep `chart_locationDistribution` as legacy alias (don't delete to avoid breaking anything; the component just stops referencing it).
+Note: There is no server-side `presetTitleMap` — preset titles are handled client-side, so no edit needed there.
 
-## Technical Notes
+---
 
-- **Booking-level vs customer-level**: The Customer Types pie and the relationship chart both count BOOKINGS, not unique customers. A customer with 2 Family + 1 Business bookings contributes 2 + 1.
-- **Vehicle subcategory**: Uses `vehicles.type` (e.g., "SUV", "Sedan"), not the broad `vehicles.vehicle_type`.
-- **Color consistency**: VehicleTypeTag and the stacked bar chart segments share a parallel palette so the same vehicle type appears in similar hues across table and chart.
-- **No DB migration. No edits to** AccidentByAgeChart, InsuranceProfitabilityChart, CRMFilterBar, AddAccidentDialog, AccidentHistory, CustomerTypeTag, or any non-CRM file.
+## Frontend changes
 
-## Layout
+### `src/components/ai-assistant/PresetActionButtons.tsx`
+- Add `'customer_risk_insights'` to the `presetType` union.
+- Import `Users` from `lucide-react`.
+- Append 5th entry to `PRESET_BUTTONS` array using `presets.customerRiskInsights.*` translation keys.
+- Layout stays `grid-cols-1 sm:grid-cols-2`; the 5th button takes the bottom-left and the bottom-right is intentionally empty (room for future 6th preset).
 
-```
-Header (title + Add Accident)
-[Age] [Customer Distribution: Countries|Cities|CustomerTypes] [Insurance]
-[Customer Type vs Vehicle Type — full width]
-Filter Bar
-Customer Table (cols: ID, Name, Contact, Age, Location, Total, Bookings, Type, VehicleTypes, LastBooking, Accidents, Accident€)
-Accident History
-```
+### Translations — `src/i18n/locales/{en,el,de,fr,it,es}/ai.json`
+Merge into the existing `presets` object a new `customerRiskInsights` key with `title` and `description` for all 6 languages (English, Greek, German, French, Italian, Spanish). Existing keys untouched.
+
+---
+
+## Architecture notes
+
+- AI computes nothing — the same "pre-computed text, use exactly" pattern as `computeFinancialContext`.
+- CRM context is included for ALL conversations (not gated by preset), so the AI can answer customer/accident questions in general chat.
+- RLS-scoped: both new queries are filtered by `user_id = user.id`, preserving multi-tenant isolation per `mem://security/ai-assistant-isolation-hardening`.
+- No DB schema changes, no new tables, no edits to `ai-chat-save`, CRM page, or hooks.
+
+## Files NOT touched
+`src/pages/CRM.tsx`, `src/hooks/useCRMChartData.ts`, any CRM component, `supabase/functions/ai-chat-save/index.ts`, any migration.
 
