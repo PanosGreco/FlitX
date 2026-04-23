@@ -17,6 +17,10 @@
     "pricingOptimizer": {
       "title": "Pricing Optimizer",
       "description": "Get dynamic pricing recommendations per vehicle"
+    },
+    "customerRiskInsights": {
+      "title": "Customer & Risk Insights",
+      "description": "Analyze customer demographics, accident patterns, and insurance effectiveness"
     }
   },
   "notEnoughData": "Not Enough Data",
