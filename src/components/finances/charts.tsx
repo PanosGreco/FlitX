@@ -257,9 +257,10 @@ const aggregateByTimeBuckets = (
   timeframe: string,
   lang: string,
   granularity?: Granularity,
-  customRange?: DateRange
+  customRange?: DateRange,
+  seasonMonths?: number[]
 ) => {
-  const buckets = getTimeBuckets(timeframe, lang, records, granularity, customRange);
+  const buckets = getTimeBuckets(timeframe, lang, records, granularity, customRange, seasonMonths);
 
   return buckets.map(bucket => {
     const bucketRecords = records.filter(record =>
@@ -290,9 +291,10 @@ const aggregateCumulative = (
   timeframe: string,
   lang: string,
   granularity?: Granularity,
-  customRange?: DateRange
+  customRange?: DateRange,
+  seasonMonths?: number[]
 ) => {
-  const buckets = getTimeBuckets(timeframe, lang, records, granularity, customRange);
+  const buckets = getTimeBuckets(timeframe, lang, records, granularity, customRange, seasonMonths);
   if (buckets.length === 0) return [];
 
   const incomeRecords = records.filter(r => r.type === 'income');
