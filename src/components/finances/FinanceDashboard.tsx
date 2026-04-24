@@ -652,6 +652,23 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         </div>
       </div>
 
+      {/* Seasonal Mode — separate from action buttons */}
+      <div className="flex justify-end mb-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsSeasonalDialogOpen(true)}
+          disabled={isLanguageLoading}
+          className={cn(
+            'gap-1.5 text-xs text-muted-foreground hover:text-foreground',
+            isSeasonalActive && 'text-primary font-medium'
+          )}
+        >
+          <Sun className="h-3.5 w-3.5" />
+          {isSeasonalActive ? t('seasonalModeActive') : t('seasonalMode')}
+        </Button>
+      </div>
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">{t('common:finances')}</h1>
         
@@ -689,16 +706,6 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
               />
             </div>
           )}
-
-          <Button
-            variant="outline"
-            onClick={() => setIsSeasonalDialogOpen(true)}
-            disabled={isLanguageLoading}
-            className={cn('gap-1.5', isSeasonalActive && 'border-primary text-primary bg-primary/5')}
-          >
-            <Sun className="w-4 h-4" />
-            {isSeasonalActive ? t('seasonalModeActive') : t('seasonalMode')}
-          </Button>
 
           <Button 
             onClick={() => setIsRecurringOpen(true)}
