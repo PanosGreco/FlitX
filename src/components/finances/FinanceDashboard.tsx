@@ -196,6 +196,17 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
     return filterByCalendarTimeframe(financialRecords, timeframe, customRange);
   }, [financialRecords, timeframe, customRange]);
 
+  // Apply seasonal mode filter on top of timeframe filter
+  const filteredRecords = useMemo(() => {
+    return filterBySeason(
+      baseFilteredRecords,
+      isSeasonalActive,
+      seasonMonths,
+      isSeasonPaused,
+      seasonalSettings?.paused_at ?? null,
+    );
+  }, [baseFilteredRecords, isSeasonalActive, seasonMonths, isSeasonPaused, seasonalSettings?.paused_at]);
+
   // KPI calculations
   const periodBookings = useMemo(() => {
     if (timeframe === 'all') return bookings;
