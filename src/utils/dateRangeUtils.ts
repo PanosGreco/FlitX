@@ -87,3 +87,39 @@ export const TIMEFRAME_LABELS: Record<TimeframeType, { en: string; el: string }>
   all: { en: "All Time", el: "Όλα" },
   custom: { en: "Custom Range", el: "Προσαρμοσμένο" },
 };
+
+// ─── Seasonal Mode helpers ───
+
+/**
+ * Filter records by seasonal mode — drops records whose date falls in an off-season month
+ * and (when paused) records dated after the pause timestamp.
+ * No-op when seasonal mode is inactive.
+ */
+export const filterBySeason = <T extends { date: string }>(
+  records: T[],
+  isSeasonalActive: boolean,
+  seasonMonths: number[],
+  isPaused: boolean,
+  pausedAt: string | null
+): T[] => {
+  if (!isSeasonalActive || seasonMonths.length === 0) return records;
+  const pauseDate = isPaused && pausedAt ? new Date(pausedAt) : null;
+  return records.filter((record) => {
+    const recordDate = new Date(record.date);
+    if (pauseDate && recordDate > pauseDate) return false;
+    return seasonMonths.includes(recordDate.getMonth() + 1);
+  });
+};
+
+/**
+ * Generate the season label for a given anchor year.
+ * Cross-year seasons (e.g. Nov–Feb) render as "Season 2025-2026".
+ */
+export const getSeasonLabel = (year: number, seasonMonths: number[]): string => {
+  if (seasonMonths.length === 0) return `${year}`;
+  const sorted = [...seasonMonths].sort((a, b) => a - b);
+  const hasEarly = sorted.some((m) => m <= 3);
+  const hasLate = sorted.some((m) => m >= 10);
+  if (hasEarly && hasLate) return `Season ${year}-${year + 1}`;
+  return `Season ${year}`;
+};
