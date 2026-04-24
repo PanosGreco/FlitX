@@ -274,7 +274,7 @@
   "seasonalMode": "Seasonal Mode",
   "seasonalModeActive": "Season Active",
   "seasonalModeTitle": "Seasonal Mode",
-  "seasonalModeDescription": "Some rental businesses operate only during specific months. When enabled, all analytics will only count data from your active season months — off-season periods are excluded from charts, averages, and comparisons.",
+  "seasonalModeDescription": "If your business operates seasonally, enable this mode for more accurate financial insights. Only data from your selected active months will be reflected in charts, averages, and performance metrics. Off-season periods will be excluded from all calculations.",
   "seasonalModeToggle": "My business operates seasonally",
   "seasonalMonthsLabel": "Select your active season months",
   "seasonalMonthsHint": "Click months to mark them as active. Unselected months will be excluded from all analytics.",
