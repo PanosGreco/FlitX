@@ -5,7 +5,7 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Plus, Loader2, Eye, CalendarIcon, Trash2, X, RefreshCw, User } from "lucide-react";
+import { TrendingUp, TrendingDown, Plus, Loader2, Eye, CalendarIcon, Trash2, X, RefreshCw, User, Sun, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -38,8 +38,11 @@ import {
   filterByCalendarTimeframe,
   getCalendarDateRange,
   TIMEFRAME_LABELS,
-  DateRange
+  DateRange,
+  filterBySeason,
 } from "@/utils/dateRangeUtils";
+import { useSeasonalMode } from "@/hooks/useSeasonalMode";
+import { SeasonalModeDialog } from "./SeasonalModeDialog";
 import { RecurringTransactionsModal } from "./RecurringTransactionsModal";
 import { MarketingScatterPlot } from "@/components/finances/MarketingScatterPlot";
 
