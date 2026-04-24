@@ -800,6 +800,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         timeframe={timeframe}
         vehicleProfitRanking={vehicleProfitRanking}
         customRange={customRange}
+        seasonMonths={isSeasonalActive ? seasonMonths : undefined}
       />
 
       {/* Expense Breakdown Section */}
@@ -811,6 +812,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         timeframe={timeframe}
         vehicleProfitRanking={vehicleProfitRanking}
         customRange={customRange}
+        seasonMonths={isSeasonalActive ? seasonMonths : undefined}
       />
 
       {/* Assets + Transactions side-by-side */}
