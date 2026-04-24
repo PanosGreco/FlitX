@@ -920,6 +920,11 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <SeasonalModeDialog
+        open={isSeasonalDialogOpen}
+        onOpenChange={setIsSeasonalDialogOpen}
+      />
     </div>
   );
 }
