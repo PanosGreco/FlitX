@@ -162,7 +162,8 @@ export function IncomeBreakdown({
   lang = 'en',
   timeframe = 'month',
   vehicleProfitRanking = [],
-  customRange
+  customRange,
+  seasonMonths,
 }: IncomeBreakdownProps) {
   const isBoats = isBoatBusiness();
   const { t } = useTranslation('finance');
