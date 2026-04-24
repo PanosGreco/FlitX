@@ -779,8 +779,8 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       
       {/* Charts - 3 columns on large screens */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-        <BarChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} customRange={customRange} title={t('incomeVsExpenses')} />
-        <LineChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} customRange={customRange} title={t('trendOverTime')} />
+        <BarChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} customRange={customRange} title={t('incomeVsExpenses')} seasonMonths={isSeasonalActive ? seasonMonths : undefined} />
+        <LineChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} customRange={customRange} title={t('trendOverTime')} seasonMonths={isSeasonalActive ? seasonMonths : undefined} />
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{t('marketingVsRevenue')}</CardTitle>
