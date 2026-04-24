@@ -632,6 +632,22 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* Seasonal Mode — top-right, separate from action buttons */}
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          onClick={() => setIsSeasonalDialogOpen(true)}
+          disabled={isLanguageLoading}
+          className={cn(
+            'gap-2',
+            isSeasonalActive && 'border-primary text-primary bg-primary/5 hover:bg-primary/10'
+          )}
+        >
+          <Sun className="w-4 h-4" />
+          {isSeasonalActive ? t('seasonalModeActive') : t('seasonalMode')}
+        </Button>
+      </div>
+
       {/* Profile Header */}
       <div className="flex items-center gap-4 mb-2">
         <Avatar className="h-12 w-12">
@@ -650,23 +666,6 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
             {t('financialDashboard')}
           </p>
         </div>
-      </div>
-
-      {/* Seasonal Mode — separate from action buttons */}
-      <div className="flex justify-end mb-1">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsSeasonalDialogOpen(true)}
-          disabled={isLanguageLoading}
-          className={cn(
-            'gap-1.5 text-xs text-muted-foreground hover:text-foreground',
-            isSeasonalActive && 'text-primary font-medium'
-          )}
-        >
-          <Sun className="h-3.5 w-3.5" />
-          {isSeasonalActive ? t('seasonalModeActive') : t('seasonalMode')}
-        </Button>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
