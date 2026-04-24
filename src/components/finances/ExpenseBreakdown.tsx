@@ -196,7 +196,8 @@ export function ExpenseBreakdown({
   lang = 'en',
   timeframe = 'month',
   vehicleProfitRanking = [],
-  customRange
+  customRange,
+  seasonMonths,
 }: ExpenseBreakdownProps) {
   const isBoats = isBoatBusiness();
   const { t } = useTranslation(['finance', 'fleet']);
@@ -275,7 +276,7 @@ export function ExpenseBreakdown({
       let isNew = false;
 
       if (timeframe === 'all') {
-        growth = calcAvgMonthlyGrowth(recordsForGrowth, key);
+        growth = calcAvgMonthlyGrowth(recordsForGrowth, key, seasonMonths);
       } else {
         const prevRange = getPreviousPeriodRange(timeframe, customRange);
         const prevTotal = recordsForGrowth
@@ -283,6 +284,10 @@ export function ExpenseBreakdown({
           .filter(r => {
             const d = new Date(r.date);
             return d >= prevRange.startDate && d <= prevRange.endDate;
+          })
+          .filter(r => {
+            if (!seasonMonths || seasonMonths.length === 0) return true;
+            return seasonMonths.includes(new Date(r.date).getMonth() + 1);
           })
           .reduce((sum, r) => sum + Number(r.amount), 0);
 
@@ -302,7 +307,7 @@ export function ExpenseBreakdown({
         isNew,
       };
     }).sort((a, b) => b.total - a.total);
-  }, [filteredRecords, lang, allRecords, timeframe, customRange]);
+  }, [filteredRecords, lang, allRecords, timeframe, customRange, seasonMonths]);
 
   const grandTotalExpense = useMemo(() => expensesByCategory.reduce((s, i) => s + i.total, 0), [expensesByCategory]);
 
