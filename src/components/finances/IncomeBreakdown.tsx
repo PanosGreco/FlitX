@@ -44,6 +44,7 @@ interface IncomeBreakdownProps {
   timeframe?: string;
   vehicleProfitRanking?: VehicleProfitRank[];
   customRange?: { startDate: Date; endDate: Date };
+  seasonMonths?: number[];
 }
 
 // Distinct income colors: Blue, Green, Orange, Purple, Red
@@ -117,17 +118,28 @@ const getPreviousPeriodRange = (timeframe: string, customRange?: { startDate: Da
 };
 
 // Calculate average monthly growth rate for "all" timeframe
-const calcAvgMonthlyGrowth = (records: FinancialRecord[], categoryKey: string): number | null => {
+const calcAvgMonthlyGrowth = (
+  records: FinancialRecord[],
+  categoryKey: string,
+  seasonMonths?: number[]
+): number | null => {
   // Group by YYYY-MM
   const monthlyTotals: Record<string, number> = {};
-  records.filter(r => r.type === 'income' && getCategoryKey(r) === categoryKey).forEach(r => {
-    const ym = r.date.substring(0, 7); // YYYY-MM
-    monthlyTotals[ym] = (monthlyTotals[ym] || 0) + Number(r.amount);
-  });
-  
+  records
+    .filter((r) => r.type === 'income' && getCategoryKey(r) === categoryKey)
+    .filter((r) => {
+      if (!seasonMonths || seasonMonths.length === 0) return true;
+      const month = parseInt(r.date.substring(5, 7), 10);
+      return seasonMonths.includes(month);
+    })
+    .forEach((r) => {
+      const ym = r.date.substring(0, 7); // YYYY-MM
+      monthlyTotals[ym] = (monthlyTotals[ym] || 0) + Number(r.amount);
+    });
+
   const sortedMonths = Object.keys(monthlyTotals).sort();
   if (sortedMonths.length < 2) return null;
-  
+
   const momChanges: number[] = [];
   for (let i = 1; i < sortedMonths.length; i++) {
     const prev = monthlyTotals[sortedMonths[i - 1]];
@@ -136,7 +148,7 @@ const calcAvgMonthlyGrowth = (records: FinancialRecord[], categoryKey: string): 
       momChanges.push(((curr - prev) / prev) * 100);
     }
   }
-  
+
   if (momChanges.length === 0) return null;
   return Math.round(momChanges.reduce((sum, c) => sum + c, 0) / momChanges.length);
 };
