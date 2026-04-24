@@ -399,7 +399,7 @@ function GranularityToggle({
 // BarChart
 // ═══════════════════════════════════════════
 
-export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'month', customRange, title = 'Income vs Expenses' }: ChartProps) {
+export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'month', customRange, title = 'Income vs Expenses', seasonMonths }: ChartProps) {
   const [granularity, setGranularity] = useState<Granularity>(() => getDefaultGranularity(timeframe, customRange));
 
   // Reset granularity when timeframe or customRange changes
@@ -410,7 +410,7 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
   const toggleOptions = getToggleOptions(timeframe, customRange);
 
   const chartData = useMemo(() => {
-    const data = aggregateByTimeBuckets(financialRecords, timeframe, lang, granularity, customRange);
+    const data = aggregateByTimeBuckets(financialRecords, timeframe, lang, granularity, customRange, seasonMonths);
     if (data.length === 0 || data.every(d => d.income === 0 && d.expenses === 0)) {
       return [{ name: '-', income: 0, expenses: 0 }];
     }
@@ -475,7 +475,7 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
 // LineChart
 // ═══════════════════════════════════════════
 
-export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'month', customRange, title = 'Trend Over Time' }: ChartProps) {
+export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'month', customRange, title = 'Trend Over Time', seasonMonths }: ChartProps) {
   const [granularity, setGranularity] = useState<Granularity>(() => getDefaultGranularity(timeframe, customRange));
 
   useEffect(() => {
@@ -485,7 +485,7 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
   const toggleOptions = getToggleOptions(timeframe, customRange);
 
   const chartData = useMemo(() => {
-    const data = aggregateCumulative(financialRecords, timeframe, lang, granularity, customRange);
+    const data = aggregateCumulative(financialRecords, timeframe, lang, granularity, customRange, seasonMonths);
     if (data.length === 0 || data.every(d => d.income === 0 && d.expenses === 0)) {
       return [{ name: '-', income: 0, expenses: 0, netIncome: 0 }];
     }
