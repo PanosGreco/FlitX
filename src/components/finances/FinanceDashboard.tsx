@@ -689,7 +689,17 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
               />
             </div>
           )}
-          
+
+          <Button
+            variant="outline"
+            onClick={() => setIsSeasonalDialogOpen(true)}
+            disabled={isLanguageLoading}
+            className={cn('gap-1.5', isSeasonalActive && 'border-primary text-primary bg-primary/5')}
+          >
+            <Sun className="w-4 h-4" />
+            {isSeasonalActive ? t('seasonalModeActive') : t('seasonalMode')}
+          </Button>
+
           <Button 
             onClick={() => setIsRecurringOpen(true)}
             disabled={isLanguageLoading}
