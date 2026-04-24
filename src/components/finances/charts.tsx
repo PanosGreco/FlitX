@@ -416,7 +416,7 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
     }
     // BUG 1 FIX: keep ALL data points, thin labels only via XAxis interval
     return data;
-  }, [financialRecords, timeframe, lang, granularity, customRange]);
+  }, [financialRecords, timeframe, lang, granularity, customRange, seasonMonths]);
 
   const xAxisInterval = getXAxisInterval(chartData.length);
 
@@ -490,7 +490,7 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
       return [{ name: '-', income: 0, expenses: 0, netIncome: 0 }];
     }
     return data;
-  }, [financialRecords, timeframe, lang, granularity, customRange]);
+  }, [financialRecords, timeframe, lang, granularity, customRange, seasonMonths]);
 
   const xAxisInterval = getXAxisInterval(chartData.length);
 
