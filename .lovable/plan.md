@@ -1,80 +1,65 @@
+# Seasonal Mode for Analytics
 
+A view-only filter layer that lets seasonal rental businesses (e.g. May–Sept) exclude off-season months from all analytics — charts, summaries, KPIs, growth, and averages — without touching any underlying data.
 
-# Plan: AI Chat — CRM Data Integration + Customer & Risk Insights Preset
-
-## Summary
-Add CRM data (customers + accidents) to the AI Chat's pre-computed knowledge base, and add a 5th preset button "Customer & Risk Insights". Following the existing architecture: the AI computes nothing — all metrics are pre-computed in a new `computeCRMContext()` function and injected into the system prompt.
-
----
-
-## Backend changes — `supabase/functions/ai-chat/index.ts`
-
-### 1. Add 2 new parallel queries
-Extend the existing `Promise.all` (line 77) with:
-- `customers`: id, name, email, birth_date, city, country, country_code, lifetime value + booking/accident totals
-- `accidents`: id, accident_date, description, damage cost breakdown, payer_type, notes, customer_id, vehicle_id, booking_id
-
-### 2. Extend bookings query
-Add `customer_type`, `customer_id`, `insurance_type_id` to the bookings select (needed for customer-type vs vehicle-type analysis).
-
-### 3. New function `computeCRMContext(customers, accidents, bookings, vehicles)`
-Pre-computes a formatted text block containing:
-- Customer overview totals
-- Country distribution (top 10 with %)
-- City distribution (top 10)
-- Age distribution (5 buckets: 18–22, 23–30, 31–45, 46–60, 61+) with revenue per bucket
-- Customer type distribution from bookings
-- Customer type → vehicle type relationship matrix
-- Top 5 customers by revenue
-- Top 5 customers by accident cost
-- Accident summary (total damage, % covered by insurance/customer/business)
-- Accident cost by age group
-- Payer type distribution
-- Per-vehicle accident ranking (highest damage first)
-- Last 15 accident descriptions for pattern analysis
-
-Empty-state guard: if `customers.length === 0`, returns a short "no CRM data yet" notice.
-
-### 4. Inject CRM context into system prompt
-- Add 5th param `crmContext?: string` to `buildSystemPrompt()`.
-- Compute it unconditionally after `buildBusinessContext` and pass it through.
-- Append the CRM block in BOTH the standard prompt builder and the financial-preset slim prompt (`buildFinancialSystemPrompt`) so the AI can reference customers in any conversation.
-
-### 5. Customer & Risk Insights preset prompt
-Add a new branch in the preset-prompt section (alongside the existing 4) that activates when `presetType === 'customer_risk_insights'`. The branch instructs the model to deliver a 6-section structured report:
-1. Customer demographics overview
-2. Customer type vs vehicle preference patterns
-3. Accident risk analysis by age + vehicle
-4. Insurance effectiveness (coverage ratio)
-5. High-value vs high-risk customers (overlap check)
-6. 3–5 actionable recommendations + 2–3 follow-up questions
-
-Strict rule: "Use pre-computed CRM data EXACTLY — do not recalculate."
-
-Note: There is no server-side `presetTitleMap` — preset titles are handled client-side, so no edit needed there.
+## Architecture
+Seasonal Mode is a **smart upstream filter**, not a rewrite. Existing date utilities, chart aggregations, and breakdowns stay intact. We pre-filter records and pre-trim time buckets, and everything downstream just works.
 
 ---
 
-## Frontend changes
+## 1. Database — new `seasonal_settings` table
 
-### `src/components/ai-assistant/PresetActionButtons.tsx`
-- Add `'customer_risk_insights'` to the `presetType` union.
-- Import `Users` from `lucide-react`.
-- Append 5th entry to `PRESET_BUTTONS` array using `presets.customerRiskInsights.*` translation keys.
-- Layout stays `grid-cols-1 sm:grid-cols-2`; the 5th button takes the bottom-left and the bottom-right is intentionally empty (room for future 6th preset).
+Migration creates one row per user:
+- `is_seasonal` (bool), `season_months` (int[] 1–12), `is_paused` (bool), `paused_at` (timestamptz)
+- `UNIQUE(user_id)` so each user has at most one config
+- RLS: select/insert/update gated by `auth.uid() = user_id` (no delete needed)
+- Array of months supports simple (`{5,6,7,8,9}`), cross-year (`{11,12,1,2}`), and discontinuous (`{4,5,6,9,10}`) seasons
 
-### Translations — `src/i18n/locales/{en,el,de,fr,it,es}/ai.json`
-Merge into the existing `presets` object a new `customerRiskInsights` key with `title` and `description` for all 6 languages (English, Greek, German, French, Italian, Spanish). Existing keys untouched.
+## 2. New hook — `src/hooks/useSeasonalMode.ts`
+Fetches the row via `maybeSingle()`, exposes:
+- `settings`, `loading`
+- `updateSettings(partial)` — upserts (insert if missing, update otherwise)
+- Derived: `isSeasonalActive`, `isPaused`, `isMonthInSeason(m)`, `isDateInSeason(date)`
+
+## 3. `src/utils/dateRangeUtils.ts` — add 3 helpers
+- `filterBySeason(records, isActive, seasonMonths, isPaused, pausedAt)` — drops off-season records and (if paused) records after `pausedAt`
+- `getSeasonalTimeframeLabel(timeframe, isActive, t)` — swaps "This Year" → "This Season", "All Time" → "All Seasons"
+- `getSeasonLabel(year, seasonMonths)` — outputs "Season 2025" or "Season 2025-2026" for cross-year ranges
+
+## 4. `src/components/finances/charts.tsx` — bucket trimming
+- `getTimeBuckets()` gains optional `seasonMonths?: number[]` param. After generating buckets, filter out buckets whose month is off-season. All downstream aggregation logic untouched.
+- For `yearly` granularity in "All Time" mode with seasonal active: replace year labels with `getSeasonLabel()`.
+- `BarChart` and `LineChart` accept and forward `seasonMonths` to `getTimeBuckets`.
+
+## 5. New dialog — `src/components/finances/SeasonalModeDialog.tsx`
+Two sections inside a Dialog:
+1. **Season Configuration** — toggle "My business operates seasonally" + 6×2 month grid. Selected months in primary color, unselected muted. Min 1 month required.
+2. **Season Status** — "End Season" button (sets `is_paused=true`, `paused_at=now()`) with confirmation, or "Resume Season" when paused.
+
+Save handler calls `updateSettings({ is_seasonal, season_months })`.
+
+## 6. `src/components/finances/FinanceDashboard.tsx` — integration
+- Add **Seasonal Mode** button near the timeframe selector (Sun icon, primary outline when active).
+- Wire in `useSeasonalMode()`.
+- New `seasonFilteredRecords` useMemo wraps the existing `filteredRecords` with `filterBySeason()`. Pass it to all downstream consumers (summary cards, charts, breakdowns, KPIs, transactions table).
+- Pass `seasonMonths` prop to `BarChart` / `LineChart`.
+- When paused, render a banner with a Resume button at the top.
+- Swap "This Year" / "All Time" labels via `getSeasonalTimeframeLabel()`.
+
+## 7. `IncomeBreakdown.tsx` + `ExpenseBreakdown.tsx`
+- Add optional `seasonMonths?: number[]` prop.
+- In growth-comparison code (previous-period filter) and `calcAvgMonthlyGrowth()` monthly grouping, also drop off-season months when `seasonMonths` is provided.
+
+## 8. Translations
+~20 keys merged into existing `src/i18n/locales/{en,el,de,fr,it,es}/finance.json` (the analytics page uses the `finance` namespace, not a separate `analytics.json`). Keys: `seasonalMode`, `seasonalModeActive`, `seasonalModeTitle`, `seasonalModeDescription`, `seasonalModeToggle`, `seasonalMonthsLabel`, `seasonalMonthsHint`, `seasonMinMonths`, `seasonStatus`, `seasonStatusActive`, `seasonStatusPaused`, `seasonEndButton`, `seasonEndConfirm`, `seasonResumeButton`, `resumeSeason`, `seasonPausedBanner`, `timeframe_season`, `timeframe_allSeasons`, `seasonLabel`. No existing keys overwritten.
 
 ---
 
-## Architecture notes
-
-- AI computes nothing — the same "pre-computed text, use exactly" pattern as `computeFinancialContext`.
-- CRM context is included for ALL conversations (not gated by preset), so the AI can answer customer/accident questions in general chat.
-- RLS-scoped: both new queries are filtered by `user_id = user.id`, preserving multi-tenant isolation per `mem://security/ai-assistant-isolation-hardening`.
-- No DB schema changes, no new tables, no edits to `ai-chat-save`, CRM page, or hooks.
+## Safety guarantees
+- **No data is mutated.** Toggling is a pure view filter; switching modes is instant and reversible.
+- **Off-season writes still allowed.** Recording an insurance/maintenance expense in February while running a May–Sept season works fine — it's just hidden from analytics until the user switches back to full-year view.
+- **AI edge function untouched.** `supabase/functions/ai-chat/index.ts` keeps its rolling 12-month window separate from the frontend view.
+- **CRM, Fleet, and Finance record-creation pages untouched.**
 
 ## Files NOT touched
-`src/pages/CRM.tsx`, `src/hooks/useCRMChartData.ts`, any CRM component, `supabase/functions/ai-chat-save/index.ts`, any migration.
-
+`supabase/functions/ai-chat/index.ts`, `src/pages/Finance.tsx`, any CRM file, any Fleet file.

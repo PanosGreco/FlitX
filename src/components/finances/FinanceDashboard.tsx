@@ -5,7 +5,7 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Plus, Loader2, Eye, CalendarIcon, Trash2, X, RefreshCw, User } from "lucide-react";
+import { TrendingUp, TrendingDown, Plus, Loader2, Eye, CalendarIcon, Trash2, X, RefreshCw, User, Sun, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -38,8 +38,11 @@ import {
   filterByCalendarTimeframe,
   getCalendarDateRange,
   TIMEFRAME_LABELS,
-  DateRange
+  DateRange,
+  filterBySeason,
 } from "@/utils/dateRangeUtils";
+import { useSeasonalMode } from "@/hooks/useSeasonalMode";
+import { SeasonalModeDialog } from "./SeasonalModeDialog";
 import { RecurringTransactionsModal } from "./RecurringTransactionsModal";
 import { MarketingScatterPlot } from "@/components/finances/MarketingScatterPlot";
 
@@ -180,9 +183,29 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   }, [timeframe, customStartDate, customEndDate]);
 
   // Filter records using calendar-based timeframes
-  const filteredRecords = useMemo(() => {
+  const {
+    settings: seasonalSettings,
+    isSeasonalActive,
+    isPaused: isSeasonPaused,
+    seasonMonths,
+    updateSettings: updateSeasonalSettings,
+  } = useSeasonalMode();
+  const [isSeasonalDialogOpen, setIsSeasonalDialogOpen] = useState(false);
+
+  const baseFilteredRecords = useMemo(() => {
     return filterByCalendarTimeframe(financialRecords, timeframe, customRange);
   }, [financialRecords, timeframe, customRange]);
+
+  // Apply seasonal mode filter on top of timeframe filter
+  const filteredRecords = useMemo(() => {
+    return filterBySeason(
+      baseFilteredRecords,
+      isSeasonalActive,
+      seasonMonths,
+      isSeasonPaused,
+      seasonalSettings?.paused_at ?? null,
+    );
+  }, [baseFilteredRecords, isSeasonalActive, seasonMonths, isSeasonPaused, seasonalSettings?.paused_at]);
 
   // KPI calculations
   const periodBookings = useMemo(() => {
@@ -666,7 +689,17 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
               />
             </div>
           )}
-          
+
+          <Button
+            variant="outline"
+            onClick={() => setIsSeasonalDialogOpen(true)}
+            disabled={isLanguageLoading}
+            className={cn('gap-1.5', isSeasonalActive && 'border-primary text-primary bg-primary/5')}
+          >
+            <Sun className="w-4 h-4" />
+            {isSeasonalActive ? t('seasonalModeActive') : t('seasonalMode')}
+          </Button>
+
           <Button 
             onClick={() => setIsRecurringOpen(true)}
             disabled={isLanguageLoading}
@@ -746,8 +779,8 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       
       {/* Charts - 3 columns on large screens */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-        <BarChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} customRange={customRange} title={t('incomeVsExpenses')} />
-        <LineChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} customRange={customRange} title={t('trendOverTime')} />
+        <BarChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} customRange={customRange} title={t('incomeVsExpenses')} seasonMonths={isSeasonalActive ? seasonMonths : undefined} />
+        <LineChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} customRange={customRange} title={t('trendOverTime')} seasonMonths={isSeasonalActive ? seasonMonths : undefined} />
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{t('marketingVsRevenue')}</CardTitle>
@@ -767,6 +800,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         timeframe={timeframe}
         vehicleProfitRanking={vehicleProfitRanking}
         customRange={customRange}
+        seasonMonths={isSeasonalActive ? seasonMonths : undefined}
       />
 
       {/* Expense Breakdown Section */}
@@ -778,6 +812,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         timeframe={timeframe}
         vehicleProfitRanking={vehicleProfitRanking}
         customRange={customRange}
+        seasonMonths={isSeasonalActive ? seasonMonths : undefined}
       />
 
       {/* Assets + Transactions side-by-side */}

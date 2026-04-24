@@ -34,7 +34,7 @@ import {
 import { getDateFnsLocale, getBcp47Locale } from "@/utils/localeMap";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { DateRange } from "@/utils/dateRangeUtils";
+import { DateRange, getSeasonLabel } from "@/utils/dateRangeUtils";
 
 interface FinancialRecord {
   id: string;
@@ -53,6 +53,7 @@ interface ChartProps {
   timeframe?: string;
   customRange?: DateRange;
   title?: string;
+  seasonMonths?: number[];
 }
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8", "#82ca9d", "#ffc658", "#ff7c43"];
@@ -123,7 +124,8 @@ const getTimeBuckets = (
   lang: string,
   records: FinancialRecord[],
   granularity?: Granularity,
-  customRange?: DateRange
+  customRange?: DateRange,
+  seasonMonths?: number[]
 ): TimeBucket[] => {
   const now = new Date();
   const locale = getDateFnsLocale(lang);
@@ -152,12 +154,10 @@ const getTimeBuckets = (
       } else {
         const dates = records.map(r => new Date(r.date));
         startDate = min(dates);
-        // BUG 2 FIX: end at last record, not today
         endDate = endOfDay(max(dates));
       }
       break;
     case 'custom':
-      // BUG 4 FIX: use user-picked range when available
       if (customRange) {
         startDate = customRange.startDate;
         endDate = endOfDay(customRange.endDate);
@@ -175,42 +175,61 @@ const getTimeBuckets = (
       endDate = endOfDay(now);
   }
 
-  // Resolve granularity
   const g = granularity || getDefaultGranularity(timeframe, customRange);
-
-  // Check if range spans a single year (for shorter month labels)
   const singleYear = startDate.getFullYear() === endDate.getFullYear();
+  const seasonalActive = !!(seasonMonths && seasonMonths.length > 0);
 
+  let buckets: TimeBucket[];
   switch (g) {
     case 'daily':
-      return eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
+      buckets = eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
         key: format(date, 'yyyy-MM-dd'),
         label: format(date, 'd MMM', { locale }),
         date,
         bucketType: 'daily',
       }));
+      break;
     case 'weekly':
-      return eachWeekOfInterval({ start: startDate, end: endDate }, { weekStartsOn: 1 }).map(date => ({
+      buckets = eachWeekOfInterval({ start: startDate, end: endDate }, { weekStartsOn: 1 }).map(date => ({
         key: format(date, 'yyyy-MM-dd'),
         label: format(date, 'd MMM', { locale }),
         date,
         bucketType: 'weekly',
       }));
+      break;
     case 'monthly':
-      return eachMonthOfInterval({ start: startDate, end: endDate }).map(date => ({
+      buckets = eachMonthOfInterval({ start: startDate, end: endDate }).map(date => ({
         key: format(date, 'yyyy-MM'),
         label: format(date, singleYear ? 'MMM' : 'MMM yy', { locale }),
         date,
         bucketType: 'monthly',
       }));
+      break;
     case 'yearly':
-      return eachYearOfInterval({ start: startDate, end: endDate }).map(date => ({
+      buckets = eachYearOfInterval({ start: startDate, end: endDate }).map(date => ({
         key: format(date, 'yyyy'),
-        label: format(date, 'yyyy'),
+        label: seasonalActive
+          ? getSeasonLabel(date.getFullYear(), seasonMonths!)
+          : format(date, 'yyyy'),
         date,
         bucketType: 'yearly',
       }));
+      break;
+    default:
+      buckets = [];
   }
+
+  // Seasonal trim: drop buckets whose month is off-season
+  if (seasonalActive) {
+    buckets = buckets.filter((bucket) => {
+      // Yearly buckets always represent the season for that year
+      if (bucket.bucketType === 'yearly') return true;
+      const month = bucket.date.getMonth() + 1;
+      return seasonMonths!.includes(month);
+    });
+  }
+
+  return buckets;
 };
 
 // ─── Record-to-bucket matching (BUG 3 FIX) ───
@@ -238,9 +257,10 @@ const aggregateByTimeBuckets = (
   timeframe: string,
   lang: string,
   granularity?: Granularity,
-  customRange?: DateRange
+  customRange?: DateRange,
+  seasonMonths?: number[]
 ) => {
-  const buckets = getTimeBuckets(timeframe, lang, records, granularity, customRange);
+  const buckets = getTimeBuckets(timeframe, lang, records, granularity, customRange, seasonMonths);
 
   return buckets.map(bucket => {
     const bucketRecords = records.filter(record =>
@@ -271,9 +291,10 @@ const aggregateCumulative = (
   timeframe: string,
   lang: string,
   granularity?: Granularity,
-  customRange?: DateRange
+  customRange?: DateRange,
+  seasonMonths?: number[]
 ) => {
-  const buckets = getTimeBuckets(timeframe, lang, records, granularity, customRange);
+  const buckets = getTimeBuckets(timeframe, lang, records, granularity, customRange, seasonMonths);
   if (buckets.length === 0) return [];
 
   const incomeRecords = records.filter(r => r.type === 'income');
@@ -378,7 +399,7 @@ function GranularityToggle({
 // BarChart
 // ═══════════════════════════════════════════
 
-export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'month', customRange, title = 'Income vs Expenses' }: ChartProps) {
+export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'month', customRange, title = 'Income vs Expenses', seasonMonths }: ChartProps) {
   const [granularity, setGranularity] = useState<Granularity>(() => getDefaultGranularity(timeframe, customRange));
 
   // Reset granularity when timeframe or customRange changes
@@ -389,13 +410,13 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
   const toggleOptions = getToggleOptions(timeframe, customRange);
 
   const chartData = useMemo(() => {
-    const data = aggregateByTimeBuckets(financialRecords, timeframe, lang, granularity, customRange);
+    const data = aggregateByTimeBuckets(financialRecords, timeframe, lang, granularity, customRange, seasonMonths);
     if (data.length === 0 || data.every(d => d.income === 0 && d.expenses === 0)) {
       return [{ name: '-', income: 0, expenses: 0 }];
     }
     // BUG 1 FIX: keep ALL data points, thin labels only via XAxis interval
     return data;
-  }, [financialRecords, timeframe, lang, granularity, customRange]);
+  }, [financialRecords, timeframe, lang, granularity, customRange, seasonMonths]);
 
   const xAxisInterval = getXAxisInterval(chartData.length);
 
@@ -454,7 +475,7 @@ export function BarChart({ financialRecords = [], lang = 'en', timeframe = 'mont
 // LineChart
 // ═══════════════════════════════════════════
 
-export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'month', customRange, title = 'Trend Over Time' }: ChartProps) {
+export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'month', customRange, title = 'Trend Over Time', seasonMonths }: ChartProps) {
   const [granularity, setGranularity] = useState<Granularity>(() => getDefaultGranularity(timeframe, customRange));
 
   useEffect(() => {
@@ -464,12 +485,12 @@ export function LineChart({ financialRecords = [], lang = 'en', timeframe = 'mon
   const toggleOptions = getToggleOptions(timeframe, customRange);
 
   const chartData = useMemo(() => {
-    const data = aggregateCumulative(financialRecords, timeframe, lang, granularity, customRange);
+    const data = aggregateCumulative(financialRecords, timeframe, lang, granularity, customRange, seasonMonths);
     if (data.length === 0 || data.every(d => d.income === 0 && d.expenses === 0)) {
       return [{ name: '-', income: 0, expenses: 0, netIncome: 0 }];
     }
     return data;
-  }, [financialRecords, timeframe, lang, granularity, customRange]);
+  }, [financialRecords, timeframe, lang, granularity, customRange, seasonMonths]);
 
   const xAxisInterval = getXAxisInterval(chartData.length);
 
