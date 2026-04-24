@@ -1151,6 +1151,39 @@ export type Database = {
           },
         ]
       }
+      seasonal_settings: {
+        Row: {
+          created_at: string
+          id: string
+          is_paused: boolean
+          is_seasonal: boolean
+          paused_at: string | null
+          season_months: number[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_paused?: boolean
+          is_seasonal?: boolean
+          paused_at?: string | null
+          season_months?: number[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_paused?: boolean
+          is_seasonal?: boolean
+          paused_at?: string | null
+          season_months?: number[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_asset_categories: {
         Row: {
           created_at: string | null
