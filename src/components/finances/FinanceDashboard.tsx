@@ -183,7 +183,16 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   }, [timeframe, customStartDate, customEndDate]);
 
   // Filter records using calendar-based timeframes
-  const filteredRecords = useMemo(() => {
+  const {
+    settings: seasonalSettings,
+    isSeasonalActive,
+    isPaused: isSeasonPaused,
+    seasonMonths,
+    updateSettings: updateSeasonalSettings,
+  } = useSeasonalMode();
+  const [isSeasonalDialogOpen, setIsSeasonalDialogOpen] = useState(false);
+
+  const baseFilteredRecords = useMemo(() => {
     return filterByCalendarTimeframe(financialRecords, timeframe, customRange);
   }, [financialRecords, timeframe, customRange]);
 
