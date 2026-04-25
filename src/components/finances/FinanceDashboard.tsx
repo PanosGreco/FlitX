@@ -783,11 +783,11 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           icon="calendar"
           lang={language}
           secondaryLabel={t('avgRentalPeriod')}
-          secondaryValue={totalBookings > 0 ? `~${avgRentalDays} ${t('days')}` : '—'}
+          secondaryValue={totalBookings > 0 ? `~${avgRentalDays} ${t('days')} (${totalBookingDays} ${t('totalDays')})` : '—'}
           tooltip={t('totalBookingsTooltip')}
         />
-        <KpiCard label={t('avgIncomePerBooking')} value={avgIncomePerBooking} format="currency" icon="trendingUp" accentColor="green" lang={language} tooltip={t('avgIncomePerBookingTooltip')} />
-        <KpiCard label={t('avgCostPerBooking')} value={avgCostPerBooking} format="currency" icon="trendingDown" accentColor="red" lang={language} tooltip={t('avgCostPerBookingTooltip')} />
+        <KpiCard label={t('avgIncomePerDay')} value={avgIncomePerDay} format="currency" icon="trendingUp" accentColor="green" lang={language} tooltip={t('avgIncomePerDayTooltip')} />
+        <KpiCard label={t('avgCostPerDay')} value={avgCostPerDay} format="currency" icon="trendingDown" accentColor="red" lang={language} tooltip={t('avgCostPerDayTooltip')} />
       </div>
       
       {/* Charts - 3 columns on large screens */}
