@@ -89,8 +89,6 @@
   "growth": "Wachstum",
   "new": "NEU",
   "totalBookings": "Gesamtbuchungen",
-  "avgIncomePerBooking": "Ø Einnahmen / Buchung",
-  "avgCostPerBooking": "Ø Kosten / Buchung",
   "avgRentalPeriod": "Ø Mietdauer",
   "days": "Tage",
   "fromLastPeriod": "ggü. Vorperiode",
@@ -134,6 +132,9 @@
   "expenseTooltip": "Gesamtausgaben (Wartung, Kraftstoff, Versicherung, Marketing, Steuern usw.) im ausgewählten Zeitraum.",
   "netIncomeTooltip": "Einnahmen minus Ausgaben im gewählten Zeitraum. Der Wachstumsindikator vergleicht mit dem entsprechenden vorherigen Zeitraum.",
   "totalBookingsTooltip": "Anzahl der Buchungen, die im gewählten Zeitraum begonnen haben. Die durchschnittliche Mietdauer zeigt die typische Buchungsdauer in Tagen.",
-  "avgIncomePerBookingTooltip": "Buchungsbezogene Gesamteinnahmen geteilt durch die Anzahl der Buchungen in diesem Zeitraum. Nur direkt mit Buchungen verknüpfte Einnahmen.",
-  "avgCostPerBookingTooltip": "Gesamtausgaben geteilt durch die Anzahl der Buchungen. Durchschnittliche Kosten pro Mietvorgang."
+  "avgIncomePerDay": "Ø Einnahmen / Tag",
+  "avgCostPerDay": "Ø Kosten / Tag",
+  "totalDays": "Gesamttage",
+  "avgIncomePerDayTooltip": "Gesamteinnahmen aus allen Quellen geteilt durch die Gesamtzahl der Buchungstage in diesem Zeitraum. Zeigt, wie viel Umsatz jeder aktive Miettag durchschnittlich generiert.",
+  "avgCostPerDayTooltip": "Gesamtausgaben geteilt durch die Gesamtzahl der Buchungstage. Zeigt, wie viel jeder aktive Miettag Ihr Unternehmen durchschnittlich kostet."
 }

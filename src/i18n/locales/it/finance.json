@@ -89,8 +89,6 @@
   "growth": "Crescita",
   "new": "NUOVO",
   "totalBookings": "Prenotazioni Totali",
-  "avgIncomePerBooking": "Entrata Media / Prenotazione",
-  "avgCostPerBooking": "Costo Medio / Prenotazione",
   "avgRentalPeriod": "Durata Media Noleggio",
   "days": "giorni",
   "fromLastPeriod": "vs periodo prec.",
@@ -134,6 +132,9 @@
   "expenseTooltip": "Spese totali (manutenzione, carburante, assicurazione, marketing, tasse, ecc.) nel periodo selezionato.",
   "netIncomeTooltip": "Entrate meno spese per il periodo selezionato. L'indicatore di crescita confronta con il periodo precedente equivalente.",
   "totalBookingsTooltip": "Numero di prenotazioni iniziate nel periodo selezionato. La durata media di noleggio mostra la durata tipica in giorni.",
-  "avgIncomePerBookingTooltip": "Entrate totali delle prenotazioni divise per il numero di prenotazioni. Include solo entrate direttamente collegate a una prenotazione.",
-  "avgCostPerBookingTooltip": "Spese totali divise per il numero di prenotazioni. Costo medio per ogni transazione di noleggio."
+  "avgIncomePerDay": "Entrate Medie / Giorno",
+  "avgCostPerDay": "Costo Medio / Giorno",
+  "totalDays": "giorni totali",
+  "avgIncomePerDayTooltip": "Entrate totali da tutte le fonti divise per il numero totale di giorni di prenotazione. Indica quante entrate genera mediamente ogni giornata di noleggio attiva.",
+  "avgCostPerDayTooltip": "Spese totali divise per il numero totale di giorni di prenotazione. Indica quanto costa mediamente ogni giornata di noleggio attiva alla tua attività."
 }
