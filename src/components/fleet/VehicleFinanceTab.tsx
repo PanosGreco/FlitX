@@ -375,11 +375,39 @@ export function VehicleFinanceTab({
           )}
 
           {/* Vehicle Averages Card */}
-          <Card className="border-border bg-card h-[130px] overflow-hidden">
+          <Card className="border-border bg-card min-h-[130px] overflow-hidden">
             <CardContent className="p-3 h-full flex flex-col justify-center">
-              <div className="flex items-center gap-1.5 text-muted-foreground mb-2">
-                <Activity className="h-3.5 w-3.5" />
-                <span className="text-[10px] font-medium uppercase tracking-wide">{t('fleet:vehicleAverages')}</span>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Activity className="h-3.5 w-3.5" />
+                  <span className="text-[10px] font-medium uppercase tracking-wide">{t('fleet:vehicleAverages')}</span>
+                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Info className="h-3 w-3 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" />
+                  </PopoverTrigger>
+                  <PopoverContent className="max-w-xs p-3 space-y-2.5">
+                    <p className="text-xs font-semibold">{t('fleet:vehicleAverages')}</p>
+                    <div className="space-y-2">
+                      <div>
+                        <p className="text-[11px] font-semibold text-orange-500">{t('fleet:avgRentalPrice')}</p>
+                        <p className="text-[11px] text-muted-foreground leading-snug">{t('fleet:avgRentalPriceTooltip')}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-semibold text-green-600">{t('fleet:avgIncomePerDay')}</p>
+                        <p className="text-[11px] text-muted-foreground leading-snug">{t('fleet:avgIncomePerDayTooltip')}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-semibold text-red-600">{t('fleet:avgCostPerDay')}</p>
+                        <p className="text-[11px] text-muted-foreground leading-snug">{t('fleet:avgCostPerDayTooltip')}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-semibold text-blue-600">{t('fleet:avgProfitPerDay')}</p>
+                        <p className="text-[11px] text-muted-foreground leading-snug">{t('fleet:avgProfitPerDayTooltip')}</p>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-1">
                 <div className="flex items-center justify-between text-xs pl-2 border-l-2 border-l-orange-400">
@@ -487,9 +515,9 @@ export function VehicleFinanceTab({
                   </span>
                   <span className="text-[10px] text-muted-foreground">{t('finance:variableCostFormula')}</span>
                 </div>
-                <div className="flex flex-col items-center text-center">
-                  <span className="text-[11px] text-muted-foreground uppercase tracking-wide mb-0.5">{t('finance:netProfitPerBooking')}</span>
-                  <span className={`text-lg font-bold ${netProfitPerBooking >= 0 ? 'text-green-600' : 'text-orange-600'}`}>
+                <div className="flex flex-col items-center text-center rounded-md bg-muted/40 py-1">
+                  <span className="text-[11px] text-muted-foreground uppercase tracking-wide mb-0.5 font-medium">{t('finance:netProfitPerBooking')}</span>
+                  <span className={`text-xl font-extrabold ${netProfitPerBooking >= 0 ? 'text-green-600' : 'text-orange-600'}`}>
                     {dailyRate > 0 && bookingsCount > 0 ? `€${netProfitPerBooking.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '—'}
                   </span>
                 </div>
@@ -498,6 +526,9 @@ export function VehicleFinanceTab({
           </Card>
         );
       })()}
+
+      {/* Visual separator between metrics zone and history zone */}
+      <div className="h-2" />
 
       {/* Transaction History */}
       <Card>
