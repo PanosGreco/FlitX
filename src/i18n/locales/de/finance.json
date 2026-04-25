@@ -136,5 +136,15 @@
   "avgCostPerDay": "Ø Kosten / Tag",
   "totalDays": "Gesamttage",
   "avgIncomePerDayTooltip": "Gesamteinnahmen aus allen Quellen geteilt durch die Gesamtzahl der Buchungstage in diesem Zeitraum. Zeigt, wie viel Umsatz jeder aktive Miettag durchschnittlich generiert.",
-  "avgCostPerDayTooltip": "Gesamtausgaben geteilt durch die Gesamtzahl der Buchungstage. Zeigt, wie viel jeder aktive Miettag Ihr Unternehmen durchschnittlich kostet."
+  "avgCostPerDayTooltip": "Gesamtausgaben geteilt durch die Gesamtzahl der Buchungstage. Zeigt, wie viel jeder aktive Miettag Ihr Unternehmen durchschnittlich kostet.",
+  "bookingActivityByDay": "Buchungsaktivität nach Wochentag",
+  "bookingActivityTooltip": "Dieses Diagramm zeigt die Gesamtzahl der Buchungstage pro Wochentag im ausgewählten Zeitraum. Es hilft zu verstehen, welche Wochentage tendenziell längere oder häufigere Vermietungen erzeugen.",
+  "bookingDays": "Buchungstage",
+  "dayMon": "Mo",
+  "dayTue": "Di",
+  "dayWed": "Mi",
+  "dayThu": "Do",
+  "dayFri": "Fr",
+  "daySat": "Sa",
+  "daySun": "So"
 }

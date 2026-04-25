@@ -46,6 +46,7 @@ import { useSeasonalMode } from "@/hooks/useSeasonalMode";
 import { SeasonalModeDialog } from "./SeasonalModeDialog";
 import { RecurringTransactionsModal } from "./RecurringTransactionsModal";
 import { MarketingScatterPlot } from "@/components/finances/MarketingScatterPlot";
+import { BookingActivityChart } from "@/components/finances/BookingActivityChart";
 
 interface FinancialRecord {
   id: string;
@@ -774,8 +775,8 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         />
       </div>
 
-      {/* Secondary KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      {/* Secondary KPI Cards + Booking Activity Chart */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
         <KpiCard
           label={t('totalBookings')}
           value={totalBookings}
@@ -788,6 +789,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         />
         <KpiCard label={t('avgIncomePerDay')} value={avgIncomePerDay} format="currency" icon="trendingUp" accentColor="green" lang={language} tooltip={t('avgIncomePerDayTooltip')} />
         <KpiCard label={t('avgCostPerDay')} value={avgCostPerDay} format="currency" icon="trendingDown" accentColor="red" lang={language} tooltip={t('avgCostPerDayTooltip')} />
+        <BookingActivityChart bookings={periodBookings} lang={language} seasonMonths={isSeasonalActive ? seasonMonths : undefined} />
       </div>
       
       {/* Charts - 3 columns on large screens */}
@@ -1094,7 +1096,7 @@ function KpiCard({ label, value, format, icon, accentColor, lang, secondaryLabel
     : 'bg-slate-100 text-slate-600';
 
   return (
-    <Card className={cn("rounded-xl shadow-sm border-l-4 relative", borderColor)}>
+    <Card className={cn("rounded-xl shadow-sm border-l-4 relative h-full", borderColor)}>
       {tooltip && (
         <div className="absolute top-2 right-2 z-10">
           <Popover>
@@ -1107,11 +1109,11 @@ function KpiCard({ label, value, format, icon, accentColor, lang, secondaryLabel
           </Popover>
         </div>
       )}
-      <CardContent className="p-4">
+      <CardContent className="p-3">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
-            <h3 className={cn("text-xl font-bold mt-0.5", valueColor)}>
+            <h3 className={cn("text-lg font-bold mt-0.5", valueColor)}>
               {formattedValue}
             </h3>
             {secondaryLabel && secondaryValue && (

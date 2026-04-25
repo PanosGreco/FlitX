@@ -296,5 +296,15 @@
   "avgCostPerDay": "Avg Cost / Day",
   "totalDays": "total days",
   "avgIncomePerDayTooltip": "Total income from all sources divided by the total number of booking days in this period. Reflects how much revenue each active rental day generates on average.",
-  "avgCostPerDayTooltip": "Total expenses divided by the total number of booking days in this period. Reflects how much each active rental day costs your business on average."
+  "avgCostPerDayTooltip": "Total expenses divided by the total number of booking days in this period. Reflects how much each active rental day costs your business on average.",
+  "bookingActivityByDay": "Booking Activity by Day",
+  "bookingActivityTooltip": "This chart shows the total number of booking days generated from each day of the week, based on the selected time period. It helps you understand which weekdays tend to produce longer or more frequent rentals.",
+  "bookingDays": "Booking Days",
+  "dayMon": "Mon",
+  "dayTue": "Tue",
+  "dayWed": "Wed",
+  "dayThu": "Thu",
+  "dayFri": "Fri",
+  "daySat": "Sat",
+  "daySun": "Sun"
 }

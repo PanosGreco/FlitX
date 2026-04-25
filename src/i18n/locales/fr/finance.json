@@ -136,5 +136,15 @@
   "avgCostPerDay": "Coût Moy. / Jour",
   "totalDays": "jours totaux",
   "avgIncomePerDayTooltip": "Revenus totaux de toutes les sources divisés par le nombre total de jours de réservation. Indique combien chaque journée de location active génère en moyenne.",
-  "avgCostPerDayTooltip": "Dépenses totales divisées par le nombre total de jours de réservation. Indique combien chaque journée de location active coûte en moyenne."
+  "avgCostPerDayTooltip": "Dépenses totales divisées par le nombre total de jours de réservation. Indique combien chaque journée de location active coûte en moyenne.",
+  "bookingActivityByDay": "Activité des réservations par jour",
+  "bookingActivityTooltip": "Ce graphique montre le nombre total de jours de réservation générés par chaque jour de la semaine, sur la période sélectionnée. Il vous aide à comprendre quels jours produisent des locations plus longues ou plus fréquentes.",
+  "bookingDays": "Jours de réservation",
+  "dayMon": "Lun",
+  "dayTue": "Mar",
+  "dayWed": "Mer",
+  "dayThu": "Jeu",
+  "dayFri": "Ven",
+  "daySat": "Sam",
+  "daySun": "Dim"
 }
