@@ -89,8 +89,6 @@
   "growth": "Croissance",
   "new": "NOUVEAU",
   "totalBookings": "Total Réservations",
-  "avgIncomePerBooking": "Revenu Moy. / Réservation",
-  "avgCostPerBooking": "Coût Moy. / Réservation",
   "avgRentalPeriod": "Durée Moy. Location",
   "days": "jours",
   "fromLastPeriod": "vs période préc.",
@@ -134,6 +132,9 @@
   "expenseTooltip": "Dépenses totales (entretien, carburant, assurance, marketing, taxes, etc.) dans la période sélectionnée.",
   "netIncomeTooltip": "Revenus moins dépenses pour la période sélectionnée. L'indicateur de croissance compare avec la période précédente équivalente.",
   "totalBookingsTooltip": "Nombre de réservations commencées dans la période sélectionnée. La durée moyenne de location montre la durée typique en jours.",
-  "avgIncomePerBookingTooltip": "Revenus totaux liés aux réservations divisés par le nombre de réservations. Inclut uniquement les revenus directement liés à une réservation.",
-  "avgCostPerBookingTooltip": "Dépenses totales divisées par le nombre de réservations. Coût moyen par transaction de location."
+  "avgIncomePerDay": "Revenu Moy. / Jour",
+  "avgCostPerDay": "Coût Moy. / Jour",
+  "totalDays": "jours totaux",
+  "avgIncomePerDayTooltip": "Revenus totaux de toutes les sources divisés par le nombre total de jours de réservation. Indique combien chaque journée de location active génère en moyenne.",
+  "avgCostPerDayTooltip": "Dépenses totales divisées par le nombre total de jours de réservation. Indique combien chaque journée de location active coûte en moyenne."
 }

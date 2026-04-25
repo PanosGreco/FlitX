@@ -249,8 +249,6 @@
   "growth": "Growth",
   "new": "NEW",
   "totalBookings": "Total Bookings",
-  "avgIncomePerBooking": "Avg Income / Booking",
-  "avgCostPerBooking": "Avg Cost / Booking",
   "avgRentalPeriod": "Avg Rental Period",
   "days": "days",
   "fromLastPeriod": "from last period",
@@ -294,6 +292,9 @@
   "expenseTooltip": "Total expenses (maintenance, fuel, insurance, marketing, taxes, etc.) within the selected time period.",
   "netIncomeTooltip": "Income minus expenses for the selected period. The growth indicator compares this to the equivalent previous period.",
   "totalBookingsTooltip": "Number of bookings that started within the selected time period. The average rental period shows the typical booking duration in days.",
-  "avgIncomePerBookingTooltip": "Total booking-related income divided by the number of bookings in this period. Only includes income directly linked to a booking (excludes manual entries).",
-  "avgCostPerBookingTooltip": "Total expenses divided by the number of bookings in this period. Represents the average cost your business incurs per rental transaction."
+  "avgIncomePerDay": "Avg Income / Day",
+  "avgCostPerDay": "Avg Cost / Day",
+  "totalDays": "total days",
+  "avgIncomePerDayTooltip": "Total income from all sources divided by the total number of booking days in this period. Reflects how much revenue each active rental day generates on average.",
+  "avgCostPerDayTooltip": "Total expenses divided by the total number of booking days in this period. Reflects how much each active rental day costs your business on average."
 }
