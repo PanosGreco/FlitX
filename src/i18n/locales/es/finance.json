@@ -129,5 +129,11 @@
   "seasonPausedBanner": "La temporada ha finalizado — el seguimiento de tiempo de los análisis está en pausa. Reanude para continuar.",
   "timeframe_season": "Esta Temporada",
   "timeframe_allSeasons": "Todas las Temporadas",
-  "seasonLabel": "Temporada"
+  "seasonLabel": "Temporada",
+  "incomeTooltip": "Ingresos totales de todas las fuentes (reservas, costos adicionales, ingresos manuales) en el período seleccionado.",
+  "expenseTooltip": "Gastos totales (mantenimiento, combustible, seguro, marketing, impuestos, etc.) en el período seleccionado.",
+  "netIncomeTooltip": "Ingresos menos gastos del período seleccionado. El indicador de crecimiento compara con el período anterior equivalente.",
+  "totalBookingsTooltip": "Número de reservas iniciadas en el período seleccionado. El período medio de alquiler muestra la duración típica en días.",
+  "avgIncomePerBookingTooltip": "Ingresos totales de reservas divididos por el número de reservas. Solo incluye ingresos directamente vinculados a una reserva.",
+  "avgCostPerBookingTooltip": "Gastos totales divididos por el número de reservas. Costo promedio por transacción de alquiler."
 }

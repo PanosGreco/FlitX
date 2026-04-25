@@ -289,5 +289,11 @@
   "seasonPausedBanner": "Season has ended — analytics time tracking is paused. Resume to continue.",
   "timeframe_season": "This Season",
   "timeframe_allSeasons": "All Seasons",
-  "seasonLabel": "Season"
+  "seasonLabel": "Season",
+  "incomeTooltip": "Total revenue from all sources (bookings, additional costs, manual income) within the selected time period.",
+  "expenseTooltip": "Total expenses (maintenance, fuel, insurance, marketing, taxes, etc.) within the selected time period.",
+  "netIncomeTooltip": "Income minus expenses for the selected period. The growth indicator compares this to the equivalent previous period.",
+  "totalBookingsTooltip": "Number of bookings that started within the selected time period. The average rental period shows the typical booking duration in days.",
+  "avgIncomePerBookingTooltip": "Total booking-related income divided by the number of bookings in this period. Only includes income directly linked to a booking (excludes manual entries).",
+  "avgCostPerBookingTooltip": "Total expenses divided by the number of bookings in this period. Represents the average cost your business incurs per rental transaction."
 }

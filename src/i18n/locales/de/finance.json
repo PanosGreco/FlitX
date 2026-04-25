@@ -129,5 +129,11 @@
   "seasonPausedBanner": "Saison wurde beendet — Zeitverfolgung der Analysen ist pausiert. Fortsetzen, um weiterzumachen.",
   "timeframe_season": "Diese Saison",
   "timeframe_allSeasons": "Alle Saisons",
-  "seasonLabel": "Saison"
+  "seasonLabel": "Saison",
+  "incomeTooltip": "Gesamteinnahmen aus allen Quellen (Buchungen, Zusatzkosten, manuelle Einnahmen) im ausgewählten Zeitraum.",
+  "expenseTooltip": "Gesamtausgaben (Wartung, Kraftstoff, Versicherung, Marketing, Steuern usw.) im ausgewählten Zeitraum.",
+  "netIncomeTooltip": "Einnahmen minus Ausgaben im gewählten Zeitraum. Der Wachstumsindikator vergleicht mit dem entsprechenden vorherigen Zeitraum.",
+  "totalBookingsTooltip": "Anzahl der Buchungen, die im gewählten Zeitraum begonnen haben. Die durchschnittliche Mietdauer zeigt die typische Buchungsdauer in Tagen.",
+  "avgIncomePerBookingTooltip": "Buchungsbezogene Gesamteinnahmen geteilt durch die Anzahl der Buchungen in diesem Zeitraum. Nur direkt mit Buchungen verknüpfte Einnahmen.",
+  "avgCostPerBookingTooltip": "Gesamtausgaben geteilt durch die Anzahl der Buchungen. Durchschnittliche Kosten pro Mietvorgang."
 }

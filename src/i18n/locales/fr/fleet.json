@@ -435,7 +435,6 @@
   "sameForAll": "Identique pour toutes les catégories",
   "currentlyActive": "Actuellement active",
   "inactive": "Inactive",
-  "upcoming": "À venir",
   "activate": "Activer",
   "deactivate": "Désactiver",
   "seasonCreated": "Saison créée avec succès",
@@ -472,5 +471,9 @@
   "booking_createdWithNumber": "Réservation {{number}} créée avec succès",
   "searchCustomerOrBookingNumber": "Rechercher par nom de client ou numéro de réservation",
   "booking_customerLookupFailed": "Impossible de vérifier le client existant. Réservation enregistrée sans lien client.",
-  "booking_customerCreateFailed": "Impossible de créer la fiche client. Réservation enregistrée sans lien client."
+  "booking_customerCreateFailed": "Impossible de créer la fiche client. Réservation enregistrée sans lien client.",
+  "avgRentalPriceTooltip": "Le prix de location journalier moyen facturé aux clients pour ce véhicule, calculé à partir de toutes les réservations complétées.",
+  "avgIncomePerDayTooltip": "Revenus totaux générés par ce véhicule divisés par le nombre de jours depuis son ajout à la flotte. Reflète la capacité de gain réelle dans le temps.",
+  "avgCostPerDayTooltip": "Dépenses totales enregistrées pour ce véhicule (entretien, carburant, assurance, etc.) divisées par les jours depuis l'ajout à la flotte.",
+  "avgProfitPerDayTooltip": "La différence entre le revenu journalier moyen et le coût journalier moyen. Une valeur positive signifie que le véhicule est rentable au quotidien."
 }

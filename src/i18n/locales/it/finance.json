@@ -129,5 +129,11 @@
   "seasonPausedBanner": "La stagione è terminata — il tracciamento temporale delle analisi è in pausa. Riprendi per continuare.",
   "timeframe_season": "Questa Stagione",
   "timeframe_allSeasons": "Tutte le Stagioni",
-  "seasonLabel": "Stagione"
+  "seasonLabel": "Stagione",
+  "incomeTooltip": "Entrate totali da tutte le fonti (prenotazioni, costi aggiuntivi, entrate manuali) nel periodo selezionato.",
+  "expenseTooltip": "Spese totali (manutenzione, carburante, assicurazione, marketing, tasse, ecc.) nel periodo selezionato.",
+  "netIncomeTooltip": "Entrate meno spese per il periodo selezionato. L'indicatore di crescita confronta con il periodo precedente equivalente.",
+  "totalBookingsTooltip": "Numero di prenotazioni iniziate nel periodo selezionato. La durata media di noleggio mostra la durata tipica in giorni.",
+  "avgIncomePerBookingTooltip": "Entrate totali delle prenotazioni divise per il numero di prenotazioni. Include solo entrate direttamente collegate a una prenotazione.",
+  "avgCostPerBookingTooltip": "Spese totali divise per il numero di prenotazioni. Costo medio per ogni transazione di noleggio."
 }
