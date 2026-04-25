@@ -220,33 +220,35 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
 
   const totalBookings = periodBookings.length;
 
-  const avgRentalDays = useMemo(() => {
-    if (periodBookings.length === 0) return 0;
-    const totalDays = periodBookings.reduce((sum, booking) => {
+  const totalBookingDays = useMemo(() => {
+    return periodBookings.reduce((sum, booking) => {
       const start = new Date(booking.start_date);
       const end = new Date(booking.end_date);
       const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
       return sum + days;
     }, 0);
-    return Math.round((totalDays / periodBookings.length) * 10) / 10;
   }, [periodBookings]);
 
-  const avgIncomePerBooking = useMemo(() => {
-    if (totalBookings === 0) return 0;
-    const bookingIncome = filteredRecords.filter(
-      r => r.type === 'income' && r.booking_id
-    );
-    const totalBookingIncome = bookingIncome.reduce((sum, r) => sum + Number(r.amount), 0);
-    return totalBookingIncome / totalBookings;
-  }, [filteredRecords, totalBookings]);
+  const avgRentalDays = useMemo(() => {
+    if (periodBookings.length === 0) return 0;
+    return Math.round((totalBookingDays / periodBookings.length) * 10) / 10;
+  }, [periodBookings, totalBookingDays]);
 
-  const avgCostPerBooking = useMemo(() => {
-    if (totalBookings === 0) return 0;
+  const avgIncomePerDay = useMemo(() => {
+    if (totalBookingDays === 0) return 0;
+    const totalIncome = filteredRecords
+      .filter(r => r.type === 'income')
+      .reduce((sum, r) => sum + Number(r.amount), 0);
+    return totalIncome / totalBookingDays;
+  }, [filteredRecords, totalBookingDays]);
+
+  const avgCostPerDay = useMemo(() => {
+    if (totalBookingDays === 0) return 0;
     const totalExpenses = filteredRecords
       .filter(r => r.type === 'expense')
       .reduce((sum, r) => sum + Number(r.amount), 0);
-    return totalExpenses / totalBookings;
-  }, [filteredRecords, totalBookings]);
+    return totalExpenses / totalBookingDays;
+  }, [filteredRecords, totalBookingDays]);
 
   // Transactions list - ALWAYS shows ALL transactions, independent of date filters
   // Sorted by exact creation timestamp (most recent first)
