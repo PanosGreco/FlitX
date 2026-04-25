@@ -136,5 +136,15 @@
   "avgCostPerDay": "Costo Medio / Giorno",
   "totalDays": "giorni totali",
   "avgIncomePerDayTooltip": "Entrate totali da tutte le fonti divise per il numero totale di giorni di prenotazione. Indica quante entrate genera mediamente ogni giornata di noleggio attiva.",
-  "avgCostPerDayTooltip": "Spese totali divise per il numero totale di giorni di prenotazione. Indica quanto costa mediamente ogni giornata di noleggio attiva alla tua attività."
+  "avgCostPerDayTooltip": "Spese totali divise per il numero totale di giorni di prenotazione. Indica quanto costa mediamente ogni giornata di noleggio attiva alla tua attività.",
+  "bookingActivityByDay": "Attività prenotazioni per giorno",
+  "bookingActivityTooltip": "Questo grafico mostra il numero totale di giorni di prenotazione generati da ogni giorno della settimana, nel periodo selezionato. Aiuta a capire quali giorni tendono a produrre noleggi più lunghi o frequenti.",
+  "bookingDays": "Giorni di prenotazione",
+  "dayMon": "Lun",
+  "dayTue": "Mar",
+  "dayWed": "Mer",
+  "dayThu": "Gio",
+  "dayFri": "Ven",
+  "daySat": "Sab",
+  "daySun": "Dom"
 }

@@ -136,5 +136,15 @@
   "avgCostPerDay": "Costo Prom. / Día",
   "totalDays": "días totales",
   "avgIncomePerDayTooltip": "Ingresos totales de todas las fuentes divididos por el número total de días de reserva. Indica cuántos ingresos genera en promedio cada día activo de alquiler.",
-  "avgCostPerDayTooltip": "Gastos totales divididos por el número total de días de reserva. Indica cuánto cuesta en promedio cada día activo de alquiler a su negocio."
+  "avgCostPerDayTooltip": "Gastos totales divididos por el número total de días de reserva. Indica cuánto cuesta en promedio cada día activo de alquiler a su negocio.",
+  "bookingActivityByDay": "Actividad de reservas por día",
+  "bookingActivityTooltip": "Este gráfico muestra el número total de días de reserva generados por cada día de la semana, en el período seleccionado. Le ayuda a entender qué días tienden a producir alquileres más largos o frecuentes.",
+  "bookingDays": "Días de reserva",
+  "dayMon": "Lun",
+  "dayTue": "Mar",
+  "dayWed": "Mié",
+  "dayThu": "Jue",
+  "dayFri": "Vie",
+  "daySat": "Sáb",
+  "daySun": "Dom"
 }
