@@ -435,7 +435,6 @@
   "sameForAll": "Igual para todas las categorías",
   "currentlyActive": "Actualmente activa",
   "inactive": "Inactiva",
-  "upcoming": "Próxima",
   "activate": "Activar",
   "deactivate": "Desactivar",
   "seasonCreated": "Temporada creada exitosamente",
@@ -472,5 +471,9 @@
   "booking_createdWithNumber": "Reserva {{number}} creada con éxito",
   "searchCustomerOrBookingNumber": "Buscar por nombre de cliente o número de reserva",
   "booking_customerLookupFailed": "No se pudo verificar el cliente existente. Reserva guardada sin vínculo de cliente.",
-  "booking_customerCreateFailed": "No se pudo crear el registro del cliente. Reserva guardada sin vínculo de cliente."
+  "booking_customerCreateFailed": "No se pudo crear el registro del cliente. Reserva guardada sin vínculo de cliente.",
+  "avgRentalPriceTooltip": "El precio medio diario de alquiler cobrado a los clientes por este vehículo, calculado a partir de todas las reservas completadas.",
+  "avgIncomePerDayTooltip": "Ingresos totales generados por este vehículo divididos por los días desde que se añadió a la flota. Refleja la capacidad real de ganancia a lo largo del tiempo.",
+  "avgCostPerDayTooltip": "Gastos totales registrados para este vehículo (mantenimiento, combustible, seguro, etc.) divididos por los días desde su incorporación a la flota.",
+  "avgProfitPerDayTooltip": "La diferencia entre el ingreso medio diario y el costo medio diario. Un valor positivo significa que el vehículo es rentable diariamente."
 }

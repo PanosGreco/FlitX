@@ -435,7 +435,6 @@
   "sameForAll": "Gleich für alle Kategorien",
   "currentlyActive": "Derzeit aktiv",
   "inactive": "Inaktiv",
-  "upcoming": "Bevorstehend",
   "activate": "Aktivieren",
   "deactivate": "Deaktivieren",
   "seasonCreated": "Saison erfolgreich erstellt",
@@ -472,5 +471,9 @@
   "booking_createdWithNumber": "Buchung {{number}} erfolgreich erstellt",
   "searchCustomerOrBookingNumber": "Suche nach Kundenname oder Buchungsnummer",
   "booking_customerLookupFailed": "Bestehender Kunde konnte nicht geprüft werden. Buchung ohne Kundenverknüpfung gespeichert.",
-  "booking_customerCreateFailed": "Kundendatensatz konnte nicht erstellt werden. Buchung ohne Kundenverknüpfung gespeichert."
+  "booking_customerCreateFailed": "Kundendatensatz konnte nicht erstellt werden. Buchung ohne Kundenverknüpfung gespeichert.",
+  "avgRentalPriceTooltip": "Der durchschnittliche Tages-Mietpreis für dieses Fahrzeug, berechnet aus allen abgeschlossenen Buchungen.",
+  "avgIncomePerDayTooltip": "Gesamteinnahmen dieses Fahrzeugs geteilt durch die Anzahl der Tage seit Aufnahme in die Flotte. Zeigt die tatsächliche Ertragskraft über die Zeit.",
+  "avgCostPerDayTooltip": "Gesamtausgaben für dieses Fahrzeug (Wartung, Kraftstoff, Versicherung usw.) geteilt durch die Tage seit Flottenaufnahme.",
+  "avgProfitPerDayTooltip": "Die Differenz zwischen durchschnittlichem Tagesertrag und durchschnittlichen Tageskosten. Ein positiver Wert bedeutet, dass das Fahrzeug täglich profitabel ist."
 }

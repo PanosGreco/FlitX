@@ -205,7 +205,7 @@
   "createFirstBooking": "Crea la tua prima prenotazione",
   "searchCustomerName": "Cerca per nome cliente...",
   "noBookingsFor": "Nessuna prenotazione trovata per",
-  "upcoming": "Imminente",
+  "upcoming": "In arrivo",
   "active": "Attiva",
   "bookingDeleted": "Prenotazione Eliminata",
   "bookingDeletedDesc": "Prenotazione, contratti, attività e dati finanziari rimossi permanentemente",
@@ -435,7 +435,6 @@
   "sameForAll": "Uguale per tutte le categorie",
   "currentlyActive": "Attualmente attiva",
   "inactive": "Inattiva",
-  "upcoming": "In arrivo",
   "activate": "Attiva",
   "deactivate": "Disattiva",
   "seasonCreated": "Stagione creata con successo",
@@ -472,5 +471,9 @@
   "booking_createdWithNumber": "Prenotazione {{number}} creata con successo",
   "searchCustomerOrBookingNumber": "Cerca per nome cliente o numero prenotazione",
   "booking_customerLookupFailed": "Impossibile verificare il cliente esistente. Prenotazione salvata senza collegamento cliente.",
-  "booking_customerCreateFailed": "Impossibile creare il record cliente. Prenotazione salvata senza collegamento cliente."
+  "booking_customerCreateFailed": "Impossibile creare il record cliente. Prenotazione salvata senza collegamento cliente.",
+  "avgRentalPriceTooltip": "Il prezzo medio giornaliero di noleggio addebitato ai clienti per questo veicolo, calcolato da tutte le prenotazioni completate.",
+  "avgIncomePerDayTooltip": "Entrate totali generate da questo veicolo divise per i giorni dalla sua aggiunta alla flotta. Riflette la reale capacità di guadagno nel tempo.",
+  "avgCostPerDayTooltip": "Spese totali registrate per questo veicolo (manutenzione, carburante, assicurazione, ecc.) divise per i giorni dall'aggiunta alla flotta.",
+  "avgProfitPerDayTooltip": "La differenza tra entrate medie giornaliere e costi medi giornalieri. Un valore positivo indica che il veicolo è redditizio su base giornaliera."
 }
