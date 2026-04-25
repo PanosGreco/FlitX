@@ -5,7 +5,8 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Plus, Loader2, Eye, CalendarIcon, Trash2, X, RefreshCw, User, Sun, Play } from "lucide-react";
+import { TrendingUp, TrendingDown, Plus, Loader2, Eye, CalendarIcon, Trash2, X, RefreshCw, User, Sun, Play, Info } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { isBoatBusiness } from "@/utils/businessTypeUtils";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -742,6 +743,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           lang={language}
           variant="income"
           t={t}
+          tooltip={t('incomeTooltip')}
         />
         
         <SummaryCard 
@@ -754,6 +756,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           lang={language}
           variant="expense"
           t={t}
+          tooltip={t('expenseTooltip')}
         />
         
         <SummaryCard 
@@ -765,6 +768,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           lang={language}
           variant="profit"
           t={t}
+          tooltip={t('netIncomeTooltip')}
         />
       </div>
 
@@ -778,9 +782,10 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
           lang={language}
           secondaryLabel={t('avgRentalPeriod')}
           secondaryValue={totalBookings > 0 ? `~${avgRentalDays} ${t('days')}` : '—'}
+          tooltip={t('totalBookingsTooltip')}
         />
-        <KpiCard label={t('avgIncomePerBooking')} value={avgIncomePerBooking} format="currency" icon="trendingUp" accentColor="green" lang={language} />
-        <KpiCard label={t('avgCostPerBooking')} value={avgCostPerBooking} format="currency" icon="trendingDown" accentColor="red" lang={language} />
+        <KpiCard label={t('avgIncomePerBooking')} value={avgIncomePerBooking} format="currency" icon="trendingUp" accentColor="green" lang={language} tooltip={t('avgIncomePerBookingTooltip')} />
+        <KpiCard label={t('avgCostPerBooking')} value={avgCostPerBooking} format="currency" icon="trendingDown" accentColor="red" lang={language} tooltip={t('avgCostPerBookingTooltip')} />
       </div>
       
       {/* Charts - 3 columns on large screens */}
@@ -935,7 +940,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
   );
 }
 
-function SummaryCard({ title, value, change, trend, prefix = "", trendReversed = false, lang, variant, t }: {
+function SummaryCard({ title, value, change, trend, prefix = "", trendReversed = false, lang, variant, t, tooltip }: {
   title: string;
   value: number;
   change: number;
@@ -945,6 +950,7 @@ function SummaryCard({ title, value, change, trend, prefix = "", trendReversed =
   lang: string;
   variant?: 'income' | 'expense' | 'profit';
   t: (key: string) => string;
+  tooltip?: string;
 }) {
   const trendIsPositive = trend === "up";
   const displayedTrend = trendReversed ? !trendIsPositive : trendIsPositive;
@@ -961,7 +967,19 @@ function SummaryCard({ title, value, change, trend, prefix = "", trendReversed =
       variant && variantStyles[variant]
     )}>
       <CardContent className="p-4">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{title}</p>
+        <div className="flex items-start justify-between">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{title}</p>
+          {tooltip && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Info className="h-3 w-3 text-muted-foreground cursor-pointer hover:text-foreground transition-colors flex-shrink-0" />
+              </PopoverTrigger>
+              <PopoverContent className="max-w-xs p-3">
+                <p className="text-xs text-muted-foreground leading-snug">{tooltip}</p>
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
         <h3 className="text-2xl font-bold mt-1">
           {prefix}{value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </h3>
@@ -1036,7 +1054,7 @@ function TransactionItem({ id, title, amount, date, type, lang, onDelete }: {
   );
 }
 
-function KpiCard({ label, value, format, icon, accentColor, lang, secondaryLabel, secondaryValue }: {
+function KpiCard({ label, value, format, icon, accentColor, lang, secondaryLabel, secondaryValue, tooltip }: {
   label: string;
   value: number;
   format: 'number' | 'currency';
@@ -1045,6 +1063,7 @@ function KpiCard({ label, value, format, icon, accentColor, lang, secondaryLabel
   lang: string;
   secondaryLabel?: string;
   secondaryValue?: string;
+  tooltip?: string;
 }) {
   const formattedValue = format === 'currency'
     ? `€${value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -1073,7 +1092,19 @@ function KpiCard({ label, value, format, icon, accentColor, lang, secondaryLabel
     : 'bg-slate-100 text-slate-600';
 
   return (
-    <Card className={cn("rounded-xl shadow-sm border-l-4", borderColor)}>
+    <Card className={cn("rounded-xl shadow-sm border-l-4 relative", borderColor)}>
+      {tooltip && (
+        <div className="absolute top-2 right-2 z-10">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Info className="h-3 w-3 text-muted-foreground cursor-pointer hover:text-foreground transition-colors" />
+            </PopoverTrigger>
+            <PopoverContent className="max-w-xs p-3">
+              <p className="text-xs text-muted-foreground leading-snug">{tooltip}</p>
+            </PopoverContent>
+          </Popover>
+        </div>
+      )}
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
@@ -1094,7 +1125,8 @@ function KpiCard({ label, value, format, icon, accentColor, lang, secondaryLabel
           </div>
           <div className={cn(
             "flex items-center justify-center w-8 h-8 rounded-lg ml-3 flex-shrink-0",
-            iconBg
+            iconBg,
+            tooltip && "mt-3"
           )}>
             <IconComponent className="h-4 w-4" />
           </div>
