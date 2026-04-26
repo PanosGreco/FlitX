@@ -776,19 +776,26 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
       </div>
 
       {/* Secondary KPI Cards + Booking Activity Chart */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
-        <KpiCard
-          label={t('totalBookings')}
-          value={totalBookings}
-          format="number"
-          icon="calendar"
-          lang={language}
-          secondaryLabel={t('avgRentalPeriod')}
-          secondaryValue={totalBookings > 0 ? `~${avgRentalDays} ${t('days')} (${totalBookingDays} ${t('totalDays')})` : '—'}
-          tooltip={t('totalBookingsTooltip')}
-        />
-        <KpiCard label={t('avgIncomePerDay')} value={avgIncomePerDay} format="currency" icon="trendingUp" accentColor="green" lang={language} tooltip={t('avgIncomePerDayTooltip')} />
-        <KpiCard label={t('avgCostPerDay')} value={avgCostPerDay} format="currency" icon="trendingDown" accentColor="red" lang={language} tooltip={t('avgCostPerDayTooltip')} />
+      {/* KPI Cards + Booking Activity Chart — asymmetric layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-3 items-stretch">
+        {/* Left: 3 compact KPI cards stacked */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-2">
+          <KpiCard
+            label={t('totalBookings')}
+            value={totalBookings}
+            format="number"
+            icon="calendar"
+            lang={language}
+            secondaryLabel={t('avgRentalPeriod')}
+            secondaryValue={totalBookings > 0 ? `~${avgRentalDays} ${t('days')} (${totalBookingDays} ${t('totalDays')})` : '—'}
+            tooltip={t('totalBookingsTooltip')}
+            compact
+          />
+          <KpiCard label={t('avgIncomePerDay')} value={avgIncomePerDay} format="currency" icon="trendingUp" accentColor="green" lang={language} tooltip={t('avgIncomePerDayTooltip')} compact />
+          <KpiCard label={t('avgCostPerDay')} value={avgCostPerDay} format="currency" icon="trendingDown" accentColor="red" lang={language} tooltip={t('avgCostPerDayTooltip')} compact />
+        </div>
+
+        {/* Right: Booking Activity Chart — takes 2/3 of the row */}
         <BookingActivityChart bookings={periodBookings} lang={language} seasonMonths={isSeasonalActive ? seasonMonths : undefined} />
       </div>
       
@@ -1058,7 +1065,7 @@ function TransactionItem({ id, title, amount, date, type, lang, onDelete }: {
   );
 }
 
-function KpiCard({ label, value, format, icon, accentColor, lang, secondaryLabel, secondaryValue, tooltip }: {
+function KpiCard({ label, value, format, icon, accentColor, lang, secondaryLabel, secondaryValue, tooltip, compact }: {
   label: string;
   value: number;
   format: 'number' | 'currency';
@@ -1068,6 +1075,7 @@ function KpiCard({ label, value, format, icon, accentColor, lang, secondaryLabel
   secondaryLabel?: string;
   secondaryValue?: string;
   tooltip?: string;
+  compact?: boolean;
 }) {
   const formattedValue = format === 'currency'
     ? `€${value.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -1109,18 +1117,18 @@ function KpiCard({ label, value, format, icon, accentColor, lang, secondaryLabel
           </Popover>
         </div>
       )}
-      <CardContent className="p-3">
+      <CardContent className={compact ? "p-2.5" : "p-3"}>
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{label}</p>
-            <h3 className={cn("text-lg font-bold mt-0.5", valueColor)}>
+            <p className={cn("font-medium text-muted-foreground uppercase tracking-wide", compact ? "text-[10px]" : "text-xs")}>{label}</p>
+            <h3 className={cn("font-bold mt-0.5", valueColor, compact ? "text-base" : "text-lg")}>
               {formattedValue}
             </h3>
             {secondaryLabel && secondaryValue && (
-              <div className="mt-2 pt-2 border-t border-border/30">
+              <div className={cn("border-t border-border/30", compact ? "mt-1.5 pt-1.5" : "mt-2 pt-2")}>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] text-muted-foreground">{secondaryLabel}</span>
-                  <span className="text-xs font-semibold text-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">
+                  <span className={cn("text-muted-foreground", compact ? "text-[10px]" : "text-[11px]")}>{secondaryLabel}</span>
+                  <span className={cn("font-semibold text-foreground bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md", compact ? "text-[10px]" : "text-xs")}>
                     {secondaryValue}
                   </span>
                 </div>
@@ -1128,11 +1136,12 @@ function KpiCard({ label, value, format, icon, accentColor, lang, secondaryLabel
             )}
           </div>
           <div className={cn(
-            "flex items-center justify-center w-8 h-8 rounded-lg ml-3 flex-shrink-0",
+            "flex items-center justify-center rounded-lg ml-3 flex-shrink-0",
+            compact ? "w-6 h-6" : "w-8 h-8",
             iconBg,
             tooltip && "mt-3"
           )}>
-            <IconComponent className="h-4 w-4" />
+            <IconComponent className={compact ? "h-3 w-3" : "h-4 w-4"} />
           </div>
         </div>
       </CardContent>

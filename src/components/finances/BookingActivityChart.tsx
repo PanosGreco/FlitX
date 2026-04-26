@@ -80,7 +80,7 @@ export function BookingActivityChart({ bookings, seasonMonths }: BookingActivity
             {t("bookingActivityByDay")}
           </p>
         </div>
-        <div className="h-[140px] w-full">
+        <div className="h-full min-h-[200px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <RechartsBarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
