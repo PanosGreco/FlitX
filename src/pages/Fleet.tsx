@@ -719,53 +719,57 @@ const Fleet = () => {
                 </div>
               </div>
 
-              {/* Transmission Type */}
-              <div className="space-y-1">
-                <Label htmlFor="transmissionType">{t('fleet:transmissionType')}</Label>
-                <Select 
-                  disabled={isLanguageLoading || isSubmitting}
-                  value={transmissionType}
-                  onValueChange={(v) => setTransmissionType(v as TransmissionType)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('fleet:selectPrompt')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {TRANSMISSION_TYPES.map((tt) => (
-                        <SelectItem key={tt} value={tt}>
-                          {t(`fleet:transmission_${tt}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
+              {vehicleType !== 'motorbike' && vehicleType !== 'bicycle' && (
+                <>
+                  {/* Transmission Type */}
+                  <div className="space-y-1">
+                    <Label htmlFor="transmissionType">{t('fleet:transmissionType')}</Label>
+                    <Select 
+                      disabled={isLanguageLoading || isSubmitting}
+                      value={transmissionType}
+                      onValueChange={(v) => setTransmissionType(v as TransmissionType)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('fleet:selectPrompt')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {TRANSMISSION_TYPES.map((tt) => (
+                            <SelectItem key={tt} value={tt}>
+                              {t(`fleet:transmission_${tt}`)}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              {/* Passengers */}
-              <div className="space-y-1">
-                <Label htmlFor="passengerCapacity">{t('fleet:numberOfPeople')}</Label>
-                <Select 
-                  disabled={isLanguageLoading || isSubmitting}
-                  value={passengerCapacity}
-                  onValueChange={setPassengerCapacity}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('fleet:selectPrompt')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="1">1</SelectItem>
-                      <SelectItem value="2">2</SelectItem>
-                      <SelectItem value="3">3</SelectItem>
-                      <SelectItem value="4">4</SelectItem>
-                      <SelectItem value="5">5</SelectItem>
-                      <SelectItem value="6">6</SelectItem>
-                      <SelectItem value="7">7+</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
+                  {/* Passengers */}
+                  <div className="space-y-1">
+                    <Label htmlFor="passengerCapacity">{t('fleet:numberOfPeople')}</Label>
+                    <Select 
+                      disabled={isLanguageLoading || isSubmitting}
+                      value={passengerCapacity}
+                      onValueChange={setPassengerCapacity}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('fleet:selectPrompt')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value="1">1</SelectItem>
+                          <SelectItem value="2">2</SelectItem>
+                          <SelectItem value="3">3</SelectItem>
+                          <SelectItem value="4">4</SelectItem>
+                          <SelectItem value="5">5</SelectItem>
+                          <SelectItem value="6">6</SelectItem>
+                          <SelectItem value="7">7+</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
               
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
