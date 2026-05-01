@@ -833,6 +833,110 @@ export type Database = {
           },
         ]
       }
+      motorbike_features: {
+        Row: {
+          additional_notes: string | null
+          cooling_system: string | null
+          created_at: string
+          dry_weight_kg: number | null
+          engine_cc: number | null
+          engine_type: string | null
+          fuel_tank_liters: number | null
+          has_abs: boolean | null
+          has_cruise_control: boolean | null
+          has_heated_grips: boolean | null
+          has_keyless_start: boolean | null
+          has_side_cases: boolean | null
+          has_top_case: boolean | null
+          has_traction_control: boolean | null
+          has_usb_charger: boolean | null
+          has_windscreen: boolean | null
+          helmet_included: boolean | null
+          horsepower: number | null
+          id: string
+          license_category: string | null
+          lock_included: boolean | null
+          minimum_rider_age: number | null
+          num_helmets: number | null
+          phone_mount_included: boolean | null
+          seat_height_cm: number | null
+          top_speed_kmh: number | null
+          updated_at: string
+          user_id: string
+          vehicle_id: string
+        }
+        Insert: {
+          additional_notes?: string | null
+          cooling_system?: string | null
+          created_at?: string
+          dry_weight_kg?: number | null
+          engine_cc?: number | null
+          engine_type?: string | null
+          fuel_tank_liters?: number | null
+          has_abs?: boolean | null
+          has_cruise_control?: boolean | null
+          has_heated_grips?: boolean | null
+          has_keyless_start?: boolean | null
+          has_side_cases?: boolean | null
+          has_top_case?: boolean | null
+          has_traction_control?: boolean | null
+          has_usb_charger?: boolean | null
+          has_windscreen?: boolean | null
+          helmet_included?: boolean | null
+          horsepower?: number | null
+          id?: string
+          license_category?: string | null
+          lock_included?: boolean | null
+          minimum_rider_age?: number | null
+          num_helmets?: number | null
+          phone_mount_included?: boolean | null
+          seat_height_cm?: number | null
+          top_speed_kmh?: number | null
+          updated_at?: string
+          user_id: string
+          vehicle_id: string
+        }
+        Update: {
+          additional_notes?: string | null
+          cooling_system?: string | null
+          created_at?: string
+          dry_weight_kg?: number | null
+          engine_cc?: number | null
+          engine_type?: string | null
+          fuel_tank_liters?: number | null
+          has_abs?: boolean | null
+          has_cruise_control?: boolean | null
+          has_heated_grips?: boolean | null
+          has_keyless_start?: boolean | null
+          has_side_cases?: boolean | null
+          has_top_case?: boolean | null
+          has_traction_control?: boolean | null
+          has_usb_charger?: boolean | null
+          has_windscreen?: boolean | null
+          helmet_included?: boolean | null
+          horsepower?: number | null
+          id?: string
+          license_category?: string | null
+          lock_included?: boolean | null
+          minimum_rider_age?: number | null
+          num_helmets?: number | null
+          phone_mount_included?: boolean | null
+          seat_height_cm?: number | null
+          top_speed_kmh?: number | null
+          updated_at?: string
+          user_id?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "motorbike_features_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: true
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_season_rules: {
         Row: {
           adjustment_type: string

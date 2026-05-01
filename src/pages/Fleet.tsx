@@ -40,6 +40,7 @@ import {
 import { TRANSMISSION_TYPES, TransmissionType } from "@/constants/transmissionTypes";
 import { validateFileSize, compressImage } from "@/utils/imageUtils";
 import { CamperFeaturesForm, CamperFeaturesState, defaultCamperFeatures } from "@/components/fleet/CamperFeaturesForm";
+import { MotorbikeFeaturesForm, MotorbikeFeaturesState, defaultMotorbikeFeatures } from "@/components/fleet/MotorbikeFeaturesForm";
 
 const Fleet = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -75,6 +76,12 @@ const Fleet = () => {
   const [camperFeatures, setCamperFeatures] = useState<CamperFeaturesState>({ ...defaultCamperFeatures });
   const updateCamperFeatures = (updates: Partial<CamperFeaturesState>) => {
     setCamperFeatures(prev => ({ ...prev, ...updates }));
+  };
+
+  // Motorbike features state
+  const [motorbikeFeatures, setMotorbikeFeatures] = useState<MotorbikeFeaturesState>({ ...defaultMotorbikeFeatures });
+  const updateMotorbikeFeatures = (updates: Partial<MotorbikeFeaturesState>) => {
+    setMotorbikeFeatures(prev => ({ ...prev, ...updates }));
   };
   
   usePageTitle("fleet");
@@ -197,6 +204,7 @@ const Fleet = () => {
     setAdditionalImages([]);
     setAdditionalImagePreviews([]);
     setCamperFeatures({ ...defaultCamperFeatures });
+    setMotorbikeFeatures({ ...defaultMotorbikeFeatures });
   };
 
   // Handle vehicle type change - reset category
@@ -207,6 +215,9 @@ const Fleet = () => {
     setIsCustomCategory(false);
     if (newType !== 'camper') {
       setCamperFeatures({ ...defaultCamperFeatures });
+    }
+    if (newType !== 'motorbike') {
+      setMotorbikeFeatures({ ...defaultMotorbikeFeatures });
     }
   };
 
@@ -342,6 +353,48 @@ const Fleet = () => {
           toast({
             title: t('common:warning', 'Warning'),
             description: "Vehicle was created but camper features could not be saved. Please edit the vehicle to add camper details.",
+          });
+        }
+      }
+
+      // Save motorbike features if vehicle type is motorbike
+      if (vehicleType === 'motorbike') {
+        const { error: motorbikeError } = await supabase
+          .from('motorbike_features')
+          .insert({
+            vehicle_id: vehicleData.id,
+            user_id: user.id,
+            engine_cc: motorbikeFeatures.engineCc,
+            horsepower: motorbikeFeatures.horsepower,
+            top_speed_kmh: motorbikeFeatures.topSpeedKmh,
+            cooling_system: motorbikeFeatures.coolingSystem,
+            engine_type: motorbikeFeatures.engineType,
+            license_category: motorbikeFeatures.licenseCategory,
+            minimum_rider_age: motorbikeFeatures.minimumRiderAge,
+            seat_height_cm: motorbikeFeatures.seatHeightCm,
+            dry_weight_kg: motorbikeFeatures.dryWeightKg,
+            fuel_tank_liters: motorbikeFeatures.fuelTankLiters,
+            has_abs: motorbikeFeatures.hasAbs,
+            has_traction_control: motorbikeFeatures.hasTractionControl,
+            has_windscreen: motorbikeFeatures.hasWindscreen,
+            has_heated_grips: motorbikeFeatures.hasHeatedGrips,
+            has_top_case: motorbikeFeatures.hasTopCase,
+            has_side_cases: motorbikeFeatures.hasSideCases,
+            has_usb_charger: motorbikeFeatures.hasUsbCharger,
+            has_cruise_control: motorbikeFeatures.hasCruiseControl,
+            has_keyless_start: motorbikeFeatures.hasKeylessStart,
+            helmet_included: motorbikeFeatures.helmetIncluded,
+            num_helmets: motorbikeFeatures.numHelmets,
+            lock_included: motorbikeFeatures.lockIncluded,
+            phone_mount_included: motorbikeFeatures.phoneMountIncluded,
+            additional_notes: motorbikeFeatures.additionalNotes,
+          });
+
+        if (motorbikeError) {
+          console.error('Error saving motorbike features:', motorbikeError);
+          toast({
+            title: t('common:warning', 'Warning'),
+            description: t('fleet:motorbikeSaveWarning'),
           });
         }
       }
@@ -666,53 +719,57 @@ const Fleet = () => {
                 </div>
               </div>
 
-              {/* Transmission Type */}
-              <div className="space-y-1">
-                <Label htmlFor="transmissionType">{t('fleet:transmissionType')}</Label>
-                <Select 
-                  disabled={isLanguageLoading || isSubmitting}
-                  value={transmissionType}
-                  onValueChange={(v) => setTransmissionType(v as TransmissionType)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('fleet:selectPrompt')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {TRANSMISSION_TYPES.map((tt) => (
-                        <SelectItem key={tt} value={tt}>
-                          {t(`fleet:transmission_${tt}`)}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
+              {vehicleType !== 'motorbike' && vehicleType !== 'bicycle' && (
+                <>
+                  {/* Transmission Type */}
+                  <div className="space-y-1">
+                    <Label htmlFor="transmissionType">{t('fleet:transmissionType')}</Label>
+                    <Select 
+                      disabled={isLanguageLoading || isSubmitting}
+                      value={transmissionType}
+                      onValueChange={(v) => setTransmissionType(v as TransmissionType)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('fleet:selectPrompt')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {TRANSMISSION_TYPES.map((tt) => (
+                            <SelectItem key={tt} value={tt}>
+                              {t(`fleet:transmission_${tt}`)}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              {/* Passengers */}
-              <div className="space-y-1">
-                <Label htmlFor="passengerCapacity">{t('fleet:numberOfPeople')}</Label>
-                <Select 
-                  disabled={isLanguageLoading || isSubmitting}
-                  value={passengerCapacity}
-                  onValueChange={setPassengerCapacity}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t('fleet:selectPrompt')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="1">1</SelectItem>
-                      <SelectItem value="2">2</SelectItem>
-                      <SelectItem value="3">3</SelectItem>
-                      <SelectItem value="4">4</SelectItem>
-                      <SelectItem value="5">5</SelectItem>
-                      <SelectItem value="6">6</SelectItem>
-                      <SelectItem value="7">7+</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </div>
+                  {/* Passengers */}
+                  <div className="space-y-1">
+                    <Label htmlFor="passengerCapacity">{t('fleet:numberOfPeople')}</Label>
+                    <Select 
+                      disabled={isLanguageLoading || isSubmitting}
+                      value={passengerCapacity}
+                      onValueChange={setPassengerCapacity}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('fleet:selectPrompt')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value="1">1</SelectItem>
+                          <SelectItem value="2">2</SelectItem>
+                          <SelectItem value="3">3</SelectItem>
+                          <SelectItem value="4">4</SelectItem>
+                          <SelectItem value="5">5</SelectItem>
+                          <SelectItem value="6">6</SelectItem>
+                          <SelectItem value="7">7+</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              )}
               
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
@@ -796,6 +853,15 @@ const Fleet = () => {
                 <CamperFeaturesForm
                   state={camperFeatures}
                   onChange={updateCamperFeatures}
+                  disabled={isSubmitting}
+                />
+              )}
+
+              {/* Motorbike Features - only for motorbike type */}
+              {vehicleType === 'motorbike' && (
+                <MotorbikeFeaturesForm
+                  state={motorbikeFeatures}
+                  onChange={updateMotorbikeFeatures}
                   disabled={isSubmitting}
                 />
               )}

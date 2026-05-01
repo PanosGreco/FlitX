@@ -47,6 +47,7 @@ import { CalendarView } from "./CalendarView";
 import { VehicleFinanceTab } from "./VehicleFinanceTab";
 import { EditVehicleDialog } from "./EditVehicleDialog";
 import { CamperFeaturesDisplay } from "./CamperFeaturesDisplay";
+import { MotorbikeFeaturesDisplay } from "./MotorbikeFeaturesDisplay";
 import { MaintenanceBlockDialog } from "./MaintenanceBlockDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -380,6 +381,11 @@ export function VehicleDetails({
           {/* Camper Features Display */}
           {vehicle.vehicle_type === 'camper' && (
             <CamperFeaturesDisplay vehicleId={vehicleId || ""} refreshTrigger={refreshVehicle} />
+          )}
+
+          {/* Motorbike Features Display */}
+          {vehicle.vehicle_type === 'motorbike' && (
+            <MotorbikeFeaturesDisplay vehicleId={vehicleId || ""} refreshTrigger={refreshVehicle} />
           )}
           
           <Tabs value={activeTab} onValueChange={setActiveTab}>
