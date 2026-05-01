@@ -38,16 +38,15 @@ export function BookingActivityChart({ bookings, seasonMonths }: BookingActivity
         if (!seasonMonths.includes(startMonth)) continue;
       }
 
-      const durationDays = Math.max(
-        1,
-        Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
-      );
-
-      const jsDay = startDate.getDay();
-      const dayIndex = jsDay === 0 ? 6 : jsDay - 1;
-      const dayName = dayKeys[dayIndex];
-
-      dayTotals[dayName] += durationDays;
+      // Walk through every day of the booking and count which weekday it falls on
+      const current = new Date(startDate);
+      while (current <= endDate) {
+        const jsDay = current.getDay();
+        const dayIndex = jsDay === 0 ? 6 : jsDay - 1;
+        const dayName = dayKeys[dayIndex];
+        dayTotals[dayName] += 1;
+        current.setDate(current.getDate() + 1);
+      }
     }
 
     return dayKeys.map((day) => ({
