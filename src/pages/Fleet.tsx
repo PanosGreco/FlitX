@@ -354,6 +354,7 @@ const Fleet = () => {
             title: t('common:warning', 'Warning'),
             description: "Vehicle was created but camper features could not be saved. Please edit the vehicle to add camper details.",
           });
+        }
       }
 
       // Save motorbike features if vehicle type is motorbike
@@ -396,7 +397,6 @@ const Fleet = () => {
             description: t('fleet:motorbikeSaveWarning'),
           });
         }
-      }
       }
 
       // Upload additional images to vehicle-images bucket
