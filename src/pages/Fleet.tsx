@@ -40,6 +40,7 @@ import {
 import { TRANSMISSION_TYPES, TransmissionType } from "@/constants/transmissionTypes";
 import { validateFileSize, compressImage } from "@/utils/imageUtils";
 import { CamperFeaturesForm, CamperFeaturesState, defaultCamperFeatures } from "@/components/fleet/CamperFeaturesForm";
+import { MotorbikeFeaturesForm, MotorbikeFeaturesState, defaultMotorbikeFeatures } from "@/components/fleet/MotorbikeFeaturesForm";
 
 const Fleet = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
