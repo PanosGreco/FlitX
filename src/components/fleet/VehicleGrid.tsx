@@ -82,7 +82,7 @@ export function VehicleGrid({ vehicles, onAddVehicle, isLoading = false }: Vehic
     // Filter by vehicle type (car, motorbike, atv)
     if (filters.vehicleTypes.length > 0) {
       result = result.filter(v => {
-        const vehicleType = (v as any).vehicle_type || 'car';
+        const vehicleType = v.vehicleType || (v as any).vehicle_type || 'car';
         return filters.vehicleTypes.includes(vehicleType);
       });
     }
