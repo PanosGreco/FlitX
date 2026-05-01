@@ -204,6 +204,7 @@ const Fleet = () => {
     setAdditionalImages([]);
     setAdditionalImagePreviews([]);
     setCamperFeatures({ ...defaultCamperFeatures });
+    setMotorbikeFeatures({ ...defaultMotorbikeFeatures });
   };
 
   // Handle vehicle type change - reset category
@@ -214,6 +215,9 @@ const Fleet = () => {
     setIsCustomCategory(false);
     if (newType !== 'camper') {
       setCamperFeatures({ ...defaultCamperFeatures });
+    }
+    if (newType !== 'motorbike') {
+      setMotorbikeFeatures({ ...defaultMotorbikeFeatures });
     }
   };
 
