@@ -856,6 +856,15 @@ const Fleet = () => {
                   disabled={isSubmitting}
                 />
               )}
+
+              {/* Motorbike Features - only for motorbike type */}
+              {vehicleType === 'motorbike' && (
+                <MotorbikeFeaturesForm
+                  state={motorbikeFeatures}
+                  onChange={updateMotorbikeFeatures}
+                  disabled={isSubmitting}
+                />
+              )}
               
               <DialogFooter>
                 <Button 
