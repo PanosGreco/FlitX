@@ -2236,7 +2236,7 @@ Use the pre-computed CRM & CUSTOMER INTELLIGENCE DATA and ACCIDENT & RISK ANALYS
 
 If CRM DATA shows "No customer records available yet", respond ONLY with a short message explaining the user needs to create bookings first to populate the customer database, and STOP.
 
-Provide your analysis in these 6 sections (STRICT ORDER, ALL REQUIRED):
+Provide your analysis in these 7 sections (STRICT ORDER, ALL REQUIRED):
 
 **1. Customer Demographics Overview**
 - Where customers come from (top countries/cities with counts and %)
@@ -2267,6 +2267,12 @@ Provide your analysis in these 6 sections (STRICT ORDER, ALL REQUIRED):
 - Insurance strategy suggestions
 - Customer targeting recommendations
 - End with 2-3 follow-up questions the operator might want to explore
+
+**7. Weekday Occupancy & Pricing Strategy**
+- Which weekdays have the highest/lowest fleet occupancy?
+- What is the gap between busiest and quietest days?
+- Specific discount recommendations for low-traffic days
+- Premium pricing opportunities for high-demand days
 
 Style: Bullet points, precise numbers from the data, € amounts. Reference specific customer names, countries, age groups, and vehicles from the data.
 
@@ -2558,6 +2564,37 @@ function computeCRMContext(
     })
     .join(' | ');
 
+  // ─── Weekday Occupancy Analysis ───
+  const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const weekdayOccupancy: Record<string, number> = {};
+  weekdays.forEach(d => { weekdayOccupancy[d] = 0; });
+
+  for (const b of bookings) {
+    if (!b.start_date || !b.end_date) continue;
+    const start = new Date(b.start_date);
+    const end = new Date(b.end_date);
+    const current = new Date(start);
+
+    while (current <= end) {
+      const jsDay = current.getDay();
+      const dayIndex = jsDay === 0 ? 6 : jsDay - 1;
+      weekdayOccupancy[weekdays[dayIndex]] += 1;
+      current.setDate(current.getDate() + 1);
+    }
+  }
+
+  const totalOccupancyDays = Object.values(weekdayOccupancy).reduce((a, b) => a + b, 0);
+  const avgOccupancy = totalOccupancyDays > 0 ? totalOccupancyDays / 7 : 0;
+
+  const weekdayOccupancyText = weekdays
+    .map(day => {
+      const count = weekdayOccupancy[day];
+      const pctOfAvg = avgOccupancy > 0 ? ((count / avgOccupancy) * 100).toFixed(0) : '0';
+      const indicator = count < avgOccupancy * 0.8 ? '⬇ LOW' : count > avgOccupancy * 1.2 ? '⬆ HIGH' : '— AVG';
+      return `${day}: ${count} booking-days (${pctOfAvg}% of average) ${indicator}`;
+    })
+    .join('\n  ');
+
   // ─── 4. Accident Analysis ───
   const totalAccidents = accidents.length;
   const totalDamageCost = accidents.reduce((sum: number, a: any) => sum + Number(a.total_damage_cost), 0);
@@ -2657,6 +2694,16 @@ CUSTOMER TYPE DISTRIBUTION (by booking count):
 
 CUSTOMER TYPE vs VEHICLE TYPE RELATIONSHIP (booking-level):
   ${typeVsVehicle || 'No relationship data'}
+
+FLEET OCCUPANCY BY WEEKDAY (booking-days that fall on each day):
+  ${weekdayOccupancyText}
+  Weekly Average: ${avgOccupancy.toFixed(1)} booking-days per weekday
+
+USE THIS DATA to:
+- Identify low-traffic weekdays where discounts could increase bookings
+- Identify high-traffic weekdays where premium pricing is justified
+- Suggest specific discount strategies for underperforming days
+- Compare weekday vs weekend occupancy patterns
 
 TOP 5 CUSTOMERS BY REVENUE:
   ${topByRevenue || 'No revenue data'}
