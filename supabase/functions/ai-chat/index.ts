@@ -2236,7 +2236,7 @@ Use the pre-computed CRM & CUSTOMER INTELLIGENCE DATA and ACCIDENT & RISK ANALYS
 
 If CRM DATA shows "No customer records available yet", respond ONLY with a short message explaining the user needs to create bookings first to populate the customer database, and STOP.
 
-Provide your analysis in these 6 sections (STRICT ORDER, ALL REQUIRED):
+Provide your analysis in these 7 sections (STRICT ORDER, ALL REQUIRED):
 
 **1. Customer Demographics Overview**
 - Where customers come from (top countries/cities with counts and %)
@@ -2267,6 +2267,12 @@ Provide your analysis in these 6 sections (STRICT ORDER, ALL REQUIRED):
 - Insurance strategy suggestions
 - Customer targeting recommendations
 - End with 2-3 follow-up questions the operator might want to explore
+
+**7. Weekday Occupancy & Pricing Strategy**
+- Which weekdays have the highest/lowest fleet occupancy?
+- What is the gap between busiest and quietest days?
+- Specific discount recommendations for low-traffic days
+- Premium pricing opportunities for high-demand days
 
 Style: Bullet points, precise numbers from the data, € amounts. Reference specific customer names, countries, age groups, and vehicles from the data.
 
