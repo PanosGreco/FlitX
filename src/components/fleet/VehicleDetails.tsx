@@ -381,6 +381,11 @@ export function VehicleDetails({
           {vehicle.vehicle_type === 'camper' && (
             <CamperFeaturesDisplay vehicleId={vehicleId || ""} refreshTrigger={refreshVehicle} />
           )}
+
+          {/* Motorbike Features Display */}
+          {vehicle.vehicle_type === 'motorbike' && (
+            <MotorbikeFeaturesDisplay vehicleId={vehicleId || ""} refreshTrigger={refreshVehicle} />
+          )}
           
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="flex w-full max-w-5xl mb-6 overflow-x-auto scrollbar-hide">
