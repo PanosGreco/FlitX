@@ -46,6 +46,7 @@ import { useSeasonalMode } from "@/hooks/useSeasonalMode";
 import { SeasonalModeDialog } from "./SeasonalModeDialog";
 import { RecurringTransactionsModal } from "./RecurringTransactionsModal";
 import { MarketingScatterPlot } from "@/components/finances/MarketingScatterPlot";
+import { BookingActivityChart } from "@/components/finances/BookingActivityChart";
 
 interface FinancialRecord {
   id: string;
