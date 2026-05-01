@@ -354,7 +354,49 @@ const Fleet = () => {
             title: t('common:warning', 'Warning'),
             description: "Vehicle was created but camper features could not be saved. Please edit the vehicle to add camper details.",
           });
+      }
+
+      // Save motorbike features if vehicle type is motorbike
+      if (vehicleType === 'motorbike') {
+        const { error: motorbikeError } = await supabase
+          .from('motorbike_features')
+          .insert({
+            vehicle_id: vehicleData.id,
+            user_id: user.id,
+            engine_cc: motorbikeFeatures.engineCc,
+            horsepower: motorbikeFeatures.horsepower,
+            top_speed_kmh: motorbikeFeatures.topSpeedKmh,
+            cooling_system: motorbikeFeatures.coolingSystem,
+            engine_type: motorbikeFeatures.engineType,
+            license_category: motorbikeFeatures.licenseCategory,
+            minimum_rider_age: motorbikeFeatures.minimumRiderAge,
+            seat_height_cm: motorbikeFeatures.seatHeightCm,
+            dry_weight_kg: motorbikeFeatures.dryWeightKg,
+            fuel_tank_liters: motorbikeFeatures.fuelTankLiters,
+            has_abs: motorbikeFeatures.hasAbs,
+            has_traction_control: motorbikeFeatures.hasTractionControl,
+            has_windscreen: motorbikeFeatures.hasWindscreen,
+            has_heated_grips: motorbikeFeatures.hasHeatedGrips,
+            has_top_case: motorbikeFeatures.hasTopCase,
+            has_side_cases: motorbikeFeatures.hasSideCases,
+            has_usb_charger: motorbikeFeatures.hasUsbCharger,
+            has_cruise_control: motorbikeFeatures.hasCruiseControl,
+            has_keyless_start: motorbikeFeatures.hasKeylessStart,
+            helmet_included: motorbikeFeatures.helmetIncluded,
+            num_helmets: motorbikeFeatures.numHelmets,
+            lock_included: motorbikeFeatures.lockIncluded,
+            phone_mount_included: motorbikeFeatures.phoneMountIncluded,
+            additional_notes: motorbikeFeatures.additionalNotes,
+          });
+
+        if (motorbikeError) {
+          console.error('Error saving motorbike features:', motorbikeError);
+          toast({
+            title: t('common:warning', 'Warning'),
+            description: t('fleet:motorbikeSaveWarning'),
+          });
         }
+      }
       }
 
       // Upload additional images to vehicle-images bucket
