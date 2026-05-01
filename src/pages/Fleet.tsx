@@ -77,6 +77,12 @@ const Fleet = () => {
   const updateCamperFeatures = (updates: Partial<CamperFeaturesState>) => {
     setCamperFeatures(prev => ({ ...prev, ...updates }));
   };
+
+  // Motorbike features state
+  const [motorbikeFeatures, setMotorbikeFeatures] = useState<MotorbikeFeaturesState>({ ...defaultMotorbikeFeatures });
+  const updateMotorbikeFeatures = (updates: Partial<MotorbikeFeaturesState>) => {
+    setMotorbikeFeatures(prev => ({ ...prev, ...updates }));
+  };
   
   usePageTitle("fleet");
 
