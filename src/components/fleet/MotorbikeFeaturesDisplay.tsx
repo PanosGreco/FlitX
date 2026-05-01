@@ -66,13 +66,13 @@ export function MotorbikeFeaturesDisplay({ vehicleId, refreshTrigger }: Motorbik
   if (features.top_speed_kmh > 0)
     items.push({ icon: Activity, label: t('motorbikeFeatures_speedDisplay', { speed: features.top_speed_kmh }), group: engineGroup });
   if (features.cooling_system)
-    items.push({ icon: features.cooling_system === 'liquid' ? Snowflake : Wind, label: t(`motorbikeFeatures_cooling_${features.cooling_system}`, features.cooling_system), group: engineGroup });
+    items.push({ icon: features.cooling_system === 'liquid' ? Snowflake : Wind, label: String(t(`motorbikeFeatures_cooling_${features.cooling_system}`, features.cooling_system)), group: engineGroup });
   if (features.engine_type)
-    items.push({ icon: Flame, label: t(`motorbikeFeatures_engine_${features.engine_type}`, features.engine_type), group: engineGroup });
+    items.push({ icon: Flame, label: String(t(`motorbikeFeatures_engine_${features.engine_type}`, features.engine_type)), group: engineGroup });
 
   // License
   if (features.license_category)
-    items.push({ icon: BadgeCheck, label: t(`motorbikeFeatures_license_${features.license_category}`, features.license_category), group: licenseGroup });
+    items.push({ icon: BadgeCheck, label: String(t(`motorbikeFeatures_license_${features.license_category}`, features.license_category)), group: licenseGroup });
   if (features.minimum_rider_age > 0)
     items.push({ icon: UserIcon, label: `${t('motorbikeFeatures_minimumAge')}: ${features.minimum_rider_age}`, group: licenseGroup });
 
