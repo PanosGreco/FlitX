@@ -2558,6 +2558,37 @@ function computeCRMContext(
     })
     .join(' | ');
 
+  // ─── Weekday Occupancy Analysis ───
+  const weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const weekdayOccupancy: Record<string, number> = {};
+  weekdays.forEach(d => { weekdayOccupancy[d] = 0; });
+
+  for (const b of bookings) {
+    if (!b.start_date || !b.end_date) continue;
+    const start = new Date(b.start_date);
+    const end = new Date(b.end_date);
+    const current = new Date(start);
+
+    while (current <= end) {
+      const jsDay = current.getDay();
+      const dayIndex = jsDay === 0 ? 6 : jsDay - 1;
+      weekdayOccupancy[weekdays[dayIndex]] += 1;
+      current.setDate(current.getDate() + 1);
+    }
+  }
+
+  const totalOccupancyDays = Object.values(weekdayOccupancy).reduce((a, b) => a + b, 0);
+  const avgOccupancy = totalOccupancyDays > 0 ? totalOccupancyDays / 7 : 0;
+
+  const weekdayOccupancyText = weekdays
+    .map(day => {
+      const count = weekdayOccupancy[day];
+      const pctOfAvg = avgOccupancy > 0 ? ((count / avgOccupancy) * 100).toFixed(0) : '0';
+      const indicator = count < avgOccupancy * 0.8 ? '⬇ LOW' : count > avgOccupancy * 1.2 ? '⬆ HIGH' : '— AVG';
+      return `${day}: ${count} booking-days (${pctOfAvg}% of average) ${indicator}`;
+    })
+    .join('\n  ');
+
   // ─── 4. Accident Analysis ───
   const totalAccidents = accidents.length;
   const totalDamageCost = accidents.reduce((sum: number, a: any) => sum + Number(a.total_damage_cost), 0);
