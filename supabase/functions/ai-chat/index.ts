@@ -2689,6 +2689,16 @@ CUSTOMER TYPE DISTRIBUTION (by booking count):
 CUSTOMER TYPE vs VEHICLE TYPE RELATIONSHIP (booking-level):
   ${typeVsVehicle || 'No relationship data'}
 
+FLEET OCCUPANCY BY WEEKDAY (booking-days that fall on each day):
+  ${weekdayOccupancyText}
+  Weekly Average: ${avgOccupancy.toFixed(1)} booking-days per weekday
+
+USE THIS DATA to:
+- Identify low-traffic weekdays where discounts could increase bookings
+- Identify high-traffic weekdays where premium pricing is justified
+- Suggest specific discount strategies for underperforming days
+- Compare weekday vs weekend occupancy patterns
+
 TOP 5 CUSTOMERS BY REVENUE:
   ${topByRevenue || 'No revenue data'}
 
