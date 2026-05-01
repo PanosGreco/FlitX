@@ -46,6 +46,7 @@ import { useSeasonalMode } from "@/hooks/useSeasonalMode";
 import { SeasonalModeDialog } from "./SeasonalModeDialog";
 import { RecurringTransactionsModal } from "./RecurringTransactionsModal";
 import { MarketingScatterPlot } from "@/components/finances/MarketingScatterPlot";
+import { BookingActivityChart } from "@/components/finances/BookingActivityChart";
 
 interface FinancialRecord {
   id: string;
@@ -790,8 +791,8 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
         <KpiCard label={t('avgCostPerDay')} value={avgCostPerDay} format="currency" icon="trendingDown" accentColor="red" lang={language} tooltip={t('avgCostPerDayTooltip')} />
       </div>
       
-      {/* Charts - 3 columns on large screens */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+      {/* Charts - 2x2 grid on large screens */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <BarChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} customRange={customRange} title={t('incomeVsExpenses')} seasonMonths={isSeasonalActive ? seasonMonths : undefined} />
         <LineChart financialRecords={filteredRecords} lang={language} timeframe={timeframe} customRange={customRange} title={t('trendOverTime')} seasonMonths={isSeasonalActive ? seasonMonths : undefined} />
         <Card>
@@ -802,6 +803,7 @@ export function FinanceDashboard({ onAddRecord, financialRecords = [], isLoading
             <MarketingScatterPlot financialRecords={financialRecords} lang={language} />
           </CardContent>
         </Card>
+        <BookingActivityChart bookings={periodBookings} lang={language} seasonMonths={isSeasonalActive ? seasonMonths : undefined} />
       </div>
       
       {/* Income Breakdown Section */}
