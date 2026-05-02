@@ -931,6 +931,15 @@ const Fleet = () => {
                   disabled={isSubmitting}
                 />
               )}
+
+              {/* Jet Ski Features - only for jet_ski type */}
+              {vehicleType === 'jet_ski' && (
+                <JetSkiFeaturesForm
+                  state={jetSkiFeatures}
+                  onChange={updateJetSkiFeatures}
+                  disabled={isSubmitting}
+                />
+              )}
               
               <DialogFooter>
                 <Button 
