@@ -41,6 +41,7 @@ import { TRANSMISSION_TYPES, TransmissionType } from "@/constants/transmissionTy
 import { validateFileSize, compressImage } from "@/utils/imageUtils";
 import { CamperFeaturesForm, CamperFeaturesState, defaultCamperFeatures } from "@/components/fleet/CamperFeaturesForm";
 import { MotorbikeFeaturesForm, MotorbikeFeaturesState, defaultMotorbikeFeatures } from "@/components/fleet/MotorbikeFeaturesForm";
+import { JetSkiFeaturesForm, JetSkiFeaturesState, defaultJetSkiFeatures } from "@/components/fleet/JetSkiFeaturesForm";
 
 const Fleet = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -82,6 +83,12 @@ const Fleet = () => {
   const [motorbikeFeatures, setMotorbikeFeatures] = useState<MotorbikeFeaturesState>({ ...defaultMotorbikeFeatures });
   const updateMotorbikeFeatures = (updates: Partial<MotorbikeFeaturesState>) => {
     setMotorbikeFeatures(prev => ({ ...prev, ...updates }));
+  };
+
+  // Jet ski features state
+  const [jetSkiFeatures, setJetSkiFeatures] = useState<JetSkiFeaturesState>({ ...defaultJetSkiFeatures });
+  const updateJetSkiFeatures = (updates: Partial<JetSkiFeaturesState>) => {
+    setJetSkiFeatures(prev => ({ ...prev, ...updates }));
   };
   
   usePageTitle("fleet");
@@ -205,6 +212,7 @@ const Fleet = () => {
     setAdditionalImagePreviews([]);
     setCamperFeatures({ ...defaultCamperFeatures });
     setMotorbikeFeatures({ ...defaultMotorbikeFeatures });
+    setJetSkiFeatures({ ...defaultJetSkiFeatures });
   };
 
   // Handle vehicle type change - reset category
@@ -218,6 +226,9 @@ const Fleet = () => {
     }
     if (newType !== 'motorbike') {
       setMotorbikeFeatures({ ...defaultMotorbikeFeatures });
+    }
+    if (newType !== 'jet_ski') {
+      setJetSkiFeatures({ ...defaultJetSkiFeatures });
     }
   };
 
@@ -395,6 +406,59 @@ const Fleet = () => {
           toast({
             title: t('common:warning', 'Warning'),
             description: t('fleet:motorbikeSaveWarning'),
+          });
+        }
+      }
+
+      // Save jet ski features if vehicle type is jet_ski
+      if (vehicleType === 'jet_ski') {
+        const { error: jetSkiError } = await supabase
+          .from('jet_ski_features' as any)
+          .insert({
+            vehicle_id: vehicleData.id,
+            user_id: user.id,
+            engine_cc: jetSkiFeatures.engineCc,
+            horsepower: jetSkiFeatures.horsepower,
+            top_speed_kmh: jetSkiFeatures.topSpeedKmh,
+            is_supercharged: jetSkiFeatures.isSupercharged,
+            engine_type: jetSkiFeatures.engineType,
+            hull_material: jetSkiFeatures.hullMaterial,
+            hull_type: jetSkiFeatures.hullType,
+            length_meters: jetSkiFeatures.lengthMeters || 0,
+            width_meters: jetSkiFeatures.widthMeters || 0,
+            dry_weight_kg: jetSkiFeatures.dryWeightKg,
+            fuel_tank_liters: jetSkiFeatures.fuelTankLiters,
+            rider_capacity: jetSkiFeatures.riderCapacity,
+            weight_limit_kg: jetSkiFeatures.weightLimitKg,
+            storage_capacity_liters: jetSkiFeatures.storageCapacityLiters,
+            has_boarding_ladder: jetSkiFeatures.hasBoardingLadder,
+            has_rearview_mirrors: jetSkiFeatures.hasRearviewMirrors,
+            has_reverse: jetSkiFeatures.hasReverse,
+            has_brake_system: jetSkiFeatures.hasBrakeSystem,
+            has_traction_control: jetSkiFeatures.hasTractionControl,
+            has_no_wake_mode: jetSkiFeatures.hasNoWakeMode,
+            has_gps: jetSkiFeatures.hasGps,
+            has_depth_finder: jetSkiFeatures.hasDepthFinder,
+            has_cruise_control: jetSkiFeatures.hasCruiseControl,
+            has_bluetooth_speakers: jetSkiFeatures.hasBluetoothSpeakers,
+            has_watertight_storage: jetSkiFeatures.hasWatertightStorage,
+            has_swim_platform: jetSkiFeatures.hasSwimPlatform,
+            has_tow_hook: jetSkiFeatures.hasTowHook,
+            life_jackets_included: jetSkiFeatures.lifeJacketsIncluded,
+            num_life_jackets: jetSkiFeatures.numLifeJackets,
+            safety_lanyard_included: jetSkiFeatures.safetyLanyardIncluded,
+            fire_extinguisher_included: jetSkiFeatures.fireExtinguisherIncluded,
+            whistle_included: jetSkiFeatures.whistleIncluded,
+            minimum_operator_age: jetSkiFeatures.minimumOperatorAge,
+            license_required: jetSkiFeatures.licenseRequired,
+            additional_notes: jetSkiFeatures.additionalNotes,
+          });
+
+        if (jetSkiError) {
+          console.error('Error saving jet ski features:', jetSkiError);
+          toast({
+            title: t('common:warning', 'Warning'),
+            description: t('fleet:jetSkiSaveWarning'),
           });
         }
       }
@@ -697,29 +761,31 @@ const Fleet = () => {
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <Label htmlFor="fuelType">{t('fleet:fuelType')}</Label>
-                  <Select 
-                    disabled={isLanguageLoading || isSubmitting}
-                    value={fuelType}
-                    onValueChange={setFuelType}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('fleet:selectPrompt')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectItem value="petrol">{t('fleet:petrol')}</SelectItem>
-                        <SelectItem value="diesel">{t('fleet:diesel')}</SelectItem>
-                        <SelectItem value="electric">{t('fleet:electric')}</SelectItem>
-                        <SelectItem value="hybrid">{t('fleet:hybrid')}</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {vehicleType !== 'jet_ski' && (
+                  <div className="space-y-1">
+                    <Label htmlFor="fuelType">{t('fleet:fuelType')}</Label>
+                    <Select 
+                      disabled={isLanguageLoading || isSubmitting}
+                      value={fuelType}
+                      onValueChange={setFuelType}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('fleet:selectPrompt')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value="petrol">{t('fleet:petrol')}</SelectItem>
+                          <SelectItem value="diesel">{t('fleet:diesel')}</SelectItem>
+                          <SelectItem value="electric">{t('fleet:electric')}</SelectItem>
+                          <SelectItem value="hybrid">{t('fleet:hybrid')}</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
-              {vehicleType !== 'motorbike' && vehicleType !== 'bicycle' && (
+              {vehicleType !== 'motorbike' && vehicleType !== 'bicycle' && vehicleType !== 'jet_ski' && (
                 <>
                   {/* Transmission Type */}
                   <div className="space-y-1">
@@ -862,6 +928,15 @@ const Fleet = () => {
                 <MotorbikeFeaturesForm
                   state={motorbikeFeatures}
                   onChange={updateMotorbikeFeatures}
+                  disabled={isSubmitting}
+                />
+              )}
+
+              {/* Jet Ski Features - only for jet_ski type */}
+              {vehicleType === 'jet_ski' && (
+                <JetSkiFeaturesForm
+                  state={jetSkiFeatures}
+                  onChange={updateJetSkiFeatures}
                   disabled={isSubmitting}
                 />
               )}

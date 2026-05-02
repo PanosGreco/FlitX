@@ -48,6 +48,7 @@ import { VehicleFinanceTab } from "./VehicleFinanceTab";
 import { EditVehicleDialog } from "./EditVehicleDialog";
 import { CamperFeaturesDisplay } from "./CamperFeaturesDisplay";
 import { MotorbikeFeaturesDisplay } from "./MotorbikeFeaturesDisplay";
+import { JetSkiFeaturesSection } from "./JetSkiFeaturesSection";
 import { MaintenanceBlockDialog } from "./MaintenanceBlockDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -386,6 +387,11 @@ export function VehicleDetails({
           {/* Motorbike Features Display */}
           {vehicle.vehicle_type === 'motorbike' && (
             <MotorbikeFeaturesDisplay vehicleId={vehicleId || ""} refreshTrigger={refreshVehicle} />
+          )}
+
+          {/* Jet Ski Features Display */}
+          {vehicle.vehicle_type === 'jet_ski' && (
+            <JetSkiFeaturesSection vehicleId={vehicleId || ""} refreshTrigger={refreshVehicle} />
           )}
           
           <Tabs value={activeTab} onValueChange={setActiveTab}>

@@ -792,6 +792,143 @@ export type Database = {
         }
         Relationships: []
       }
+      jet_ski_features: {
+        Row: {
+          additional_notes: string | null
+          created_at: string
+          dry_weight_kg: number | null
+          engine_cc: number | null
+          engine_type: string | null
+          fire_extinguisher_included: boolean | null
+          fuel_tank_liters: number | null
+          has_bluetooth_speakers: boolean | null
+          has_boarding_ladder: boolean | null
+          has_brake_system: boolean | null
+          has_cruise_control: boolean | null
+          has_depth_finder: boolean | null
+          has_gps: boolean | null
+          has_no_wake_mode: boolean | null
+          has_rearview_mirrors: boolean | null
+          has_reverse: boolean | null
+          has_swim_platform: boolean | null
+          has_tow_hook: boolean | null
+          has_traction_control: boolean | null
+          has_watertight_storage: boolean | null
+          horsepower: number | null
+          hull_material: string | null
+          hull_type: string | null
+          id: string
+          is_supercharged: boolean | null
+          length_meters: number | null
+          license_required: boolean | null
+          life_jackets_included: boolean | null
+          minimum_operator_age: number | null
+          num_life_jackets: number | null
+          rider_capacity: number | null
+          safety_lanyard_included: boolean | null
+          storage_capacity_liters: number | null
+          top_speed_kmh: number | null
+          updated_at: string
+          user_id: string
+          vehicle_id: string
+          weight_limit_kg: number | null
+          whistle_included: boolean | null
+          width_meters: number | null
+        }
+        Insert: {
+          additional_notes?: string | null
+          created_at?: string
+          dry_weight_kg?: number | null
+          engine_cc?: number | null
+          engine_type?: string | null
+          fire_extinguisher_included?: boolean | null
+          fuel_tank_liters?: number | null
+          has_bluetooth_speakers?: boolean | null
+          has_boarding_ladder?: boolean | null
+          has_brake_system?: boolean | null
+          has_cruise_control?: boolean | null
+          has_depth_finder?: boolean | null
+          has_gps?: boolean | null
+          has_no_wake_mode?: boolean | null
+          has_rearview_mirrors?: boolean | null
+          has_reverse?: boolean | null
+          has_swim_platform?: boolean | null
+          has_tow_hook?: boolean | null
+          has_traction_control?: boolean | null
+          has_watertight_storage?: boolean | null
+          horsepower?: number | null
+          hull_material?: string | null
+          hull_type?: string | null
+          id?: string
+          is_supercharged?: boolean | null
+          length_meters?: number | null
+          license_required?: boolean | null
+          life_jackets_included?: boolean | null
+          minimum_operator_age?: number | null
+          num_life_jackets?: number | null
+          rider_capacity?: number | null
+          safety_lanyard_included?: boolean | null
+          storage_capacity_liters?: number | null
+          top_speed_kmh?: number | null
+          updated_at?: string
+          user_id: string
+          vehicle_id: string
+          weight_limit_kg?: number | null
+          whistle_included?: boolean | null
+          width_meters?: number | null
+        }
+        Update: {
+          additional_notes?: string | null
+          created_at?: string
+          dry_weight_kg?: number | null
+          engine_cc?: number | null
+          engine_type?: string | null
+          fire_extinguisher_included?: boolean | null
+          fuel_tank_liters?: number | null
+          has_bluetooth_speakers?: boolean | null
+          has_boarding_ladder?: boolean | null
+          has_brake_system?: boolean | null
+          has_cruise_control?: boolean | null
+          has_depth_finder?: boolean | null
+          has_gps?: boolean | null
+          has_no_wake_mode?: boolean | null
+          has_rearview_mirrors?: boolean | null
+          has_reverse?: boolean | null
+          has_swim_platform?: boolean | null
+          has_tow_hook?: boolean | null
+          has_traction_control?: boolean | null
+          has_watertight_storage?: boolean | null
+          horsepower?: number | null
+          hull_material?: string | null
+          hull_type?: string | null
+          id?: string
+          is_supercharged?: boolean | null
+          length_meters?: number | null
+          license_required?: boolean | null
+          life_jackets_included?: boolean | null
+          minimum_operator_age?: number | null
+          num_life_jackets?: number | null
+          rider_capacity?: number | null
+          safety_lanyard_included?: boolean | null
+          storage_capacity_liters?: number | null
+          top_speed_kmh?: number | null
+          updated_at?: string
+          user_id?: string
+          vehicle_id?: string
+          weight_limit_kg?: number | null
+          whistle_included?: boolean | null
+          width_meters?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jet_ski_features_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: true
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       maintenance_blocks: {
         Row: {
           created_at: string

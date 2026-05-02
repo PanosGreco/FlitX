@@ -21,6 +21,7 @@ import {
 import { TRANSMISSION_TYPES, TransmissionType } from "@/constants/transmissionTypes";
 import { validateFileSize, compressImage } from "@/utils/imageUtils";
 import { CamperFeaturesForm, CamperFeaturesState, defaultCamperFeatures } from "./CamperFeaturesForm";
+import { JetSkiFeaturesForm, JetSkiFeaturesState, defaultJetSkiFeatures } from "./JetSkiFeaturesForm";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface EditVehicleDialogProps {
@@ -63,9 +64,13 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
 
   // Camper features state
   const [camperFeatures, setCamperFeatures] = useState<CamperFeaturesState>({ ...defaultCamperFeatures });
+  const [jetSkiFeatures, setJetSkiFeatures] = useState<JetSkiFeaturesState>({ ...defaultJetSkiFeatures });
   const [originalVehicleType, setOriginalVehicleType] = useState<string>('');
   const updateCamperFeatures = (updates: Partial<CamperFeaturesState>) => {
     setCamperFeatures(prev => ({ ...prev, ...updates }));
+  };
+  const updateJetSkiFeatures = (updates: Partial<JetSkiFeaturesState>) => {
+    setJetSkiFeatures(prev => ({ ...prev, ...updates }));
   };
 
   useEffect(() => {
@@ -139,6 +144,52 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
         }
       });
     }
+
+    // Fetch jet ski features if vehicle is a jet ski
+    setJetSkiFeatures({ ...defaultJetSkiFeatures });
+    if (vType === 'jet_ski') {
+      supabase.from('jet_ski_features' as any).select('*').eq('vehicle_id', vehicle.id).maybeSingle().then(({ data }: any) => {
+        if (data) {
+          setJetSkiFeatures({
+            engineCc: data.engine_cc ?? 0,
+            horsepower: data.horsepower ?? 0,
+            topSpeedKmh: data.top_speed_kmh ?? 0,
+            isSupercharged: data.is_supercharged ?? false,
+            engineType: data.engine_type ?? '',
+            hullMaterial: data.hull_material ?? '',
+            hullType: data.hull_type ?? '',
+            lengthMeters: parseFloat(data.length_meters) || 0,
+            widthMeters: parseFloat(data.width_meters) || 0,
+            dryWeightKg: data.dry_weight_kg ?? 0,
+            fuelTankLiters: parseFloat(data.fuel_tank_liters) || 0,
+            riderCapacity: data.rider_capacity ?? 1,
+            weightLimitKg: data.weight_limit_kg ?? 0,
+            storageCapacityLiters: data.storage_capacity_liters ?? 0,
+            hasBoardingLadder: data.has_boarding_ladder ?? false,
+            hasRearviewMirrors: data.has_rearview_mirrors ?? false,
+            hasReverse: data.has_reverse ?? false,
+            hasBrakeSystem: data.has_brake_system ?? false,
+            hasTractionControl: data.has_traction_control ?? false,
+            hasNoWakeMode: data.has_no_wake_mode ?? false,
+            hasGps: data.has_gps ?? false,
+            hasDepthFinder: data.has_depth_finder ?? false,
+            hasCruiseControl: data.has_cruise_control ?? false,
+            hasBluetoothSpeakers: data.has_bluetooth_speakers ?? false,
+            hasWatertightStorage: data.has_watertight_storage ?? false,
+            hasSwimPlatform: data.has_swim_platform ?? false,
+            hasTowHook: data.has_tow_hook ?? false,
+            lifeJacketsIncluded: data.life_jackets_included ?? true,
+            numLifeJackets: data.num_life_jackets ?? 1,
+            safetyLanyardIncluded: data.safety_lanyard_included ?? true,
+            fireExtinguisherIncluded: data.fire_extinguisher_included ?? false,
+            whistleIncluded: data.whistle_included ?? false,
+            minimumOperatorAge: data.minimum_operator_age ?? 16,
+            licenseRequired: data.license_required ?? false,
+            additionalNotes: data.additional_notes ?? '',
+          });
+        }
+      });
+    }
   }, [vehicle.id]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,6 +216,9 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     setIsCustomCategory(false);
     if (newType !== 'camper') {
       setCamperFeatures({ ...defaultCamperFeatures });
+    }
+    if (newType !== 'jet_ski') {
+      setJetSkiFeatures({ ...defaultJetSkiFeatures });
     }
   };
 
@@ -249,6 +303,51 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
       } else if (originalVehicleType === 'camper' && vehicleType !== 'camper') {
         // Type changed from camper — delete camper features
         await supabase.from('camper_features').delete().eq('vehicle_id', vehicle.id);
+      }
+
+      // Handle jet ski features
+      if (vehicleType === 'jet_ski' && user) {
+        await supabase.from('jet_ski_features' as any).upsert({
+          vehicle_id: vehicle.id,
+          user_id: user.id,
+          engine_cc: jetSkiFeatures.engineCc,
+          horsepower: jetSkiFeatures.horsepower,
+          top_speed_kmh: jetSkiFeatures.topSpeedKmh,
+          is_supercharged: jetSkiFeatures.isSupercharged,
+          engine_type: jetSkiFeatures.engineType,
+          hull_material: jetSkiFeatures.hullMaterial,
+          hull_type: jetSkiFeatures.hullType,
+          length_meters: jetSkiFeatures.lengthMeters || 0,
+          width_meters: jetSkiFeatures.widthMeters || 0,
+          dry_weight_kg: jetSkiFeatures.dryWeightKg,
+          fuel_tank_liters: jetSkiFeatures.fuelTankLiters,
+          rider_capacity: jetSkiFeatures.riderCapacity,
+          weight_limit_kg: jetSkiFeatures.weightLimitKg,
+          storage_capacity_liters: jetSkiFeatures.storageCapacityLiters,
+          has_boarding_ladder: jetSkiFeatures.hasBoardingLadder,
+          has_rearview_mirrors: jetSkiFeatures.hasRearviewMirrors,
+          has_reverse: jetSkiFeatures.hasReverse,
+          has_brake_system: jetSkiFeatures.hasBrakeSystem,
+          has_traction_control: jetSkiFeatures.hasTractionControl,
+          has_no_wake_mode: jetSkiFeatures.hasNoWakeMode,
+          has_gps: jetSkiFeatures.hasGps,
+          has_depth_finder: jetSkiFeatures.hasDepthFinder,
+          has_cruise_control: jetSkiFeatures.hasCruiseControl,
+          has_bluetooth_speakers: jetSkiFeatures.hasBluetoothSpeakers,
+          has_watertight_storage: jetSkiFeatures.hasWatertightStorage,
+          has_swim_platform: jetSkiFeatures.hasSwimPlatform,
+          has_tow_hook: jetSkiFeatures.hasTowHook,
+          life_jackets_included: jetSkiFeatures.lifeJacketsIncluded,
+          num_life_jackets: jetSkiFeatures.numLifeJackets,
+          safety_lanyard_included: jetSkiFeatures.safetyLanyardIncluded,
+          fire_extinguisher_included: jetSkiFeatures.fireExtinguisherIncluded,
+          whistle_included: jetSkiFeatures.whistleIncluded,
+          minimum_operator_age: jetSkiFeatures.minimumOperatorAge,
+          license_required: jetSkiFeatures.licenseRequired,
+          additional_notes: jetSkiFeatures.additionalNotes,
+        }, { onConflict: 'vehicle_id' });
+      } else if (originalVehicleType === 'jet_ski' && vehicleType !== 'jet_ski') {
+        await supabase.from('jet_ski_features' as any).delete().eq('vehicle_id', vehicle.id);
       }
 
       toast({ title: t('fleet:vehicleUpdated'), description: t('fleet:vehicleUpdateSuccess') });
@@ -414,6 +513,15 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
             <CamperFeaturesForm
               state={camperFeatures}
               onChange={updateCamperFeatures}
+              disabled={isLoading}
+            />
+          )}
+
+          {/* Jet Ski Features */}
+          {vehicleType === 'jet_ski' && (
+            <JetSkiFeaturesForm
+              state={jetSkiFeatures}
+              onChange={updateJetSkiFeatures}
               disabled={isLoading}
             />
           )}
