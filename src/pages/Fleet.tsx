@@ -761,29 +761,31 @@ const Fleet = () => {
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <Label htmlFor="fuelType">{t('fleet:fuelType')}</Label>
-                  <Select 
-                    disabled={isLanguageLoading || isSubmitting}
-                    value={fuelType}
-                    onValueChange={setFuelType}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('fleet:selectPrompt')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectItem value="petrol">{t('fleet:petrol')}</SelectItem>
-                        <SelectItem value="diesel">{t('fleet:diesel')}</SelectItem>
-                        <SelectItem value="electric">{t('fleet:electric')}</SelectItem>
-                        <SelectItem value="hybrid">{t('fleet:hybrid')}</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {vehicleType !== 'jet_ski' && (
+                  <div className="space-y-1">
+                    <Label htmlFor="fuelType">{t('fleet:fuelType')}</Label>
+                    <Select 
+                      disabled={isLanguageLoading || isSubmitting}
+                      value={fuelType}
+                      onValueChange={setFuelType}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('fleet:selectPrompt')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value="petrol">{t('fleet:petrol')}</SelectItem>
+                          <SelectItem value="diesel">{t('fleet:diesel')}</SelectItem>
+                          <SelectItem value="electric">{t('fleet:electric')}</SelectItem>
+                          <SelectItem value="hybrid">{t('fleet:hybrid')}</SelectItem>
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
-              {vehicleType !== 'motorbike' && vehicleType !== 'bicycle' && (
+              {vehicleType !== 'motorbike' && vehicleType !== 'bicycle' && vehicleType !== 'jet_ski' && (
                 <>
                   {/* Transmission Type */}
                   <div className="space-y-1">
