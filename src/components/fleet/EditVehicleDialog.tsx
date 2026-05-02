@@ -217,6 +217,9 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
     if (newType !== 'camper') {
       setCamperFeatures({ ...defaultCamperFeatures });
     }
+    if (newType !== 'jet_ski') {
+      setJetSkiFeatures({ ...defaultJetSkiFeatures });
+    }
   };
 
   const handleCategoryChange = (value: string) => {
