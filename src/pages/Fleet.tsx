@@ -84,6 +84,12 @@ const Fleet = () => {
   const updateMotorbikeFeatures = (updates: Partial<MotorbikeFeaturesState>) => {
     setMotorbikeFeatures(prev => ({ ...prev, ...updates }));
   };
+
+  // Jet ski features state
+  const [jetSkiFeatures, setJetSkiFeatures] = useState<JetSkiFeaturesState>({ ...defaultJetSkiFeatures });
+  const updateJetSkiFeatures = (updates: Partial<JetSkiFeaturesState>) => {
+    setJetSkiFeatures(prev => ({ ...prev, ...updates }));
+  };
   
   usePageTitle("fleet");
 
