@@ -144,6 +144,52 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
         }
       });
     }
+
+    // Fetch jet ski features if vehicle is a jet ski
+    setJetSkiFeatures({ ...defaultJetSkiFeatures });
+    if (vType === 'jet_ski') {
+      supabase.from('jet_ski_features' as any).select('*').eq('vehicle_id', vehicle.id).maybeSingle().then(({ data }: any) => {
+        if (data) {
+          setJetSkiFeatures({
+            engineCc: data.engine_cc ?? 0,
+            horsepower: data.horsepower ?? 0,
+            topSpeedKmh: data.top_speed_kmh ?? 0,
+            isSupercharged: data.is_supercharged ?? false,
+            engineType: data.engine_type ?? '',
+            hullMaterial: data.hull_material ?? '',
+            hullType: data.hull_type ?? '',
+            lengthMeters: parseFloat(data.length_meters) || 0,
+            widthMeters: parseFloat(data.width_meters) || 0,
+            dryWeightKg: data.dry_weight_kg ?? 0,
+            fuelTankLiters: parseFloat(data.fuel_tank_liters) || 0,
+            riderCapacity: data.rider_capacity ?? 1,
+            weightLimitKg: data.weight_limit_kg ?? 0,
+            storageCapacityLiters: data.storage_capacity_liters ?? 0,
+            hasBoardingLadder: data.has_boarding_ladder ?? false,
+            hasRearviewMirrors: data.has_rearview_mirrors ?? false,
+            hasReverse: data.has_reverse ?? false,
+            hasBrakeSystem: data.has_brake_system ?? false,
+            hasTractionControl: data.has_traction_control ?? false,
+            hasNoWakeMode: data.has_no_wake_mode ?? false,
+            hasGps: data.has_gps ?? false,
+            hasDepthFinder: data.has_depth_finder ?? false,
+            hasCruiseControl: data.has_cruise_control ?? false,
+            hasBluetoothSpeakers: data.has_bluetooth_speakers ?? false,
+            hasWatertightStorage: data.has_watertight_storage ?? false,
+            hasSwimPlatform: data.has_swim_platform ?? false,
+            hasTowHook: data.has_tow_hook ?? false,
+            lifeJacketsIncluded: data.life_jackets_included ?? true,
+            numLifeJackets: data.num_life_jackets ?? 1,
+            safetyLanyardIncluded: data.safety_lanyard_included ?? true,
+            fireExtinguisherIncluded: data.fire_extinguisher_included ?? false,
+            whistleIncluded: data.whistle_included ?? false,
+            minimumOperatorAge: data.minimum_operator_age ?? 16,
+            licenseRequired: data.license_required ?? false,
+            additionalNotes: data.additional_notes ?? '',
+          });
+        }
+      });
+    }
   }, [vehicle.id]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
