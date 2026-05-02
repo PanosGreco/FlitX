@@ -410,6 +410,59 @@ const Fleet = () => {
         }
       }
 
+      // Save jet ski features if vehicle type is jet_ski
+      if (vehicleType === 'jet_ski') {
+        const { error: jetSkiError } = await supabase
+          .from('jet_ski_features' as any)
+          .insert({
+            vehicle_id: vehicleData.id,
+            user_id: user.id,
+            engine_cc: jetSkiFeatures.engineCc,
+            horsepower: jetSkiFeatures.horsepower,
+            top_speed_kmh: jetSkiFeatures.topSpeedKmh,
+            is_supercharged: jetSkiFeatures.isSupercharged,
+            engine_type: jetSkiFeatures.engineType,
+            hull_material: jetSkiFeatures.hullMaterial,
+            hull_type: jetSkiFeatures.hullType,
+            length_meters: jetSkiFeatures.lengthMeters || 0,
+            width_meters: jetSkiFeatures.widthMeters || 0,
+            dry_weight_kg: jetSkiFeatures.dryWeightKg,
+            fuel_tank_liters: jetSkiFeatures.fuelTankLiters,
+            rider_capacity: jetSkiFeatures.riderCapacity,
+            weight_limit_kg: jetSkiFeatures.weightLimitKg,
+            storage_capacity_liters: jetSkiFeatures.storageCapacityLiters,
+            has_boarding_ladder: jetSkiFeatures.hasBoardingLadder,
+            has_rearview_mirrors: jetSkiFeatures.hasRearviewMirrors,
+            has_reverse: jetSkiFeatures.hasReverse,
+            has_brake_system: jetSkiFeatures.hasBrakeSystem,
+            has_traction_control: jetSkiFeatures.hasTractionControl,
+            has_no_wake_mode: jetSkiFeatures.hasNoWakeMode,
+            has_gps: jetSkiFeatures.hasGps,
+            has_depth_finder: jetSkiFeatures.hasDepthFinder,
+            has_cruise_control: jetSkiFeatures.hasCruiseControl,
+            has_bluetooth_speakers: jetSkiFeatures.hasBluetoothSpeakers,
+            has_watertight_storage: jetSkiFeatures.hasWatertightStorage,
+            has_swim_platform: jetSkiFeatures.hasSwimPlatform,
+            has_tow_hook: jetSkiFeatures.hasTowHook,
+            life_jackets_included: jetSkiFeatures.lifeJacketsIncluded,
+            num_life_jackets: jetSkiFeatures.numLifeJackets,
+            safety_lanyard_included: jetSkiFeatures.safetyLanyardIncluded,
+            fire_extinguisher_included: jetSkiFeatures.fireExtinguisherIncluded,
+            whistle_included: jetSkiFeatures.whistleIncluded,
+            minimum_operator_age: jetSkiFeatures.minimumOperatorAge,
+            license_required: jetSkiFeatures.licenseRequired,
+            additional_notes: jetSkiFeatures.additionalNotes,
+          });
+
+        if (jetSkiError) {
+          console.error('Error saving jet ski features:', jetSkiError);
+          toast({
+            title: t('common:warning', 'Warning'),
+            description: t('fleet:jetSkiSaveWarning'),
+          });
+        }
+      }
+
       // Upload additional images to vehicle-images bucket
       if (additionalImages.length > 0) {
         for (let i = 0; i < additionalImages.length; i++) {
