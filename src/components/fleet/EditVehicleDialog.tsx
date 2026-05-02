@@ -516,6 +516,15 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
               disabled={isLoading}
             />
           )}
+
+          {/* Jet Ski Features */}
+          {vehicleType === 'jet_ski' && (
+            <JetSkiFeaturesForm
+              state={jetSkiFeatures}
+              onChange={updateJetSkiFeatures}
+              disabled={isLoading}
+            />
+          )}
         </div>
         
         <DialogFooter>
