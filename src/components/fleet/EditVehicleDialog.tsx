@@ -21,6 +21,7 @@ import {
 import { TRANSMISSION_TYPES, TransmissionType } from "@/constants/transmissionTypes";
 import { validateFileSize, compressImage } from "@/utils/imageUtils";
 import { CamperFeaturesForm, CamperFeaturesState, defaultCamperFeatures } from "./CamperFeaturesForm";
+import { JetSkiFeaturesForm, JetSkiFeaturesState, defaultJetSkiFeatures } from "./JetSkiFeaturesForm";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface EditVehicleDialogProps {
@@ -63,9 +64,13 @@ export function EditVehicleDialog({ isOpen, onClose, vehicle, onSaved }: EditVeh
 
   // Camper features state
   const [camperFeatures, setCamperFeatures] = useState<CamperFeaturesState>({ ...defaultCamperFeatures });
+  const [jetSkiFeatures, setJetSkiFeatures] = useState<JetSkiFeaturesState>({ ...defaultJetSkiFeatures });
   const [originalVehicleType, setOriginalVehicleType] = useState<string>('');
   const updateCamperFeatures = (updates: Partial<CamperFeaturesState>) => {
     setCamperFeatures(prev => ({ ...prev, ...updates }));
+  };
+  const updateJetSkiFeatures = (updates: Partial<JetSkiFeaturesState>) => {
+    setJetSkiFeatures(prev => ({ ...prev, ...updates }));
   };
 
   useEffect(() => {
